@@ -370,7 +370,7 @@ uint8_t SelfTest(void)
   uint8_t           Test = 1;           /* test counter */
   uint8_t           Counter;            /* loop counter */
   uint8_t           DisplayFlag;        /* display flag */
-  signed int        Val1, Val2, Val3;   /* voltages/values */
+  signed int        Val1 = 0, Val2 = 0, Val3 = 0;   /* voltages/values */
 
   /* check for short-circuited probes */
   if (AllProbesShorted() != 3) return Flag;
@@ -609,7 +609,7 @@ uint8_t SelfCal(void)
   uint8_t           Test = 1;           /* test counter */
   uint8_t           Counter;            /* loop counter */
   uint8_t           DisplayFlag;        /* display flag */
-  unsigned int      Val1, Val2, Val3;   /* voltages */
+  unsigned int      Val1 = 0, Val2 = 0, Val3 = 0;   /* voltages */
   uint8_t           CapCounter = 0;     /* number of C_Zero measurements */
   unsigned int      CapSum = 0;         /* sum of C_Zero values */
   uint8_t           RCounter = 0;       /* number of R_Zero measurements */
@@ -1009,8 +1009,8 @@ void MainMenu(void)
   uint8_t           Selected = 1;       /* ID of selected item */
   uint8_t           Top = 1;            /* ID of top item */
   uint8_t           n;                  /* counter */
-  unsigned char     *String;            /* menu string */
-  unsigned char     *String2;           /* item string */
+  unsigned char     *String = NULL;     /* menu string */
+  unsigned char     *String2 = NULL;    /* item string */
 
 #define MAX_ITEMS   4         /* number of menu items */
 

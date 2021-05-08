@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2012-11-4
+Last edit:  2012-11-8
 
 
 * About
@@ -225,6 +225,13 @@ hardware version of the tester.
 
 
 * Change Log
+
+v1,03m 2012-11
+- Fixed detection problem of power diodes with high leakage current (mistaken
+  for resistors).
+- Fixed compiler warnings about possible uninitialized variables. That
+  increased the firmware size by about 44 bytes :-(
+
 v1.02m 2012-11
 - Added upper limit for resistance of probe leads in the self calibration
   function (1.00 Ohms).

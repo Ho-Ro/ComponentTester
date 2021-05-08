@@ -444,7 +444,7 @@ uint8_t LargeCap(Capacitor_Type *Cap)
   unsigned int      Pulses;             /* number of charging pulses */
   unsigned int      U_Zero;             /* voltage before charging */
   unsigned int      U_Cap;              /* voltage of DUT */
-  unsigned int      U_Drop;             /* voltage drop */
+  unsigned int      U_Drop = 0;         /* voltage drop */
   unsigned long     Raw;                /* raw capacitance value */
   unsigned long     Value;              /* corrected capacitance value */
 
@@ -1016,15 +1016,15 @@ void CheckDiode(void)
    *  How-To:
    *  - Measure voltages with Rl and Rh to distinguish anti-parallel
    *    diodes from a resistor. Diodes got nearly the same voltage for
-   *    low and high currents. Resistors are R = U / I :-)
-   *  - Take care about µC internal voltage drop at cathode for high
-   *    currents.
+   *    low and high currents. Resistors cause U = I * R.
+   *  - Take care about the internal voltage drop of the µC at the cathode
+   *    for high currents.
    *  - Take care about a possible MOSFET, since we might just found
    *    an internal protection diode.
    *
    *  Problem:
    *  - Rl drives a current of about 7mA. That's not the best current to
-   *    use for measuring Vf. Current for Rh is about 10.6µA. 
+   *    use for measuring Vf. The current for Rh is about 10.6µA. 
    */
 
   /* we assume: probe-1 = A / probe2 = C */
@@ -1120,7 +1120,8 @@ unsigned int SmallResistor(void)
   uint8_t           Mode;               /* measurement mode */
   uint8_t           Counter;            /* sample counter */
   unsigned long     Value;              /* ADC sample value */
-  unsigned long     Value1, Value2;     /* temp. values */
+  unsigned long     Value1 = 0;         /* U_Rl temp. value */
+  unsigned long     Value2 = 0;         /* U_R_i_L temp. value */
 
   DischargeProbes();                    /* try to discharge probes */
   if (CompFound == COMP_CELL) return R;
@@ -2186,13 +2187,14 @@ void CheckBJTorDepMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
       }
     }
 
-
 #if 0
     /*
      *  Check for proper emitter and collector:
      *  - I_c is much lower for reversed emitter and collector.
      *  - So we reverse the probes and measure I_c (= U_R_c / R_c) again.
      *  - Since R_c is constant we may simply compare U_R_c.
+     *
+     *  This is an alternative solution instead of running the check two times.
      */
 
     ADC_DDR = 0;              /* set ADC port to HiZ mode */
@@ -2219,7 +2221,7 @@ void CheckBJTorDepMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
       U_R_b = ReadU_5ms(Probe1_Pin);         /* U_R_c = U_c */
     }
 
-    /* if not reversed BJT is identified */
+    /* if not reversed, BJT is identified */
 //    U_R_b *= 10;                   /* be much larger */
     if (U_R_c > U_R_b)             /* I_c > I_c_reversed */
     {
@@ -2227,6 +2229,7 @@ void CheckBJTorDepMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
       CompDone = 1;
     }
 #endif
+
   }
   else if ((U_Rl < 97) && (U_R_c > FET_Level))    /* no BJT */
   {
@@ -2372,8 +2375,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
    *  Check for a resistor.
    */
 
-  if ((CompFound == COMP_DIODE) ||
-      (CompFound == COMP_NONE) ||
+  if ((CompFound == COMP_NONE) ||
       (CompFound == COMP_RESISTOR))
   {
     CheckResistor();

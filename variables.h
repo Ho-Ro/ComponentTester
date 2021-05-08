@@ -62,7 +62,7 @@
   const uint8_t     NV_CapZero EEMEM = C_ZERO;
   const int8_t      NV_RefOffset EEMEM = UREF_OFFSET;
   const int8_t      NV_CompOffset EEMEM = COMPARATOR_OFFSET;
-  const uint8_t     NV_Checksum EEMEM = CHECKSUM;
+  const uint8_t     NV_Checksum EEMEM = (uint8_t)(CHECKSUM);
 
 
   /*
@@ -155,7 +155,7 @@
   const unsigned char Diodes_str[] MEM_TEXT = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
   const unsigned char Resistor_str[] MEM_TEXT = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
 
-  const unsigned char Version_str[] MEM_TEXT = "v1.02m";
+  const unsigned char Version_str[] MEM_TEXT = "v1.03m";
 
 
   /*
