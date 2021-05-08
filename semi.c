@@ -89,7 +89,7 @@ unsigned long Get_hFE_C(uint8_t Type)
     U_R_b = ReadU(Probes.Pin_3);                  /* U_R_b = U_b */
   }
 
-  if (U_R_b < 10)             /* I_b < 14µA = Darlington */
+  if (U_R_b < 10)             /* I_b < 14µA -> Darlington */
   {
     /* change base resistor from Rl to Rh and measure again */
     if (Type == TYPE_NPN)            /* NPN */
@@ -125,7 +125,7 @@ unsigned long Get_hFE_C(uint8_t Type)
     hFE *= 10;                               /* upscale to 0.1 */
     hFE /= (R_LOW * 10) + Ri;                /* / R_e in 0.1 Ohm */
   }
-  else                        /* I_b > 14µA = standard */
+  else                        /* I_b > 14µA -> standard */
   {
     /*
      *  Both resistors are the same (R_e = R_b): 
@@ -517,6 +517,56 @@ void CheckDiode(void)
 
 
 /*
+ *  verify MOSFET by checking the body diode
+ */
+
+void VerifyMOSFET(void)
+{
+  uint8_t           Flag = 0;
+  uint8_t           n = 0;
+  uint8_t           Anode;
+  uint8_t           Cathode;
+  Diode_Type        *Diode;             /* pointer to diode */
+
+  /* set expected body diode */
+  if (Check.Type & TYPE_N_CHANNEL)      /* n-channel */
+  {
+    Anode = FET.S;
+    Cathode = FET.D;
+  }
+  else                                  /* p-channel */
+  {
+    Anode = FET.D;
+    Cathode = FET.S;
+  }
+
+  Diode = &Diodes[0];              /* first diode */
+
+  /* check all known diodes for reversed one */
+  while (n < Check.Diodes)
+  {
+    if ((Diode->A == Cathode) && (Diode->C == Anode))
+    {
+      Flag = 1;          /* signal match */
+      n = 10;            /* end loop */
+    }
+
+    n++;                 /* next diode */
+    Diode++;
+  }
+
+  if (Flag == 1)         /* found reversed diode */
+  {
+    /* this can't be a MOSFET, so let's reset */
+    Check.Found = COMP_NONE;
+    Check.Type = 0;
+    Check.Done = 0;
+  }
+}
+
+
+
+/*
  *  check for BJT or enhancement-mode MOSFET
  *
  *  requires:
@@ -531,6 +581,7 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
   unsigned int      U_R_b;              /* voltage across base resistor */
   unsigned int      BJT_Level;          /* voltage threshold for BJT */
   unsigned int      FET_Level;          /* voltage threshold for FET */
+  unsigned int      I_CE0;              /* leakage current */
   unsigned long     hFE_C;              /* hFE (common collector) */
   unsigned long     hFE_E;              /* hFE (common emitter) */
 
@@ -540,8 +591,8 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
 
   if (BJT_Type == TYPE_NPN)   /* NPN / n-channel */
   {
-    BJT_Level = 2557;
-    FET_Level = 3400;
+    BJT_Level = 2557;         /* voltage across base resistor (5.44µA) */
+    FET_Level = 3400;         /* voltage across drain resistor (4.8mA) */
     FET_Type = TYPE_N_CHANNEL;
 
     /*
@@ -560,14 +611,14 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
   }
   else                        /* PNP / p-channel */
   {
-    BJT_Level = 977;
-    FET_Level = 2000;
+    BJT_Level = 977;          /* voltage across base resistor (2.1µA) */
+    FET_Level = 2000;         /* voltage across drain resistor (2.8mA) */
     FET_Type = TYPE_P_CHANNEL;
 
     /*
      *  we assume
      *  - BJT: probe-1 = E / probe-2 = C / probe-3 = B
-     *  - FET: probe-1 = D / probe-2 = S / probe-3 = G
+     *  - FET: probe-1 = S / probe-2 = D / probe-3 = G
      *  probes already set to: Gnd -- Rl - probe-2 / probe-1 -- Vcc
      *  drive base/gate via Rh instead of Rl
      */
@@ -582,7 +633,7 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
    *  distinguish BJT from depletion-mode MOSFET
    */
 
-  if (U_R_b > BJT_Level)      /* U_R_b matches minimum level of BJT */
+  if (U_R_b > BJT_Level)      /* U_R_b exceeds minimum level of BJT */
   {
     /*
      *  A voltage drop across the base resistor Rh means that a current
@@ -600,14 +651,24 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
     Check.Found = COMP_BJT;
     Check.Type = BJT_Type;
 
+    /* leakage current */
+    I_CE0 = GetLeakageCurrent();        /* get leakage current (in µA) */
+
 
     /*
      *  Calculate hFE via voltages and known resistors:
      *  - hFE = I_c / I_b
      *        = (U_R_c / R_c) / (U_R_b / R_b)
      *        = (U_R_c * R_b) / (U_R_b * R_c)
+     *  - consider leakage current:
+     *    I_c = I_c_conducting - I_c_leak
+     *        = (U_R_c_conducting / R_c) - (U_R_c_leak / R_c)
+     *        = (U_R_c_conducting - U_R_c_leak) / R_c
+     *    -> U_R_c = U_R_c_conducting - U_R_c_leak
+     *             = U_R_c_conducting - U_Rl
      */
 
+    if (U_R_c > U_Rl) U_R_c -= U_Rl;       /* - U_Rl (leakage) */
     hFE_E = U_R_c * R_HIGH;                /* U_R_c * R_b */
     hFE_E /= U_R_b;                        /* / U_R_b */
     hFE_E *= 10;                           /* upscale to 0.1 */
@@ -628,6 +689,7 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
     {
       /* save data */
       BJT.hFE = hFE_E;
+      BJT.I_CE0 = I_CE0;
       BJT.B = Probes.Pin_3;
 
       if (BJT_Type == TYPE_NPN)    /* NPN */
@@ -693,20 +755,47 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
      *  - just a small leakage current (< 0.1mA) in non-conducting mode
      *  - a large U_R_c (= large current) when conducting
      *  - a low U_R_b (= very low gate current)
-     *  we got a FET.
+     *  we got a FET or an IGBT.
      */
 
-    Check.Found = COMP_FET;
-    Check.Type = FET_Type | TYPE_ENHANCEMENT | TYPE_MOSFET;
-    Check.Done = 1;
+    /*
+     *  The drain source channel of a MOSFET is modeled as a resistor
+     *  while an IGBT acts more like a diode. So we measure the voltage drop
+     *  across the conducting path. A MOSFET got a low voltage drop based on
+     *  it's R_DS_on and the current. An IGBT got a much higher voltage drop.
+     */
+
+    I_CE0= ReadU(Probes.Pin_1) - ReadU(Probes.Pin_2);
+
+    if (I_CE0 < 250)          /* MOSFET */
+    {
+      Check.Found = COMP_FET;
+      Check.Type = FET_Type | TYPE_ENHANCEMENT | TYPE_MOSFET;
+    }
+    else                      /* IGBT */
+    {
+      Check.Found = COMP_IGBT;
+      Check.Type = FET_Type | TYPE_ENHANCEMENT;
+    }
+
+    Check.Done = 1;           /* transistor found */
 
     /* measure gate threshold voltage */
     GetGateThreshold(FET_Type);
 
     /* save data */
     FET.G = Probes.Pin_3;
-    FET.D = Probes.Pin_2;
-    FET.S = Probes.Pin_1;
+
+    if (FET_Type == TYPE_N_CHANNEL)     /* n-channel */
+    {
+      FET.D = Probes.Pin_1;
+      FET.S = Probes.Pin_2;      
+    }
+    else                                /* p-channel */
+    {
+      FET.D = Probes.Pin_2;
+      FET.S = Probes.Pin_1;
+    }
   }
 }
 

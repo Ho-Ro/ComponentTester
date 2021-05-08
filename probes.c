@@ -538,7 +538,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   {
     /*
      *  We check for a diode even if we already found a component to get Vf, 
-     *  since there could be a body/protection diode of a tranistor.
+     *  since there could be a body/protection diode of a transistor.
      */
 
     CheckDiode();
@@ -554,6 +554,19 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   {
     CheckResistor();
   }
+
+
+  /*
+   *  Otherwise run some final checks.
+   */
+
+  else
+  {
+    /* verify a MOSFET */
+    if ((Check.Found == COMP_FET) && (Check.Type & TYPE_MOSFET))
+      VerifyMOSFET();
+  }
+
 
   /* clean up */
   ADC_DDR = 0;           /* set ADC port to HiZ mode */

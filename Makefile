@@ -158,7 +158,7 @@ dist:
 	rm -f *.tgz
 	cd ..; tar -czf ${DIST}/${DIST}.tgz \
 	  ${DIST}/*.h ${DIST}/*.c ${DIST}/*.S \
-	  ${DIST}/Makefile ${DIST}/README
+	  ${DIST}/Makefile ${DIST}/README ${DIST}/CHANGES
 
 # clean up
 clean:

@@ -111,6 +111,7 @@
 
   extern void CheckDiode(void);
 
+  extern void VerifyMOSFET(void);
   extern void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl);
   extern void CheckDepletionModeFET(unsigned int U_Rl_L);
 

@@ -129,29 +129,6 @@ void ShowDiode_C(Diode_Type *Diode)
 
 
 /*
- *  display leakage current
- *
- *  requires:
- *  - pointer to string stored in EEMEM
- */
-
-void ShowLeakageCurrent(const unsigned char *String)
-{
-  uint16_t          I_leak;             /* leakage current */
-
-  I_leak = GetLeakageCurrent();         /* get current (in µA) */
-  if (I_leak > 0)                       /* show if not zero */
-  {
-    TestKey(3000, 11);                  /* next page */
-    lcd_clear_line(2);                  /* only change line #2 */
-    lcd_fixed_string(String);           /* display: <string=> */
-    DisplayValue(I_leak, -6, 'A');      /* display current */
-  }
-}
-
-
-
-/*
  *  show diode
  */
 
@@ -162,6 +139,7 @@ void ShowDiode(void)
   uint8_t           SkipFlag = 0;  /* flag for anti-parallel diodes */
   uint8_t           A = 5;         /* ID of common anode */
   uint8_t           C = 5;         /* ID of common cothode */
+  uint16_t          I_leak;        /* leakage current */
 
   D1 = &Diodes[0];                 /* pointer to first diode */
 
@@ -285,7 +263,14 @@ void ShowDiode(void)
 
     /* reverse leakage current */
     UpdateProbes(D1->C, D1->A, 0);      /* reverse diode */
-    ShowLeakageCurrent(I_R_str);
+    I_leak = GetLeakageCurrent();       /* get current (in µA) */
+    if (I_leak > 0)                     /* show if not zero */
+    {
+      TestKey(3000, 11);                  /* next page */
+      lcd_clear_line(2);                  /* only change line #2 */
+      lcd_fixed_string(I_R_str);          /* display: I_R= */
+      DisplayValue(I_leak, -6, 'A');      /* display current */
+    }
   }
   else
   {
@@ -318,8 +303,6 @@ void ShowBJT(void)
   uint8_t           Counter;       /* counter */
   uint8_t           A_Pin;         /* pin acting as anode */
   uint8_t           C_Pin;         /* pin acting as cathode */
-  uint8_t           H_Pin;         /* pin facing 5V */
-  uint8_t           L_Pin;         /* pin facing Gnd */
   unsigned int      V_BE;          /* V_BE */
   signed int        Slope;         /* slope of forward voltage */
 
@@ -366,20 +349,12 @@ void ShowBJT(void)
       /* diode B -> E */
       A_Pin = BJT.B;
       C_Pin = BJT.E;
-
-      /* current flows C -> E */
-      H_Pin = BJT.C;
-      L_Pin = BJT.E;
     }
     else                           /* PNP */
     {
       /* diode E -> B */
       A_Pin = BJT.E;
       C_Pin = BJT.B;
-
-      /* current flows E -> C */
-      H_Pin = BJT.E;
-      L_Pin = BJT.C;
     }
 
     /* if the diode matches the transistor */
@@ -435,9 +410,14 @@ void ShowBJT(void)
 
       DisplayValue(V_BE, -3, 'V');
 
-      /* I_CEO collector emitter cutoff current (leakage) */
-      UpdateProbes(H_Pin, L_Pin, BJT.B);     /* set probes */
-      ShowLeakageCurrent(I_CEO_str);
+      /* I_CEO: collector emitter cutoff current (leakage) */
+      if (BJT.I_CE0 > 0)                     /* show if not zero */
+      {
+        TestKey(3000, 11);                   /* next page */
+        lcd_clear_line(2);                   /* only change line #2 */
+        lcd_fixed_string(I_CEO_str);         /* display: I_CE0= */
+        DisplayValue(BJT.I_CE0, -6, 'A');    /* display current */
+      }
 
       Counter = Check.Diodes;                /* end loop */
     }
@@ -452,27 +432,69 @@ void ShowBJT(void)
 
 
 /*
+ *  show MOSFET/IGBT extras
+ *
+ *  requires:
+ *  - diode symbol
+ */
+
+void Show_FET_IGBT_Extras(uint8_t Symbol)
+{
+  /* instrinsic diode */
+  if (Check.Diodes > 0)
+  {
+    lcd_space();                      /* display space */
+    lcd_data(Symbol);                 /* display diode symbol */
+  }
+
+  TestKey(3000, 11);                  /* next page */
+  lcd_clear();
+
+  /* gate threshold voltage */
+  lcd_fixed_string(Vth_str);          /* display: Vth */
+  DisplayValue(FET.V_th, -3, 'V');    /* display V_th in mV */    
+
+  lcd_line(2);
+
+  /* display gate capacitance */
+  lcd_fixed_string(GateCap_str);      /* display: Cgs= */
+  MeasureCap(FET.G, FET.S, 0);        /* measure capacitance */
+  /* display value and unit */
+  DisplayValue(Caps[0].Value, Caps[0].Scale, 'F');
+}
+
+
+
+/*
  *  show FET
  */
 
 void ShowFET(void)
 {
   uint8_t           Data;          /* temp. data */
+  uint8_t           Symbol;        /* intrinsic diode */
+
+  /* set variables based on channel mode */
+  if (Check.Type & TYPE_N_CHANNEL) /* n-channel */
+  {
+    Data = 'N';
+    Symbol = LCD_CHAR_DIODE2;      /* '|<|' cathode pointing to drain */
+  }
+  else                             /* p-channel */
+  {
+    Data = 'P';
+    Symbol = LCD_CHAR_DIODE1;      /* '|>|' cathode pointing to source */
+  }
 
   /* display type */
   if (Check.Type & TYPE_MOSFET)    /* MOSFET */
     lcd_fixed_string(MOS_str);       /* display: MOS */
   else                             /* JFET */
     lcd_data('J');                   /* display: J */
-  lcd_fixed_string(FET_str);       /* display: FET */ 
+  lcd_fixed_string(FET_str);       /* display: FET */
 
   /* display channel type */
   lcd_space();
-  if (Check.Type & TYPE_N_CHANNEL) /* n-channel */
-    Data = 'N';
-  else                             /* p-channel */
-    Data = 'P';
-
   lcd_data(Data);                  /* display: N / P */
   lcd_fixed_string(Channel_str);   /* display: -ch */
       
@@ -505,34 +527,63 @@ void ShowFET(void)
   /* extra data for MOSFET in enhancement mode */
   if (Check.Type & (TYPE_ENHANCEMENT | TYPE_MOSFET))
   {
-    /* protection diode */
-    if (Check.Diodes > 0)
-    {
-      lcd_space();                      /* display space */
-      lcd_data(LCD_CHAR_DIODE1);        /* display diode symbol */
-    }
-
-    TestKey(3000, 11);                  /* next page */
-    lcd_clear();
-
-    /* gate threshold voltage */
-    lcd_fixed_string(Vth_str);          /* display: Vth */
-    DisplayValue(FET.V_th, -3, 'V');    /* display V_th in mV */    
-
-    lcd_line(2);
-
-    /* display gate capacitance */
-    lcd_fixed_string(GateCap_str);      /* display: Cgs= */
-    MeasureCap(FET.G, FET.S, 0);        /* measure capacitance */
-    /* display value and unit */
-    DisplayValue(Caps[0].Value, Caps[0].Scale, 'F');
+    /* show diode, V_th and Cgs */
+    Show_FET_IGBT_Extras(Symbol);
   }
 }
 
 
 
 /*
- *   show special components like Thyristor and Triac
+ *  show IGBT  
+ */
+
+void ShowIGBT(void)
+{
+  uint8_t           Data;          /* temp. data */
+  uint8_t           Symbol;        /* intrinsic diode */
+
+  /* set variables based on channel mode */
+  if (Check.Type & TYPE_N_CHANNEL) /* n-channel */
+  {
+    Data = 'N';
+    Symbol = LCD_CHAR_DIODE2;      /* '|<|' cathode pointing to drain */
+  }
+  else                             /* p-channel */
+  {
+    Data = 'P';
+    Symbol = LCD_CHAR_DIODE1;      /* '|>|' cathode pointing to source */
+  }
+
+  lcd_fixed_string(IGBT_str);       /* display: IGBT */
+
+  /* display channel type */
+  lcd_space();
+  lcd_data(Data);                  /* display: N / P */
+  lcd_fixed_string(Channel_str);   /* display: -ch */
+      
+  /* display mode */
+  lcd_space();
+  if (Check.Type & TYPE_ENHANCEMENT)  /* enhancement mode */
+    lcd_fixed_string(Enhancement_str);
+  else                                /* depletion mode */
+    lcd_fixed_string(Depletion_str);
+
+  /* pins */
+  lcd_line(2);                     /* move to line #2 */ 
+  lcd_fixed_string(GCE_str);       /* display: GCE= */
+  lcd_testpin(FET.G);              /* display gate pin */
+  lcd_testpin(FET.D);              /* display collector pin */
+  lcd_testpin(FET.S);              /* display emitter pin */
+
+  /* show diode, V_th and C_CE */
+  Show_FET_IGBT_Extras(Symbol);
+}
+
+
+
+/*
+ *  show special components like Thyristor and Triac
  */
 
 void ShowSpecial(void)
@@ -825,6 +876,7 @@ start:
   Check.Diodes = 0;
   Check.Resistors = 0;
   BJT.hFE = 0;
+  BJT.I_CE0 = 0;
 
   /* reset hardware */
   ADC_DDR = 0;                     /* set all pins of ADC port as input */ 
@@ -950,6 +1002,10 @@ result:
 
     case COMP_FET:
       ShowFET();
+      break;
+
+    case COMP_IGBT:
+      ShowIGBT();
       break;
 
     case COMP_THYRISTOR:

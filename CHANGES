@@ -1,0 +1,97 @@
+------------------------------------------------------------------------------
+
+                  Change Log for the Component Tester firmware
+
+                        (c) 2012-2013 by Markus Reschke
+
+------------------------------------------------------------------------------
+
+v1.09m 2013-07
+- Added IGBT detection.
+- Added a sanity check for MOSFETs.
+- The hFE measurement for BJTs considers the leakage current in common emitter
+  configuration.
+- For MOSFETs the direction of the intrinsic diode is shown.
+- Fixed problem with swapped drain and source pins for enhancement mode
+  MOSFETs.
+- Added workaround for Makefile problems with some IDEs. Some important Values
+  can be defined in config.h too.
+
+v1.08m 2013-07
+- Since the SmallResistor() measurement can't give correct DC resistance
+  values for some inductors a problem detection was added to CheckResistor()
+  to keep the original high resistance measurement result.
+- Added inductance measurement (ATmega328/P only)
+- Minor improvements for the display of diodes and BJTs.
+- Added leakage current measurement.
+- Fixed problem with germanium BJTs with a high leakage current. They were
+  detected as p-channel JFETs.
+- Renamed some functions, clarified and added some remarks.
+
+v1.07m 2013-06
+- Optimized diode display function and added display of low current Vf.
+- Improved the diode detection. Caps and resistors are excluded much better.
+  Also the cap probing is skipped for diodes to speed up probing.  
+- Fixed an array overflow bug in CheckResistor().
+- Improved cursor display logic to tell user if another information follows
+  or the probing loop is reentered.
+- Improved UI of PWM tool to prevent exit by mistake (double key press
+  required now).
+- Added a generic menu function and adapted all menus (changed layout!).
+- TestKey() provides a nice blinking cursor now.
+
+v1.06m 2013-03
+- Several minor improvements and cleanups.
+- Expanded TestKey() to inform the user about an expected key press.  
+- Improved TestKey() function to be more responsive for short key presses.
+- Added a PWM tool to generate a PWM signal with different frequencies and
+  duty ratios.
+- Implemented a sleep function to reduce power usage of the tester.
+  On average the power usage is nearly halfed (excluding the LCD backlight).
+- Improved discharge function. If the discharge of a component fails, the
+  concerned probe pin and the remaining voltage are displayed. That will help
+  to detect a too low value for CAP_DISCHARGED.
+- Added the capability to set error types
+
+v1.05m 2012-11
+- Moved LargeCap_table[] and SmallCap_table[] from EEPROM to flash to reduce
+  EEPROM usage. The size for a German firmware exceeded the 512 bytes of an
+  ATmega168s EEPROM.
+
+v1.04m 2012-11
+- Added a simple logic to the output function for diodes to prevent the
+  measurement of capacitance for antiparallel diodes. 
+
+v1.03m 2012-11
+- Fixed detection problem of power diodes with high leakage current (mistaken
+  for resistors).
+- Fixed compiler warnings about possible uninitialized variables. That
+  increased the firmware size by about 44 bytes :-(
+
+v1.02m 2012-11
+- Added upper limit for resistance of probe leads in the self adjustment
+  function (1.00 Ohms).
+- Selftest and adjustment functions perform a short circuit test before
+  running the main part and return feedback now.
+- The mainmenu gives feedback about success/failure of the selected action.
+
+v1.01m 2012-10
+- Added a checksum for adjustment values stored in the EEPROM and wrote a
+  function to validate the checksum.
+- Added a measurement function for small resistors (resolution: 0.01 Ohms).
+- Extended self adjustment to support an auto-zero for the resistance of the
+  probe leads.
+- CheckResistor() runs an extra measurement for small resistors (<10 Ohms).
+- Added a function to compare two scaled values. 
+- Adapted several functions to support variable scaling of values.
+
+v1.00m 2012-09
+- Added a simple menu for selection of self test, self adjustment, update of
+  the adjustment values in the EEPROM and display of values.
+- Changed hfe from 16 bit to 32 bit value (no 65k limit anymore).
+
+v0.99m 2012-09
+- Initial public release based on Karl-Heinz' version 0.99k.
+
+
+------------------------------------ EOF -------------------------------------

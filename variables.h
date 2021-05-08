@@ -139,6 +139,7 @@
   const unsigned char IGBT_str[] EEMEM = "IGBT";
   const unsigned char GateCap_str[] EEMEM = "Cgs=";
   const unsigned char GDS_str[] EEMEM = "GDS=";
+  const unsigned char GCE_str[] EEMEM = "GCE=";
   const unsigned char NPN_str[] EEMEM = "NPN";
   const unsigned char PNP_str[] EEMEM = "PNP";
   const unsigned char EBC_str[] EEMEM = "EBC=";
@@ -171,7 +172,7 @@
   const unsigned char Diodes_str[] EEMEM = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
 
-  const unsigned char Version_str[] EEMEM = "v1.08m";
+  const unsigned char Version_str[] EEMEM = "v1.09m";
 
 
   /*

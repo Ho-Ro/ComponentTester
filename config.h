@@ -64,6 +64,26 @@
 
 
 /* ************************************************************************
+ *   Makefile workaround for some IDEs 
+ * ************************************************************************ */
+
+
+/*
+ *  Oscillator startup cycles (after wakeup from power-safe mode)
+ *  - typical values
+ *    - internal RC:              6
+ *    - full swing crystal:   16384 (also 256 or 1024 based on fuse settings)
+ *    - low power crystal:    16384 (also 256 or 1024 based on fuse settings)
+ *  - Please change value if it doesn't match your tester!
+ */
+
+#ifndef OSC_STARTUP
+  #define OSC_STARTUP    16384
+#endif
+
+
+
+/* ************************************************************************
  *   misc settings
  * ************************************************************************ */
 
