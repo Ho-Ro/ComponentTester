@@ -300,66 +300,6 @@ void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit)
  * ************************************************************************ */
 
 
-/*
- *  Tell user to create or remove short-circuit of all three probes 
- *  and wait until he realy does.
- *
- *  requires:
- *  - mode:
- *    0 = remove short-circuit
- *    1 = create short circuit
- */
-
-void ShortCircuit(uint8_t Mode)
-{
-  uint8_t           Run = 0;            /* loop control */
-  uint8_t           Test;               /* test feedback */
-  unsigned char     *String = NULL;     /* display string pointer */
-
-  Test = AllProbesShorted();            /* get current status */
-
-  if (Mode == 0)         /* remove short */
-  {
-    if (Test != 0) String = (unsigned char *)Remove_str;    /* some shorted */
-  }
-  else                   /* create short */
-  {
-    if (Test != 3) String = (unsigned char *)Create_str;    /* some unshorted */
-  }
-
-  /* if required tell user what to do */ 
-  if (String)
-  {
-    LCD_Clear();
-    LCD_EEString(String);               /* display: Remove/Create */
-    LCD_Line2();
-    LCD_EEString(ShortCircuit_str);     /* display: short circuit! */
-    Run = 1;                            /* enter loop */
-  }
-  
-  /* wait until all probes are dis/connected */
-  while (Run == 1)
-  {
-    Test = AllProbesShorted();     /* check for short circuits */
-
-    if (Mode == 0)            /* remove short */
-    {
-      if (Test == 0) Run = 0;      /* end loop if all removed */
-    }
-    else                      /* create short */
-    {
-      if (Test == 3) Run = 0;      /* end loop if all shorted */
-    }
-
-    if (Run == 1)             /* if not done yet */
-      MilliSleep(50);              /* wait a little bit */
-    else                      /* if done */
-      MilliSleep(200);             /* time to debounce */
-  }
-}
-
-
-
 #ifdef HW_ENCODER 
 
 /*
@@ -608,6 +548,76 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 
 
 /*
+ *  Tell user to create or remove short-circuit of all three probes 
+ *  and wait until he really does. But allow user to abort creating
+ *  a short circuit by a key press.
+ *
+ *  requires:
+ *  - mode:
+ *    0 = remove short-circuit
+ *    1 = create short circuit
+ *
+ *  returns:
+ *  - 0 on any problem
+ *  - 1 on success
+ */
+
+uint8_t ShortCircuit(uint8_t Mode)
+{
+  uint8_t           Flag = 2;           /* return value / control flag */
+  uint8_t           Test;               /* test feedback */
+  uint8_t           Comp;               /* expected result */
+  unsigned char     *String;            /* display string pointer */
+
+  /* init */
+  if (Mode == 0)         /* remove short */
+  {
+    String = (unsigned char *)Remove_str;
+    Comp = 0;
+  }
+  else                   /* create short */
+  {
+    String = (unsigned char *)Create_str;
+    Comp = 3;
+  } 
+
+  /* check if already done */
+  Test = AllProbesShorted();            /* get current status */
+  if (Test == Comp) Flag = 1;           /* skip loop if job already done */
+
+  /* if necessary tell user what to do */
+  if (Flag == 2)
+  {
+    LCD_Clear();
+    LCD_EEString(String);               /* display: Remove/Create */
+    LCD_Line2();
+    LCD_EEString(ShortCircuit_str);     /* display: short circuit! */
+  }  
+
+  /* wait until all probes are dis/connected */
+  while (Flag == 2)
+  {
+    Test = AllProbesShorted();     /* check for short circuits */
+
+    if (Test == Comp)         /* job done */
+    {
+       Flag = 1;              /* end loop */
+       MilliSleep(200);       /* time to debounce */
+    }
+    else                      /* job not done yet */
+    {
+      Test = TestKey(100, 0);      /* wait 100ms or detect key press */
+      if (Mode == 0) Test = 0;     /* ignore key for un-short mode */
+      if (Test > 0) Flag = 0;      /* abort on key press */
+    }
+  }
+
+  return Flag;
+}
+
+
+
+/*
  *  menu tool
  *
  *  requires:
@@ -681,6 +691,11 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
     if (n == 1)                    /* short key press: moves to next item */
     {
+      #ifdef HW_ENCODER
+      /* alternative action for rotory encoder */
+      if (Run == 2) break;              /* select current item */
+      #endif
+
       Selected++;                       /* move to next item */
       if (Selected > Items)             /* max. number of items exceeded */
       {
@@ -699,6 +714,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
       {
         Selected = 0;                   /* roll over to first one */
       }
+      Run = 2;                          /* signal change by encoder */
     }
     else if (n == 4)               /* rotary encoder: left turn */
     {
@@ -710,6 +726,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
       {
         Selected--;                     /* move to previous item */
       }
+      Run = 2;                          /* signal change by encoder */
     }
     #endif
   }
@@ -729,7 +746,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 void MainMenu(void)
 {
   #if RES_FLASH >= 32
-    #define MENU_ITEMS  8
+    #define MENU_ITEMS  9
   #else
     #define MENU_ITEMS  5  
   #endif
@@ -761,6 +778,11 @@ void MainMenu(void)
   #ifdef SW_ESR
   MenuItem[Item] = (void *)ESR_str;
   MenuID[Item] = 7;
+  Item++;
+  #endif
+  #ifdef HW_FREQ_COUNTER
+  MenuItem[Item] = (void *)FreqCounter_str;
+  MenuID[Item] = 8;
   Item++;
   #endif
 
@@ -834,6 +856,12 @@ void MainMenu(void)
       ESR_Tool();
       break;
     #endif
+
+    #ifdef HW_FREQ_COUNTER
+    case 8:              /* frequency counter */
+      FrequencyCounter();
+      break;
+    #endif    
   }
 
   /* display end of item */

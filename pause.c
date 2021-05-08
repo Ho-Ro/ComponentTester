@@ -36,11 +36,12 @@
  *  ISR for a match of TCNT2 (Timer2) and OCR2A (Output Compare Register A)
  */
 
-ISR (TIMER2_COMPA_vect, ISR_BLOCK)
+ISR(TIMER2_COMPA_vect, ISR_BLOCK)
 {
   /* this automatically clears the OCF2A flag in the Interrupt Flag Register */
 
-  TCCR2B = 0;                    /* disable Timer2 */
+  sei();                      /* allow nested interrupts */
+  TCCR2B = 0;                 /* disable Timer2 */
 }
 
 
@@ -61,6 +62,7 @@ void MilliSleep(uint16_t Time)
   uint32_t               Cycles;        /* timer cycles */
   uint8_t                Timeout;       /* compare value */
   uint8_t                Mode;          /* sleep mode */
+  uint8_t                Flag = 0;      /* interrupt flag */
 
   /*
    *  calculate stuff
@@ -128,6 +130,8 @@ void MilliSleep(uint16_t Time)
   TIMSK2 = (1 << OCIE2A);          /* enable interrupt for OCR0A match */
 
   set_sleep_mode(Mode);            /* set sleep mode */
+  if (SREG & SREG_I) Flag = 1;     /* check if interrupts are enabled already */
+  sei();                           /* enable interrupts */
 
 
   /*
@@ -153,12 +157,13 @@ void MilliSleep(uint16_t Time)
     /* sleep */
     /* enable timer by setting clock prescaler to 1024 */
     TCCR2B = (1 << CS22) | (1 << CS21) | (1 << CS20);
-    sei();                                   /* enable interrupts */
+
     sleep_mode();                            /* and sleep */    
 
     /* after wakeup */
-    cli();                         /* disable interrupts */
   }
+
+  if (Flag == 0) cli();            /* disable interrupts */
 }
 
 

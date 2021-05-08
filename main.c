@@ -359,7 +359,7 @@ void Show_Diode(void)
   uint8_t           A = 5;         /* ID of common anode */
   uint8_t           C = 5;         /* ID of common cothode */
   uint8_t           R_Pin1 = 5;    /* B_E resistor's pin #1 */
-  uint8_t           R_Pin2;        /* B_E resistor's pin #2 */
+  uint8_t           R_Pin2 = 5;    /* B_E resistor's pin #2 */
   uint16_t          I_leak;        /* leakage current */
 
   D1 = &Diodes[0];                 /* pointer to first diode */
@@ -1302,8 +1302,15 @@ end:
   }
   else if (Test == 2)         /* long key press */
   {
-    goto power_off;                /* -> power off */
+    goto power_off;              /* -> power off */
   }
+  #ifdef HW_ENCODER
+  else if (Test == 4)         /* rotary encoder: left turn */
+  {
+    MainMenu();                  /* enter main menu */
+    goto end;                    /* re-run cycle control */
+  }
+  #endif
 
   /* default action (also for rotary encoder) */
   goto start;                 /* -> next round */

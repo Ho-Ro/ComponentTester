@@ -6,6 +6,15 @@
 
 ------------------------------------------------------------------------------
 
+v1.14m 2014-08
+- Changed user interface for rotary encoder.
+- Fixed compiler warning about R_Pin2 in ShowDiode() (thanks to Milan Petko).
+- Resistors between 1.5k and 3k Ohms were detected as double diodes. Changed
+  tolerance of resistor test in CheckDiode() (thanks to nessatse).
+- Modified ShortCircuit() to allow user to abort creating a short circuit in
+  case of any problem.
+- Added frequency counter (hardware option).
+
 v1.13m 2014-07
 - Added Czech texts, thanks to Kapax.
 - ESR and PWM tools display the probes pins used.

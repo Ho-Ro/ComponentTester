@@ -191,6 +191,7 @@
   const unsigned char CompOffset_str[] EEMEM = "AComp";
   const unsigned char Checksum_str[] EEMEM = "ChkSum";
 
+  /* options */
   #ifdef SW_ESR
     const unsigned char Probes_str[] EEMEM = "Pins";
     const unsigned char ESR_str[] EEMEM = "ESR";
@@ -205,13 +206,18 @@
     const unsigned char Zener_str[] EEMEM = "Zener";
     const unsigned char Min_str[] EEMEM = "Min";
   #endif
+  #ifdef HW_FREQ_COUNTER
+    const unsigned char FreqCounter_str[] EEMEM = "Freq. Counter";
+  #endif
 
+  /* component symbols */
   const unsigned char Cap_str[] EEMEM = {'-',LCD_CHAR_CAP, '-',0};
   const unsigned char Diode_AC_str[] EEMEM = {'-', LCD_CHAR_DIODE_AC, '-', 0};
   const unsigned char Diode_CA_str[] EEMEM = {'-', LCD_CHAR_DIODE_CA, '-', 0};
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
-  const unsigned char Version_str[] EEMEM = "v1.13m";
+  /* version */
+  const unsigned char Version_str[] EEMEM = "v1.14m";
 
 
   /*
@@ -262,10 +268,18 @@
   #ifdef SW_PWM
     /* PWM menu: frequencies */    
     const uint16_t PWM_Freq_table[] MEM_TEXT = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
+  #endif
 
+  #ifdef SW_INDUCTOR
     /* ratio based factors for inductors */
     /* ratio:                                    200   225   250   275   300   325   350   375   400   425   450   475   500   525   550   575   600   625  650  675  700  725  750  775  800  825  850  875  900  925  950  975 */
     const uint16_t Inductor_table[] MEM_TEXT = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
+  #endif
+
+  #ifdef HW_FREQ_COUNTER
+    /* Timer1 prescalers and corresponding bitmasks */
+    const uint16_t T1_Prescaler_table[] MEM_TEXT = {1, 8, 64, 256, 1024};
+    const uint8_t T1_Bitmask_table[] MEM_TEXT = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
   #endif
 
 
@@ -364,6 +378,7 @@
   extern const unsigned char CompOffset_str[];
   extern const unsigned char Checksum_str[];
 
+  /* options */
   #ifdef SW_ESR
     extern const unsigned char Probes_str[];
     extern const unsigned char ESR_str[];
@@ -377,6 +392,9 @@
   #ifdef HW_ZENER
     extern const unsigned char Zener_str[];
     extern const unsigned char Min_str[];
+  #endif
+  #ifdef HW_FREQ_COUNTER
+    extern const unsigned char FreqCounter_str[];
   #endif
 
 
@@ -396,9 +414,17 @@
   #ifdef SW_PWM
     /* PWM menu: frequencies */
     extern const uint16_t PWM_Freq_table[];
+  #endif
 
+  #ifdef SW_INDUCTOR
     /* voltage based factors for inductors */
     extern const uint16_t Inductor_table[];
+  #endif
+
+  #ifdef HW_FREQ_COUNTER
+    /* Timer1 prescalers and corresponding bitmasks */
+    extern const uint16_t T1_Prescaler_table[];
+    extern const uint8_t T1_Bitmask_table[];
   #endif
 
 

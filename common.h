@@ -225,6 +225,13 @@ typedef struct
 */
 
 
+/* frequency counter */
+typedef struct
+{
+  uint16_t          Pulses;        /* number of pulses of input signal */
+} FreqCounter_Type;
+
+
 
 /* ************************************************************************
  *   EOF

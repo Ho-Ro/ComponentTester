@@ -96,8 +96,8 @@
   extern void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit);
   extern void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit);
 
-  extern void ShortCircuit(uint8_t Mode);
   extern uint8_t TestKey(uint16_t Timeout, uint8_t Mode);
+  extern int8_t ShortCircuit(uint8_t Mode);
   extern void MainMenu(void);
 
 #endif
@@ -117,6 +117,9 @@
   #endif
   #ifdef HW_ZENER
     extern void Zener_Tool(void);
+  #endif
+  #ifdef HW_FREQ_COUNTER
+    extern void FrequencyCounter(void);
   #endif
 
 #endif

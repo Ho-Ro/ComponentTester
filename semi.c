@@ -477,10 +477,10 @@ void CheckDiode(void)
    *  The voltages for a resistor will follow the equation:
    *    k = Rl + Ri_H + Ri_L
    *    Ul = k U_Rh / (1 + (k - 1) U_Rh / 5V)
-   *  Allow a tolerance of 3%.
+   *  Allow a small tolerance.
    *  For U_Rh > 40mV we don't need to check for a resistor.
    *
-   *  Hint: Actually we could change the threshold above from 10 t0 40 and
+   *  Hint: Actually we could change the threshold above from 10 to 40 and
    *  remove this test completely. The lowest U_Rh measured for a diode was
    *  56mV for a AA118.
    */
@@ -503,8 +503,8 @@ void CheckDiode(void)
     U1_Zero = (unsigned int)b;
     U1_Rl = U1_Zero;
     U1_Rh = U1_Zero;
-    U1_Zero /= 50;            /* 2% */
-    U1_Rh += U1_Zero;         /* 102% */
+    U1_Zero /= 10;            /* 10% */
+    U1_Rh += U1_Zero;         /* 110% */
     U1_Zero = (unsigned int)b;
     U1_Zero /= 33;            /* 3% */
     U1_Rl -= U1_Zero;         /* 97% (for resistors near 1k) */

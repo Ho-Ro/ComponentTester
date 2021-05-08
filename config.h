@@ -73,6 +73,16 @@
 //#define HW_ZENER
 
 
+/*
+ *  frequency counter (PD4)
+ *  - in parallel with LCD module
+ *  - requires MCU with >=32kB Flash
+ *  - uncomment to enable
+ */
+
+//#define HW_FREQ_COUNTER
+
+
 
 /* ************************************************************************
  *   port and pin assignments
@@ -472,6 +482,12 @@
   #ifdef HW_ZENER
     #undef HW_ZENER
     #warning "Disabled HW_ENCODER!"
+  #endif
+
+  /* frequency counter */
+  #ifdef HW_FREQ_COUNTER
+    #undef HW_FREQ_COUNTER
+    #warning "Disabled HW_FREQ_COUNTER!"
   #endif
 #endif
 

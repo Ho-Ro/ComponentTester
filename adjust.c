@@ -231,9 +231,11 @@ uint8_t SelfAdjust(void)
    *  measurements
    */
 
-  ShortCircuit(1);       /* make sure all probes are shorted */
+  /* make sure all probes are shorted */
+  Counter = ShortCircuit(1);
+  if (Counter == 0) Test = 10;      /* skip adjustment on error */
 
-  while (Test <= 5)
+  while (Test <= 5)      /* loop through tests */
   {
     Counter = 1;
 
@@ -517,7 +519,9 @@ uint8_t SelfTest(void)
   unsigned int      Val0;               /* voltage/value */
   signed int        Val1 = 0, Val2 = 0, Val3 = 0;   /* voltages/values */
 
-  ShortCircuit(1);       /* make sure all probes are shorted */
+  /* make sure all probes are shorted */
+  Counter = ShortCircuit(1);
+  if (Counter == 0) Test = 10;     /* skip selftest */
 
   /* loop through all tests */
   while (Test <= 6)

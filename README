@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2014-07-12
+Last edit:  2014-08-14
 
 Content
   - About
@@ -23,6 +23,8 @@ Content
   - Menu
     - PWM Tool
     - Zener Tool
+    - ESR Tool
+    - Frequency Counter
     - Selftest
     - Self Adjustment
     - Save
@@ -59,6 +61,7 @@ for the ATmega328/P:
 - Zener voltage measurement (hardware option)
 - PWM tool
 - ESR measurement and ESR tool
+- frequency counter (hardware option)
 
 Hint: Run the self adjustment for a new tester or if you've done any
 modifications, like a firmware update or changing probe leads.
@@ -94,6 +97,7 @@ them here. Hardware options are also enabled in configh.h:
 - 2.5V voltage reference
 - relay based cap discharger
 - Zener voltage measurement
+- frequency counter
 
 The external 2.5V voltage reference should be only enabled if it's at least
 10 times more precise than the voltage regulator. Otherwise it would make
@@ -133,9 +137,7 @@ a key press is neccessary.
 + Rotary Encoder (hardware option)
 
 With a rotary encoder you'll get some more functionality with the user
-interface, but that's context specific. The basic function is to act as
-an additional button to proceed or display more data. It doesn't matter if
-you turn the encoder to the right or to the left. The additional functionality
+interface, but that's context specific. The additional functionality
 is described in the sections below, if applicable.
 
 The algorithm for reading the encoder is tested only with an ALPS EC11 series
@@ -162,7 +164,8 @@ After the startup the testers enters the probing mode and looks for a
 connected component. In continous mode it will automatically repeat the
 probing after a short pause. If no component is found for several times the
 tester will power itself off. In auto-hold mode (signaled by cursor) the
-tester runs one round and waits for a key press.
+tester runs one round and waits for a key press or a right turn of the
+rotary encoder.
 
 In both modes you can enter a menu with additional functions or power off
 the tester. For details please see below.
@@ -179,15 +182,17 @@ implementaion of the power control circuit.
 * Menu
 
 By short-circuiting all three probes you'll trigger a menu which allows you
-to select some special functions  You can also enter the menu by two short key
+to run some special functions  You can also enter the menu by two short key
 presses after the display of the last component found or function performed.
-Simply press the test key twice quickly (might need some practice :-).
+Simply press the test key twice quickly (might need some practice :-). If
+the rotary encoder option is enabled, a left turn will also enter the menu. 
 
 While in the menu a short key press shows the the next item in the menu and a
-long key press selects the shown item. At the right side you'll see a '>' if
+long key press runs the shown item. At the right side you'll see a '>' if
 another items follows or a '<' if the last item is reached (will roll over to
 the first menu item). With a rotary encoder you can move the items up or down
-based on the turning direction. 
+based on the turning direction and a short key press will run the displayed
+item.
 
 Some tools show you the probe pins used before doing anything. The output will
 blink up to three times if you don't press the test button to confirm the
@@ -243,7 +248,20 @@ Connect the capacitor:
    Probe #2: negative (Gnd)
 
 
++ Frequency Counter (hardware option)
+
+With the frequency counter hardware option installed you can measure
+frequencies from about 10Hz up to 1/4 of the MCU clock with a resolution
+of 1Hz for frequencies below 10kHz. The frequency is measured and displayed
+continously until you end the measurement by a key press. The autoranging
+algorithm selects a gate time between 1ms and 1000ms based on the frequency.
+
+
 + Selftest
+
+If you entered the selftest by the menu you'll be asked to short circuit all
+three probes and the tester will wait until you have. In case of any problem
+you can abort that by a key press. That will also skip the complete selftest.
 
 The selftest function runs each test just 5 times. You can skip a test by a
 short key press or skip the entire selfttest by a long key press.
@@ -274,6 +292,9 @@ tester self-adjust the offsets mentioned above. Typically the first
 measurement will result in a slightly low value, the second in a high one
 and the third will be fine. That is caused by the self adjusting offsets.
 Both offsets are displayed at the end of the self adjustment.
+
+The self adjustments is very similar to the selftest regarding the procedure
+and user interface.
 
 Expected limits:
 - probe resistance   < 1.00 Ohms for two probes in series

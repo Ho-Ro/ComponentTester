@@ -26,6 +26,17 @@
 #include "functions.h"        /* external functions */
 
 
+
+/*
+ *  local variables
+ */
+
+#ifdef HW_FREQ_COUNTER
+FreqCounter_Type       Freq;            /* frequency counter */
+#endif
+
+
+
 /* ************************************************************************
  *   support functions
  * ************************************************************************ */
@@ -439,6 +450,206 @@ void Zener_Tool(void)
     }
   }
 }
+
+#endif
+
+
+
+/* ************************************************************************
+ *   Frequency counter
+ * ************************************************************************ */
+
+
+#ifdef HW_FREQ_COUNTER
+
+/*
+ *  frequency counter
+ *  - frequency input PD4/T0
+ */
+
+void FrequencyCounter(void)
+{
+  uint8_t           Flag = 1;           /* loop control flag */
+  uint8_t           Old_DDR;            /* old DDR state */
+  uint8_t           Index;              /* prescaler table index */
+  uint8_t           Bitmask;            /* prescaler bitmask */
+  uint16_t        
+  GateTime;           /* gate time in ms */
+  uint16_t          Prescaler;          /* timer prescaler */
+  uint16_t          Top;                /* top value for timer */
+  uint32_t          Value;
+
+  /* show info */
+  LCD_Clear();
+  LCD_EEString(FreqCounter_str);   /* display: Freq. Counter */
+  LCD_Line2();
+  LCD_Data('-');                   /* display "no value" */
+  
+
+  /*
+   *  We use Timer1 for the gate time and Timer0 to count pulses of the
+   *  unknown signal.
+   */
+
+
+  /*
+      counter limit for Timer1
+      - gate time in 탎
+      - MCU cycles per 탎
+      - top = gatetime * MCU_cycles / prescaler 
+
+      auto ranging
+
+      range         gate time  prescaler  pulses
+      -------------------------------------------------
+      -10kHz           1000ms        256  -10000
+      10kHz-100kHz      100ms         64  1000-10000
+      100kHz-1MHz        10ms          8  1000-10000
+      1MHz-               1ms          1  1000-
+   */
+
+
+  /* power save mode would disable timer0 and timer1 */
+  Config.SleepMode = SLEEP_MODE_IDLE;        /* change sleep mode to Idle */
+
+  /* start values for autoranging (assuming high frequency) */
+  GateTime = 1;                    /* gate time 1ms */
+  Index = 0;                       /* prescaler table index */
+
+  /* setup Timer0 */
+  TCCR0A = 0;                      /* normal mode (count up) */
+  TIFR0 = (1 << TOV0);             /* clear overflow flag */
+  TIMSK0 = (1 << TOIE0);           /* enable overflow interrupt */
+
+  /* setup Timer1 */
+  TCCR1A = 0;                      /* normal mode (count up) */
+  TIFR1 = (1 << OCF1A);            /* clear output compare A match flag */
+  TIMSK1 = (1 << OCIE1A);          /* enable output compare A match interrupt */ 
+
+
+  /* measurement loop */
+  while (Flag > 0)
+  {
+    /* setup PD4 as input */
+    Old_DDR = CONTROL_DDR;                /* save current settings */
+    CONTROL_DDR &= ~(1 << PD4);           /* signal input */
+    wait500us();                          /* settle time */
+
+    /* update prescaler */
+    Prescaler = MEM_read_word(&T1_Prescaler_table[Index]);
+    Bitmask = MEM_read_byte(&T1_Bitmask_table[Index]);
+
+    /* calculate compare value for Timer1 */
+    Value = (CPU_FREQ / 1000000);         /* clock based MCU cycles per 탎 */
+    Value *= GateTime;                    /* gatetime (in ms) */
+    Value *= 1000;                        /* scale to 탎 */
+    Value /= Prescaler;                   /* divide by prescaler */
+    Top = (uint16_t)Value;                /* use lower 16 bit */
+
+    /* start timers */
+    Freq.Pulses = 0;                      /* reset pulse counter */
+    Flag = 2;                             /* enter waiting loop */
+    TCNT0 = 0;                            /* Timer0: set counter to 0 */
+    TCNT1 = 0;                            /* Timer1: set counter to 0 */
+    OCR1A = Top;                          /* Timer1: set value to compare with */
+    sei();                                /* enable interrupts */
+    TCCR1B = Bitmask;                     /* start Timer1, prescaler */
+    TCCR0B = (1 << CS02) | (1 << CS01);   /* start Timer0, clock source: T0 falling edge */
+
+    /* wait for timer1 or key press */
+    while (Flag == 2)
+    {
+      if (TCCR1B == 0)                    /* Timer1 stopped by ISR */
+      {
+        Flag = 1;                         /* end waiting loop and signal Timer1 event */
+      }
+      else                                /* Timer1 still running */
+      {
+        /* check for key press */
+        while (!(CONTROL_PIN & (1 << TEST_BUTTON)))
+        {
+          MilliSleep(50);                 /* take a nap */
+          Flag = 0;                       /* end all loops */
+        }
+
+        if (Flag > 0) MilliSleep(100);    /* sleep for 100ms */
+
+        /* I'd like to use TestKey() but ReadEncoder() produces some glitch
+           which causes TCNT0 to be increased by 1 most times. */
+      }
+    }
+
+    cli();                                /* disable interrupts */
+
+    /* process measurement */
+    CONTROL_DDR = Old_DDR;                /* restore old settings */
+
+    if (Flag == 1)                        /* got valid measurement */
+    {
+      /* calculate frequency: f = pulses / gatetime */
+      Freq.Pulses += TCNT0;             /* add counter of Timer0 to global counter */
+      Value = Freq.Pulses;              /* number of pulses */
+      Value *= 1000;                    /* scale gatetime to 탎 */
+      Value /= GateTime;                /* divide by gatetime (in ms) */
+
+      /* display frequency */
+      LCD_ClearLine2();
+      LCD_Data('f');                    /* display: f */
+      LCD_Space();
+      DisplayValue(Value, 0, 'H');      /* display frequency */
+      LCD_Data('z');                    /* append "z" for Hz */
+
+      /* autorange */
+      if (Freq.Pulses > 10000)          /* range overrun */
+      {
+        if (GateTime > 1)               /* upper range limit not reached yet */
+        {
+          GateTime /= 10;               /* 100ms -> 10ms -> 1ms */
+          Index--;                      /* one prescaler step down */
+        }
+      }
+      else if (Freq.Pulses < 1000)      /* range underrun */
+      {
+        if (GateTime < 1000)            /* lower range limit not reached yet */
+        {
+          GateTime *= 10;               /* 1ms -> 10ms -> 100ms -> 1000ms */
+          Index++;                      /* one prescaler step up */
+        }
+      }
+    }
+  }
+
+  /* clean up */
+  Config.SleepMode = SLEEP_MODE_PWR_SAVE;    /* reset sleep mode to default */
+}
+
+
+
+/*
+ *  ISR for overflow of Timer0
+ */
+
+ISR(TIMER0_OVF_vect, ISR_BLOCK) {
+  /* this automatically clears ... */
+
+  sei();                      /* allow nested interrupts */
+  Freq.Pulses += 256;         /* add overflow to global counter */
+}
+
+
+
+/*
+ *  ISR for a match of TCNT1 (Timer1) and OCR1A (Output Compare Register A)
+ */
+
+ISR(TIMER1_COMPA_vect, ISR_BLOCK)
+{
+  /* this automatically clears the OCF1A flag in the Interrupt Flag Register */
+
+  TCCR1B = 0;                 /* disable Timer1 */
+  TCCR0B = 0;                 /* disable Timer0 */
+}
+
 
 #endif
 
