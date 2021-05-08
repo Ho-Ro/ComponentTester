@@ -85,8 +85,8 @@ void ProbePinout(uint8_t Mode)
 
   Show_SimplePinout(ID_1, ID_2, ID_3);  /* display pinout */
 
-  TestKey(5000, 0);           /* wait for any key press or 5s */  
-  LCD_ClearLine2();           /* clear line #2 */
+  TestKey(5000, CURSOR_NONE);      /* wait for any key press or 5s */  
+  LCD_ClearLine2();                /* clear line #2 */
 }
 
 #endif
@@ -208,7 +208,7 @@ void PWM_Tool(uint16_t Frequency)
     /* show current ratio */
     LCD_ClearLine2();
     DisplayValue(Ratio, 0, '%');        /* show ratio in % */
-    #ifdef HW_ENCODER
+    #ifdef HW_STEP_KEYS
     if (Test <= KEY_LONG)               /* just for test button usage */
     #endif
     MilliSleep(500);                    /* smooth UI */
@@ -220,11 +220,11 @@ void PWM_Tool(uint16_t Frequency)
      *    two short key presses -> exit tool
      */
 
-    Test = TestKey(0, 0);               /* wait for user feedback */
+    Test = TestKey(0, CURSOR_NONE);     /* wait for user feedback */
     if (Test == KEY_SHORT)              /* short key press */
     {
       MilliSleep(50);                   /* debounce button a little bit longer */
-      Prescaler = TestKey(200, 0);      /* check for second key press */
+      Prescaler = TestKey(200, CURSOR_NONE); /* check for second key press */
       if (Prescaler > 0)                /* second key press */
       {
         Test = 0;                         /* end loop */
@@ -234,7 +234,7 @@ void PWM_Tool(uint16_t Frequency)
         if (Ratio <= 95) Ratio += 5;      /* +5% and limit to 100% */
       }
     }
-    #ifdef HW_ENCODER
+    #ifdef HW_STEP_KEYS
     else if (Test == KEY_TURN_RIGHT)    /* rotary encoder: right turn */
     {
       if (Ratio <= 99) Ratio += 1;      /* +1% and limit to 100% */
@@ -286,7 +286,7 @@ void PWM_Tool(void)
   #define UPDATE_RATIO   0b00100000     /* update display of ratio */
 
   uint8_t           Flag;               /* loop control */
-  uint8_t           Test;               /* user feedback */
+  uint8_t           Test = 0;           /* user feedback */
   uint8_t           Step;               /* step size */
   uint8_t           Ratio;              /* PWM ratio (in %) */
   uint8_t           Index;              /* prescaler table index */
@@ -345,12 +345,12 @@ void PWM_Tool(void)
    */
 
   /* start values */
-  Flag = FLAG_RUN | CHANGE_FREQ | CHANGE_RATIO | UPDATE_FREQ | UPDATE_RATIO;
   Ratio = 50;                      /* 50% PWM ratio */
   Prescaler = 1;
   Index = 0;
   Bitmask = (1 << CS10);           /* prescaler bitmask for 1 */
   Top = (CPU_FREQ / 2000);         /* 1kHz */
+  Flag = FLAG_RUN | CHANGE_FREQ | CHANGE_RATIO | UPDATE_FREQ | UPDATE_RATIO;
 
   while (Flag > 0)       /* processing loop */
   {
@@ -365,7 +365,7 @@ void PWM_Tool(void)
        *  auto-ranging
        */
 
-      Test = Index;
+      Step = Index;
 
       /* check if we should change the range */
       if (Top > 0x7FFF)            /* more than 15 bits */
@@ -375,7 +375,7 @@ void PWM_Tool(void)
           Index++;                 /* increase prescaler */
         }
       }
-      else if (Top < 0x03FF)       /* less than 10 bits */
+      else if (Top < 0x0FFF)       /* less than 12 bits */
       {
         if (Index > 0)             /* don't exceed lower prescaler limit */
         {
@@ -384,7 +384,7 @@ void PWM_Tool(void)
       }
 
       /* process changed range */
-      if (Index != Test)           /* range has changed */
+      if (Index != Step)           /* range has changed */
       {
         Step2 = Prescaler;         /* save old value */
 
@@ -392,7 +392,7 @@ void PWM_Tool(void)
         Prescaler = eeprom_read_word(&T1_Prescaler_table[Index]);
         Bitmask = eeprom_read_byte(&T1_Bitmask_table[Index]);
 
-        if (Index > Test)          /* larger prescaler */
+        if (Index > Step)          /* larger prescaler */
         {
           /* decrease top value by same factor as the prescaler increased */
           Temp = Prescaler / Step2;
@@ -428,7 +428,7 @@ void PWM_Tool(void)
      *  update display
      */
 
-    /* frequency */
+    /* display frequency */
     if (Flag & UPDATE_FREQ)
     {
       LCD_ClearLine2();
@@ -438,7 +438,7 @@ void PWM_Tool(void)
       /* f = f_MCU / (2 * prescaler * top) */
       Value = CPU_FREQ * 50;            /* scale to 0.01Hz and /2 */
       Value /= Prescaler;
-      Test = 2;                         /* 2 decimal places */
+      Step = 2;                         /* 2 decimal places */
 
       /*
        *  optimize resolution of frequency without causing an overflow
@@ -450,19 +450,19 @@ void PWM_Tool(void)
       while (Temp >= 8)         /* loop through prescaler steps */
       {
         Value *= 10;            /* scale by factor 0.1 */
-        Test++;                 /* one decimal place more */
+        Step++;                 /* one decimal place more */
         Temp /= 8;              /* next lower prescaler */
       }
 
       Value /= Top;
 
-      DisplayFullValue(Value, Test, 'H');
+      DisplayFullValue(Value, Step, 'H');
       LCD_Char('z');                    /* add z for Hz */
 
       Flag &= ~UPDATE_FREQ;             /* clear flag */
     }
 
-    /* ratio */
+    /* display ratio */
     if (Flag & UPDATE_RATIO)
     {
       LCD_ClearLine(3);
@@ -475,36 +475,50 @@ void PWM_Tool(void)
       Flag &= ~UPDATE_RATIO;            /* clear flag */
     }
 
+    /* smooth UI after long key press */
+    if (Test == KEY_LONG)          /* long key press */
+    {
+      /* wait until button is released to prevent further actions */
+      while (!(CONTROL_PIN & (1 << TEST_BUTTON))) /* as long as key is pressed */
+      {
+        wait10ms();           /* simply wait */
+      }
+
+      MilliSleep(500);        /* smooth UI */
+    }
+
 
     /*
      *  user feedback
      */
 
-    Test = TestKey(0, 0);          /* wait for key / rotary encoder */
+    Test = TestKey(0, CURSOR_NONE);     /* wait for key / rotary encoder */
 
     /* consider rotary encoder's turning velocity */
-    Step = Enc.Velocity;           /* get velocity (1-7) */
-    Step2 = 1;
+    Step = UI.KeyStep;             /* get velocity (1-7) */
+    Step2 = Step;
     if (Step > 1)                  /* larger step */
     {
-      if (Flag & MODE_FREQ)        /* step for frequency */
+      /* increase step size based on turning velocity */
+      if (Flag & MODE_FREQ)        /* frequency mode */
       {
-        if (Step <= 4)             /* L step */
-        {
-          /* increase step size via binary shifting */
-          Step2 <<= Step;          /* 2^Step */
-        }
-        else                       /* XXL step */
-        {
-          /* step size based on top */
-          Step2 = Top / 8;
-          Step2++;                      /* prevent zero */
-        }
+        /*
+         *  value ranges for each prescaler:
+         *  -    1:  100 -> 32767 /  100 <- 32760
+         *  -    8: 4095 -> 32767 / 4095 <- 32760
+         *  -   64: 4095 -> 32767 / 4095 <- 16380
+         *  -  256: 8191 -> 32767 / 4095 <- 16380
+         *  - 1024: 8191 -> 65635 / 4095 <- 65635
+         */
+
+        /* step^4: 16 81 256 625 1296 2401 */
+        Step2 *= Step;             /* ^2 */
+        Step2 *= Step2;            /* ^2 */
       }
-      else                         /* step for ratio */
+      else                         /* ratio mode */
       {
-        Step <<= 2;                       /* increase step size */
-        if (Step > 100) Step = 100;       /* limit maximum */
+        /* 0-100% */
+        Step *= 100 / 32;
       }
     }
 
@@ -512,7 +526,7 @@ void PWM_Tool(void)
     if (Test == KEY_SHORT)              /* short key press */
     {
       MilliSleep(50);                   /* debounce button a little bit longer */
-      Test = TestKey(200, 0);           /* check for second key press */
+      Test = TestKey(200, CURSOR_NONE); /* check for second key press */
 
       if (Test > KEY_TIMEOUT)           /* second key press */
       {
@@ -521,16 +535,34 @@ void PWM_Tool(void)
       else                              /* single key press */
       {
         /* toggle frequency/ratio mode */
-        if (Flag & MODE_FREQ)           /* frequency mode */
+        if (Flag & MODE_FREQ)      /* frequency mode */
         {
-          Flag &= ~MODE_FREQ;           /* clear frequency flag */
+          Flag &= ~MODE_FREQ;      /* clear frequency flag */
         }
-        else                            /* ratio mode */
+        else                       /* ratio mode */
         {
-          Flag |= MODE_FREQ;            /* set frequency flag */
+          Flag |= MODE_FREQ;       /* set frequency flag */
         }
 
         Flag |= UPDATE_FREQ | UPDATE_RATIO;  /* update display */
+      }
+    }
+    else if (Test == KEY_LONG)          /* long key press */
+    {
+      if (Flag & MODE_FREQ)        /* frequency mode */
+      {
+        /* set 1kHz */
+        Prescaler = 1;
+        Index = 0;
+        Bitmask = (1 << CS10);     /* prescaler bitmask for 1 */
+        Top = (CPU_FREQ / 2000);   /* 1kHz */
+        Flag |= CHANGE_FREQ | UPDATE_FREQ | CHANGE_RATIO;   /* set flags */
+      }
+      else                         /* ratio mode */
+      {
+        /* set 50% */
+        Ratio = 50;
+        Flag |= CHANGE_RATIO | UPDATE_RATIO;      /* set flags */
       }
     }
     else if (Test == KEY_TURN_RIGHT)    /* rotary encoder: right turn */
@@ -620,7 +652,7 @@ void PWM_Tool(void)
 void Servo_Check(void)
 {
   #define FLAG_RUN       0b00000001     /* run / otherwise end */
-  #define MODE_PULSE     0b00000010     /* pulse width mode / otherwise frequency  */
+  #define MODE_PULSE     0b00000010     /* pulse width mode / otherwise frequency */
   #define MODE_SWEEP     0b00000100     /* sweep mode */
   #define CHANGE_PULSE   0b00001000     /* change pulse width */
   #define CHANGE_FREQ    0b00010000     /* change frequency */
@@ -636,6 +668,20 @@ void Servo_Check(void)
   uint16_t          Step;               /* step size */
   uint16_t          Temp;               /* temporary value */
   uint32_t          Value;              /* temporary value */
+
+  /*
+   *  MCU clock specific value
+   *  - step size for a resolution of about 0.01ms
+   *  - 8MHz: 5, 16MHz: 10, 20MHz: 13
+   */
+
+  #if (CPU_FREQ >= 16000000)
+    #define PULSE_STEP        10
+  #elif (CPU_FREQ >= 8000000)
+    #define PULSE_STEP        5
+  #else
+    #define PULSE_STEP        1
+  #endif
 
   /*
    *  PWM for servos:
@@ -740,13 +786,20 @@ void Servo_Check(void)
   SweepDir = 0;
   Flag = FLAG_RUN | MODE_PULSE | CHANGE_PULSE | CHANGE_FREQ | UPDATE_FREQ | UPDATE_PULSE | UPDATE_FREQ;
 
+  /*
+   *  todo:
+   *  - since the pulse length is displayed with a resolution of 0.01ms
+   *    a visible change might need several steps
+   *  - improve UI to give visual response of each step
+   */
+
   while (Flag > 0)       /* processing loop */
   {
     /*
      *  change timer settings
      */
 
-    /* pulse width */
+    /* change pulse width */
     if (Flag & CHANGE_PULSE)
     {
       OCR1B = Toggle;                   /* set toggle value */
@@ -772,7 +825,7 @@ void Servo_Check(void)
      *  update display
      */
 
-    /* pulse duration */
+    /* display pulse duration / sweep period */
     if (Flag & UPDATE_PULSE)
     {
       LCD_ClearLine2();
@@ -783,34 +836,34 @@ void Servo_Check(void)
       if (Flag & MODE_SWEEP)            /* sweep mode */
       {
         /*
-         *  show sweep time
+         *  calculate sweep time
          *  - t_sweep = t_step * (toggle_1ms / step)
          */
 
         Value = SERVO_STEP_TIME;        /* step time in µs (around 3000) */
         Value *= SERVO_LEFT_NORM;       /* * toggle value for 1ms */
-        Value /= SweepStep;             /* / step size */
-
-        DisplayValue(Value, -6, 's');   /* display time */
+        Value /= SweepStep;             /* / step size (in µs) */
       }
       else                              /* normal mode */
       {
         /*
-         *  show pulse length
+         *  calculate pulse length
          *  - t = (toggle * 2 * prescaler) / f_MCU
          */
 
         Value = (uint32_t)Toggle;
-        Value *= 1600;                  /* * (2 * prescaler) (in 0.01) */
-        Value /= (CPU_FREQ / 1000);     /* / f_MCU (in 0.01ms) */
-
-        DisplayValue(Value, -5, 's');   /* display duration */
+        Value *= 16000;                 /* * (2 * prescaler) (in 0.001) */
+        Value /= (CPU_FREQ / 1000);     /* / f_MCU (in 1µs) */
       }
+
+      /* display value */
+      DisplayFullValue(Value, 3, 'm');
+      LCD_Char('s');
 
       Flag &= ~UPDATE_PULSE;            /* clear flag */
     }
 
-    /* PWM frequency/period */
+    /* display PWM frequency/period */
     if (Flag & UPDATE_FREQ)
     {
       LCD_ClearLine(3);
@@ -850,19 +903,52 @@ void Servo_Check(void)
      *  user feedback
      */
 
-    Test = TestKey(0, 2);          /* wait for key / rotary encoder */
+    Test = TestKey(0, CURSOR_BLINK);    /* wait for key / rotary encoder */
 
-    /* consider rotary encoder's turning velocity */
-    Step = 1;
-    if (Enc.Velocity > 1)          /* larger step */
+    /* consider rotary encoder's turning velocity (1-7) */
+    Step = UI.KeyStep;             /* get velocity */
+    if (Step > 1)                  /* larger step */
     {
-      Step <<= Enc.Velocity;       /* 2^velocity */
+      /* increase step size based on turning velocity */
+      Step--;
+
+      if (Flag & MODE_SWEEP)       /* in sweep mode */
+      {
+        /*
+         *  MCU clock specific value range
+         *  - 8MHz: 1-50, 16MHz: 1-100, 20MHz: 1-125
+         */
+
+        Step *= (SERVO_STEP_MAX / 32) + 1;
+      }
+      else                         /* in normal mode */
+      {
+        /*
+         *  MCU clock specific value range
+         *  - 8MHz: 250-1250, 16MHz: 500-2500, 20MHz: 625-3125
+         *  - use multiples of 0.01ms step size
+         */
+
+        Step *= PULSE_STEP * ((SERVO_RIGHT_MAX - SERVO_LEFT_MAX) / 500);
+      }
+    }
+    else                           /* single step */
+    {
+      if (! (Flag & MODE_SWEEP))   /* in normal mode */
+      {
+        /*
+         *  MCU clock specific value
+         *  - change step size for a resolution of about 0.01ms
+         */
+
+        Step = PULSE_STEP;
+      }
     }
 
     if (Test == KEY_SHORT)              /* short key press */
     {
       MilliSleep(50);                   /* debounce button a little bit longer */
-      Test = TestKey(200, 0);           /* check for second key press */
+      Test = TestKey(200, CURSOR_NONE); /* check for second key press */
 
       if (Test > KEY_TIMEOUT)           /* second key press */
       {
@@ -1031,6 +1117,8 @@ void Servo_Check(void)
   #undef SERVO_LEFT_MAX
   #undef SERVO_LEFT_NORM
 
+  #undef PULSE_STEP
+
   #undef TOGGLE_SWEEP
   #undef UPDATE_FREQ
   #undef UPDATE_PULSE
@@ -1111,6 +1199,7 @@ ISR(TIMER0_COMPA_vect, ISR_BLOCK)
  *  create square wave signal with variable frequency
  *  - use probe #2 (OC1B) as output
  *    and probe #1 + probe #3 as ground
+ *  - requires rotary encoder
  */
 
 void SquareWave_SignalGenerator(void)
@@ -1170,7 +1259,7 @@ void SquareWave_SignalGenerator(void)
    *  processing loop
    */
 
-  /* start values for 1kHz */
+  /* set values for default frequency: 1kHz */
   Index = 0;                       /* prescaler 1/1 */
   Prescaler = 1;                   /* prescaler 1/1 */
   Bitmask = (1 << CS10);           /* bitmask for prescaler 1 */
@@ -1192,7 +1281,7 @@ void SquareWave_SignalGenerator(void)
         Index++;                   /* increase prescaler */
       }
     }
-    else if (Top < 0x03FF)         /* less than 10 bits */
+    else if (Top < 0x0FFF)         /* less than 12 bits */
     {
       if (Index > 0)               /* don't exceed lower prescaler limit */
       {
@@ -1270,27 +1359,22 @@ void SquareWave_SignalGenerator(void)
      *  user feedback
      */
 
-    Test = TestKey(0, 0);          /* wait for key / rotary encoder */
+    Test = TestKey(0, CURSOR_NONE);     /* wait for key / rotary encoder */
 
     /* consider rotary encoder's turning velocity */
-    Step = 1;
-    if (Enc.Velocity > 1)          /* larger step */
+    Step = UI.KeyStep;             /* get velocity (1-7) */
+
+    if (Step > 1)                  /* larger step */
     {
-      if (Enc.Velocity <= 4)            /* L step */
-      {
-        /* increase step size via binary shifting */
-        Step <<= Enc.Velocity;          /* 2^Step */
-      }
-      else                              /* XXL step */
-      {
-        /* step size based on top */
-        Step = Top / 8;
-        Step++;                         /* prevent zero */
-      }
+      /* increase step size based on turning velocity */
+
+      /* step^4: 16 81 256 625 1296 2401 */
+      Step *= Step;                /* ^2 */
+      Step *= Step;                /* ^2 */
     }
 
     /* process user input */
-    if (Test == KEY_TURN_RIGHT)    /* encoder: right turn */
+    if (Test == KEY_TURN_RIGHT)         /* encoder: right turn */
     {
       /* increase frequency -> decrease top value */
       Temp = Top - Step;           /* take advantage of underflow */
@@ -1300,7 +1384,7 @@ void SquareWave_SignalGenerator(void)
       }
       Top = Temp;                /* set new value */
     }
-    else if (Test == KEY_TURN_LEFT)  /* encoder: left turn */
+    else if (Test == KEY_TURN_LEFT)     /* encoder: left turn */
     {
       /* decrease frequency -> increase top value */
       Temp = Top + Step;           /* take advantage of overflow */
@@ -1310,10 +1394,24 @@ void SquareWave_SignalGenerator(void)
       }
       Top = Temp;                  /* set new value */
     }
-    else if (Test > KEY_TIMEOUT)   /* any other key press */
+    else if (Test == KEY_SHORT)         /* short key press */
     {
-      /* todo: single press: default f / double press: end */
-      Flag = 0;               /* end loop */
+      MilliSleep(50);              /* debounce button a little bit longer */
+      Test = TestKey(200, CURSOR_NONE);   /* check for second key press */
+
+      if (Test > KEY_TIMEOUT)      /* second key press */
+      {
+        Flag = 0;                  /* end loop */
+      }
+      /* else: todo: add some function here? */
+    }
+    else if (Test == KEY_LONG)          /* long key press */
+    {
+      /* set default frequency: 1kHz */
+      Index = 0;                        /* prescaler 1/1 */
+      Prescaler = 1;                    /* prescaler 1/1 */
+      Bitmask = (1 << CS10);            /* bitmask for prescaler 1 */
+      Top = (CPU_FREQ / 1000) - 1;      /* top = f_MCU / (prescaler * f) - 1 */
     }
   }
 
@@ -1338,6 +1436,7 @@ void SquareWave_SignalGenerator(void)
 
 /*
  *  ESR tool
+ *  - use probe #1 (pos) and probe #3 (neg) 
  */
 
 void ESR_Tool(void)
@@ -1367,11 +1466,11 @@ void ESR_Tool(void)
      *  two short key presses -> exit tool
      */
 
-    Test = TestKey(0, 2);               /* wait for user feedback */
+    Test = TestKey(0, CURSOR_BLINK);    /* wait for user feedback */
     if (Test == KEY_SHORT)              /* short key press */
     {
       MilliSleep(50);                   /* debounce button a little bit longer */
-      Test = TestKey(200, 0);           /* check for second key press */
+      Test = TestKey(200, CURSOR_NONE); /* check for second key press */
       if (Test > KEY_TIMEOUT)           /* second key press */
       {
         Run = 0;                        /* end loop */
@@ -1413,7 +1512,7 @@ void ESR_Tool(void)
       }
 
       #ifdef HW_DISCHARGE_RELAY
-      ADC_DDR = (1<<TP_REF);            /* short circuit probes */
+      ADC_DDR = (1 << TP_REF);          /* short circuit probes */
       #endif
     }
   }
@@ -1436,7 +1535,8 @@ void ESR_Tool(void)
 
 /*
  *  Zener tool:
- *  - Zener voltage measurement hardware option
+ *  - Zener diode voltage measurement hardware option
+ *  - use dedicated analog input (TP_ZENER) with 10:1 voltage divider
  */
 
 void Zener_Tool(void)
@@ -1445,7 +1545,7 @@ void Zener_Tool(void)
   uint8_t                Counter;            /* length of key press */
   uint8_t                Counter2 = 0;       /* time between two key presses */
   uint16_t               Value;              /* current value */
-  uint16_t               Min;                /* minimal value */
+  uint16_t               Min = UINT16_MAX;   /* minimal value */
 
   /* show info */
   LCD_Clear();
@@ -1897,6 +1997,7 @@ uint8_t CheckEncoder(uint8_t *History)
 
 /*
  *  rotary encoder check
+ *  - uses standard probes
  */
 
 void Encoder_Tool(void)
@@ -1951,7 +2052,7 @@ void Encoder_Tool(void)
 
     if (Flag > 0)             /* detected encoder */
     {
-      TestKey(3000, 11);           /* let the user read */
+      TestKey(3000, CURSOR_STEADY | CURSOR_OP_MODE);  /* let the user read */
       Flag = 5;                    /* reset flag */
     }
     else                      /* nothing found yet */
@@ -2013,6 +2114,7 @@ void Check_LED(uint8_t Probe1, uint8_t Probe2)
 
 /*
  *  check opto couplers
+ *  - uses standard probes
  *  - pins which have to be connected (common Gnd):
  *    - LED's cathode and BJT's emitter 
  *    - LED's cathode and TRIAC's MT2
@@ -2040,13 +2142,13 @@ void OptoCoupler_Tool(void)
   while (Run)
   {
     /* user input */
-    Test = TestKey(0, 2);          /* get user input */
+    Test = TestKey(0, CURSOR_BLINK);    /* get user input */
 
     if (Test == KEY_SHORT)         /* short key press */
     {
       /* a second key press ends tool */
       MilliSleep(50);
-      Test = TestKey(300, 0);
+      Test = TestKey(300, CURSOR_NONE);
       if (Test > KEY_TIMEOUT) Run = 0;  /* end loop */
     }
 

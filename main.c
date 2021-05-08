@@ -1272,6 +1272,10 @@ start:
   Semi.I_value = 0;
   AltSemi.U_1 = 0;
   AltSemi.U_2 = 0;
+  #ifdef HW_INCDEC_KEYS
+  UI.OldKey = 0;
+  UI.OldStep = 1;
+  #endif
 
   /* reset hardware */
   ADC_DDR = 0;                     /* set all pins of ADC port as input */
@@ -1472,13 +1476,13 @@ result:
 end:
 
   #ifdef HW_DISCHARGE_RELAY
-  ADC_DDR = (1<<TP_REF);              /* short circuit probes */
+  ADC_DDR = (1 << TP_REF);            /* short circuit probes */
   #endif
 
   LCD_NextLine_Mode(MODE_NONE);       /* reset next line mode */
 
   /* get key press or timeout */
-  Test = TestKey((uint16_t)CYCLE_DELAY, 12);
+  Test = TestKey((uint16_t)CYCLE_DELAY, CURSOR_BLINK | CURSOR_OP_MODE);
 
   if (Test == KEY_TIMEOUT)         /* timeout (no key press) */
   {
@@ -1492,7 +1496,7 @@ end:
   {
     /* a second key press triggers extra functions */
     MilliSleep(50);
-    Test = TestKey(300, 0);
+    Test = TestKey(300, CURSOR_NONE);
 
     if (Test > KEY_TIMEOUT)        /* short or long key press */
     {
@@ -1508,7 +1512,7 @@ end:
   {
     goto power_off;                /* -> power off */
   }
-  #ifdef HW_ENCODER
+  #ifdef HW_STEP_KEYS
   else if (Test == KEY_TURN_LEFT)  /* rotary encoder: left turn */
   {
     MainMenu();                    /* enter main menu */

@@ -1,8 +1,9 @@
 /* ************************************************************************
  *
- *   language specific global variables: Spanish
+ *   language specific global variables: Spanish (ISO 8859-1)
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2016-2017 by Markus Reschke
+ *   translation by pepe10000@EEVblog
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */

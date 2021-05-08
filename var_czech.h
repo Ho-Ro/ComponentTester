@@ -1,8 +1,9 @@
 /* ************************************************************************
  *
- *   language specific global variables: Czech
+ *   language specific global variables: Czech (ISO 8859-1)
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2015-2017 by Markus Reschke
+ *   translation by Kapa
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */

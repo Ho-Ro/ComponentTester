@@ -29,30 +29,52 @@
 /*
  *  rotary encoder for user interface
  *  - default pins: PD2 & PD3 (ATmega 328)
- *  - in parallel with LCD module
- *  - see ENCODER_PORT for port pins
- *  - uncomment to enable and also set ENCODER_PULSES below to match your
- *    rotary encoder
+ *  - could be in parallel with LCD module
+ *  - see ENCODER_PORT for port pins (config-<MCU>.h)
+ *  - uncomment to enable and also set ENCODER_PULSES & ENCODER_STEPS below
+ *    to match your rotary encoder
  */
 
-//#define HW_ENCODER
+#define HW_ENCODER
 
 
 /*
  *  Number of Gray code pulses per step or detent for the rotary encoder
- *  - typical values: 1, 2 or 4
- *  - a rotary encoder's pulse is a sequence of 4 Gray code pulses
+ *  - typical values: 2 or 4, rarely 1
+ *  - a rotary encoder's pulse is the complete sequence of 4 Gray code pulses
  *  - adjust value to match your rotary encoder
  */
 
-#define ENCODER_PULSES   2
+#define ENCODER_PULSES   4
+
+
+/*
+ *  Number of detents or steps
+ *  - this is used by the detection of the rotary encoder's turning velocity
+ *  - it doesn't have to match exactly and also allows you to finetune the
+ *    the feedback (higher: slow down, lower: speed up)
+ *  - typical values: 20, 24 or 30 
+ *  - adjust value to match your rotary encoder
+ */
+
+#define ENCODER_STEPS    24
+
+
+/*
+ *  increase/decrease push buttons for user interface
+ *  - alternative for rotary encoder
+ *  - see KEY_PORT for port pins (config-<MCU>.h)
+ *  - uncomment to enable
+ */
+
+//#define HW_INCDEC_KEYS
 
 
 /*
  *  2.5V voltage reference for Vcc check
  *  - default pin: PC4 (ATmega 328)
  *  - should be at least 10 times more precise than the voltage regulator
- *  - see TP_REF for port pin
+ *  - see TP_REF for port pin (config-<MCU>.h)
  *  - uncomment to enable and also adjust UREF_25 below for your voltage
  *    reference
  */
@@ -107,6 +129,7 @@
  *  fixed IR remote control detection/decoder
  *  - requires IR receiver module, e.g. TSOP series
  *  - module is connected to fixed I/O pin
+ *  - see IR_PORT for port pin (config-<MCU>.h)
  *  - uncomment to enable
  */
 
@@ -115,7 +138,8 @@
 
 /*
  *  fixed cap for self-adjustment
- *  - uncomment to enable (not implemented yet)
+ *  - see TP_CAP and ADJUST_PORT for port pins (config-<MCU>.h)
+ *  - uncomment to enable
  */
 
 //#define HW_ADJUST_CAP
@@ -129,11 +153,10 @@
 //#define HW_CAP_RELAY
 
 
-
 /*
  *  I2C bus
  *  - might be required by some hardware
- *  - for bit-bang I2C port and pins see config_<MCU>.h
+ *  - for bit-bang I2C port and pins see I2C_PORT (config_<MCU>.h)
  *  - hardware I2C (TWI) uses the proper pins automatically
  *  - uncomment either I2C_BITBANG or I2C_HARDWARE to enable
  */
@@ -287,12 +310,14 @@
  *  - German
  *  - Czech
  *  - Spanish
+ *  - Russian (only 8x16 font horizontally aligned)
  */
 
 #define UI_ENGLISH
 //#define UI_GERMAN
 //#define UI_CZECH
 //#define UI_SPANISH
+//#define UI_RUSSIAN
 
 
 /*
@@ -581,23 +606,37 @@
 
 
 /*
- *  software options
+ *  options
  */
 
-/* PWM+ requires rotary encoder */
-#ifdef SW_PWM_PLUS
-  #ifndef HW_ENCODER
-    #undef SW_PWM_PLUS
-    #define SW_PWM_SIMPLE
-  #endif
+
+/* rotary encoder or increase/decrease push buttons */
+#if defined(HW_ENCODER) || defined(HW_INCDEC_KEYS)
+  #define HW_STEP_KEYS
 #endif
 
-/* squarewave generator requires rotary encoder */
-#ifdef SW_SQUAREWAVE
-  #ifndef HW_ENCODER
+
+/* options which require a rotary encoder */
+#ifndef HW_STEP_KEYS
+
+  /* PWM+ */
+  #ifdef SW_PWM_PLUS
+    #undef SW_PWM_PLUS
+    #define SW_PWM_SIMPLE   
+  #endif
+
+  /* squarewave generator */
+  #ifdef SW_SQUAREWAVE
     #undef SW_SQUAREWAVE
   #endif
+
+  /* Servo Check */
+  #ifdef SW_SERVO
+    #undef SW_SERVO
+  #endif
+
 #endif
+
 
 /* IR detector/decoder (probe lead based decoder prevails) */
 #ifdef SW_IR_RECEIVER
@@ -607,12 +646,18 @@
   #undef SW_IR_RECEIVER
 #endif
 
-/* Servo Check requires rotary encoder */
-#ifdef SW_SERVO
-  #ifndef HW_ENCODER
-    #undef SW_SERVO
-  #endif
+
+/* I2C */
+#if defined (I2C_BITBANG) || defined (I2C_HARDWARE)
+  #define HW_I2C
 #endif
+
+
+/* touchscreen */
+#ifdef TOUCH_PORT
+  #define HW_TOUCH
+#endif
+
 
 /* LCD module */
 #ifdef LCD_CONTRAST
@@ -621,6 +666,7 @@
   #define LCD_CONTRAST        0
 #endif
 
+
 /* color coding for probes requires a color graphics display */
 #ifdef SW_PROBE_COLORS
   #ifndef LCD_COLOR
@@ -628,19 +674,10 @@
   #endif
 #endif
 
+
 /* component symbols for fancy pinout */
 #if defined (SYMBOLS_24X24_VP) || defined (SYMBOLS_24X24_H) || defined (SYMBOLS_30X32_H) || defined (SYMBOLS_32X32_H)
   #define SW_SYMBOLS
-#endif
-
-/* I2C */
-#if defined (I2C_BITBANG) || defined (I2C_HARDWARE)
-  #define HW_I2C
-#endif
-
-/* touchscreen */
-#ifdef TOUCH_PORT
-  #define HW_TOUCH
 #endif
 
 

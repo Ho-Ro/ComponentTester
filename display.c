@@ -2,7 +2,7 @@
  *
  *   common display functions for LCD modules
  *
- *   (c) 2015-2016 by Markus Reschke
+ *   (c) 2015-2017 by Markus Reschke
  *
  * ************************************************************************ */
 

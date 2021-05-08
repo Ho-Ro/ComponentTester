@@ -49,6 +49,7 @@
 
 /* fonts and symbols, horizontally aligned */
 #include "font_8x8_h.h"
+#include "font_8x16_cyrillic_h.h"
 #include "font_10x16_h.h"
 #include "symbols_24x24_h.h"
 #include "symbols_30x32_h.h"
@@ -707,7 +708,10 @@ void LCD_Init(void)
   MilliSleep(115);                 /* pause for 120ms (blanking sequence) */
   LCD_Cmd(CMD_SLEEP_OUT);          /* leave sleep mode */
   MilliSleep(120);                 /* pause for 120ms (booster & clocks) */
+  #ifndef LCD_LATE_ON
+  /* turn on display early as visual feedback */
   LCD_Cmd(CMD_DISPLAY_ON);         /* enable display output */
+  #endif
 
   /* update maximums */
   UI.CharMax_X = LCD_CHAR_X;       /* characters per line */
@@ -718,8 +722,12 @@ void LCD_Init(void)
     UI.PenColor = COLOR_PEN;       /* set pen color */
   #endif
 
-  LineMask = 0xffff;            /* clear all lines by default */
-  LCD_Clear();                  /* clear display */
+  LineMask = 0xffff;               /* clear all lines by default */
+  LCD_Clear();                     /* clear display */
+  #ifdef LCD_LATE_ON
+  /* turn on display after clearing it */
+  LCD_Cmd(CMD_DISPLAY_ON);         /* enable display output */  
+  #endif
 }
 
 

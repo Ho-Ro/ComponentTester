@@ -2,7 +2,7 @@
  *
  *   self adjustment functions
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -187,7 +187,7 @@ void ShowAdjust(void)
 
   /* display offset of analog comparator */
   LCD_NextLine_EEString_Space(CompOffset_str);    /* display: AComp */
-  DisplaySignedValue(NV.CompOffset, -3, 'V');
+  DisplaySignedValue(NV.CompOffset, -3, 'V');     /* display offset */
 
   WaitKey();                  /* let the user read */
 }
@@ -205,7 +205,7 @@ void ShowAdjust(void)
 uint8_t SelfAdjust(void)
 {
   uint8_t           Flag = 0;           /* return value */
-  uint8_t           Test = 1;           /* test counter */
+  uint8_t           Step;               /* step counter */
   uint8_t           Counter;            /* loop counter */
   uint8_t           DisplayFlag;        /* display flag */
   uint16_t          Val1 = 0, Val2 = 0, Val3 = 0;   /* voltages */
@@ -218,6 +218,15 @@ uint8_t SelfAdjust(void)
   uint8_t           RiH_Counter = 0;    /* number of U_RiH measurements */
   uint16_t          U_RiH = 0;          /* sum of U_RiL values */
   uint32_t          Val0;               /* temp. value */
+  #ifdef HW_ADJUST_CAP
+  uint8_t           RefCounter = 0;     /* number of ref/offset runs */
+  #endif
+
+  #ifdef HW_ADJUST_CAP
+    Step = 1;            /* start with step #1 */
+  #else
+    Step = 2;            /* start with step #2 */
+  #endif
 
 
   /*
@@ -226,30 +235,47 @@ uint8_t SelfAdjust(void)
 
   /* make sure all probes are shorted */
   Counter = ShortCircuit(1);
-  if (Counter == 0) Test = 10;     /* skip adjustment on error */
+  if (Counter == 0) Step = 10;     /* skip adjustment on error */
 
-  while (Test <= 5)      /* loop through tests */
+  while (Step <= 6)      /* loop through steps */
   {
     Counter = 1;
 
     /* repeat each measurement 5 times */
     while (Counter <= 5)
     {
-      /* display test number */
+      /* display step number */
       LCD_Clear();
-      LCD_Char('A');                    /* display: a */
-      LCD_Char('0' + Test);             /* display number */
+      LCD_Char('A');                    /* display: A (for Adjust) */
+      LCD_Char('0' + Step);             /* display number */
       LCD_Space();
 
       DisplayFlag = 1;        /* display values by default */
 
       /*
-       *  tests
+       *  adjustment steps
        */
 
-      switch (Test)
+      switch (Step)
       {
-        case 1:     /* resistance of probe leads (probes shorted) */
+        #ifdef HW_ADJUST_CAP
+        case 1:     /* voltage offsets */
+
+          LCD_EEString_Space(URef_str);      /* display: Vref */
+          LCD_EEString(CompOffset_str);      /* display: AComp */
+
+          RefCounter += RefCap();            /* use fixed cap */
+
+          LCD_NextLine();
+          DisplaySignedValue(NV.RefOffset, -3, 'V');   /* display offset in mV */
+          LCD_Space();
+          DisplaySignedValue(NV.CompOffset, -3, 'V');  /* display offset in mV */
+
+          DisplayFlag = 0;                   /* reset flag */
+          break;
+        #endif        
+
+        case 2:     /* resistance of probe leads (probes shorted) */
           LCD_EEString_Space(ROffset_str);   /* display: R0 */
           LCD_EEString(ProbeComb_str);       /* display: 12 13 23 */          
 
@@ -284,13 +310,13 @@ uint8_t SelfAdjust(void)
 
           break;
 
-        case 2:     /* un-short probes */
+        case 3:     /* un-short probes */
           ShortCircuit(0);              /* make sure probes are not shorted */
           Counter = 100;                /* skip test */
           DisplayFlag = 0;              /* reset display flag */
           break;
 
-        case 3:     /* internal resistance of MCU in pull-down mode */
+        case 4:     /* internal resistance of MCU in pull-down mode */
           LCD_EEString(RiLow_str);      /* display: Ri- */
 
           /* TP1:  Gnd -- RiL -- probe-1 -- Rl -- RiH -- Vcc */
@@ -318,7 +344,7 @@ uint8_t SelfAdjust(void)
           RiL_Counter += 3;
           break;
 
-        case 4:     /* internal resistance of MCU in pull-up mode */
+        case 5:     /* internal resistance of MCU in pull-up mode */
           LCD_EEString(RiHigh_str);     /* display: Ri+ */
 
           /* TP1: Gnd -- RiL -- Rl -- probe-1 -- RiH -- Vcc */
@@ -346,7 +372,7 @@ uint8_t SelfAdjust(void)
           RiH_Counter += 3;
           break;
 
-        case 5:     /* capacitance offset (PCB and probe leads) */
+        case 6:     /* capacitance offset (PCB and probe leads) */
           LCD_EEString_Space(CapOffset_str);   /* display: C0 */
           LCD_EEString(ProbeComb_str);         /* display: 12 13 23 */
 
@@ -405,20 +431,20 @@ uint8_t SelfAdjust(void)
       /* wait and check test push button */
       if (Counter < 100)                     /* when we don't skip this test */
       {
-        DisplayFlag = TestKey(1000, 0);      /* catch key press or timeout */
+        DisplayFlag = TestKey(1000, CURSOR_NONE); /* catch key press or timeout */
 
         /* short press -> next test / long press -> end selftest */
         if (DisplayFlag > KEY_TIMEOUT)
         {
           Counter = 100;                       /* skip current test anyway */
-          if (DisplayFlag == KEY_LONG) Test = 100;  /* also skip selftest */
+          if (DisplayFlag == KEY_LONG) Step = 100;  /* also skip selftest */
         } 
       }
  
       Counter++;                        /* next run */
     }
 
-    Test++;                             /* next one */
+    Step++;                             /* next step */
   }
 
 
@@ -476,6 +502,13 @@ uint8_t SelfAdjust(void)
       Flag++;
     }
   }
+
+  #ifdef HW_ADJUST_CAP
+  if (RefCounter != 5)        /* we expect 5 successful runs */
+  {
+    Flag = 0;                 /* signal error */
+  }
+  #endif
 
   /* show values and offsets */
   ShowAdjust();
@@ -670,7 +703,7 @@ uint8_t SelfTest(void)
       /* wait and check test push button */
       if (Counter < 100)                     /* when we don't skip this test */
       {
-        DisplayFlag = TestKey(1000, 0);      /* catch key press or timeout */
+        DisplayFlag = TestKey(1000, CURSOR_NONE); /* catch key press or timeout */
 
         /* short press -> next test / long press -> end selftest */
         if (DisplayFlag > KEY_TIMEOUT)

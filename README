@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2017-02-22
+Last edit:  2017-04-10
 
 Content
   - About
@@ -28,6 +28,7 @@ Content
     - PCD8544
   - Test Key
     - Rotary Encoder
+    - Increase/Decrease Buttons
   - Startup
   - Probing
   - Power Off
@@ -134,6 +135,7 @@ official release:
   + detection of MT1 and MT2
 - IR RC detector and decoding
 - opto coupler check
+- RC servo check
 - structured source code
 - some more I couldn't think of right now
 
@@ -160,13 +162,14 @@ UI, and change any default values if required. All settings and values are
 explained in the file, so I won't discuss them here in depth. 
 
 Hardware options:
-- rotary encoder
+- rotary encoder or increase/decrease push buttons
 - 2.5V voltage reference
 - relay based cap discharger
 - Zener voltage measurement
 - frequency counter
 - IR detector/decoder for remote controls
   (fixed IR receiver module)
+- fixed cap for self adjustment of voltage offsets
 - I2C bus (bit-bang and hardware)
 
 The external 2.5V voltage reference should be only enabled if it's at least
@@ -196,6 +199,8 @@ Available UI languages:
 - German
 - Czech (provided by Kapa)
 - Spanish (provided by pepe10000@EEVblog)
+- Russian (provided by indman@EEVblog)
+  just 8x16 font horizontally aligned
 
 For MCU specific settings, like pin assignments and display, edit 
 config-<MCU>.h:
@@ -340,7 +345,9 @@ The ST7735 is driven by SPI. The pin assignment is:
   SDA         LCD_SDA            PD1
 
 You might need to play with the x/y flip settings to get the correct
-orientation for your display.
+orientation for your display. With LCD_LATE_ON enabled the tester starts
+with a cleared display causing a slight delay at power-on. Otherwise you'll
+see some random pixels for a moment.
 
 
 + PCD8544
@@ -377,14 +384,32 @@ a key press is neccessary.
 + Rotary Encoder (hardware option)
 
 With a rotary encoder you'll get some extra functionality with the user
-interface, but that's context specific. The additional functionality
-is described in the sections below, if applicable.
+interface, but that's context specific. The additional functionality is
+described in the sections below, if applicable. Some functions make use of
+the encoder's turning velocity to allow larger changes or steps of values.
 
-The algorithm for reading the encoder is tested only with ALPS EC11 and EC12
-series encoders, since I don't got any other rotary decoders yet. So I would
-appreciate any feedback on other encoders. In case the enoder's turning
-direction is reversed, simply swap the MCU pin definitions for A and B
-in config_<MCU>.h.
+The algorithm for reading the encoder considers the number of Gray code
+pulses per step or detent (ENCODER_PULSES). Most rotary encoders got 2 or 4
+Gray code pulses per detent. Also the number of steps or detents per complete
+360 degrees turn is taken into account (ENCODER_STEPS). You can use that
+value to finetune the detection of the turning velocity to optimize the
+feedback. A higher value slows the velocity down, while a lower value speeds
+it up. In case the encoder's turning direction is reversed, simply swap the
+MCU pin definitions for A and B in config_<MCU>.h.
+
+The detection of the turning velocity measures the time for two steps. So you
+need to turn the encoder at least by two steps for a mid-range velocity. For
+very high velocities it's three steps. A single step results in the lowest
+velocity.
+
+
++ Increase/Decrease Buttons (hardware option)
+
+If you prefer push buttons over a rotary encoder you can add a pair of push
+buttons as alternative. The push buttons are wired the same way as the rotary
+encoder (pull-up resistors, low active). For a speed-up functionality similar
+to the encoder's turning velocity keep pressing the push button. A long button
+press will increase the "speed" as long as you keep pressing the button.
 
 
 * Startup
@@ -481,8 +506,9 @@ and to change the PWM ratio in 1% steps.
 Switch between frequency and ratio by pressing the test button. The selected
 value is marked by an asterisk. Turn the rotary encoder clockwise to increase
 the value or anti-clockwise to decrease it. As faster you turn the rotary
-encoder as larger the step size becomes. Two short button presses exit the
-PWM tool. 
+encoder as larger the step size becomes. A long key press sets the default
+value (frequency: 1kHz, ratio: 50%). Two short button presses exit the PWM
+tool. 
 
 
 + Square Wave Signal Generator
@@ -494,8 +520,9 @@ velocity determines the frequency change, i.e. slow turning results in small
 changes und fast turning in large changes. Since the signal generation is
 based on the MCU's internal PWM mode you can't select the frequency
 continously, but in steps. For low frequencies the steps are quite small,
-but for high frequencies they become larger and larger. To exit the signal
-generator simply press the push button.
+but for high frequencies they become larger and larger. A long button press
+sets the frequency back to 1kHz, and two brief button presses exit the
+signal generator, as usual.
 
 Configuration of the probes:
   Probe #2:         output (with 680 Ohms resistor to limit current)
@@ -738,6 +765,11 @@ tester self-adjust the offsets mentioned above. Typically the first
 measurement will result in a slightly low value, the second in a high one
 and the third will be fine. That is caused by the self adjusting offsets.
 Both offsets are displayed at the end of the self adjustment.
+
+With a fixed cap for self adjustment the automatic offset handling in the
+capacitance measurement is replaced by a dedicated function run during the
+self adjustment procedure. So you don't have to measure a film cap before
+that. 
 
 The self adjustments is very similar to the selftest regarding the procedure
 and user interface.

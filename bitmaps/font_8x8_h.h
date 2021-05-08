@@ -3,7 +3,7 @@
  *   fixed 8x8 font based on ISO 8859-1
  *   horizontally aligned
  *
- *   (c) 2015 by Markus Reschke
+ *   (c) 2015-2017 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -27,9 +27,9 @@
 
 /*
  *  character bitmaps
- *  - to reduce size we use a 7 bit ASCII based font set and
- *    place special characters and symbols at positions 1-31
- *    which are normaly used for control chars
+ *  - to reduce size we place some symbols and special characters at
+ *    positions 0-15, and we move the standard chars up in the list by
+ *    16 positions (using ASCII's 0-31 for control chars)
  *  - format:
  *    - 8 bytes per character 
  *    - first byte: first horizontal line (top to down)
@@ -156,8 +156,8 @@ const uint8_t FontData[] PROGMEM = {
 
 
 /*
- *  font lookup table for ASCII ISO 8859-1
- *  - 8 bit ASCII to custom font
+ *  font lookup table for ISO 8859-1
+ *  - 8 bit ISO 8859-1 to custom font
  *  - ff: no bitmap available
  */
 

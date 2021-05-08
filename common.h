@@ -106,12 +106,22 @@
 #define FLAG_10MS             0b00010000
 
 
+/* cursor mode (bit mask) */
+#define CURSOR_NONE           0b00000000     /* no cursor */
+#define CURSOR_STEADY         0b00000001     /* steady cursor */
+#define CURSOR_BLINK          0b00000010     /* blinking cursor */
+#define CURSOR_OP_MODE        0b00000100     /* consider operation mode */
+
+
 /* test push button / rotary encoder */
 #define KEY_TIMEOUT           0    /* timeout */
-#define KEY_SHORT             1    /* short key press */
-#define KEY_LONG              2    /* long key press */
+#define KEY_SHORT             1    /* test push button: short key press */
+#define KEY_LONG              2    /* test push button: long key press */
 #define KEY_TURN_RIGHT        3    /* rotary encoder: right turn */
+                                   /* push buttons: increase */
 #define KEY_TURN_LEFT         4    /* rotary encoder: left turn */
+                                   /* push buttons: decrease */
+#define KEY_INCDEC            5    /* push buttons: increase and decrease */
 
 
 /* tester operation modes */
@@ -194,21 +204,6 @@
  * ************************************************************************ */
 
 
-/* user interface */
-typedef struct
-{
-  uint8_t           TesterMode;    /* tester operation mode */
-  uint8_t           LineMode;      /* line mode for LCD_NextLine() */
-  uint8_t           CharPos_X;     /* current character x position */
-  uint8_t           CharPos_Y;     /* current character y position */
-                                   /* top left is 1/1 */
-  uint8_t           CharMax_X;     /* max. characters per line */
-  uint8_t           CharMax_Y;     /* max. number of lines */
-  uint8_t           MaxContrast;   /* maximum contrast */
-  uint16_t          PenColor;      /* pen color */ 
-} UI_Type;
-
-
 /* tester modes, offsets and values */
 typedef struct
 {
@@ -235,14 +230,38 @@ typedef struct
 } NV_Type;
 
 
-/* rotary encoder */
+/* user interface */
 typedef struct
 {
-  uint8_t           History;       /* last AB status */
-  uint8_t           Dir;           /* turn direction */
-  uint8_t           Pulses;        /* number of pulses */
-  uint8_t           Velocity;      /* turning velocity */
-} RotaryEncoder_Type;
+  /* UI mode */
+  uint8_t           TesterMode;    /* tester operation mode */
+
+  /* display */
+  uint8_t           LineMode;      /* line mode for LCD_NextLine() */
+  uint8_t           CharPos_X;     /* current character x position */
+  uint8_t           CharPos_Y;     /* current character y position */
+                                   /* top left is 1/1 */
+  uint8_t           CharMax_X;     /* max. characters per line */
+  uint8_t           CharMax_Y;     /* max. number of lines */
+  uint8_t           MaxContrast;   /* maximum contrast */
+  uint16_t          PenColor;      /* pen color */ 
+
+  /* keys (push buttons / rotary encoder) */
+  #ifdef HW_ENCODER
+  /* rotary encoder */
+  uint8_t           EncState;      /* last AB status */
+  uint8_t           EncDir;        /* turning direction */
+  uint8_t           EncPulses;     /* number of Gray code pulses */
+  uint8_t           EncTicks;      /* time counter */
+  #endif
+  #ifdef HW_INCDEC_KEYS
+  uint8_t           OldKey;        /* former key */
+  uint8_t           OldStep;       /* former step size */
+  #endif
+  #ifdef HW_STEP_KEYS
+  uint8_t           KeyStep;       /* step size (1-7) */
+  #endif
+} UI_Type;
 
 
 /* probes */

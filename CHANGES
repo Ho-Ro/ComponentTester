@@ -8,6 +8,21 @@
 
 ------------------------------------------------------------------------------
 
+v1.28m 2017-04
+- Increase/Decrease push buttons as alternative for a rotary encoder (
+  HW_INCDEC_KEYS).
+- Added reset to default frequency to squarewave generator.
+- Further improvements of the detection of the rotary encoder's turning
+  velocity (ENCODER_STEPS). Also changes to functions making use of the
+  turning velocity.
+- Added reset to default values to alternative PWM generator.
+- Russian text provided by indman@EEVblog (only 8x16 font, horizontally
+  aligned)
+- Added support for fixed cap for self adjustment of voltage offsets.
+- Fixed potential bug in the V_ref offset handling in SmallCap().
+- Added configuration switch for ST7735 based displays to start with a
+  cleared display (no random pixels).
+
 v1.27m 2017-02
 - Added high current meassurement to GetLeakageCurrent() for CLDs.
   Thanks to texaspyro@EEVblog for sending a few sample diodes.

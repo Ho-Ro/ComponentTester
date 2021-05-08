@@ -267,6 +267,10 @@
 
   extern void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID);
 
+  #ifdef HW_ADJUST_CAP
+    extern uint8_t RefCap(void);
+  #endif
+
 #endif
 
 

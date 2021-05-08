@@ -67,10 +67,6 @@
     Inductor_Type   Inductor;                /* inductor */
   #endif
 
-  #ifdef HW_ENCODER
-    RotaryEncoder_Type        Enc;           /* rotary encoder */
-  #endif
-
   #ifdef SW_PROBE_COLORS
     /* probe color coding */
     uint16_t        ProbeColors[3] = {COLOR_PROBE_1, COLOR_PROBE_2, COLOR_PROBE_3};
@@ -98,6 +94,7 @@
   #include "var_english.h"
   #include "var_german.h"
   #include "var_spanish.h"
+  #include "var_russian.h"
 
   /* language independent */
   const unsigned char Tester_str[] EEMEM = "Component Tester";
@@ -176,7 +173,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.27m";
+  const unsigned char Version_str[] EEMEM = "v1.28m";
 
 
   /*
@@ -268,10 +265,6 @@
 
   #ifdef SW_INDUCTOR
     extern Inductor_Type          Inductor;       /* inductor */
-  #endif
-
-  #ifdef HW_ENCODER
-    extern RotaryEncoder_Type      Enc;           /* rotary encoder */
   #endif
 
   #ifdef SW_PROBE_COLORS

@@ -8,6 +8,22 @@
 
 ------------------------------------------------------------------------------
 
+v1.28m 2017-04
+- Mehr/Weniger-Tasten als Alternative zum Drehencoder (HW_INCDEC_KEYS).
+- Zurücksetzen auf Standardfrequenz im Rechteck-Generator ergänzt.
+- Weitere Verbesserungen der Erkennung der Drehschwindigkeit von Dreh-
+  encodern (ENCODER_STEPS). Änderungen in den Funktionen, welche die Dreh-
+  geschwindigkeit nutzen. 
+- Zurücksetzen auf Standardwerte im alternativen PWM-Generator ergänzt.
+- Russischer Text von indman@EEVblog (nur 8x16 Zeichensatz horizontal
+  ausgerichtet)
+- Unterstützung von festem Folienkondensator für den Selbstabgleich von
+  Spannugsoffsets.
+- Potentiellen Fehler in der Handhabung vom V_ref Offset in SmallCap()
+  beseitigt.
+- Konfigurationsoption für LCD-Module mit ST7735, um mit gelöschter Anzeige
+  zu starten (keine zufälligen Punkte).
+
 v1.27m 2017-02
 - GetLeakageCurrent() um Hochstrommessung für CLDs erweitert. Dank an
   texaspyro@EEVblog für ein paar Testdioden.

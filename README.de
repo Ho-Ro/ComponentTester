@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2017-02-22
+Letzte Änderung:  2017-04-10
 
 Inhaltsübersicht:
   - Über den Tester
@@ -28,6 +28,7 @@ Inhaltsübersicht:
     - PCD8544
   - Test-Taste
     - Drehencoder
+    - Mehr/Weniger-Tasten
   - Einschalten
   - Bauteilesuche
   - Ausschalten
@@ -137,6 +138,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
   + Erkennung von MT1 und MT2
 - Detektor/Dekoder für IR-Fernsteuerungen
 - Test von Opto-Kopplern
+- Test von Modellbau-Servos
 - Strukturierter Quellcode
 - Und Manches mehr, was mir gerade nicht einfällt.
 
@@ -166,12 +168,13 @@ Werte sind in der Datei selber erklärt. Daher folgt hier nur eine kurze
 Übersicht der wichtigsten Punkte.
 
 Hardware-Optionen:
-- Drehencoder
+- Drehencoder oder Mehr/Weniger-Tasten
 - externe 2,5V Spannungsreferenz
 - Schutz-Relais zur Kondensatorentladung
 - Messung von Zenerdioden (DC-DC-Konverter)
 - Frequenzzähler
 - Test von IR-Fernbedienungen (festes IR-Empfängermodul)
+- fester Kondensator für Selbstabgleich von Spannungsoffsets
 - I2C-Bus (Bit-Bang und Hardware)
 
 Die externe 2,5V Spannungsreferenz sollte nur genutzt werden, wenn sie
@@ -197,8 +200,10 @@ der MCU, d.h. RAM, EEPROM und Flash-Speicher, auswählen. Sollte die Firmware
 zu groß werden, versuche nicht so wichtige Optionen wieder zu deaktivieren.
 
 Verfügbare Sprachen:
-- Englisch
 - Deutsch
+- Englisch
+- Russisch (von indman@EEVblog)
+  nur 8x16 Zeichensatz horizontal ausgerichtet
 - Spanisch (von pepe10000@EEVblog)
 - Tschechisch (von Kapa)
 
@@ -356,7 +361,9 @@ Der ST7735 wird mittels SPI gesteuert. Die Pins sind:
   SDA         LCD_SDA            PD1
 
 Für eine korrekte Anzeige mußt du evtl. mit den Einstellungen X/Y-Flip
-experimentieren.
+experimentieren. Wenn LCD_LATE_ON aktiviert ist, startet der Tester mit einem
+gelöschten Display, was zu einer kurzen Verzögerung beim Einschalten führt.
+Ansonsten sind beim Anschalten kurz zufällige Pixel zu sehen.
 
 
 + PCD8544
@@ -394,13 +401,31 @@ erwartete Eingabe hier klar sein sollte.
 + Drehencoder (Hardware-Option)
 
 Mit einem Drehencoder erhält die Bedienung zusätzliche Funktionalität, die
-kontextabhängig ist. Die Details werden in den weiteren Abschnitten erklärt. 
+kontextabhängig ist. Die Details werden in den weiteren Abschnitten erklärt.
+Manche Funktionen erlauben über die Drehgeschwindigkeit größere Änderungen
+oder Sprünge von Werten. 
 
-Der Algorithmus zum Lesen des Drehencoders wurde bisher nur mit Encodern der
-EC11 und EC12 Serien von ALPS getestet, da ich keine anderen Typen habe. Eine
-Rückmeldung über andere Typen würde mich sehr interessieren. Sollte die
-Drehrichtung verdreht sein, einfach die Pin-Definitionen für A und B in
-config_<MCU>.h vertauschen.
+Der Lese-Algorithmus berücksichtigt die Anzahl der Gray-Code-Pulse pro
+Schritt (ENCODER_PULSES) und auch die Anzahl der Schritte für eine volle
+360 Grad Umdrehung (ENCODER_STEPS). Mit dem letzteren Wert kannst du
+auch eine Feineinstellung der Erkennung der Drehgeschwindigkeit vornehmen.
+Ein höherer Wert verlangsamt die Drehgeschwindigkeit, ein niedriger Wert
+erhöht sie. Sollte die Drehrichtung verkehrt herum sein, einfach die Pin-
+Definitionen für A und B in config_<MCU>.h vertauschen.
+
+Die Erkennung der Drehgeschwindigkeit mißt die Zeit von zwei Schritten. Also
+solltest du den Encoder mindestens um zwei Schritte für mittlere
+Gewindigkeiten drehen. Für höhere Geschwindigkeiten sind es drei Schritte.
+Ein einzelner Schritt resultiert immer in der niedrigsten Geschwindigkeit. 
+
+
++ Mehr/Weniger-Tasten (Hardware-Option)
+
+Wenn dir Tasten lieber als ein Drekencoder sind, dann kannst du alternativ
+auch zwei Tasten nutzen. Die Tasten werden genauso wie ein Drehencoder
+angeschlossen (Pull-Up Widerstände, Logikpegel Low bei Betätigung). Für
+eine Beschleunigung, ähnlich der Drehgeschwindikeit beim Drehencoder, einfach
+die Taste lange drücken. Je länger, desto höher wird die Beschleunigung.
 
 
 * Einschalten
@@ -499,8 +524,10 @@ Ist ein Drehencoder vorhanden, läßt sich das Tastverhältnis in 1%-Schritten
 
 Mit einem kurzen Tastendruck schaltest du zwischen Frequenz und Tastverhältnis
 um. Der ausgewählte Wert wird durch ein Sternchen markiert. Mit dem Dreh-
-encoder änderst du den Wert, rechts für höher, links für niedriger. Mit zwei
-kurzen Tastendrücken wird der PWM-Generator beendet.
+encoder änderst du den Wert, rechts für höher, links für niedriger. Und mit
+einem langen Tastendruck wird auf den Standardwert zurück gestellt (Frequenz:
+1kHz, Tastverhältnis: 50%). Mit zwei kurzen Tastendrücken wird der PWM-
+Generator beendet.
 
 
 + Rechteck-Signalgenerator
@@ -513,7 +540,8 @@ kleine Änderungen und schnelles Drehen große. Da die Signalerzeugung auf
 der internen PWM-Funktion der MCU basiert, können nicht beliebige Frequenzen
 generiert werden, sondern nur in Schritten. Für niedrige Frequenzen ist die
 Schrittweite recht klein, erst bei hohen Frequenzen wird sie signifikant.
-Zum Beenden die Test-Taste kurz drücken.
+Ein langer Tastendruck stellt die Frequenz zurück auf 1kHz und zwei kurze
+Tastendrücke beenden den Signalgenerator.
 
 Beschaltung der Testpins:
   Pin #2:          Ausgang (680 Ohm Widerstand zur Strombegrenzung)
@@ -756,10 +784,15 @@ gleichzeitig der Offset der internen Spannungsreferenz gemessen.
 
 Bevor der Selbstabgleich ausgeführt wird, solltest du einen Folienkondensator
 mit einer Kapazität zwischen 100nF und 3,3µF min. 3-mal messen, damit die oben
-erwähnten Offsets gemessen werden können. Typischerweise liefert die erste
+erwähnten Offsets bestimmt werden können. Typischerweise liefert die erste
 Messung einen zu niedrigen Wert, die zweite einen zu hohen und erst die dritte
 eine korrekten Wert. Das wird durch die sich selbst abgleichenden Offsets
 verursacht.
+
+Mit einem festen Kondensator zum Selbstabgleich wird der automatische Abgleich
+in der Kapazitätsmessung durch eine eigene Funktion ersetzt, welche während
+des Selbstabgleichs ausgeführt wird. Somit brauchst Du nicht mehr vorher
+einen Folienkondensator zu messen.
 
 Der Selbstabgleich ist dem Selbsttest vom Ablauf und der Bedienung her sehr
 ähnlich.

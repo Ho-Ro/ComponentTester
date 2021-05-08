@@ -162,7 +162,9 @@
 //#define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
+//#define LCD_LATE_ON                     /* turn on LCD after clearing it */
 #define FONT_10X16_H                    /* 10x16 font, horizontally aligned */
+//#define FONT_8X16_CYRILLIC_H            /* 8x16 cyrillic font, horizontally aligned */
 #define SYMBOLS_30X32_H                 /* 30x32 symbols, horizontally aligned */
 #endif
 
@@ -278,7 +280,7 @@
 
 
 /*
- *  push button and power management
+ *  test push button and power management
  */
 
 #define CONTROL_PORT     PORTC     /* port data register */
@@ -297,6 +299,17 @@
 #define ENCODER_PIN      PINC      /* port input pins register */
 #define ENCODER_A        PC4       /* rotary encoder A signal */
 #define ENCODER_B        PC3       /* rotary encoder B signal */
+
+
+/*
+ *  increase/decrease push buttons
+ */
+
+#define KEY_PORT         PORTC     /* port data register */
+#define KEY_DDR          DDRC      /* port data direction register */
+#define KEY_PIN          PINC      /* port input pins register */
+#define KEY_INC          PC4       /* increase push button */
+#define KEY_DEC          PC3       /* decrease push button */
 
 
 /*

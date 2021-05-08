@@ -31,11 +31,9 @@
  *  local constants
  */
 
-/* rotary encoder */
+/* rotary encoder and push buttons */
 #define DIR_NONE         0b00000000     /* no turn or error */
 #define DIR_RESET        0b00000001     /* reset state */
-#define DIR_RIGHT        KEY_TURN_RIGHT /* turn to the right */
-#define DIR_LEFT         KEY_TURN_LEFT  /* turn to the left */
 
 
 
@@ -170,15 +168,15 @@ uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
  * ************************************************************************ */
 
 
-#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS)
+#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (SW_SERVO)
 
 /*
  *  display unsigned value
  *
  *  requires:
- *  - unsigned value
- *  - decimal places
- *  - unit character (0 = none)
+ *  - Value: unsigned value
+ *  - DecPlaces: decimal places
+ *  - Unit: character for unit (0 = none)
  */
 
 void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
@@ -350,7 +348,7 @@ void DisplaySignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
 
 
 /* ************************************************************************
- *   user input (testkey / rotary encoder)
+ *   user input (test push button / rotary encoder)
  * ************************************************************************ */
 
 
@@ -358,11 +356,13 @@ void DisplaySignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
 
 /*
  *  read rotary encoder
+ *  - adds delay of 0.5ms
+ *  - encoder might be in parallel with LCD signal lines
  *
  *  returns user action:
  *  - DIR_NONE for no turn or invalid signal
- *  - DIR_RIGHT for right/clockwise turn
- *  - DIR_LEFT for left/counter-clockwise turn
+ *  - KEY_TURN_RIGHT for right/clockwise turn
+ *  - KEY_TURN_LEFT for left/counter-clockwise turn
  */
 
 uint8_t ReadEncoder(void)
@@ -374,8 +374,9 @@ uint8_t ReadEncoder(void)
 
   /* set encoder's A & B pins to input */
   Old_AB = ENCODER_DDR;                 /* save current settings */
-  ENCODER_DDR &= ~(1 << ENCODER_A);     /* A signal pin */
-  ENCODER_DDR &= ~(1 << ENCODER_B);     /* B signal pin */
+//  ENCODER_DDR &= ~(1 << ENCODER_A);     /* A signal pin */
+//  ENCODER_DDR &= ~(1 << ENCODER_B);     /* B signal pin */
+  ENCODER_DDR &= ~((1 << ENCODER_A) | (1 << ENCODER_B));
   wait500us();                          /* settle time */
 
   /* get A & B signals */
@@ -387,14 +388,24 @@ uint8_t ReadEncoder(void)
   ENCODER_DDR = Old_AB;                 /* restore old settings */
 
   /* update state history */
-  if (Enc.Dir == DIR_RESET)             /* first scan */
+  if (UI.EncDir == DIR_RESET)           /* first scan */
   {
-    Enc.History = AB;                   /* set as last state */
-    Enc.Dir = DIR_NONE;                 /* reset direction */
+    UI.EncState = AB;                   /* set as last state */
+    UI.EncDir = DIR_NONE;               /* reset direction */
+    UI.EncTicks = 0;                    /* reset time counter */
   }
 
-  Old_AB = Enc.History;                 /* save last state */
-  Enc.History = AB;                     /* and save new state */
+  /* time counter */
+  if (UI.EncTicks > 0)        /* after first pulse */
+  {
+    if (UI.EncTicks < 250)    /* prevent overflow */
+    {
+      UI.EncTicks++;          /* increase counter */
+    }
+  }
+
+  Old_AB = UI.EncState;                 /* save last state */
+  UI.EncState = AB;                     /* and save new state */
 
   /* process signals */
   if (Old_AB != AB)        /* signals changed */
@@ -410,29 +421,30 @@ uint8_t ReadEncoder(void)
       Temp >>= (Old_AB * 2);            /* get expected value by shifting */
       Temp &= 0b00000011;               /* select value */
       if (Temp == AB)                   /* value matches */
-        Temp = DIR_RIGHT;               /* turn to the right */
+        Temp = KEY_TURN_RIGHT;          /* turn to the right */
       else                              /* value mismatches */
-        Temp = DIR_LEFT;                /* turn to the left */
+        Temp = KEY_TURN_LEFT;           /* turn to the left */
 
       /* step/detent logic */
-      Enc.Pulses++;                     /* got a new pulse */
+      UI.EncPulses++;                   /* got a new pulse */
 
-      if (Temp != Enc.Dir)              /* direction has changed */
+      if (Temp != UI.EncDir)            /* direction has changed */
       {     
-        Enc.Pulses = 1;                 /* first pulse for new direction */
+        UI.EncPulses = 1;               /* first pulse for new direction */
+        UI.EncTicks = 1;                /* enable time counter */
       }
 
-      Enc.Dir = Temp;         /* update direction */
+      UI.EncDir = Temp;                 /* update direction */
 
-      if (Enc.Pulses >= ENCODER_PULSES) /* reached step */
+      if (UI.EncPulses >= ENCODER_PULSES)    /* reached step */
       {
-        Enc.Pulses = 0;                 /* reset pulses */
+        UI.EncPulses = 0;               /* reset pulses */
         Action = Temp;                  /* signal valid step */
       }
     }
     else                                /* invalid change */
     {
-      Enc.Dir = DIR_RESET;              /* reset direction state */
+      UI.EncDir = DIR_RESET;            /* reset direction state */
     }
   }
 
@@ -443,55 +455,155 @@ uint8_t ReadEncoder(void)
 
 
 
+#ifdef HW_INCDEC_KEYS
+
 /*
- *  detect keypress of the test push button and any turn of an optional
- *  rotary encoder while tracking the turning velocity
+ *  check incresae/decrease push buttons
+ *  - adds delay of 0.5ms
+ *  - buttons might be in parallel with LCD signal lines
+ *
+ *  returns:
+ *  - DIR_NONE for no button press
+ *  - KEY_TURN_RIGHT for increase
+ *  - KEY_TURN_LEFT for decrease
+ *  - KEY_INCDEC for increase and decrease
+ */
+
+uint8_t ReadIncDecKeys(void)
+{
+  uint8_t           Action = DIR_NONE;       /* return value */
+  uint8_t           Reg;                     /* register state */
+  uint8_t           Run = 1;                 /* loop control */
+  uint8_t           Temp;                    /* temporary value */
+  uint8_t           TicksInc = 0;            /* time counter */
+  uint8_t           TicksDec = 0;            /* time counter */
+
+  /* set pins to input */
+  Reg = KEY_DDR;                   /* save current settings */
+  KEY_DDR &= ~((1 << KEY_INC) | (1 << KEY_DEC));
+  wait500us();                     /* settle time */
+
+  /* processing loop */
+  while (Run == 1)
+  {
+    /* check push button state (low active) */
+    Temp = KEY_PIN;                     /* get current state */
+    Temp = ~Temp;                       /* invert bits */
+    Temp &= (1 << KEY_INC) | (1 << KEY_DEC); /* filter buttons */
+
+    if (Temp == 0)                 /* not button pressed */
+    {
+      Run = 0;                     /* end loop */
+    }
+    else                           /* button pressed */
+    {    
+      if (Temp & (1 << KEY_INC))   /* "increase" button */
+      {
+        TicksInc++;                /* increase counter */
+      }
+
+      if (Temp & (1 << KEY_DEC))   /* "decrease" button */
+      {
+        TicksDec++;                /* increase counter */
+      }
+
+      Temp = TicksInc + TicksDec;
+      if (Temp >= 10)              /* long key press (300ms) */
+      {
+        Run = 2;                   /* end loop & signal long key press */
+      }
+      else
+      {
+        MilliSleep(30);            /* time to debounce and delay */
+      }
+    }
+  }
+
+  /* process counters */
+  if (TicksInc > 0)                /* "increase" button pressed */
+  {
+    Action = KEY_TURN_RIGHT;
+  }
+
+  if (TicksDec > 0)                /* "decrease" button pressed */
+  {
+    if (Action == KEY_TURN_RIGHT)  /* also "increase" button */
+    {
+      Action = KEY_INCDEC;         /* both buttons pressed */
+    }
+    else                           /* just "decrease */
+    {
+      Action = KEY_TURN_LEFT;
+    }
+  }
+
+  /* speed-up functionality */
+  if (Action != DIR_NONE)          /* button pressed */
+  {
+    Temp = 1;                      /* default step size */
+
+    if (Action == UI.OldKey)       /* same key as before */
+    {
+      if (Run == 2)                /* long button press */
+      {
+        Temp = UI.OldStep;         /* get former step size */
+
+        if (Temp <= 6)             /* limit step size to 7 */
+        {
+          Temp++;                  /* increase step size */
+        }
+      }
+    }
+
+    UI.OldStep = Temp;             /* update former step size */
+    UI.KeyStep = Temp;             /* set new step size */
+  }
+
+  /* restore port/pin settings */
+  KEY_DDR = Reg;                   /* restore old settings */
+
+  return Action;
+}
+
+#endif
+
+
+
+/*
+ *  read test push button, optional rotary encoder or increase/decrease
+ *  push buttons
+ *  - detection of the rotary encoder's turning velocity
  *
  *  requires:
  *  - Timeout in ms 
  *    0 = no timeout, wait for key press or rotary encoder
- *  - Mode:
- *    0 = no cursor
- *    1 = steady cursor
- *    2 = blinking cursor
- *    11 = steady cursor considering tester operation mode (UI.TesterMode)
- *    12 = blinking cursor considering tester operation mode (UI.TesterMode)
+ *  - Mode (bitmask):
+ *    CURSOR_NONE     no cursor
+ *    CURSOR_STEADY   steady cursor
+ *    CURSOR_BLINK    blinking cursor
+ *    CURSOR_OP_MODE  consider tester operation mode (UI.TesterMode)
  *
  *  returns:
- *  - KEY_TIMEOUT    0 if timeout was reached
- *  - KEY_SHORT      1 if key was pressed short
- *  - KEY_LONG       2 if key was pressed long
- *  - KEY_TURN_RIGHT 3 if rotary encoder was turned right
- *  - KEY_TURN_LEFT  4 if rotary encoder was turned left
- *  The turning velocity is returned via Enc.Velocity.
+ *  - KEY_TIMEOUT     reached timeout
+ *  - KEY_SHORT       short press of test key
+ *  - KEY_LONG        long press of test key
+ *  - KEY_TURN_RIGHT  rotary encoder turned right or increase key pressed 
+ *  - KEY_TURN_LEFT   rotary encoder turned left or decrease key pressed
+ *  - KEY_INCDEC      increase and decrease keys both pressed
+ *  The turning velocity (speed-up) is returned via UI.KeyStep (1-7).
  */
 
 uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 {
   uint8_t           Key = 0;       /* return value */
   uint8_t           Run = 1;       /* loop control */
-  uint8_t           Counter = 0;   /* time counter */
-  #ifdef HW_ENCODER
+  uint8_t           Ticks = 0;     /* time counter */
   uint8_t           Test;          /* temp. value */
-  uint8_t           Counter2 = 0;  /* time counter #2 */
+  #ifdef HW_ENCODER
   uint8_t           Timeout2;      /* step timeout */
-  uint8_t           Step = 0;      /* control flag */
-  #endif
-
-
-  /*
-   *  sampling delay for rotary encoder
-   *  - most got a bounce period of max. 3ms
-   */
-
-  #if ENCODER_PULSES < 4
-    /* default delay */
-    #define DELAY_TICK        5        /* 5ms */
-    #define DELAY_500       100        /* ticks for 500ms */
-  #else
-    /* for 4 pulses/step we have to decrease the delay */
-    #define DELAY_TICK        4        /* 4ms */
-    #define DELAY_500       125        /* ticks for 500ms */
+  uint8_t           Steps = 0;     /* step counter */
+  uint8_t           MinSteps = 2;  /* required steps */
+  uint16_t          Temp;          /* temp value */
   #endif
 
 
@@ -500,36 +612,48 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
    */
 
   #ifdef HW_ENCODER
-  /* init control for rotary encoder */
-  Enc.History = 0;
-  Enc.Dir = DIR_RESET;
-  Enc.Pulses = 0;
-  Enc.Velocity = 1;           /* default velocity (level #1) */
-
-  Timeout2 = 6 + (2 * ENCODER_PULSES);
+    /* rotary encoder: sample each 2.5ms (1ms would be ideal) */
+    #define DELAY_TICK   2         /* 2ms + 0.5ms for ReadEncoder() */
+    #define DELAY_500    200       /* ticks for 500ms */
+  #else
+    /* just the test key */
+    #define DELAY_TICK   5         /* 5ms */
+    #define DELAY_500    100       /* ticks for 500ms */
   #endif
 
-  if (Mode > 10)              /* consider operation mode */
+  #ifdef HW_ENCODER
+  /* init variables for rotary encoder */
+  UI.EncDir = DIR_RESET;      /* resets also UI.EncState and .EncTicks */
+  UI.EncPulses = 0;
+  Timeout2 = 50;
+  #endif
+
+  #ifdef HW_STEP_KEYS
+  /* init variables for rotary encoder or up/down push buttons */ 
+  UI.KeyStep = 1;             /* default level #1 */
+  #endif
+
+  if (Mode & CURSOR_OP_MODE)       /* consider operation mode */
   {
     if (UI.TesterMode == MODE_AUTOHOLD)      /* auto hold mode */
     {
       Timeout = 0;                 /* disable timeout */
-      Mode -= 10;                  /* set cursor mode */
+                                   /* but keep cursor mode */
     }
     else                                     /* continous mode */
     {
-      Mode = 0;                    /* disable cursor */
+      Mode = CURSOR_NONE;          /* disable cursor */
     }
   }
 
-  if (Mode > 0)               /* cursor enabled */
+  if (Mode & (CURSOR_STEADY | CURSOR_BLINK))  /* cursor enabled */
   {
-    LCD_Cursor(1);            /* enable cursor */
+    LCD_Cursor(1);            /* enable cursor on display */
   }
 
 
   /*
-   *  wait for key press or timeout
+   *  wait for key press (test push button) or timeout
    */
  
   while (Run)
@@ -541,111 +665,133 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
       else Run = 0;                     /* end loop on timeout */
     }
 
-    /* check for key press */
-    /* push button is low active */
-    if (!(CONTROL_PIN & (1 << TEST_BUTTON)))      /* if key is pressed */
+    /*
+     *  check for test push button
+     *  - push button is low active
+     */
+
+    Test = CONTROL_PIN & (1 << TEST_BUTTON);   /* get button status */
+    if (Test == 0)            /* if test button is pressed */
     {
-      Counter = 0;            /* reset counter */
+      Ticks = 0;              /* reset counter */
       MilliSleep(30);         /* time to debounce */
 
       while (Run)             /* detect how long key is pressed */
       {
-        if (!(CONTROL_PIN & (1 << TEST_BUTTON)))  /* key still pressed */
+        Test = CONTROL_PIN & (1 << TEST_BUTTON);   /* get button status */
+        if (Test == 0)        /* key still pressed */
         {
-          Counter++;                        /* increase counter */
-          if (Counter > 26) Run = 0;        /* end loop if 300ms are reached */
-          else MilliSleep(10);              /* otherwise wait 10ms */
-
+          Ticks++;                      /* increase counter */
+          if (Ticks > 26) Run = 0;      /* end loop if 300ms are reached */
+          else MilliSleep(10);          /* otherwise wait 10ms */
         }
-        else                                      /* key released */
+        else                            /* key released */
         {
-          Run = 0;                          /* end loop */
+          Run = 0;                      /* end loop */
         }
       }
 
       /* determine key press type */
-      if (Counter > 26) Key = KEY_LONG;   /* long (>= 300ms) */
-      else Key = KEY_SHORT;               /* short (< 300ms) */
+      if (Ticks > 26) Key = KEY_LONG;   /* long (>= 300ms) */
+      else Key = KEY_SHORT;             /* short (< 300ms) */
     }
-    else                                          /* no key press */
+    else                      /* no key press */
     {
-      #ifdef HW_ENCODER
-      /* rotary encoder */
-      if (Key) Counter2++;         /* increase counter if we had a step */
+      /*
+       *  increase/decrease push buttons
+       */
 
-      Test = ReadEncoder();        /* read rotary encoder */
-      if (Test)                    /* got user input */
+      #ifdef HW_INCDEC_KEYS
+      Test = ReadIncDecKeys();
+
+      if (Test)               /* got user input */
       {
-        if (Key == 0)              /* no step yet */
-        {
-          Key = Test;              /* save direction */
-          Step = 1;                /* got girst step */
-        }
-        else if (Test == Key)      /* second step (same direction) */
-        {
-          /*
-           *  determine turning velocity
-           *  - use elapsed time ticks for second step
-           *  - consider pulses/step to cope with various encoder types
-           *  - create speed levels 2-7 (default: 1 for single step)
-           *
-           *  pulses/  timeout  timeout  max time/  seen time/  
-           *   step    1. step  2. step  pulse      pulse
-           *     1        8        8       8          ?
-           *     2       10       14       7          1-5
-           *     4       14       22       5          2-4(5)
-           */
-
-          Counter2 /= ENCODER_PULSES;        /* time ticks per pulse */
-          if (Counter2 >= 6) Counter2 = 5;   /* limit value */
-          Enc.Velocity = 7 - Counter2;       /* convert delay into speed */
-
-          Counter2 = Timeout2;          /* end loop */
-        }
-      }
-      else          /* no step detected */
-      {
-        if (Step == 1)             /* got first step */
-        {
-          // Enc.Dir == Key
-          if (Enc.Pulses == 1)     /* first pulse of second step */
-          {
-            Step = 2;              /* set flag */
-            /* increase timeout based on pulses/step */
-            Timeout2 += (ENCODER_PULSES * 2);
-          }
-        }
-      }
-
-      if (Counter2 == Timeout2)    /* timeout for velocity detection */
-      {      
-        break;                     /* leave loop */
+        Key = Test;                /* save key */
+        break;                     /* exit loop */
       }
       #endif
 
-      MilliSleep(DELAY_TICK);      /* wait a little bit (4 or 5ms) */
+      /*
+       *  rotary encoder
+       */
 
-      /* blinking cursor */
-      /* HD44780's built-in blinking cursor is ugly anyway :) */
-      
-      if (Mode == 2)                    /* blinking cursor */
+      #ifdef HW_ENCODER
+      Test = ReadEncoder();        /* read rotary encoder */
+
+      if (Test)                    /* got user input */
       {
-        Counter++;                        /* increase counter */
-
-        if (Counter == DELAY_500)         /* every 500ms (1Hz) */
+        if (Steps == 0)            /* first step */
         {
-          Counter = 0;                    /* reset counter */
+          Key = Test;              /* save direction */
+        }
+
+        if (Test == Key)           /* step in same direction */
+        {
+          Steps++;                 /* increase counter */
+
+          /* calculate turning velocity */
+          Test = UI.EncTicks / Steps;        /* ticks per step */
+          Timeout2 += Test;                  /* add to timeout */
+          Timeout2 += 3 * ENCODER_PULSES;    /* add some buffer */
+          /* adjustment for steps/360°: *(steps/16) */
+          Temp = Test * ENCODER_STEPS;
+          Temp /= 16;
+          Test = (uint8_t)Temp;
+          /* velocity levels: 0 (fast) - 5 (slow) */
+          if (Test > 40) Test = 40;          /* limit ticks */
+          Test /= 8;                         /* get velocity level (0-5) */
+          /* require 3 steps for high velocities */
+          if (Test <= 2) MinSteps = 3;
+
+          if (Steps == MinSteps)        /* got required steps */
+          {
+            /* reverse velocity level: 2 (slow) - 7 (fast) */
+            UI.KeyStep = 7 - Test;      /* velocity level (2-7) */
+            break;                      /* exit loop */
+          }
+        }
+        else                       /* changed direction */
+        {
+          /* keep last direction and velocity level #1 */
+          break;                   /* exit loop */
+        }
+      }
+
+      if (Steps)                   /* after first step */
+      {
+        if (UI.EncTicks >= Timeout2)    /* timeout for velocity detection */
+        {
+          /* keep velocity level #1 */
+          break;                        /* exit loop */
+        }
+      }
+      #endif
+
+      MilliSleep(DELAY_TICK);           /* wait a little bit */
+
+      /*
+       *  blinking cursor
+       *  - HD44780's built-in blinking cursor is ugly anyway :)
+       */
+      
+      if (Mode & CURSOR_BLINK)          /* blinking cursor */
+      {
+        Ticks++;                        /* increase counter */
+
+        if (Ticks == DELAY_500)         /* every 500ms (1Hz) */
+        {
+          Ticks = 0;                    /* reset counter */
 
           /* we misuse Run as toggle switch */
-          if (Run == 1)                   /* turn off */
+          if (Run == 1)                 /* turn off */
           {
-            LCD_Cursor(0);                /* disable cursor */
-            Run = 2;                      /* toggle flag */
+            LCD_Cursor(0);              /* disable cursor */
+            Run = 2;                    /* toggle flag */
           }
-          else                            /* turn on */
+          else                          /* turn on */
           {
-            LCD_Cursor(1);                /* enable cursor */
-            Run = 1;                      /* toggle flag */
+            LCD_Cursor(1);              /* enable cursor */
+            Run = 1;                    /* toggle flag */
           }
         }
       }
@@ -657,10 +803,14 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
    *  clean up
    */
 
-  if (Mode > 0)               /* cursor enabled */
+  if (Mode & (CURSOR_STEADY | CURSOR_BLINK))  /* cursor enabled */
   {
-    LCD_Cursor(0);            /* disable cursor */
+    LCD_Cursor(0);            /* disable cursor on display */
   }
+
+  #ifdef HW_INCDEC_KEYS
+  UI.OldKey = Key;            /* update former key */
+  #endif
 
   #undef DELAY_500
   #undef DELAY_TICK
@@ -678,7 +828,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 void WaitKey(void)
 {
   /* wait for key press or 3000ms timeout */
-  TestKey(3000, 11);
+  TestKey(3000, CURSOR_STEADY | CURSOR_OP_MODE);
 }
 
 
@@ -747,9 +897,9 @@ uint8_t ShortCircuit(uint8_t Mode)
     }
     else                      /* job not done yet */
     {
-      Test = TestKey(100, 0);      /* wait 100ms or detect key press */
-      if (Mode == 0) Test = 0;     /* ignore key for un-short mode */
-      if (Test > KEY_TIMEOUT) Flag = 0;  /* abort on key press */
+      Test = TestKey(100, CURSOR_NONE);   /* wait 100ms or detect key press */
+      if (Mode == 0) Test = 0;            /* ignore key for un-short mode */
+      if (Test > KEY_TIMEOUT) Flag = 0;   /* abort on key press */
     }
   }
 
@@ -790,16 +940,16 @@ void ChangeContrast(void)
     LCD_ClearLine2();
     DisplayValue(Contrast, 0, 0);
 
-    #ifdef HW_ENCODER
-    if (Flag < 3)                       /* just for test button usage */
+    #ifdef HW_STEP_KEYS
+    if (Flag < KEY_TURN_RIGHT)          /* just for test button usage */
     #endif
     MilliSleep(300);                    /* smooth UI */
 
-    Flag = TestKey(0, 0);               /* wait for user feedback */
+    Flag = TestKey(0, CURSOR_NONE);     /* wait for user feedback */
     if (Flag == KEY_SHORT)              /* short key press */
     {
       MilliSleep(50);                   /* debounce button a little bit longer */
-      Test = TestKey(200, 0);           /* check for second key press */
+      Test = TestKey(200, CURSOR_NONE); /* check for second key press */
       if (Test > KEY_TIMEOUT)           /* second key press */
       {
         Flag = 0;                         /* end loop */
@@ -809,8 +959,8 @@ void ChangeContrast(void)
         if (Contrast < Max) Contrast++;   /* increase value */
       }
     }
-    #ifdef HW_ENCODER
-    else if (Flag == 3)                 /* rotary encoder: right turn */
+    #ifdef HW_STEP_KEYS
+    else if (Flag == KEY_TURN_RIGHT)    /* rotary encoder: right turn */
     {
       if (Contrast < Max) Contrast++;   /* increase value */
     }
@@ -936,7 +1086,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
       LCD_Char(n);
     }
 
-    #ifndef HW_ENCODER
+    #ifndef HW_STEP_KEYS
       MilliSleep(100);        /* smooth UI */
     #endif
 
@@ -945,9 +1095,9 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
      *  process user feedback
      */
  
-    n = TestKey(0, 0);             /* wait for testkey */
+    n = TestKey(0, CURSOR_NONE);        /* wait for testkey */
 
-    #ifdef HW_ENCODER
+    #ifdef HW_STEP_KEYS
     /* processing for rotary encoder */
     if (n == KEY_SHORT)            /* short key press: select item */
     {

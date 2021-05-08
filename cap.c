@@ -690,7 +690,9 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   int8_t            Scale;         /* capacitance scale */
   uint16_t          Ticks;         /* timer counter */
   uint16_t          Ticks2;        /* timer overflow counter */
+  #ifndef HW_ADJUST_CAP
   uint16_t          U_c;           /* voltage of capacitor */
+  #endif
   uint32_t          Raw;           /* raw capacitance value */
   uint32_t          Value;         /* corrected capacitance value */
 
@@ -740,7 +742,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   TCNT1 = 0;                            /* set Counter1 to 0 */
   /* clear all flags (input capture, compare A & B, overflow */
   TIFR1 = (1 << ICF1) | (1 << OCF1B) | (1 << OCF1A) | (1 << TOV1);
-  R_PORT = Probes.Rh_1;                 /* pull-up probe-1 via Rh */  
+  R_PORT = Probes.Rh_1;                 /* pull-up probe-1 via Rh */
                                         
   /* enable timer */
   if (Check.Found == COMP_FET)     /* measuring C_GS */  
@@ -803,8 +805,10 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   /* enable ADC again */
   ADCSRA = (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
 
+  #ifndef HW_ADJUST_CAP
   /* get voltage of DUT */
   U_c = ReadU(Probes.ADC_1);       /* get voltage of cap */
+  #endif
 
   /* start discharging DUT */
   R_PORT = 0;                      /* pull down probe-1 via Rh */
@@ -862,6 +866,8 @@ uint8_t SmallCap(Capacitor_Type *Cap)
     Cap->Value = Value;       /* max. 5.1*10^6pF or 125*10^3nF */
 
 
+    #ifndef HW_ADJUST_CAP
+
     /*
      *  Self-adjust the voltage offset of the analog comparator and internal
      *  bandgap reference if C is 100nF up to 20µF. The minimum of 100nF
@@ -882,7 +888,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
        *  reference. The common voltage source is the cap we just measured.
        */
 
-       while (ReadU(Probes.ADC_1) > 980)
+       while (ReadU(Probes.ADC_1) > 980)     /* discharge below bandgap ref */ 
        {
          /* keep discharging */
        }
@@ -896,22 +902,28 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
        R_DDR = Probes.Rh_1;             /* resume discharging */
 
-       Offset = Ticks - Ticks2;
-       /* allow some offset caused by the different voltage resolutions
+       Offset = Ticks - Ticks2;         /* difference */
+       Ticks = Config.Bandgap;          /* current U_bandgap incl. offset */
+
+       /* allow some difference caused by the different voltage resolutions
           (4.88 vs. 1.07) */
-       if ((Offset < -4) || (Offset > 4))    /* offset too large */
+       if ((Offset < -4) || (Offset > 4))    /* difference too large */
        {
          /*
-          *  Calculate total offset:
-          *  - first get offset per mV: Offset / U_c
-          *  - total offset for U_ref: (Offset / U_c) * U_ref
+          *  Calculate offset:
+          *  - first get offset per mV:
+          *    factor = Delta / U_c_bandgap
+          *  - offset for U_ref: 
+          *    Offset = factor * U_ref = (Delta / U_c_bandgap) * U_ref
+          *           = (Delta * U_ref) / U_c_bandgap
           */
 
-         TempLong = Offset;
-         TempLong *= Config.Bandgap;         /* * U_ref */
-         TempLong /= Ticks2;                 /* / U_c */
+         TempLong = Offset;                  /* delta */
+         TempLong *= Ticks;                  /* * U_ref */
+         TempLong /= Ticks2;                 /* / U_c_bandgap */
 
-         NV.RefOffset = (int8_t)TempLong;
+         NV.RefOffset += (int8_t)TempLong;   /* update offset */
+         Ticks += (int8_t)Value;             /* update local U_bandgap */
        }
 
 
@@ -924,11 +936,15 @@ uint8_t SmallCap(Capacitor_Type *Cap)
        *  U_c = U_bandgap + U_offset -> U_offset = U_c - U_bandgap
        */
 
-      Offset = U_c - Config.Bandgap;
+      Offset = U_c - Ticks;
 
       /* limit offset to a valid range of -50mV - 50mV */
-      if ((Offset > -50) && (Offset < 50)) NV.CompOffset = Offset;
+      if ((Offset > -50) && (Offset < 50))
+      {
+        NV.CompOffset = Offset;         /* update offset */
+      }
     }
+    #endif
   }
 
   return Flag;
@@ -1071,65 +1087,203 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
 #ifdef HW_ADJUST_CAP
 
 /*
- *  measure fixed reference cap to determine voltage offsets
+ *  use fixed reference cap to determine voltage offsets
  *  - cap: 100nF - 1000nF
- *  - uses method from SmallCap() for caps < 4.7µF
+ *  - based on method from SmallCap() for caps < 4.7µF
  *
  *  returns:
- *  - 3 on success
- *  - 2 if capacitance is too low
- *  - 1 if capacitance is too high
+ *  - 1 on success
  *  - 0 on any problem
  */
 
 uint8_t RefCap(void)
 {
-  uint8_t           Flag = 3;      /* return value */
+  uint8_t           Flag = 0;      /* return value */
   uint8_t           TempByte;      /* temp. value */
-  int8_t            Scale;         /* capacitance scale */
   uint16_t          Ticks;         /* timer counter */
   uint16_t          Ticks2;        /* timer overflow counter */
   uint16_t          U_c;           /* voltage of capacitor */
-  uint32_t          Raw;           /* raw capacitance value */
-  uint32_t          Value;         /* corrected capacitance value */
+  int16_t           Offset;        /* voltage offset */
+  int32_t           Value;         /* temp. value */
+
 
   /*
    *  fixed setup:
    *  Gnd -- cap -- ADC pin -- Rh -- resistor control pin
    */
 
+  /* discharge cap */
+  ADC_DDR &= ~(1 << TP_CAP);            /* set ADC pin to HiZ */
   ADJUST_DDR |= (1 << ADJUST_RH);       /* set Rh control pin to output */
-
-
-  /*
-   *  discharge cap
-   */
-
   ADJUST_PORT &= ~(1 << ADJUST_RH);     /* pull down cap via Rh */
+  TempByte = 0;
+  while (TempByte <= 50)                /* discharge loop */
+  {
+    U_c = ReadU(TP_CAP);                /* get voltage of cap */
+    if (U_c <= CAP_DISCHARGED)          /* seems to be discharged */
+    {
+      TempByte = 100;                   /* end loop */
+    }
+    else                                /* not discharged yet */
+    {
+      TempByte++;                       /* increase counter */
+      MilliSleep(20);                   /* wait 20ms */
+    }
+  }
 
+  if (TempByte != 100) return Flag;     /* timeout */
 
 
   /*
    *  setup hardware for measurement
    */
 
+  Ticks2 = 0;                           /* reset timer overflow counter */
+
+  /* set up analog comparator */
+  ADCSRB = (1 << ACME);                 /* use ADC multiplexer as negative input */
+  ACSR =  (1 << ACBG) | (1 << ACIC);    /* use bandgap as positive input, trigger timer1 */
+  ADMUX = ADC_REF_VCC | TP_CAP;         /* switch ADC multiplexer to cap pin */
+                                        /* and set AREF to Vcc */
+  ADCSRA = ADC_CLOCK_DIV;               /* disable ADC, but keep clock dividers */
+  wait200us();
+
+  /* set up timer */
+  TCCR1A = 0;                           /* set default mode */
+  TCCR1B = 0;                           /* set more timer modes */
+  /* timer stopped, falling edge detection, noise canceler disabled */
+  TCNT1 = 0;                            /* set Counter1 to 0 */
+  /* clear all flags (input capture, compare A & B, overflow */
+  TIFR1 = (1 << ICF1) | (1 << OCF1B) | (1 << OCF1A) | (1 << TOV1);
+ 
+  /* start timer by setting clock prescaler (1/1 clock divider) */
+  TCCR1B = (1 << CS10);
+  ADJUST_PORT |= (1 << ADJUST_RH);      /* start charging DUT (pull up) */
+
 
   /*
    *  timer loop
+   *  - run until voltage is reached
+   *  - detect timer overflows
    */
 
+   while (1)
+   {
+     TempByte = TIFR1;                  /* get timer1 flags */
 
-  /*
-   *  calculate capacitance
-   */
+     /* end loop if input capture flag is set (= same voltage) */
+     if (TempByte & (1 << ICF1)) break;
+
+     /* detect timer overflow by checking the overflow flag */
+     if (TempByte & (1 << TOV1))
+     {
+       /* happens at 65.536ms for 1MHz or 8.192ms for 8MHz */
+       TIFR1 = (1 << TOV1);             /* reset flag */
+       wdt_reset();                     /* reset watchdog */
+       Ticks2++;                        /* increase overflow counter */
+
+       /* end loop if charging takes too long (13.1s) */
+       if (Ticks2 == (CPU_FREQ / 5000)) break;
+     }
+   }
+
+  /* stop counter */
+  TCCR1B = 0;                           /* stop timer */
+  TIFR1 = (1 << ICF1);                  /* reset Input Capture flag */
+
+  /* disable charging */
+  ADJUST_DDR &= ~(1 << ADJUST_RH);      /* set Rh pin to HiZ mode */
+
+  /* catch missed timer overflow */
+  if (TIFR1 & (1 << TOV1))
+  {
+    TIFR1 = (1 << TOV1);                /* reset overflow flag */
+  }
+
+  /* enable ADC again */
+  ADCSRA = (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
+
+  /* get voltage of DUT */
+  U_c = ReadU(TP_CAP);                  /* get voltage of cap */
+
+  /* start discharging DUT */
+  ADJUST_PORT &= ~(1 << ADJUST_RH);     /* pull down via Rh */
+  ADJUST_DDR |= (1 << ADJUST_RH);       /* output mode */
+
+  /* check for charging timeout */
+  if (Ticks2 < (CPU_FREQ / 5000)) Flag = 1;   /* ok to proceed */
 
 
   /*
    *  get offsets
    */
 
+  if (Flag)
+  {
+    /*
+     *  We can self-adjust the offset of the internal bandgap reference
+     *  by measuring a voltage lower than the bandgap reference, one time
+     *  with the bandgap as reference and a second time with Vcc as
+     *  reference. The common voltage source is the cap we just measured.
+     */
+
+    while (ReadU(TP_CAP) > 980)         /* discharge below bandgap ref */
+    {
+      /* keep discharging */
+    }
+
+    ADJUST_DDR &= ~(1 << ADJUST_RH);    /* stop discharging */
+
+    Config.AutoScale = 0;               /* disable auto scaling */
+    Ticks = ReadU(TP_CAP);              /* U_c with Vcc reference */
+    Config.AutoScale = 1;               /* enable auto scaling again */
+    Ticks2 = ReadU(TP_CAP);             /* U_c with bandgap reference */
+
+    ADJUST_DDR |= (1 << ADJUST_RH);     /* resume discharging */
+
+    Offset = Ticks - Ticks2;            /* difference */
+    Ticks = Config.Bandgap;             /* current U_bandgap incl. offset */
+
+    /* allow some difference caused by the different voltage resolutions
+       (4.88 vs. 1.07) */
+    if ((Offset < -4) || (Offset > 4))  /* difference too large */
+    {
+      /*
+       *  Calculate offset:
+       *  - first get offset per mV:
+       *    factor = Delta / U_c_bandgap
+       *  - offset for U_ref: 
+       *    Offset = factor * U_ref = (Delta / U_c_bandgap) * U_ref
+       *           = (Delta * U_ref) / U_c_bandgap
+       */
+
+      Value = Offset;              /* delta */
+      Value *= Ticks;              /* * U_ref */
+      Value /= Ticks2;             /* / U_c_bandgap */
+
+      NV.RefOffset += (int8_t)Value;    /* update offset */
+      Ticks += (int8_t)Value;           /* update local U_bandgap */
+      Config.Bandgap = Ticks;           /* update global U_bandgap */
+    }
 
 
+    /*
+     *  In the cap measurement using the analog comparator we compared
+     *  the voltage of the cap to the bandgap reference. Since the MCU
+     *  has an internal voltage offset for the analog comparator, the
+     *  MCU used actually U_bandgap + U_offset. We get that offset by
+     *  comparing the bandgap reference with the voltage of the cap:
+     *  U_c = U_bandgap + U_offset -> U_offset = U_c - U_bandgap
+     */
+
+    Offset = U_c - Ticks;          /* U_c - U_bandgap */
+
+    /* limit offset to a valid range of -50mV - 50mV */
+    if ((Offset > -50) && (Offset < 50))
+    {
+      NV.CompOffset = Offset;      /* update offset */
+    }
+  }
 
   return Flag;
 }

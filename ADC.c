@@ -2,7 +2,7 @@
  *
  *   ADC functions
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -34,9 +34,9 @@
 
 /*
  *  read ADC and return voltage in mV
- *  - Use Vcc as reference by default.
- *  - Switch to bandgap reference for low voltages (< 1.0V) to improve
- *    ADC resolution.
+ *  - use Vcc as reference by default
+ *  - switch to bandgap reference for low voltages (< 1.0V) to improve
+ *    ADC resolution
  *  - with a 125kHz ADC clock a single conversion needs about 0.1ms
  *    with 25 samples we end up with about 2.6ms
  *

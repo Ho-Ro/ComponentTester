@@ -1319,7 +1319,7 @@ void IR_Detector(void)
     }
     else
     {
-      Flag = TestKey(100, 0);           /* wait 100ms for key press */
+      Flag = TestKey(100, CURSOR_NONE); /* wait 100ms for key press */
       if (Flag)                         /* key pressed */
       {
         Run = 0;                        /* skip decoder loop */

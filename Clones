@@ -8,17 +8,15 @@ DIY Kit "AY-AT"
 - with ST7735 color LCD module
 - provided by flywheelz@EEVBlog
 
-
 Hardware Options:
-
 #define HW_ENCODER
+#define ENCODER_PULSES   4         /* not confirmed yet, could be also 2 */
+#define ENCODER_STEPS    24        /* not confirmed yet */
 #define HW_REF25
 #define HW_ZENER
 #define HW_FREQ_COUNTER
 
-
 LCD module:
-
 #define LCD_ST7735
 #define LCD_COLOR                       /* color graphic display */
 #define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
@@ -34,15 +32,15 @@ LCD module:
 #define LCD_FLIP_X                      /* enable horizontal flip */
 //#define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
+//#define LCD_LATE_ON                     /* turn on LCD after clearing it */
 #define FONT_10X16_H                    /* 10x16 font, horizontally aligned */
 #define SYMBOLS_24X24_H                 /* 24x24 symbols, horizontally aligned */
 
+If you prefer that the tester starts with a cleared display uncomment LCD_LATE_ON.
 
 Rotary Encoder:
-
 #define ENCODER_A        PD1       /* rotary encoder A signal */
 #define ENCODER_B        PD3       /* rotary encoder B signal */
-
 
 Input for the frequency counter is PD4 (T0).
 
@@ -53,9 +51,13 @@ M12864 DIY Transistor Tester
 - ST7565 display
 - rotary encoder at PD1/3
 
+Hardware Options:
+#define HW_ENCODER
+#define ENCODER_PULSES   4         /* not confirmed yet, could be also 2 */
+#define ENCODER_STEPS    24        /* not confirmed yet */
+#define HW_REF25
 
 LCD module:
-
 #define LCD_ST7565R
 #define LCD_GRAPHIC                     /* monochrome graphic display */
 #define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
@@ -74,9 +76,7 @@ LCD module:
 #define FONT_8X8_V                      /* 8x8 font, vertically aligned */
 #define SYMBOLS_24X24_VP                /* 24x24 symbols, vertically aligned */
 
-
 Rotary Encoder:
-
 #define ENCODER_A        PD1       /* rotary encoder A signal */
 #define ENCODER_B        PD3       /* rotary encoder B signal */
 
@@ -87,9 +87,7 @@ Chinese clone T3/T4
 - ST7565 display
 - provided by tom666@EEVblog
 
-
 LCD module:
-
 #define LCD_ST7565R
 #define LCD_GRAPHIC                     /* monochrome graphic display */
 #define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
