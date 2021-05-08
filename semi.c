@@ -2,7 +2,7 @@
  *
  *   semiconductor tests and measurements
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -1084,8 +1084,31 @@ void CheckDepletionModeFET(uint16_t U_Rl)
   if (U_2 > (U_1 + Offset))   /* exceeds required offset */
   {
     /*
+     *  Check if we might have a Germanium BJT with a high leakage current:
+     *  - the base-emitter junction of a BJT should pass a contant current with
+     *    a low V_BE
+     *  - assumes: probe-1 = C / probe-2 = E / probe-3 = B
+     *  - NPN
+     */
+
+    /* get base voltage when base is pulled up by Rl */
+    /* set probes: Gnd -- probe-2 / probe-3 -- Rl -- Vcc / probe-1 -- HiZ */
+    R_DDR = Probes.Rl_3;                     /* switch to Rl for base */
+    R_PORT = Probes.Rl_3;                    /* pull up base via Rl */
+    ADC_PORT = 0;
+    ADC_DDR = Probes.Pin_2;                  /* pull down emitter directly */
+    U_3 = ReadU_20ms(Probes.ADC_3);          /* get voltage at base */
+    ADC_DDR = 0;
+
+    if (U_3 < 700)            /* low V_BE */
+    {
+      Flag = 1;               /* most likely a BJT */
+    }
+
+
+    /*
      *  Detect drain and source by a 2nd measurement with reversed
-     *  drain and source pins. Also get U_Rl for reverse check.
+     *  drain and source pins.
      */
 
     /* we simulate: probe-1 = S / probe-2 = D / probe-3 = G */
@@ -1098,14 +1121,8 @@ void CheckDepletionModeFET(uint16_t U_Rl)
     R_PORT = 0;                         /* pull down source via Rl / pull down gate via Rh */
     U_1 = ReadU_20ms(Probes.ADC_1);     /* voltage at source */
 
-    /* get reverse U_Rl when gate is HiZ */
-    /* set probes: Gnd -- Rl -- probe-1 / probe-2 -- Vcc / probe-3 -- HiZ */
-    R_DDR = Probes.Rl_1;                /* disable pull-down of gate */
-    U_3 = ReadU_5ms(Probes.ADC_1);      /* get voltage at Rl */
-
     /* get source voltage when gate is pulled up */
     /* set probes: Gnd -- Rl -- probe-1 / probe-2 -- Vcc / probe-3 -- Rh -- Vcc */
-    R_DDR = Probes.Rl_1 | Probes.Rh_3;  /* enable Rl for source and Rh for gate */
     R_PORT = Probes.Rh_3;               /* pull up gate via Rh */
     U_2 = ReadU_20ms(Probes.ADC_1);     /* voltage at source */
     Diff_2 = U_2 - U_1;                 /* source voltage difference */
@@ -1135,27 +1152,15 @@ void CheckDepletionModeFET(uint16_t U_Rl)
     }
     else                      /* JFET */
     {
-      /*
-       *  Check if we got a JFET or a Germanium BJT with a high leakage
-       *  current:
-       *  - for a JFET the reverse U_Rl is max 3 times smaller than U_Rl
-       *  - for a Ge BJT the reverse U_Rl is min 10 times smaller than U_Rl
-       */
-
-      U_2 = U_Rl * 2;         /* allow factor of 2 */
-      if (U_3 < U_2)          /* reverse U_Rl isn't much larger than U_Rl */
+      if (Flag == 0)          /* not a leaky Ge BJT */
       {
-        U_3 *= 4;             /* max factor of 4 */
-        if (U_Rl < U_3)       /* U_Rl max 4 times larger than reverse U_Rl */
-        {
-          /* n channel JFET (depletion-mode only) */
-          Check.Type = TYPE_N_CHANNEL | TYPE_DEPLETION | TYPE_JFET;
-          #ifdef SW_SYMBOLS
-          Check.Symbol = SYMBOL_JFET_N;      /* set symbol ID */
-          #endif
+        /* n channel JFET (depletion-mode only) */
+        Check.Type = TYPE_N_CHANNEL | TYPE_DEPLETION | TYPE_JFET;
+        #ifdef SW_SYMBOLS
+        Check.Symbol = SYMBOL_JFET_N;        /* set symbol ID */
+        #endif
 
-          Flag = 2;           /* signal match */
-        }
+        Flag = 2;             /* signal match */
       }
     }
   }
@@ -1166,13 +1171,15 @@ void CheckDepletionModeFET(uint16_t U_Rl)
    *  - JFETs are depletion-mode only
    */
 
-  if (Flag == 0)              /* test for standard FET, if not n-ch */
+  if (Flag != 2)              /* no n-ch FET found */
   {
     /* we assume: probe-1 = S / probe-2 = D / probe-3 = G */
 
+    Flag = 0;                 /* reset control flag */
+
     /* get source voltage when gate is pulled up */
     /* should create a slightly positive V_GS via voltage drop across Rl at source */
-    /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc  / probe-3 -- Rh -- Vcc */
+    /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc / probe-3 -- Rh -- Vcc */
     ADC_PORT = 0;                       /* set ADC port to Gnd */
     ADC_DDR = Probes.Pin_2;             /* pull down drain directly */
     R_DDR = Probes.Rl_1 | Probes.Rh_3;  /* enable Rl for probe-1 & Rh for probe-3 */
@@ -1180,10 +1187,11 @@ void CheckDepletionModeFET(uint16_t U_Rl)
     U_1 = ReadU_20ms(Probes.ADC_1);     /* get voltage at source */
 
     /* get source voltage when gate is pulled down */
-    /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc  / probe-3 -- Rh -- Gnd */
+    /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc / probe-3 -- Rh -- Gnd */
     R_PORT = Probes.Rl_1;               /* pull down gate via Rh */
     U_2 = ReadU_20ms(Probes.ADC_1);     /* get voltage at source */
     Diff_1 = U_1 - U_2;                 /* source voltage difference */
+
 
     /*
      *  If the source voltage is higher (less current), when the gate is driven
@@ -1193,6 +1201,29 @@ void CheckDepletionModeFET(uint16_t U_Rl)
 
     if (U_1 > (U_2 + Offset))      /* exceeds offset */
     {
+      /*
+       *  Check if we might have a Germanium BJT with a high leakage current:
+       *  - the base-emitter junction of a BJT should pass a contant current with
+       *    a low V_BE
+       *  - assumes: probe-1 = C / probe-2 = E / probe-3 = B
+       *  - PNP
+       */
+
+      /* get base voltage when base is pulled down by Rl */
+      /* set probes: Gnd -- Rl -- probe-3 / probe-2 -- Vcc / probe-1 -- HiZ */
+      R_DDR = Probes.Rl_3;                   /* switch to Rl */
+      R_PORT = 0;                            /* pull down base by Rl */
+      ADC_DDR = Probes.Pin_2;
+      ADC_PORT = Probes.Pin_2;               /* pull up emitter directly */
+      U_3 = ReadU_20ms(Probes.ADC_3);        /* get voltage at gate/base */
+      ADC_PORT = 0;
+
+      if (U_3 > 4300)         /* low V_BE (Vcc - V_BE) */
+      {
+        Flag = 1;             /* most likely a BJT */
+      }
+
+
       /*
        *  detect drain and source by a 2nd measurement with reversed
        *  drain and source pins
@@ -1207,17 +1238,9 @@ void CheckDepletionModeFET(uint16_t U_Rl)
       R_PORT = Probes.Rl_2 | Probes.Rh_3; /* pull up source via Rl / pull up gate via Rh */
       U_1 = ReadU_20ms(Probes.ADC_2);     /* get voltage at source */
 
-      /* get reverse U_Rl when gate is HiZ */
-      /* Rl should be at drain, but this works also and is more simple */
-      /* set probes: Gnd -- probe-1 / probe-2 -- Rl -- Vcc / probe-3 -- HiZ */
-      R_DDR = Probes.Rl_2;                        /* disable pull-up for gate */
-      R_PORT = Probes.Rl_2;
-      U_3 = Cfg.Vcc - ReadU_5ms(Probes.ADC_2);    /* get voltage at Rl */
-
       /* get source voltage when gate is pulled down */
       /* set probes: Gnd -- probe-1 / probe-2 -- Rl -- Vcc / probe-3 -- Rh -- Gnd */
-      R_DDR = Probes.Rl_2 | Probes.Rh_3;  /* enable Rl for source & Rh for gate */
-                                          /* pull down gate via Rh */
+      R_PORT = Probes.Rl_2;               /* pull down gate via Rh */
       U_2 = ReadU_20ms(Probes.ADC_2);     /* get voltage at source */
       Diff_2 = U_1 - U_2;                 /* source voltage difference */
 
@@ -1245,27 +1268,15 @@ void CheckDepletionModeFET(uint16_t U_Rl)
       }
       else                         /* JFET */
       {
-        /*
-         *  Check if we got a JFET or a Germanium BJT with a high leakage
-         *  current:
-         *  - for a JFET the reverse U_Rl is max 3 times smaller than U_Rl
-         *  - for a Ge BJT the reverse U_Rl is min 10 times smaller than U_Rl
-         */
-
-        U_2 = U_Rl * 2;       /* allow factor of 2 */
-        if (U_3 < U_2)        /* reverse U_Rl isn't much larger than U_Rl */
+        if (Flag == 0)        /* not a leaky Ge BJT */
         {
-          U_3 *= 4;           /* max factor of 4 */
-          if (U_Rl < U_3)     /* U_Rl max 4 times larger than reverse U_Rl */
-          {
-            /* p-channel JFET (depletion-mode only) */
-            Check.Type = TYPE_P_CHANNEL | TYPE_DEPLETION | TYPE_JFET;
-            #ifdef SW_SYMBOLS
-            Check.Symbol = SYMBOL_JFET_P;    /* set symbol ID */
-            #endif
+          /* p-channel JFET (depletion-mode only) */
+          Check.Type = TYPE_P_CHANNEL | TYPE_DEPLETION | TYPE_JFET;
+          #ifdef SW_SYMBOLS
+          Check.Symbol = SYMBOL_JFET_P;      /* set symbol ID */
+          #endif
 
-            Flag = 2;         /* signal match */
-          }
+          Flag = 2;         /* signal match */
         }
       }
     }
@@ -1529,16 +1540,11 @@ void CheckPUT(void)
    *  set to: Gnd -- Rl -- probe-2 / probe-1 -- Vcc
    *
    *  we assume: probe-1 = A / probe-2 = C / probe-3 = G
+   *
+   *  hint:
+   *  TRIAC will pass this test too, but PUT won't pass TRIAC check
+   *  todo: if Check.Found == TRIAC -> return?
    */
-
-/*
-major problem: 
-- TRIAC will pass this too
-- but PUT won't pass TRIAC check
-
-Wenn Check.Found == TRIAC -> return
-
- */
 
   /* get Uf */
   U_2 = ReadU(Probes.ADC_1);         /* voltage at Anode */

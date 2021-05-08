@@ -2,7 +2,7 @@
  *
  *   extras / additional features
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -269,7 +269,11 @@ void PWM_Tool(uint16_t Frequency)
     OCR1B = (uint16_t)Value;            /* update compare value */
   }
 
-  /* clean up */
+
+  /*
+   *  clean up
+   */
+
   TCCR1B = 0;                 /* disable timer */
   TCCR1A = 0;                 /* reset flags (also frees PB2) */
 
@@ -280,8 +284,6 @@ void PWM_Tool(uint16_t Frequency)
   #ifdef HW_FIXED_SIGNAL_OUTPUT
   SIGNAL_DDR &= ~(1 << SIGNAL_OUT);     /* set HiZ mode */
   #endif
-
-  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 }
 
 #endif
@@ -659,7 +661,11 @@ void PWM_Tool(void)
     }
   }
 
-  /* clean up */
+
+  /*
+   *  clean up
+   */
+
   TCCR1B = 0;                 /* disable timer */
   TCCR1A = 0;                 /* reset flags (also frees PB2) */
 
@@ -670,8 +676,6 @@ void PWM_Tool(void)
   #ifdef HW_FIXED_SIGNAL_OUTPUT
   SIGNAL_DDR &= ~(1 << SIGNAL_OUT);     /* set HiZ mode */
   #endif
-
-  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 
   /* clean up local constants */
   #undef MODE_RATIO
@@ -1165,7 +1169,11 @@ void Servo_Check(void)
     }
   }
 
-  /* clean up */
+
+  /*
+   *  clean up
+   */
+
   TCCR0B = 0;                 /* disable Timer0 */
   TIMSK0 = 0;                 /* disable all interrupts for Timer0 */
   TCCR1B = 0;                 /* disable timer #1 */
@@ -1179,8 +1187,6 @@ void Servo_Check(void)
   #ifdef HW_FIXED_SIGNAL_OUTPUT
   SIGNAL_DDR &= ~(1 << SIGNAL_OUT);     /* set HiZ mode */
   #endif
-
-  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 
   /* clean up local constants */
   #undef SERVO_STEP_TIME
@@ -1504,7 +1510,10 @@ void SquareWave_SignalGenerator(void)
   }
 
 
-  /* clean up */
+  /*
+   *  clean up
+   */
+
   TCCR1B = 0;                 /* disable timer */
   TCCR1A = 0;                 /* reset flags (also frees PB2) */
 
@@ -1515,8 +1524,6 @@ void SquareWave_SignalGenerator(void)
   #ifdef HW_FIXED_SIGNAL_OUTPUT
   SIGNAL_DDR &= ~(1 << SIGNAL_OUT);     /* set HiZ mode */
   #endif
-
-  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 }
 
 #endif
@@ -1932,10 +1939,13 @@ void FrequencyCounter(void)
     }    
   }
 
-  /* clean up */
+
+  /*
+   *  clean up
+   */
+
   TIMSK0 = 0;                           /* disable all interrupts for Timer0 */
   TIMSK1 = 0;                           /* disable all interrupts for Timer1 */
-  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 }
 
 
@@ -2364,10 +2374,14 @@ void FrequencyCounter(void)
     }
   }
 
-  /* clean up */
+
+  /*
+   *  clean up
+   */
+
   TIMSK0 = 0;                           /* disable all interrupts for Timer0 */
   TIMSK1 = 0;                           /* disable all interrupts for Timer1 */
-  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
+
   /* filter control lines which were in input mode */ 
   CtrlDir ^= (1 << COUNTER_CTRL_DIV) | (1 << COUNTER_CTRL_CH0) | (1 << COUNTER_CTRL_CH1);
   CtrlDir &= (1 << COUNTER_CTRL_DIV) | (1 << COUNTER_CTRL_CH0) | (1 << COUNTER_CTRL_CH1);

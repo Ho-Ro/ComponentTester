@@ -2,7 +2,7 @@
  *
  *   SPI (bit-bang & hardware)
  *
- *   (c) 2017 by Markus Reschke
+ *   (c) 2017-2018 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -133,7 +133,7 @@ void SPI_Write_Byte(uint8_t Byte)
 
 
 
-#if SPI_MISO
+#if SPI_RW
 
 /*
  *  write and read a single byte
@@ -296,7 +296,7 @@ void SPI_Write_Byte(uint8_t Byte)
 
 
 
-#if SPI_MISO
+#if SPI_RW
 
 /*
  *  write and read a single byte

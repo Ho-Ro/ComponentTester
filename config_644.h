@@ -164,6 +164,8 @@
 //#define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
+//#define LCD_OFFSET_X                     /* enable x offset of 4 dots */
+//#define LCD_OFFSET_Y                     /* enable y offset of 2 dots */
 //#define LCD_LATE_ON                     /* turn on LCD after clearing it */
 #define FONT_10X16_HF                   /* 10x16 font, horizontally aligned & flipped */
 //#define FONT_8X16_CYRILLIC_HF           /* 8x16 cyrillic font, horizontally aligned & flipped */
@@ -176,8 +178,8 @@
 /*
  *  PCD8544, SPI interface (hardware)
  *  - for a 180° rotated display (LCD_ROT180)
- *    - comment out "_VF" font
- *    - uncomment "_V_F" font
+ *    - comment out "_VF" font and "_VFP" symbols
+ *    - uncomment "_V_F" font and "_VP_F" symbols
  */
 
 #if 0
@@ -197,6 +199,7 @@
 #define FONT_6X8_VF                     /* 6x8 font, vertically aligned & flipped */
 //#define LCD_ROT180                      /* rotate output by 180° (not supported yet) */
 //#define FONT_6X8_V_F                    /* 6x8 font, vertically aligned, hor. flipped */
+//#define SYMBOLS_24X24_VP_F              /* 24x24 symbols, vertically aligned, hor. flipped */
 #define SPI_HARDWARE                    /* hardware SPI */
 #endif
 
@@ -316,11 +319,7 @@
 #define LCD_CONTRAST     127            /* default contrast (0-255) */
 #define FONT_8X8_VF                     /* 8x8 font, vertically aligned & flipped */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
-#define SPI_BITBANG                     /* bit-bang SPI */
-#define SPI_PORT         LCD_PORT       /* SPI port data register */
-#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
-#define SPI_SCK          LCD_SCLK       /* port pin used for SCK */
-#define SPI_MOSI         LCD_SDIN       /* port pin used for MOSI */
+#define SPI_HARDWARE                    /* hardware SPI */
 #endif
 
 
@@ -366,6 +365,7 @@
 //#define TOUCH_FLIP_Y               /* enable vertical flip */
 //#define TOUCH_ROTATE               /* switch X and Y (rotate by 90°) */
 #define SPI_HARDWARE               /* hardware SPI */
+#define SPI_RW                     /* enable SPI read support */
 #endif
 
 
@@ -489,6 +489,7 @@
  *  - could be already set in display section
  */
 
+/* for bit-bang SPI */
 #ifndef SPI_PORT
 #define SPI_PORT         PORTB     /* port data register */
 #define SPI_DDR          DDRB      /* port data direction register */
@@ -505,6 +506,7 @@
  *  - could be already set in display section
  */
 
+/* for bit-bang I2C */
 #ifndef I2C_PORT
 #define I2C_PORT         PORTC     /* port data register */
 #define I2C_DDR          DDRC      /* port data direction register */
@@ -512,6 +514,21 @@
 #define I2C_SDA          PC1       /* pin for SDA */
 #define I2C_SCL          PC0       /* pin for SCL */
 #endif
+
+
+/*
+ *  TTL serial interface
+ *  - hardware USART0 uses PD0 & PD1, USART1 uses PD2 & PD3
+ */
+
+/* for hardware TTL serial */
+#define SERIAL_USART     0         /* use USART0 */
+/* for bit-bang TTL serial */
+#define SERIAL_PORT      PORTD     /* port data register */
+#define SERIAL_DDR       DDRD      /* port data direction register */
+#define SERIAL_PIN       PIND      /* port input pins register */
+#define SERIAL_TX        PD1       /* pin for Tx (transmit) */
+#define SERIAL_RX        PD0       /* pin for Rx (receive, not supported yet) */
 
 
 /*

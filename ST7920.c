@@ -8,7 +8,7 @@
  *   - SPI interface (2-4 line)
  *   - 4 bit parallel interface
  *
- *   (c) 2017 by Markus Reschke
+ *   (c) 2017-2018 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -121,14 +121,6 @@ unsigned char       Matrix[LCD_CHAR_X * LCD_CHAR_Y];   /* char matrix */
 /* position management */
 uint8_t             X_Start;       /* start position X (column in 16 bit steps) */
 uint8_t             Y_Start;       /* start position Y (row) */
-
-#ifdef SW_SYMBOLS
-/* symbol positions (aligned to character positions) */
-uint8_t             SymbolTop;     /* line above symbol */
-uint8_t             SymbolBottom;  /* line below symbol */
-uint8_t             SymbolLeft;    /* left side */
-uint8_t             SymbolRight;   /* right side */
-#endif
 
 
 
@@ -886,9 +878,14 @@ void LCD_Init(void)
   /* update maximums */
   UI.CharMax_X = LCD_CHAR_X;       /* characters per line */
   UI.CharMax_Y = LCD_CHAR_Y;       /* lines */
+  #ifdef SW_SYMBOLS
+  UI.SymbolSize_X = LCD_SYMBOL_CHAR_X;  /* x size in chars */
+  UI.SymbolSize_Y = LCD_SYMBOL_CHAR_Y;  /* y size in chars */
+  #endif
 
   LCD_Clear();                     /* clear screen */
 }
+
 
 
 #ifndef LCD_ROT180
@@ -911,6 +908,13 @@ void LCD_Char(unsigned char Char)
   uint8_t           StepFlag;      /* offset control flag */
   uint8_t           y;             /* bitmap y byte counter */
   uint8_t           Row;           /* screen row */
+
+  #ifdef UI_SERIAL_COPY
+  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
+  {
+    Serial_Char(Char);             /* send char to serial */
+  }
+  #endif
 
   /* prevent x overflow */
   if (UI.CharPos_X > LCD_CHAR_X) return;
@@ -1033,6 +1037,13 @@ void LCD_Char(unsigned char Char)
   uint8_t           StepFlag;      /* offset control flag */
   uint8_t           y;             /* bitmap y byte counter */
   uint8_t           Row;           /* screen row */
+
+  #ifdef UI_SERIAL_COPY
+  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
+  {
+    Serial_Char(Char);             /* send char to serial */
+  }
+  #endif
 
   /* prevent x overflow */
   if (UI.CharPos_X > LCD_CHAR_X) return;
@@ -1353,91 +1364,6 @@ void LCD_Symbol(uint8_t ID)
 
 #endif
 
-
-
-/*
- *  display fancy probe number
- *
- *  requires:
- *  - Probe: probe number
- *  - Table: pointer to pinout details
- */
-
-void LCD_FancyProbeNumber(uint8_t Probe, uint8_t *Table)
-{
-  uint8_t           Data;          /* pinout data */
-  uint8_t           x;             /* x position */
-  uint8_t           y;             /* y position */
-
-  Data = pgm_read_byte(Table);     /* read pinout details */
-
-  if (Data != PIN_NONE)            /* show pin */
-  {
-    /* determine position based on pinout data */
-    x = SymbolLeft;         /* set default positions */
-    y = SymbolTop;
-    if (Data & PIN_RIGHT) x = SymbolRight;
-    if (Data & PIN_BOTTOM) y = SymbolBottom;
-
-    /* show probe number */
-    LCD_CharPos(x, y);           /* set position */
-    LCD_ProbeNumber(Probe);      /* display probe number */
-  }
-}
-
-
-
-/*
- *  show fancy pinout for semiconductors
- *  - display a nice component symbol
- *    starting in next line, aligned to right side
- *  - display pin numbers above and below the symbol
- *    because of the horizontal addressing in 16 bit steps
- *  - symbol ID (0-) in Check.Symbol
- */
-
-void LCD_FancySemiPinout(void)
-{
-  uint8_t           Line;          /* line number */
-  uint8_t           x, y;          /* position of char */
-  uint8_t           *Table;        /* pointer to pin table */
-  uint16_t          Offset;        /* address offset */
-
-  /* save current char position */
-  x = UI.CharPos_X;        /* column */
-  y = UI.CharPos_Y;        /* line */
-
-  /* check for sufficient screen size */
-  Line = y + 1;                         /* next line */
-  /* last line is reserved for cursor/touch bar */
-  if (Line > (LCD_CHAR_Y - LCD_SYMBOL_CHAR_Y - 2)) return;  /* too few lines */
-
-  /* determine positions */
-  SymbolTop = Line;                          /* top is current line */
-  SymbolBottom = Line;
-  SymbolBottom += (LCD_SYMBOL_CHAR_Y + 1);   /* plus symbol's height */
-  SymbolRight = LCD_CHAR_X;                  /* align to right side */
-  /* minus symbol width */
-  SymbolLeft = LCD_CHAR_X - LCD_SYMBOL_CHAR_X + 1;
-
-  /* calculate start address of pinout details */
-  Table = (uint8_t *)&PinTable;         /* start address of pin table */
-  Offset = Check.Symbol * 3;            /* offset for pin details */
-  Table += Offset;                      /* address of pin details */
-
-  /* display probe numbers */
-  LCD_FancyProbeNumber(Semi.A, Table);       /* A pin */
-  Table++;                                   /* details for next pin */
-  LCD_FancyProbeNumber(Semi.B, Table);       /* B pin */
-  Table++;                                   /* details for next pin */
-  LCD_FancyProbeNumber(Semi.C, Table);       /* C pin */
-
-  /* display symbol */
-  LCD_CharPos(SymbolLeft, SymbolTop + 1);    /* set top left position  */
-  LCD_Symbol(Check.Symbol);                  /* display symbol */
-
-  LCD_CharPos(x, y);          /* restore old char position */
-}
 
 #endif
 

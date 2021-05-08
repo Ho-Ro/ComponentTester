@@ -32,6 +32,8 @@ LCD module:
 #define LCD_FLIP_X                      /* enable horizontal flip */
 //#define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
+//#define LCD_OFFSET_X                     /* enable x offset of 4 dots */
+//#define LCD_OFFSET_Y                     /* enable y offset of 2 dots */
 //#define LCD_LATE_ON                     /* turn on LCD after clearing it */
 #define FONT_10X16_HF                   /* 10x16 font, horizontally aligned & flipped */
 #define SYMBOLS_24X24_HF                /* 24x24 symbols, horizontally aligned & flipped */
@@ -115,7 +117,7 @@ Rotary Encoder:
 
 ------------------------------------------------------------------------------
 
-Chinese clone T3/T4
+T3/T4
 - ST7565 display (bit-bang SPI)
 - settings provided by tom666@EEVblog
 
@@ -129,6 +131,35 @@ LCD module:
 #define LCD_A0           PD3            /* port pin used for A0 */
 #define LCD_SCL          PD2            /* port pin used for SCL */
 #define LCD_SI           PD1            /* port pin used for SI (LCD's data input) */
+#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       64             /* number of vertical dots */
+#define LCD_START_Y      0              /* start line (0-63) */
+#define LCD_CONTRAST     11             /* default contrast (0-63) */
+#define FONT_8X8_VF                     /* 8x8 font, vertically aligned & flipped */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
+#define SPI_BITBANG                     /* bit-bang SPI */
+#define SPI_PORT         LCD_PORT       /* SPI port data register */
+#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
+#define SPI_SCK          LCD_SCL        /* port pin used for SCK */
+#define SPI_MOSI         LCD_SI         /* port pin used for MOSI */
+
+------------------------------------------------------------------------------
+
+GM328
+- ST7565 display (bit-bang SPI)
+- settings provided by rddube@EEVblog
+
+LCD module:
+#define LCD_ST7565R
+#define LCD_GRAPHIC                     /* monochrome graphic display */
+#define LCD_SPI                         /* SPI interface */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RESET        PD0            /* port pin used for /RES (optional) */
+#define LCD_A0           PD1            /* port pin used for A0 */
+#define LCD_SCL          PD2            /* port pin used for SCL */
+#define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
 #define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */

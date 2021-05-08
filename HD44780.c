@@ -3,7 +3,7 @@
  *   driver functions for HD44780 compatible character displays
  *   - 4 bit parallel interface
  *
- *   (c) 2015-2017 by Markus Reschke
+ *   (c) 2015-2018 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -203,6 +203,13 @@ void LCD_Char(unsigned char Char)
 {
   uint8_t           *Table;        /* pointer to table */
   uint8_t           ID;            /* char ID */  
+
+  #ifdef UI_SERIAL_COPY
+  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
+  {
+    Serial_Char(Char);             /* send char to serial */
+  }
+  #endif
 
   /* prevent x overflow */
   if (UI.CharPos_X > LCD_CHAR_X) return;
@@ -508,6 +515,13 @@ void LCD_Char(unsigned char Char)
 {
   uint8_t           *Table;        /* pointer to table */
   uint8_t           ID;            /* char ID */  
+
+  #ifdef UI_SERIAL_COPY
+  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
+  {
+    Serial_Char(Char);             /* send char to serial */
+  }
+  #endif
 
   /* prevent x overflow */
   if (UI.CharPos_X > LCD_CHAR_X) return;

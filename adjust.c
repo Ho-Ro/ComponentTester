@@ -2,7 +2,7 @@
  *
  *   self-adjustment functions
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -354,18 +354,18 @@ void ShowAdjustmentValues(void)
 
   /* display RiL and RiH */
   LCD_Clear();
-  LCD_EEString_Space(RiLow_str);             /* display: Ri- */
+  LCD_EEString_Space(RiLow_str);                  /* display: Ri- */
   DisplayValue(NV.RiL, -1, LCD_CHAR_OMEGA);
-  LCD_NextLine_EEString_Space(RiHigh_str);   /* display: Ri+ */
+  LCD_NextLine_EEString_Space(RiHigh_str);        /* display: Ri+ */
   DisplayValue(NV.RiH, -1, LCD_CHAR_OMEGA);
 
   /* display C-Zero */
   LCD_NextLine_EEString_Space(CapOffset_str);     /* display: C0 */
-  DisplayValue(NV.CapZero, -12, 'F');    /* display C0 offset */
+  DisplayValue(NV.CapZero, -12, 'F');             /* display C0 offset */
 
   /* display R-Zero */
-  LCD_NextLine_EEString_Space(ROffset_str);        /* display: R0 */
-  DisplayValue(NV.RZero, -2, LCD_CHAR_OMEGA);  /* display R0 */
+  LCD_NextLine_EEString_Space(ROffset_str);       /* display: R0 */
+  DisplayValue(NV.RZero, -2, LCD_CHAR_OMEGA);     /* display R0 */
 
   /* display internal bandgap reference */
   LCD_NextLine_EEString_Space(URef_str);     /* display: Vref */
@@ -374,6 +374,12 @@ void ShowAdjustmentValues(void)
   /* display Vcc */
   LCD_NextLine_EEString_Space(Vcc_str);      /* display: Vcc */
   DisplayValue(Cfg.Vcc, -3, 'V');            /* display Vcc */
+
+  if (UI.OP_Mode & OP_EXT_REF)          /* external 2.5V reference used */
+  {
+    LCD_Space();                        /* display space */
+    LCD_Char('*');                      /* display: * */
+  }
 
   /* display offset of analog comparator */
   LCD_NextLine_EEString_Space(CompOffset_str);    /* display: AComp */

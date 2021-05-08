@@ -4,9 +4,29 @@
 
            für ATmega 328/324/644/1284 mit Text- oder Grafikdisplay
 
-                        (c) 2012-2017 by Markus Reschke
+                        (c) 2012-2018 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.32m 2018-02
+- Ausgabe von gefundenen Bauteilen zusätzlich über serielle Schnittstelle.
+- Treiber für serielle TTL-Schnittstelle (Hardware & Bit-Bang).
+- Aktualisierung von var_russian.h (Dank an indman@EEVblog).
+- Unterstützung von X&Y-Offsets im ST7735-Treiber. 
+- Einstellungen der Batterieüberwachung geändert. Schalter zum Abschalten
+  der Batterieüberwachung und für nicht überwachte externe Stromversorgung
+  ergänzt.
+- Konfigurationsschalter zur Auswahl des alternativen Betriebsmodus beim
+  Starten (UI_AUTOHOLD) 
+- Filter für Germanium-Transistoren mit hohem Leckstrom in der Funktion zur
+  Erkennung von Verarmungstyp-FETs verbessert.
+- Graphisches Pinout im Treiber für PCD8544 ergänzt. Fehler in der Funktion
+  LCD_CharPos() für rotierte Ausgabe im PCD8544-Treiber beseitigt.
+- Funktionen für graphisches Pinout verbessert und teilweise nach display.c
+  verschoben. Separate Ausgabe vom Pinout falls notwendig. 
+- Indikator bei Nutzung einer externen Spannungsreferenz (Werte Anzeigen).
+- IR-Decoder verbessert und optionale Protokolle eingebaut.
+- Zusätzliche Protokolle für IR-Fernbedienung.
 
 v1.31m 2017-12
 - IR-Fernbedienung (Sender).

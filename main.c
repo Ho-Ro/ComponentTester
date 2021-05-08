@@ -2,7 +2,7 @@
  *
  *   main part
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -32,9 +32,9 @@
  *  local variables
  */
 
-/* programm control */
-uint8_t        RunsPassed;              /* counter for successful measurements */
-uint8_t        RunsMissed;              /* counter for failed/missed measurements */
+/* program control */
+uint8_t        RunsPassed;         /* counter for successful measurements */
+uint8_t        RunsMissed;         /* counter for failed/missed measurements */
 
 
 
@@ -677,6 +677,7 @@ void Show_BJT(void)
     LCD_Char('E');            /* emitter */
   }
 
+
   /*
    *  display either optional B-E resistor or hFE & V_BE
    */
@@ -689,15 +690,11 @@ void Show_BJT(void)
     /* B-E resistor renders hFE and V_BE measurements useless */
 
     #ifdef SW_SYMBOLS
-    LCD_FancySemiPinout();           /* display fancy pinout */
+      UI.SymbolLine = 4;           /* display fancy pinout in line #4 */
     #endif
   }
   else                                            /* no B-E resistor found */
   {
-    #ifdef SW_SYMBOLS
-    LCD_FancySemiPinout();           /* display fancy pinout */
-    #endif
-
     /* hFE and V_BE */
 
     /* display hFE */
@@ -947,10 +944,6 @@ void Show_FET(void)
     Show_SemiPinout('G', 'D', 'S');     /* show pinout */
   }
 
-  #ifdef SW_SYMBOLS
-  LCD_FancySemiPinout();           /* display fancy pinout */
-  #endif
-
   /* show diode, V_th and Cgs for MOSFETs */
   if (Check.Type & TYPE_MOSFET) Show_FET_Extras();
 
@@ -983,9 +976,7 @@ void Show_IGBT(void)
 
   LCD_NextLine();                  /* next line (#2) */
   Show_SemiPinout('G', 'C', 'E');  /* show pinout */
-  #ifdef SW_SYMBOLS
-  LCD_FancySemiPinout();           /* display fancy pinout */
-  #endif
+
   Show_FET_Extras();               /* show diode, V_th and C_GE */
 }
 
@@ -1020,10 +1011,6 @@ void Show_ThyristorTriac(void)
     Show_SemiPinout('G', '2', '1');     /* display pinout */
   }
 
-  #ifdef SW_SYMBOLS
-  LCD_FancySemiPinout();           /* display fancy pinout */
-  #endif
-
   /* show V_GT (gate trigger voltage) */
   if (Semi.U_1 > 0)                /* show if not zero */
   {
@@ -1052,10 +1039,6 @@ void Show_PUT(void)
   LCD_EEString(PUT_str);              /* display: PUT */
   LCD_NextLine();                     /* move to line #2 */
   Show_SemiPinout('G', 'A', 'C');     /* display pinout */
-
-  #ifdef SW_SYMBOLS
-  LCD_FancySemiPinout();           /* display fancy pinout */
-  #endif
 
   /* display V_T */
   LCD_NextLine_EEString_Space(V_T_str); /* display: VT */
@@ -1087,10 +1070,6 @@ void Show_UJT(void)
   LCD_NextLine();                     /* next line (#2) */
   Show_SemiPinout('E', '2', '1');     /* display pinout */
 
-  #ifdef SW_SYMBOLS
-  LCD_FancySemiPinout();           /* display fancy pinout */
-  #endif
-
   /* display R_BB */
   LCD_NextLine_EEString_Space(R_BB_str);  /* display: R_BB */  
   DisplayValue(Resistors[0].Value, Resistors[0].Scale, LCD_CHAR_OMEGA);
@@ -1111,9 +1090,11 @@ void Show_UJT(void)
 
 int main(void)
 {
-  uint16_t          U_Bat;         /* voltage of power supply */
   uint8_t           Test;          /* test value */
+  #if defined (HW_REF25) || ! defined (BAT_NONE)
+  uint16_t          U_Bat;         /* voltage of power supply */
   uint32_t          Temp;          /* some value */
+  #endif
 
 
   /*
@@ -1139,7 +1120,20 @@ int main(void)
   MCUSR &= ~(1 << WDRF);                /* reset watchdog flag */
   wdt_disable();                        /* disable watchdog */
 
+  /* set important default values */
+  #ifdef SERIAL_HARDWARE
+    /* we have to keep clk_IO running */
+    Cfg.SleepMode = SLEEP_MODE_IDLE;       /* default sleep mode: power idle */
+  #else
+    /* we can disable most stuff */
+    Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;   /* default sleep mode: power save */
+  #endif
   Cfg.BusState = BUS_NONE;              /* no interface bus yet */
+
+  /* set up busses and interfaces */
+  #ifdef HW_SERIAL
+  Serial_Setup();                       /* set up TTL serial interface */
+  #endif
 
   #ifdef HW_I2C
   I2C_Setup();                          /* set up I2C bus */
@@ -1175,8 +1169,11 @@ int main(void)
    *  operation mode selection
    */
 
-  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* default: power save */
-  UI.OP_Mode = OP_CONTINOUS;            /* set default mode: continous */
+  #ifdef UI_AUTOHOLD
+    UI.OP_Mode = OP_AUTOHOLD;           /* default op mode: auto-hold */
+  #else
+    UI.OP_Mode = OP_CONTINOUS;          /* default op mode: continous */
+  #endif
   Test = 0;                             /* key press */
 
   /* catch long key press */
@@ -1200,8 +1197,15 @@ int main(void)
     }
   }
 
-  /* key press >300ms sets autohold mode */
-  if (Test > 1) UI.OP_Mode = OP_AUTOHOLD;
+  /* key press >300ms selects alternative operation mode */
+  if (Test > 1)
+  {
+    #ifdef UI_AUTOHOLD
+      UI.OP_Mode = OP_CONTINOUS;        /* change mode to continous */
+    #else
+      UI.OP_Mode = OP_AUTOHOLD;         /* change mode to auto-hold */
+    #endif
+  }
 
   /* init LCD module */
   LCD_Init();                           /* initialize LCD */
@@ -1238,8 +1242,16 @@ int main(void)
    *  welcome user
    */
 
+  #ifdef UI_SERIAL_COPY
+    Serial_NewLine();                   /* serial: new line */
+    UI.OP_Mode |= OP_SER_COPY;          /* enable copy to serial */
+  #endif
   LCD_EEString(Tester_str);             /* display: Component Tester */
   LCD_NextLine_EEString(Version_str);   /* display firmware version */
+  #ifdef UI_SERIAL_COPY
+    UI.OP_Mode &= ~OP_SER_COPY;         /* disable copy to serial */
+    Serial_NewLine();                   /* serial: new line */
+  #endif
   #ifdef LCD_COLOR
     UI.PenColor = COLOR_PEN;            /* set pen color */
   #endif
@@ -1284,7 +1296,7 @@ int main(void)
 
 start:
 
-  /* reset variabels */
+  /* reset variables */
   Check.Found = COMP_NONE;
   Check.Type = 0;
   Check.Done = DONE_NONE;
@@ -1300,6 +1312,9 @@ start:
   #ifdef HW_KEYS
   UI.KeyOld = KEY_NONE;
   UI.KeyStepOld = 1;
+  #endif
+  #ifdef SW_SYMBOLS
+  UI.SymbolLine = 3;          /* default: line #3 */
   #endif
 
   /* reset hardware */
@@ -1322,13 +1337,18 @@ start:
   U_Bat = ReadU(TP_REF);           /* read voltage of reference (mV) */
   Cfg.Samples = ADC_SAMPLES;       /* set samples back to default */
 
-  if ((U_Bat > 2250) && (U_Bat < 2750))   /* check for valid reference */
+  /* check for valid voltage range */
+  if ((U_Bat > 2250) && (U_Bat < 2750))      /* voltage is fine */
   {
-    uint32_t        Temp;
-
     /* adjust Vcc (assuming 2.495V typically) */
     Temp = ((uint32_t)Cfg.Vcc * UREF_25) / U_Bat;
     Cfg.Vcc = (uint16_t)Temp;
+
+    UI.OP_Mode |= OP_EXT_REF;           /* set flag */
+  }
+  else                                       /* voltage out of range */
+  {
+    UI.OP_Mode &= ~OP_EXT_REF;          /* clear flag */
   }
   #endif
 
@@ -1344,40 +1364,64 @@ start:
    *  battery check
    */
 
-  /*
-   *  ADC pin is connected to a voltage divider (top: R1 / bottom: R2).
-   *  U2 = (Uin / (R1 + R2)) * R2 
-   *  Uin = (U2 * (R1 + R2)) / R2
-   */
+  #ifdef BAT_NONE
+    /* no battery monitoring */
+    LCD_EEString(Tester_str);           /* display: Component Tester */
+  #else
+    /* get current battery voltage */
+    U_Bat = ReadU(TP_BAT);              /* read voltage U2 (mV) */
 
-  /* get current battery voltage */
-  U_Bat = ReadU(TP_BAT);                /* read voltage U2 (mV) */
-  Temp = (((uint32_t)(BAT_R1 + BAT_R2) * 1000) / BAT_R2);   /* factor (0.001) */
-  Temp *= U_Bat;                        /* Uin (0.001 mV) */
-  Temp /= 1000;                         /* Uin (mV) */
-  U_Bat = (uint16_t)Temp;
-  U_Bat += BAT_OFFSET;                  /* add offset for voltage drop */
+    #ifdef BAT_DIVIDER
+    /*
+     *  ADC pin is connected to a voltage divider (top: R1 / bottom: R2).
+     *  - U2 = (Uin / (R1 + R2)) * R2 
+     *  - Uin = (U2 * (R1 + R2)) / R2
+     */
 
-  /* display battery voltage */
-  LCD_EEString_Space(Battery_str);      /* display: Bat. */
-  DisplayValue(U_Bat / 10, -2, 'V');    /* display battery voltage */
-  LCD_Space();
+    Temp = (((uint32_t)(BAT_R1 + BAT_R2) * 1000) / BAT_R2);   /* factor (0.001) */
+    Temp *= U_Bat;                      /* Uin (0.001 mV) */
+    Temp /= 1000;                       /* Uin (mV) */
+    U_Bat = (uint16_t)Temp;
+    #endif
 
-  /* check limits */
-  if (U_Bat < BAT_LOW)                  /* low level reached */
-  {
-    LCD_EEString(Low_str);              /* display: low */
-    MilliSleep(2000);                   /* let user read info */
-    goto power_off;                     /* power off */
-  }
-  else if (U_Bat < BAT_WEAK)            /* warning level reached */
-  {
-    LCD_EEString(Weak_str);             /* display: weak */
-  }
-  else                                  /* ok */
-  {
-    LCD_EEString(OK_str);               /* display: ok */
-  }
+    U_Bat += BAT_OFFSET;                /* add offset for voltage drop */
+
+    /* display battery voltage */
+    LCD_EEString_Space(Battery_str);    /* display: Bat. */
+
+    #ifdef BAT_EXT_UNMONITORED
+    if (U_Bat < 900)               /* < 0.9V */
+    {
+      /* low voltage caused by diode's leakage current */
+      LCD_EEString(External_str);        /* display: ext */
+    }
+    else                           /* battery operation */
+    {
+    #endif
+
+    DisplayValue(U_Bat / 10, -2, 'V');  /* display battery voltage */
+    LCD_Space();
+
+    /* check limits */
+    if (U_Bat < BAT_LOW)           /* low level reached */
+    {
+      LCD_EEString(Low_str);            /* display: low */
+      MilliSleep(2000);                 /* let user read info */
+      goto power_off;                   /* power off */
+    }
+    else if (U_Bat < BAT_WEAK)     /* warning level reached */
+    {
+      LCD_EEString(Weak_str);           /* display: weak */
+    }
+    else                           /* ok */
+    {
+      LCD_EEString(OK_str);             /* display: ok */
+    }
+
+    #ifdef BAT_EXT_UNMONITORED
+    }
+    #endif
+  #endif
 
 
   /*
@@ -1433,6 +1477,10 @@ result:
 
   LCD_Clear();                     /* clear LCD */
   LCD_NextLine_Mode(LINE_KEEP | LINE_KEY);
+  #ifdef UI_SERIAL_COPY
+  Serial_NewLine();                /* serial: new line */
+  UI.OP_Mode |= OP_SER_COPY;       /* enable copy to serial */
+  #endif
 
   /* call output function based on component type */
   switch (Check.Found)
@@ -1489,6 +1537,22 @@ result:
       goto end;
   }
 
+  #ifdef UI_SERIAL_COPY
+  UI.OP_Mode &= ~OP_SER_COPY;      /* disable copy to serial */
+  Serial_NewLine();                /* serial: new line */
+  #endif
+
+  #ifdef SW_SYMBOLS
+  /* display fancy pinout for 3-pin semiconductors */
+  if (Check.Found >= COMP_BJT)     /* 3-pin semi */
+  {
+    if (UI.SymbolLine)             /* not zero */
+    {
+      LCD_FancySemiPinout(UI.SymbolLine);    /* display pinout */
+    }
+  }
+  #endif
+
   /* component was found */
   RunsMissed = 0;             /* reset counter */
   RunsPassed++;               /* increase counter */
@@ -1502,6 +1566,15 @@ end:
 
   #ifdef HW_DISCHARGE_RELAY
   ADC_DDR = (1 << TP_REF);            /* short circuit probes */
+  #endif
+
+  /* reset sleep mode to default in case it was changed by a tool */
+  #ifdef SERIAL_HARDWARE
+    /* we have to keep clk_IO running */
+    Cfg.SleepMode = SLEEP_MODE_IDLE;       /* default sleep mode: power idle */
+  #else
+    /* we can disable most stuff */
+    Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;   /* default sleep mode: power save */
   #endif
 
   LCD_NextLine_Mode(LINE_STD);        /* reset next line mode */

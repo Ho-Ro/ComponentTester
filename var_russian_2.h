@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Russian (Windows-1251)
  *
- *   (c) 2017 by Markus Reschke
+ *   (c) 2017-2018 by Markus Reschke
  *   translation by hapless@EEVblog
  *   based on code from Markus Frejek and Karl-Heinz Kьbbeler
  *
@@ -20,8 +20,6 @@
    */
 
   const unsigned char Running_str[] EEMEM = "Тестирование...";
-  const unsigned char Weak_str[] EEMEM = "слабая";
-  const unsigned char Low_str[] EEMEM = "разр.";
   const unsigned char Timeout_str[] EEMEM = "Время истекло";
   const unsigned char Failed1_str[] EEMEM = "Компонент не";
   const unsigned char Failed2_str[] EEMEM = "найден!";
@@ -44,6 +42,11 @@
   const unsigned char Triac_str[] EEMEM = "Симистор";
   const unsigned char PUT_str[] EEMEM = "Транз. (ПОПТ)";
   const unsigned char Bye_str[] EEMEM = "До свидания!";
+
+  #ifndef BAT_NONE
+    const unsigned char Weak_str[] EEMEM = "слабая";
+    const unsigned char Low_str[] EEMEM = "разр.";
+  #endif
 
   #ifdef SW_SQUAREWAVE
     const unsigned char SquareWave_str[] EEMEM = "Генератор";

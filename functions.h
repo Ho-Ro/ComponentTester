@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -44,7 +44,7 @@
   #endif
 
   #ifdef SW_SYMBOLS
-    extern void LCD_FancySemiPinout(void);
+    extern void LCD_Symbol(uint8_t ID);
   #endif
 
 #endif
@@ -62,7 +62,7 @@
     #endif
     extern void SPI_Setup(void);
     extern void SPI_Write_Byte(uint8_t Byte);
-    #ifdef SPI_MISO
+    #ifdef SPI_RW
       extern uint8_t SPI_WriteRead_Byte(uint8_t Byte);
     #endif
   #endif
@@ -81,6 +81,30 @@
     extern uint8_t I2C_Start(uint8_t Type);
     extern uint8_t I2C_WriteByte(uint8_t Type);
     extern void I2C_Stop(void);
+    #ifdef I2C_RW
+      extern uint8_t I2C_ReadByte(uint8_t Type);
+    #endif
+  #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from serial.c
+ * ************************************************************************ */
+
+#ifndef SERIAL_C
+
+  #ifdef HW_SERIAL
+    extern void Serial_Setup(void);
+    extern void Serial_WriteByte(uint8_t Byte);
+    #ifdef SERIAL_RW
+    #endif
+
+    #ifdef UI_SERIAL_COPY
+    extern void Serial_Char(unsigned char Char);
+    extern void Serial_NewLine(void);
+    #endif
   #endif
 
 #endif
@@ -119,6 +143,10 @@
   extern void LCD_NextLine_Mode(uint8_t Mode);
   extern void LCD_NextLine_EEString(const unsigned char *String);
   extern void LCD_NextLine_EEString_Space(const unsigned char *String);
+
+  #ifdef SW_SYMBOLS
+    extern void LCD_FancySemiPinout(uint8_t Line);
+  #endif
 
 #endif
 

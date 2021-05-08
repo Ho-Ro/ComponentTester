@@ -5,11 +5,11 @@
 
         for ATmega 328/324/644/1284 with character or graphic display
 
-        (c) 2012-2017 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2018 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit:  2017-12-22
+Last edit:  2018-02-24
 
 Content
   - About
@@ -20,6 +20,7 @@ Content
   - Source Code
   - Building the firmware
   - I2C/SPI
+  - TTL Serial
   - Displays
     - HD44780
     - ILI9163
@@ -34,6 +35,7 @@ Content
     - Rotary Encoder
     - Increase/Decrease Buttons
     - Touch Screen
+  - Communication with PC
   - Startup
   - Probing
   - Power Off
@@ -51,7 +53,7 @@ Content
     - IR RC Transmitter
     - Opto Coupler Tool
     - Servo Check
-    - Selftest
+    - Self Test
     - Self Adjustment
     - Save/Load
     - Show Values
@@ -82,7 +84,7 @@ official release supporting also older ATmega MCUs, this is a playground
 version with requires an ATmega with 32kB flash at least. The primary UI
 languages are English and German, but can be extended easily.
 
-Hint: Run the self adjustment for a new tester or if you've done any
+Hint: Run the self-adjustment for a new tester or if you've done any
 modifications, like a firmware update or changing probe leads.
 
 
@@ -169,7 +171,7 @@ You can download the firmware from following sites:
 First edit the Makefile to specify your MCU model, frequency, oscilator
 type and programmer settings. All other settings are moved to a global
 config.h and a MCU specific config-<MCU>.h. The file 'Clones' lists
-settings for various tester versions/clones. If you got a tester not listed,
+settings for various tester versions/clones. If you have a tester not listed,
 please email the settings to the author to help other users.
 
 In config.h please choose hardware and software options, the language for the
@@ -187,9 +189,10 @@ Hardware options:
 - frequency counter (basic and extendend version)
 - IR detector/decoder for remote controls
   (fixed IR receiver module)
-- fixed cap for self adjustment of voltage offsets
+- fixed cap for self-adjustment of voltage offsets
 - SPI bus (bit-bang and hardware)
 - I2C bus (bit-bang and hardware)
+- TTL Serial (bit-bang and hardware)
 
 The external 2.5V voltage reference should be only enabled if it's at least
 10 times more precise than the voltage regulator. Otherwise it would make
@@ -209,6 +212,8 @@ And of course the software options:
 - servo check (requires additional keys, display with >2 lines)
 - detection of UJTs
 - color coding for probes (requires color graphics display)
+- output of components found also via TTL serial, e.g. to a PC
+  (requires TTL serial)
 
 Please choose the options carefully to match your needs and the MCU's
 ressources, i.e. RAM, EEPROM and flash memory. If the firmware exceeds the
@@ -238,7 +243,7 @@ graphic displays select a font which is small enough to match the
 requirements.
 
 After editing the Makefile, config.h or config-<MCU>.h please run 'make' or
-whatever toolchain you got to compile the firmware. The Makefiles provides
+whatever toolchain you have to compile the firmware. The Makefiles provides
 following additional targets:
 - clean    to remove all object and firmware files
 - fuses    to set the ATmega's fuse bits
@@ -267,10 +272,34 @@ and SPI in config.h, and set ports and pins in dedicated sections in
 config-<MCU>.h (look for I2C_PORT or SPI_PORT).
 
 
+* TTL Serial
+
+The tester can also provide a TTL serial interface. In case it's used for
+communication with a PC it should be combined with a USB to TTL serial
+converter or a classic RS-232 driver. The firmware makes use of the MCU's
+hardware UART or a bit-bang software UART. At the moment only the TX mode is
+supported (sending to PC). The TTL serial interface is enabled in config.h (
+see section "Busses") and the port pins are defined in config-<MCU>.h (look
+for SERIAL_PORT).
+
+The software UART has the drawback that the TX line will not stay high all
+the time when idle. This happens because of the way the MCU port pin are
+driven. To remedy this the port pin driving would have to be changed causing
+a larger firmware. This issue doesn't seem to cause any trouble with most
+USB to TTL serial converters.
+
+The default setting for the TTL serial is 9600 8N1:
+  - 9600 bps
+  - 8 data bits
+  - no parity
+  - 1 stop bit
+
+
 * Displays
 
 At the moment following LCD controllers are supported:
 - HD44780 (character display)
+- ILI9163 (color graphic display 128x160)
 - ILI9341/ILI9342 (color graphic display 240x320 or 320x240)
 - PCD8544 (graphic display 84x48)
 - SSD1306 (graphic display 128x64)
@@ -497,7 +526,7 @@ described in the sections below, if applicable. Some functions make use of
 the encoder's turning velocity to allow larger changes or steps of values.
 
 The algorithm for reading the encoder considers the number of Gray code
-pulses per step or detent (ENCODER_PULSES). Most rotary encoders got 2 or 4
+pulses per step or detent (ENCODER_PULSES). Most rotary encoders have 2 or 4
 Gray code pulses per detent. Also the number of steps or detents per complete
 360 degrees turn is taken into account (ENCODER_STEPS). You can use that
 value to finetune the detection of the turning velocity to optimize the
@@ -540,7 +569,7 @@ are stored in the EEPROM. You can also run the adjustment via the main menu.
 The procedure is straight forward. If you see an asterisk (yellow * on color
 displays), simply touch it. The tester displays the native x/y position after
 each touch event. You can skip the procedure any time by pressing the test key.
-If you got problems with the adjustment like strange x/y positions, please
+If you have problems with the adjustment like strange x/y positions, please
 check the orientation of the touch screen in relation to the display. The
 driver has options to flip or rotate the orientation. Don't forget to save
 the offsets after a successful adjustemnt (main menu: save).
@@ -553,12 +582,25 @@ config-<MCU>.h (currently just config_644.h because of the lack of unused
 IO pins of the 328).  
 
 
+* Communication with PC
+
+The tester can use a TTL serial interface to output components found to a
+PC running a simple terminal program. This feature is enabled in config.h (
+see UI_SERIAL_COPY in the section "misc settings") and requires the TTL serial
+interface also to be enabled. The serial output follows the output on the LCD
+display but only for the components found. Special characters are replaced
+with standard ones, for example the Omega (Ohms) becomes a simple R.
+
+Hint: 9600 8N1
+
+
 * Startup
 
 A long key press while starting the tester selects the auto-hold mode. In that
 mode the tester waits for a short key press after displaying a result before
 it will continue. Otherwise the tester chooses the continous (looping) mode by
-default. After powering on, the firmware version is shown briefly.
+default. You can reverse the operation mode selection in config.h (UI_AUTOHOLD).
+After powering on, the firmware version is shown briefly.
 
 A very long key press (2s) will reset the tester to firmware defaults. This
 might be handy if you have misadjusted the LCD contrast for example and can't
@@ -640,7 +682,7 @@ The duty ratio of the PWM starts at 50%. A short key press of the test button
 increases the ratio by 5%, a long key press decreases the ratio by 5%. To exit
 the PWM tool press the test key twice quickly.
 
-If you got a rotary encoder you can use it to select the frequency in the menu
+If you have a rotary encoder you can use it to select the frequency in the menu
 and to change the PWM ratio in 1% steps.
 
 
@@ -770,7 +812,7 @@ dedicated MCU pin.
 
 If a known protocol is detected the tester displays the protocol, address
 (when available), command, and in some cases optional data in hexadecimal.
-The format is:
+The usual format is:
   <protocol> [<addr>:]<command>[:<extra data>]
 For a malformend packet the protocol and a "?" are shown.
 
@@ -786,15 +828,23 @@ To exit the tool please press the test key.
 Supported protocols:
   - JVC
   - Kaseikyo (aka Japanese Code, 48 bit)
-  - Matsushita (Panasonic) / Emerson
+  - Matsushita (Panasonic MN6014, C6D6 / 12 bits)
   - Motorola
   - NEC (standard & extended)
-  - Proton / Mitsubishi
+  - Proton / Mitsubishi (M50560)
   - RC-5 (standard)
   - RC-6 (standard)
   - Samsung / Toshiba (32 bits)
-  - Sharp
+  - Sharp / Denon
   - Sony SIRC (12, 15 & 20 bits)
+
+Optional protocols:
+  - IR60 (SDA2008/MC14497)
+  - Matsushita (Panasonic MN6014, C5D6 / 11 bits)
+  - NEC µPD1986C
+  - RECS80 (standard & extended)
+  - Sanyo (LC7461)
+  - Thomson
 
 The carrier frequency of the TSOP receiver module doesn't have to match the RC
 exactly. A mismatch reduces the possible range, but that doesn't matter much
@@ -812,7 +862,7 @@ How to connect the TSOP module:
 
 Hint:
   The current limiting resistor for Vs implies an IR receiver module with a
-  supply voltage range of about 2.5 to 5V. If you got a 5V only module you can
+  supply voltage range of about 2.5 to 5V. If you have a 5V only module you can
   disable the resistor in the config.h file on your own risk. Any short
   circuit may destroy the MCU.
 
@@ -838,12 +888,24 @@ you keep the button pressed. And as usual, two short presses exit the tool.
 
 When you change the protocol the carrier frequency and duty cycle are set to
 the protocol's default values. But you can change them if you wish. The carrier
-frequency can be set to 30, 33, 36, 38, 40 or 56 kHz and the duty cycle to
-1/2 (50%), 1/3 (33%) or 1/4 (25%). The data fields are the user settable parts
-of the IR code and are explained later on. In most cases it's just the address
-and the command.
+frequency can be set to 30 up to 56 kHz and the duty cycle to 1/2 (50%),
+1/3 (33%) or 1/4 (25%). The data fields are the user settable parts of the IR
+code and are explained later on. In most cases it's just the address and the
+command.
 
 Supported protocols and their data fields:
+
+  - JVC
+    <address:8> <command:8>
+
+  - Kaseikyo (Japanese Code)
+    <manufacturer code:16> <system:4> <product:8> <function:8>
+
+  - Matsushita (Panasonic, MN6014 12 bits)
+    <custom code:6> <key data:6>
+
+  - Motorola
+    <command:9>
 
   - NEC Standard
     <address:8> <command:8>
@@ -851,8 +913,20 @@ Supported protocols and their data fields:
   - NEC Extended
     <address:16)> <command:8>
 
+  - Proton / Mitsubishi (M50560)
+    <address:8> <command:8> 
+
+  - RC-5 Standard
+    <address:5> <command:6>
+
+  - RC-6 Standard, Mode 0
+    <address:8> <command:8>
+
   - Samsung / Toshiba (32 bits)
     <custom code:8> <key data:8>
+
+  - Sharp / Denon
+    <address:5> <command:8> <mask:1>
 
   - Sony SIRC-12
     <command:7> <address:5>
@@ -863,7 +937,10 @@ Supported protocols and their data fields:
   - Sony SIRC-20
     <command:7> <address:5> <extended:8>
 
-  - more to come...
+Optional protocols:
+
+  - Thomson
+    <device:4> <function:7>
 
 The data fields are separated by spaces and their syntax is:
   <field name>:<number of bits>
@@ -977,13 +1054,13 @@ hitec          PWM Yellow          Vcc Red             Gnd Black
 JR Radios      PWM Orange          Vcc Red             Gnd Brown
 
 
-+ Selftest
++ Self Test
 
-If you entered the selftest by the menu you'll be asked to short circuit all
+If you entered the self-test by the menu you'll be asked to short circuit all
 three probes and the tester will wait until you have. In case of any problem
-you can abort that by a key press. That will also skip the complete selftest.
+you can abort that by a key press. That will also skip the complete self-test.
 
-The selftest function runs each test just 5 times. You can skip a test by a
+The self-test function runs each test just 5 times. You can skip a test by a
 short key press or skip the entire selfttest by a long key press.
 
 In test #4 you have to remove the short circuit of the probes. The tester will
@@ -1000,7 +1077,7 @@ The test steps are:
 
 + Self Adjustment
 
-The self adjustment measures the resistance and the capacitance of the probe
+The self-adjustment measures the resistance and the capacitance of the probe
 leads, i.e. the PCB, internal wiring and probe leads as a sum, for creating
 a zero offset. It also measures the internal resistance of the MCU port pins
 in pull-down and pull-up mode. If the tests are skipped or strange values are
@@ -1013,19 +1090,19 @@ capacitance measurement (in normal probing mode, outside of the self
 adjustment) if the capacitor is in the range of 100nF up to 3.3µF. Also the
 offset of the internal bandgap reference is determined in the same way.
 
-Before running the self adjustment the first time, please measure a film
+Before running the self-adjustment the first time, please measure a film
 capacitor with a value between 100nF and 3.3µF three times at least to let the
 tester self-adjust the offsets mentioned above. Typically the first
 measurement will result in a slightly low value, the second in a high one
 and the third will be fine. That is caused by the self adjusting offsets.
-Both offsets are displayed at the end of the self adjustment.
+Both offsets are displayed at the end of the self-adjustment.
 
-With a fixed cap for self adjustment the automatic offset handling in the
+With a fixed cap for self-adjustment the automatic offset handling in the
 capacitance measurement is replaced by a dedicated function run during the
-self adjustment procedure. So you don't have to measure a film cap before
+self-adjustment procedure. So you don't have to measure a film cap before
 that. 
 
-The self adjustments is very similar to the selftest regarding the procedure
+The self-adjustment is very similar to the self-test regarding the procedure
 and user interface.
 
 The adjustments steps are:
@@ -1053,7 +1130,7 @@ procedure to adjust a device to meet specific specs.
 + Save/Load
 
 By flashing the firmware the pre-defined values given in config.h are stored
-in the EEPROM of the MCU. After running the self adjustment you may update
+in the EEPROM of the MCU. After running the self-adjustment you may update
 those default values using the "Save" function. The next time you power
 on the tester the updated values (profile #1) will be loaded and used
 automatically.
@@ -1070,7 +1147,8 @@ the old values are still stored. Just powercycle the tester.
 
 + Show Values
 
-This displays the current adjustments values and offsets used. 
+This displays the current adjustment values and offsets used. The usage of an
+external 2.5V voltage reference is indicated by a '*' behind Vcc.
 
 
 + Exit
@@ -1115,14 +1193,14 @@ considered valid. Lower values are too uncertain and could be caused by
 placing the probe leads a little bit differently and things like that.
 
 The tester tries to measure the ESR for capacitors with more than 10nF.
-Alternatively you an also enable the old ESR measurement method starting
+Alternatively you can also enable the old ESR measurement method starting
 at 180nF. But since the ESR measurement isn't done via an AC signal with a
 specific frequency, please don't expect a solid result. The method used might
 be comparable with a 1kHz test. Anyway, the results are good enough to check
 electrolytic caps. For low value film caps you could get different results
 based on the MCU clock rate. I'd guess Mr. Fourier is able to explain this.
 
-Alternatively you an also enable the old ESR measurement method
+Alternatively you can also enable the old ESR measurement method.
 
 Another measurement taken is the self-discharge leakage current for
 capacitors larger than 4.7µF. It gives a hint about the state of an 
@@ -1137,7 +1215,7 @@ cap seems to be about:
 * Inductors
 
 The inductance measurement isn't very accurate, and things like the MCU clock
-speed and the PCB layout have an inpact on the results. Basically it's based
+speed and the PCB layout has an impact on the results. Basically it's based
 on measuring the time between switching on current flow and reaching a specific
 current. For high inductances there's a low current check, and for low
 inductances a high current check, which exceeds the MCU's pin drive limit
@@ -1145,7 +1223,7 @@ for a very short time (up to about 25 micro seconds).
 
 While investigating the effects of the MCU clock and other things I've found a
 pattern of deviations, which can be used for compensation. Based on the tester
-you got some custom tweaking might be necessary. In inductance.c in the
+you have some custom tweaking might be necessary. In inductance.c in the
 function MeasureInductor() there the variable "Offset" for compensation. That
 variable is an offset for the reference voltage. A positive offset will
 decrease the inductance, and a negative value will increase the inductance.
@@ -1164,7 +1242,7 @@ Hint: When getting unexpected results please re-run the test.
 
 The discharge function isn't based on a fixed timeout, it adapts itself
 to the discharging rate. That way a battery will be identified faster (about
-2s) and large caps got more time to discharge. If a large cap is identified
+2s) and large caps have more time to discharge. If a large cap is identified
 as a battery please repeat the check. In a noisy environment you might need
 to adjust CAP_DISCHARGED to about 3mV. The display of the remaining voltage
 will help you to choose an appropriate value.
@@ -1200,7 +1278,7 @@ tester doesn't support. At a higher current Vf is expected to be around 0.7V
 which makes it hard to distinguish germanium from silicon diodes.
 
 The leakage current I_R for a single diode or I_CEO for a BJT will be
-displayed if it exeeds 50nA. Germanium BJTs got a leakage current of a few µA
+displayed if it exeeds 50nA. Germanium BJTs have a leakage current of a few µA
 up to around 500µA. Germanium diodes are around a few µA usually.
 
 For some components the capacitance is shown also. In case the capacitance is
@@ -1213,13 +1291,13 @@ distinguished, they are functionally identical. Please see the FET's datasheet
 if you need more details about the pinout.
 
 The pinout for a Triac is shown with the pin IDs 'G', '1' and '2'. '1' is MT1
-and '2' is MT2. And for an UJT, in case the detection is enabled, it's '1' for
+and '2' is MT2. And for a UJT, in case the detection is enabled, it's '1' for
 B1, '2' for B2 and 'E' for the Emitter.
 
 When the fancy pinout option is enabled (by selecting a symbols file in
 config.h) a component symbol with the corresponding probe pin numbers will be
 shown for 3-pin semiconductors. If there's not enough space left on the display
-for the symbol, the output will be skipped. 
+for the symbol, the pinout will be skipped. 
 
 
 + Special Components
@@ -1228,7 +1306,7 @@ for the symbol, the output will be skipped.
 Non-standard BJT
 
 For a BJT with a base emitter resistor the tester displays the base emitter
-resistor and skips the hFE output. If the BJT also got a freewheeling diode the
+resistor and skips the hFE output. If the BJT also has a freewheeling diode the
 BJT might be detected as BJT or two diodes based on the value of the base
 emitter resistor (low value resistor -> 2 diodes). In the latter case the tester
 shows the two diodes and the resistor while hinting at a possible NPN or PNP

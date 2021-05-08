@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Spanish (ISO 8859-1)
  *
- *   (c) 2016-2017 by Markus Reschke
+ *   (c) 2016-2018 by Markus Reschke
  *   translation by pepe10000@EEVblog
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
@@ -20,8 +20,6 @@
    */
 
   const unsigned char Running_str[] EEMEM = "Testeando.";
-  const unsigned char Weak_str[] EEMEM = "mal";
-  const unsigned char Low_str[] EEMEM = "baja";
   const unsigned char Timeout_str[] EEMEM = "Tiempo agotado";
   const unsigned char Failed1_str[] EEMEM = "Componente no";
   const unsigned char Failed2_str[] EEMEM = "encontrado!";
@@ -44,6 +42,11 @@
   const unsigned char Triac_str[] EEMEM = "Triac";
   const unsigned char PUT_str[] EEMEM = "Trans. PUT";
   const unsigned char Bye_str[] EEMEM = "Adios!";
+
+  #ifndef BAT_NONE
+    const unsigned char Weak_str[] EEMEM = "mal";
+    const unsigned char Low_str[] EEMEM = "baja";
+  #endif
 
   #ifdef SW_SQUAREWAVE
     const unsigned char SquareWave_str[] EEMEM = "Onda Cuadrada";

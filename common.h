@@ -2,7 +2,7 @@
  *
  *   common header file
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -129,8 +129,10 @@
 #define OP_NONE               0b00000000     /* undefined mode */
 #define OP_CONTINOUS          0b00000001     /* continous mode */
 #define OP_AUTOHOLD           0b00000010     /* auto hold mode */
+#define OP_EXT_REF            0b00000100     /* external voltage reference used */
 /* operation signaling flags */
-#define OP_BREAK_KEY          0b00000100     /* exit key processing */
+#define OP_BREAK_KEY          0b00010000     /* exit key processing */
+#define OP_SER_COPY           0b00100000     /* copy display output to TTL serial */
 
 
 /* UI line modes */
@@ -204,7 +206,12 @@
 #define I2C_NACK              2              /* not-acknowledge */
 
 
-/* port pins of optional IO chip */
+/* RS232 */
+#define SER_ERROR             0              /* bus error */
+#define SER_OK                1              /* operation done */
+
+
+/* port pins of optional IO chip PCF8574 */
 #define PCF8574_P0            0b00000000     /* pin #0 */
 #define PCF8574_P1            0b00000001     /* pin #1 */
 #define PCF8574_P2            0b00000010     /* pin #2 */
@@ -273,8 +280,17 @@ typedef struct
   uint8_t           CharMax_X;     /* max. characters per line */
   uint8_t           CharMax_Y;     /* max. number of lines */
   uint8_t           MaxContrast;   /* maximum contrast */
+  /* color support */
   #ifdef LCD_COLOR
   uint16_t          PenColor;      /* pen color */ 
+  #endif
+  /* fancy pinout with symbols */
+  #ifdef SW_SYMBOLS
+  uint8_t           SymbolLine;    /* line for output */
+  uint8_t           SymbolSize_X;  /* x size in characters */
+  uint8_t           SymbolSize_Y;  /* y size in characters */
+  uint8_t           SymbolPos_X;   /* x char position (left) */
+  uint8_t           SymbolPos_Y;   /* y char position (top) */
   #endif
 
   /* keys (push buttons etc.) */

@@ -5,7 +5,7 @@
  *   - 84 x 48 pixels
  *   - SPI interface (4 and 5 line)
  *
- *   (c) 2016-2017 by Markus Reschke
+ *   (c) 2016-2018 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -52,11 +52,13 @@
 #ifndef LCD_ROT180
   /* vertically aligned, vertical bit order flipped, bank-wise grouping */
   #include "font_6x8_vf.h"
+  #include "symbols_24x24_vfp.h"
 #endif
 
 #ifdef LCD_ROT180
   /* vertically aligned, horizontal bit order flipped, bank-wise grouping */
   #include "font_6x8_v_f.h"
+  #include "symbols_24x24_vp_f.h"
 #endif
 
 
@@ -73,6 +75,21 @@
 /* number of lines and characters per line */
 #define LCD_CHAR_X       (LCD_DOTS_X / FONT_SIZE_X)
 #define LCD_CHAR_Y       ((LCD_DOTS_Y / 8) / CHAR_BANKS)
+
+/* component symbols */
+#ifdef SW_SYMBOLS
+  /* pages/bytes required for symbol's height */
+  #define SYMBOL_BANKS        ((SYMBOL_SIZE_Y + 7) / 8)
+
+  /* size in relation to a character */
+  #define LCD_SYMBOL_CHAR_X   ((SYMBOL_SIZE_X + FONT_SIZE_X - 1) / FONT_SIZE_X)
+  #define LCD_SYMBOL_CHAR_Y   ((SYMBOL_SIZE_Y + CHAR_BANKS * 8 - 1) / (CHAR_BANKS * 8))
+
+  /* check y size: we need at least 2 lines */
+  #if LCD_SYMBOL_CHAR_Y < 2
+    #error <<< Symbols too small! >>>
+  #endif
+#endif
 
 
 /*
@@ -322,13 +339,13 @@ void LCD_CharPos(uint8_t x, uint8_t y)
                                    /* columns start at 0 */
   x *= FONT_SIZE_X;                /* offset for character */
   X_Start = LCD_DOTS_X - x;        /* update start position */
-  LCD_Cmd(CMD_ADDR_X | x);         /* set column */
+  LCD_Cmd(CMD_ADDR_X | X_Start);   /* set column */
 
   /* vertical position (bank), flipped */
                                    /* banks start at 0 */
   y *= CHAR_BANKS;                 /* offset for character */
   Y_Start = LCD_BANKS - y;         /* update start position */
-  LCD_Cmd(CMD_ADDR_Y | y);         /* set bank */
+  LCD_Cmd(CMD_ADDR_Y | Y_Start);   /* set bank */
 }
 
 #endif
@@ -574,6 +591,10 @@ void LCD_Init(void)
   UI.CharMax_X = LCD_CHAR_X;       /* characters per line */
   UI.CharMax_Y = LCD_CHAR_Y;       /* lines */
   UI.MaxContrast = 127;            /* LCD contrast */
+  #ifdef SW_SYMBOLS
+  UI.SymbolSize_X = LCD_SYMBOL_CHAR_X;  /* x size in chars */
+  UI.SymbolSize_Y = LCD_SYMBOL_CHAR_Y;  /* y size in chars */
+  #endif
 
   LCD_Clear();                /* clear display to set char position */
 }
@@ -597,6 +618,13 @@ void LCD_Char(unsigned char Char)
   uint8_t           Bank;          /* bank number */
   uint8_t           x;             /* bitmap x byte counter */
   uint8_t           y = 1;         /* bitmap y byte counter */
+
+  #ifdef UI_SERIAL_COPY
+  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
+  {
+    Serial_Char(Char);             /* send char to serial */
+  }
+  #endif
 
   /* prevent x overflow */
   if (UI.CharPos_X > LCD_CHAR_X) return;
@@ -660,6 +688,13 @@ void LCD_Char(unsigned char Char)
   uint8_t           Bank;          /* bank number */
   uint8_t           x;             /* bitmap x byte counter */
   uint8_t           y = 1;         /* bitmap y byte counter */
+
+  #ifdef UI_SERIAL_COPY
+  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
+  {
+    Serial_Char(Char);             /* send char to serial */
+  }
+  #endif
 
   /* prevent x overflow */
   if (UI.CharPos_X > LCD_CHAR_X) return;
@@ -730,8 +765,121 @@ void LCD_Cursor(uint8_t Mode)
 
 
 /* ************************************************************************
- *   special stuff
+ *   fancy stuff
  * ************************************************************************ */
+
+
+#ifdef SW_SYMBOLS
+
+#ifndef LCD_ROT180
+
+/*
+ *  display a component symbol
+ *
+ *  requires:
+ *  - ID: symbol to display
+ */
+
+void LCD_Symbol(uint8_t ID)
+{
+  uint8_t           *Table;        /* pointer to table */
+  uint8_t           Index;         /* font index */
+  uint16_t          Offset;        /* address offset */
+  uint8_t           Bank;          /* bank number */
+  uint8_t           x;             /* bitmap x byte counter */
+  uint8_t           y = 1;         /* bitmap y byte counter */
+
+
+  /* calculate start address of character bitmap */
+  Table = (uint8_t *)&SymbolData;       /* start address of symbol data */
+  Offset = SYMBOL_BYTES_N * ID;         /* offset for symbol */
+  Table += Offset;                      /* address of symbol data */
+
+  Bank = Y_Start;                  /* get start bank */
+
+  /* read symbol bitmap and send it to display */
+  while (y <= SYMBOL_BYTES_Y)           /* loop for Y */
+  {
+    LCD_DotPos(X_Start, Bank);          /* set start position */
+
+    /* read and send all column bytes for this bank */
+    x = 1;
+    while (x <= SYMBOL_BYTES_X)         /* loop for X */
+    {
+      Index = pgm_read_byte(Table);     /* read byte */
+      LCD_Data(Index);                  /* send byte */
+      Table++;                          /* address for next byte */
+      x++;                              /* next byte */
+    }
+
+    Bank++;                             /* next bank */
+    y++;                                /* next row */
+  }
+
+  /* hint: we don't update the char position */
+}
+
+#endif
+
+
+
+#ifdef LCD_ROT180
+
+/*
+ *  display a component symbol
+ *  - version for display rotated by 180°
+ *
+ *  requires:
+ *  - ID: symbol to display
+ */
+
+void LCD_Symbol(uint8_t ID)
+{
+  uint8_t           *Table;        /* pointer to table */
+  uint8_t           Index;         /* font index */
+  uint16_t          Offset;        /* address offset */
+  uint8_t           Bank;          /* bank number */
+  uint8_t           x;             /* bitmap x byte counter */
+  uint8_t           y = 1;         /* bitmap y byte counter */
+
+
+  /* calculate start address of character bitmap */
+  Table = (uint8_t *)&SymbolData;       /* start address of symbol data */
+  Offset = SYMBOL_BYTES_N * ID;         /* offset for symbol */
+  Table += Offset;                      /* address of symbol data */
+
+  Bank = Y_Start;                  /* get start bank */
+
+  /* offset the symbol by its width because of the reversed x direction */
+  X_Start -= (SYMBOL_SIZE_X - FONT_SIZE_X);
+
+  /* read symbol bitmap and send it to display */
+  while (y <= SYMBOL_BYTES_Y)           /* loop for Y */
+  {
+    LCD_DotPos(X_Start, Bank);          /* set start position */
+
+    /* read and send all column bytes for this bank */
+    x = 1;
+    while (x <= SYMBOL_BYTES_X)         /* loop for X */
+    {
+      Index = pgm_read_byte(Table);     /* read byte */
+      LCD_Data(Index);                  /* send byte */
+      Table++;                          /* address for next byte */
+      x++;                              /* next byte */
+    }
+
+    Bank--;                             /* next bank */
+    y++;                                /* next row */
+  }
+
+  /* hint: we don't update the char position */
+}
+
+#endif
+
+
+#endif
+
 
 
 /* ************************************************************************

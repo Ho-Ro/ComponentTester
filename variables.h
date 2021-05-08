@@ -2,7 +2,7 @@
  *
  *   global variables
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -115,8 +115,6 @@
 
   /* language independent */
   const unsigned char Tester_str[] EEMEM = "Component Tester";
-  const unsigned char Battery_str[] EEMEM = "Bat.";
-  const unsigned char OK_str[] EEMEM = "ok";
   const unsigned char MOS_str[] EEMEM = "MOS";
   const unsigned char FET_str[] EEMEM = "FET";
   const unsigned char Channel_str[] EEMEM = "-ch";
@@ -153,6 +151,15 @@
   const unsigned char I_leak_str[] EEMEM = "I_l";
   const unsigned char R_DS_str[] EEMEM = "Rds";
 
+  #ifndef BAT_NONE
+    const unsigned char Battery_str[] EEMEM = "Bat";
+    const unsigned char OK_str[] EEMEM = "ok";
+  #endif
+  #ifdef BAT_EXT_UNMONITORED
+    const unsigned char External_str[] EEMEM = "ext";
+  #endif
+
+  /* options */
   #if defined (SW_ESR) || defined (SW_OLD_ESR)
     const unsigned char ESR_str[] EEMEM = "ESR";
   #endif
@@ -163,19 +170,29 @@
     const unsigned char Hertz_str[] EEMEM = "Hz";
   #endif
   #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+    const unsigned char IR_NEC_str[] EEMEM = "NEC";
+    const unsigned char IR_SIRC_str[] EEMEM = "SIRC";
+    #ifdef SW_IR_EXTRA
+    const unsigned char IR_IR60_str[] EEMEM = "IR60";
+    const unsigned char IR_RCA_str[] EEMEM = "RCA";
+    const unsigned char IR_RECS80_str[] EEMEM = "RECS80";
+    const unsigned char IR_Sanyo_str[] EEMEM = "Sanyo";
+    const unsigned char IR_uPD1986C_str[] EEMEM = "µPD1986C";
+    #endif
+  #endif
+  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
     const unsigned char IR_JVC_str[] EEMEM = "JVC";
     const unsigned char IR_Kaseikyo_str[] EEMEM = "Kas";
-    const unsigned char IR_Matsushita_str[] EEMEM = "Mats";
+    const unsigned char IR_Matsushita_str[] EEMEM = "Mat";
     const unsigned char IR_Motorola_str[] EEMEM = "Mot";
-    const unsigned char IR_NEC_str[] EEMEM = "NEC";
     const unsigned char IR_Proton_str[] EEMEM = "Prot";
     const unsigned char IR_RC5_str[] EEMEM = "RC-5";
     const unsigned char IR_RC6_str[] EEMEM = "RC-6";
-    const unsigned char IR_Sharp_str[] EEMEM = "Sharp";
-    const unsigned char IR_SIRC_str[] EEMEM = "SIRC";
-  #endif
-  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
     const unsigned char IR_Samsung_str[] EEMEM = "Sams";
+    const unsigned char IR_Sharp_str[] EEMEM = "Sharp";
+    #ifdef SW_IR_EXTRA
+    const unsigned char IR_Thomson_str[] EEMEM = "Thom";
+    #endif
   #endif
   #ifdef SW_IR_TRANSMITTER
     const unsigned char IR_NEC_Std_str[] EEMEM = "NEC Std";
@@ -201,7 +218,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.31m";
+  const unsigned char Version_str[] EEMEM = "v1.32m";
 
 
   /*
@@ -367,6 +384,10 @@
   extern const unsigned char Profile1_str[];
   extern const unsigned char Profile2_str[];
 
+  #ifdef BAT_EXT_UNMONITORED
+    extern const unsigned char External_str[];
+  #endif
+
   /* options */
   #if defined (SW_ESR) || defined (SW_OLD_ESR)
     extern const unsigned char ESR_str[];
@@ -402,30 +423,38 @@
   #endif
   #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     extern const unsigned char IR_Detector_str[];
+    extern const unsigned char IR_NEC_str[];
+    extern const unsigned char IR_SIRC_str[];
+    #ifdef SW_IR_EXTRA
+    extern const unsigned char IR_IR60_str[];
+    extern const unsigned char IR_RCA_str[];
+    extern const unsigned char IR_RECS80_str[];
+    extern const unsigned char IR_Sanyo_str[];
+    extern const unsigned char IR_uPD1986C_str[];
+    #endif
+  #endif
+  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
     extern const unsigned char IR_JVC_str[];
     extern const unsigned char IR_Kaseikyo_str[];
     extern const unsigned char IR_Matsushita_str[];
     extern const unsigned char IR_Motorola_str[];
-    extern const unsigned char IR_NEC_str[];
     extern const unsigned char IR_Proton_str[];
     extern const unsigned char IR_RC5_str[];
     extern const unsigned char IR_RC6_str[];
-    extern const unsigned char IR_Sharp_str[];
-    extern const unsigned char IR_SIRC_str[];
-  #endif
-  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
     extern const unsigned char IR_Samsung_str[];
+    extern const unsigned char IR_Sharp_str[];
+    #ifdef SW_IR_EXTRA
+    extern const unsigned char IR_Thomson_str[];
+    #endif
   #endif
   #ifdef SW_IR_TRANSMITTER
+    extern const unsigned char IR_Transmitter_str[];
+    extern const unsigned char IR_Send_str[];
     extern const unsigned char IR_NEC_Std_str[];
     extern const unsigned char IR_NEC_Ext_str[];
     extern const unsigned char IR_SIRC_12_str[];
     extern const unsigned char IR_SIRC_15_str[];
     extern const unsigned char IR_SIRC_20_str[];
-  #endif
-  #ifdef SW_IR_TRANSMITTER
-    extern const unsigned char IR_Transmitter_str[];
-    extern const unsigned char IR_Send_str[];
   #endif
   #ifdef SW_OPTO_COUPLER
     extern const unsigned char OptoCoupler_str[];

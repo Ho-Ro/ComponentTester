@@ -4,9 +4,28 @@
 
          for ATmega 328/324/644/1284 with character or graphic display
 
-                        (c) 2012-2017 by Markus Reschke
+                        (c) 2012-2018 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.32m 2018-02
+- Additional output of components found to TTL serial interface.
+- Driver for TTL serial interface (hardware and bit-bang).
+- Updated var_russian.h (thanks to indman@EEVblog).
+- Added support for X&Y offsets to ST7735 driver.
+- Changed configuration of battery monitoring. Added switches to disable
+  battery monitoring and to support an unmonitored external power supply.
+- Added configuration switch to reverse operation mode selection at startup
+  (UI_AUTOHOLD).
+- Improved filter for Germanium BJTs with high leakage current in detection 
+  function for depletion mode FETs.
+- Added fancy pinout to PCD8544 driver. Also fixed error in the PCD8544
+  driver's function LCD_CharPos() for rotated output.
+- Improved functions for fancy pinout of 3-pin semiconductors and moved some
+  functions to display.c. Output of pinout on separate screen if required.
+- Added indicator for usage of external voltage reference (Show Values).
+- Improved IR decoder and added optional protocols.
+- Added more protocols to IR RC transmitter.
 
 v1.31m 2017-12
 - New tool: IR RC transmitter.

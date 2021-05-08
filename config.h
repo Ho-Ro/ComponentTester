@@ -2,7 +2,7 @@
  *
  *   global configuration, setup and settings
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -261,6 +261,16 @@
 
 
 /*
+ *  additional protocols for IR remote control detection/decoder
+ *  and sender
+ *  - uncommon protocols which will burn flash memory :) 
+ *  - uncomment to enable
+ */
+
+//#define SW_IR_EXTRA
+
+
+/*
  *  IR remote control sender
  *  - requires additional keys and display with more than 4 text lines
  *  - also requires an IR LED with a simple driver
@@ -350,11 +360,29 @@
 
 
 /*
- *  use comma instead of dot to indicate a decimal fraction
+ *  Use comma instead of dot to indicate a decimal fraction.
  *  - uncomment to enable
  */
 
 //#define UI_COMMA
+
+
+/*
+ *  Set the default operation mode to auto-hold.
+ *  - instead of continous mode
+ *  - uncomment to enable
+ */
+
+//#define UI_AUTOHOLD
+
+
+/*
+ *  Output components found also via TTL serial interface. 
+ *  - uncomment to enable
+ *    also enable SERIAL_BITBANG or SERIAL_HARDWARE (see section 'Busses')
+ */
+
+//#define UI_SERIAL_COPY
 
 
 /*
@@ -373,12 +401,37 @@
 #define CYCLE_MAX        5
 
 
+
+/*
+ *  Battery monitoring mode
+ *  - BAT_NONE     disable battery monitoring completely
+ *  - BAT_DIRECT   direct measurement of battary voltage (< 5V)
+ *  - BAT_DIVIDER  measurement via voltage divider
+ *  - uncomment one of the modes
+ */
+
+//#define BAT_NONE
+//#define BAT_DIRECT
+#define BAT_DIVIDER
+
+
+/*
+ *  Unmonitored optional external power supply
+ *  - Some circuits supporting an additional external power supply are designed
+ *    in a way that prevents the battery monitoring to measure the voltage of
+ *    the external power supply. This would trigger the low battery shut-down.
+ *    The switch below will prevent the shut-down when the measured voltage is
+ *    below 0.9V (caused by the diode's leakage current).
+ *  - uncomment to enable
+ */
+
+//#define BAT_EXT_UNMONITORED
+
+
 /*
  *  Voltage divider for battery monitoring
  *  - BAT_R1: top resistor in Ohms
  *  - BAT_R2: bottom resistor in Ohms
- *  - for a direct measurement without a voltage divider set
- *    BAT_R1 to 0 and BAT_R1 to 1
  */
 
 #define BAT_R1           10000
@@ -409,7 +462,7 @@
 /*
  *  Battery low voltage (in mV).
  *  - Tester powers off if BAT_LOW is reached.
- *  - Voltage drop (BAT_OUT) is considered in calculation.
+ *  - Voltage drop (BAT_OFFSET) is considered in calculation.
  */
 
 #define BAT_LOW          6400 
@@ -566,6 +619,7 @@
 //#define I2C_HARDWARE               /* MCU's hardware TWI */
 //#define I2C_STANDARD_MODE          /* 100kHz bus speed */
 //#define I2C_FAST_MODE              /* 400kHz bus speed */
+//#define I2C_RW                     /* enable I2C read support (untested) */
 
 
 /*
@@ -574,10 +628,24 @@
  *  - could already be enabled in display section (config_<MCU>.h)
  *  - for bit-bang SPI port and pins see SPI_PORT (config_<MCU>.h)
  *  - hardware SPI uses automatically the proper MCU pins
+ *  - uncomment either SPI_BITBANG or SPI_HARDWARE to enable
  */
 
 //#define SPI_BITBANG                /* bit-bang SPI */
 //#define SPI_HARDWARE               /* hardware SPI */
+//#define SPI_RW                     /* enable SPI read support */
+
+
+/*
+ *  TTL serial interface
+ *  - for bit-bang serial port and pins see SERIAL_PORT (config_<MCU>.h)
+ *  - hardware serial uses automatically the proper MCU pins
+ *  - uncomment either SERIAL_BITBANG or SERIAL_HARDWARE to enable
+ */
+
+//#define SERIAL_BITBANG             /* bit-bang serial */
+//#define SERIAL_HARDWARE            /* hardware serial */
+//#define SERIAL_RW                  /* enable read support (not implemented yet) */
 
 
 
@@ -696,7 +764,6 @@
   #define HW_KEYS
 #endif
 
-
 /* options which require additional keys */
 #ifndef HW_KEYS
 
@@ -747,6 +814,17 @@
 #endif
 
 
+/* RS232 */
+#if defined (SERIAL_BITBANG) || defined (SERIAL_HARDWARE)
+  #define HW_SERIAL
+#endif
+
+/* options which require RS232 */
+#if defined (UI_SERIAL_COPY) && ! defined (HW_SERIAL)
+  #undef UI_SERIAL_COPY
+#endif
+
+
 /* touchscreen */
 #ifdef TOUCH_PORT
   #define HW_TOUCH
@@ -777,6 +855,9 @@
   #define SW_SYMBOLS
 #endif
 #if defined (SYMBOLS_24X24_VFP)
+  #define SW_SYMBOLS
+#endif
+#if defined (SYMBOLS_24X24_VP_F)
   #define SW_SYMBOLS
 #endif
 

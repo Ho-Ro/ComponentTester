@@ -851,6 +851,9 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   uint8_t           MinSteps = 2;  /* required steps */
   uint16_t          Temp;          /* temp value */
   #endif
+  #ifdef UI_SERIAL_COPY
+  uint8_t           SerialFlag = 0;     /* control flag for serial */
+  #endif
 
 
   /*
@@ -877,6 +880,15 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   #ifdef HW_KEYS
   /* init variables for additional keys */ 
   UI.KeyStep = 1;             /* default level #1 */
+  #endif
+
+  #ifdef UI_SERIAL_COPY
+  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
+  {
+    /* prevent copy of cursor to serial interface */
+    UI.OP_Mode &= ~OP_SER_COPY;    /* disable copy to serial */
+    SerialFlag = 1;                /* enable again later on */
+  }
   #endif
 
   if (Mode & CURSOR_OP_MODE)       /* consider operation mode */
@@ -1077,6 +1089,13 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 
   #ifdef HW_KEYS
   UI.KeyOld = Key;            /* update former key */
+  #endif
+
+  #ifdef UI_SERIAL_COPY
+  if (SerialFlag)             /* restore former setting */
+  {
+    UI.OP_Mode |= OP_SER_COPY;     /* enable copy to serial */
+  }
   #endif
 
   #undef DELAY_500

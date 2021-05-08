@@ -471,7 +471,7 @@ const uint8_t FontTable[] PROGMEM = {
   0x0a,        /* 0xdc -> Ü */
   0x7f,        /* 0xdd -> Ý Cyr_E */
   0x80,        /* 0xde -> Þ Cyr_Ju */
-  0x81,        /* 0xdf -> ß Cyr_Ja*/
+  0x81,        /* 0xdf -> ß Cyr_Ja */
 
   0x51,        /* 0xe0 -> à */
   0x82,        /* 0xe1 -> á Cyr_b */

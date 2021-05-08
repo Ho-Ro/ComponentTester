@@ -6,7 +6,7 @@
  *   - SPI interface (4 line, 3 line not supported)
  *   - I2C
  *
- *   (c) 2017 by Markus Reschke
+ *   (c) 2017-2018 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -96,14 +96,6 @@
 /* position management */
 uint8_t             X_Start;       /* start position X (column) */
 uint8_t             Y_Start;       /* start position Y (page) */
-
-#ifdef SW_SYMBOLS
-/* symbol positions (aligned to character positions) */
-uint8_t             SymbolTop;     /* top line */
-uint8_t             SymbolBottom;  /* bottom line */
-uint8_t             SymbolLeft;    /* left of symbol */
-uint8_t             SymbolRight;   /* right of symbol */
-#endif
 
 
 
@@ -632,6 +624,13 @@ void LCD_Char(unsigned char Char)
   uint8_t           x;             /* bitmap x byte counter */
   uint8_t           y = 1;         /* bitmap y byte counter */
 
+  #ifdef UI_SERIAL_COPY
+  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
+  {
+    Serial_Char(Char);             /* send char to serial */
+  }
+  #endif
+
   /* prevent x overflow */
   if (UI.CharPos_X > LCD_CHAR_X) return;
 
@@ -770,91 +769,6 @@ void LCD_Symbol(uint8_t ID)
   }
 
   /* hint: we don't update the char position */
-}
-
-
-
-/*
- *  display fancy probe number
- *
- *  requires:
- *  - Probe: probe number
- *  - Table: pointer to pinout details
- */
-
-void LCD_FancyProbeNumber(uint8_t Probe, uint8_t *Table)
-{
-  uint8_t           Data;          /* pinout data */
-  uint8_t           x;             /* x position */
-  uint8_t           y;             /* y position */
-
-  Data = pgm_read_byte(Table);     /* read pinout details */
-
-  if (Data != PIN_NONE)            /* show pin */
-  {
-    /* determine position based on pinout data */
-    x = SymbolLeft;         /* set default positions */
-    y = SymbolTop;
-    if (Data & PIN_RIGHT) x = SymbolRight;
-    if (Data & PIN_BOTTOM) y = SymbolBottom;
-
-    /* show probe number */
-    LCD_CharPos(x, y);           /* set position */
-    LCD_ProbeNumber(Probe);      /* display probe number */
-  }
-}
-
-
-
-/*
- *  show fancy pinout for semiconductors
- *  - display a nice component symbol
- *    starting in next line, aligned to right side
- *  - display pin numbers left and right of symbol
- *  - symbol ID (0-) in Check.Symbol
- */
-
-void LCD_FancySemiPinout(void)
-{
-  uint8_t           Line;          /* line number */
-  uint8_t           x, y;          /* position of char */
-  uint8_t           *Table;        /* pointer to pin table */
-  uint16_t          Offset;        /* address offset */
-
-  /* save current char position */
-  x = UI.CharPos_X;        /* column */
-  y = UI.CharPos_Y;        /* line */
-
-  /* check for sufficient screen size */
-  Line = y + 1;               /* next line */
-  /* last line is reserved for cursor/touch bar */
-  if (Line > (LCD_CHAR_Y - LCD_SYMBOL_CHAR_Y)) return;  /* too few lines */
-
-  /* determine positions */
-  SymbolTop = Line;                          /* top is current line */
-  SymbolBottom = Line;
-  SymbolBottom += (LCD_SYMBOL_CHAR_Y - 1);   /* plus symbol's height */
-  SymbolRight = LCD_CHAR_X;                  /* align to right side */
-  /* minus symbol's width and pin IDs */
-  SymbolLeft = LCD_CHAR_X - LCD_SYMBOL_CHAR_X - 1;
-
-  /* calculate start address of pinout details */
-  Table = (uint8_t *)&PinTable;         /* start address of pin table */
-  Offset = Check.Symbol * 3;            /* offset for pin details */
-  Table += Offset;                      /* address of pin details */
-
-  /* display probe numbers */
-  LCD_FancyProbeNumber(Semi.A, Table);       /* A pin */
-  Table++;                                   /* details for next pin */
-  LCD_FancyProbeNumber(Semi.B, Table);       /* B pin */
-  Table++;                                   /* details for next pin */
-  LCD_FancyProbeNumber(Semi.C, Table);       /* C pin */
-
-  /* display symbol */
-  LCD_CharPos(SymbolLeft + 1, SymbolTop);    /* set top left position  */
-  LCD_Symbol(Check.Symbol);                  /* display symbol */
-
-  LCD_CharPos(x, y);          /* restore old char position */
 }
 
 #endif

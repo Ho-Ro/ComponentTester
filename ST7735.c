@@ -4,7 +4,7 @@
  *   - 128 x 160 (132 x 162) pixels
  *   - SPI interface (4 line)
  *
- *   (c) 2016-2017 by Markus Reschke
+ *   (c) 2016-2018 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -60,13 +60,27 @@
  *  derived constants
  */
 
-/* maximum number of pixels for X and Y direction */
+/* number of pixels for X and Y direction, and display offsets */
 #ifdef LCD_ROTATE
+  /* swap X and Y */
   #define LCD_PIXELS_X        LCD_DOTS_Y
   #define LCD_PIXELS_Y        LCD_DOTS_X
+  #ifdef LCD_OFFSET_X
+    #define LCD_SHIFT_Y       4     /* shift y by 4 dots */
+  #endif
+  #ifdef LCD_OFFSET_Y
+    #define LCD_SHIFT_X       2     /* shift x by 2 dots */
+  #endif
 #else
+  /* keep X and Y */
   #define LCD_PIXELS_X        LCD_DOTS_X
   #define LCD_PIXELS_Y        LCD_DOTS_Y
+  #ifdef LCD_OFFSET_X
+    #define LCD_SHIFT_X       4    /* shift x by 4 dots */
+  #endif
+  #ifdef LCD_OFFSET_Y
+    #define LCD_SHIFT_Y       2    /* shift y by 2 dots */
+  #endif
 #endif
 
 /* number of lines and characters per line */
@@ -102,14 +116,6 @@ uint16_t            Y_End;         /* end position Y (row) */
 
 /* text line management */
 uint16_t            LineMask;      /* bit mask for up to 16 lines */
-
-#ifdef SW_SYMBOLS
-/* symbol positions (aligned to character positions) */
-uint8_t             SymbolTop;     /* top line */
-uint8_t             SymbolBottom;  /* bottom line */
-uint8_t             SymbolLeft;    /* left of symbol */
-uint8_t             SymbolRight;   /* right of symbol */
-#endif
 
 
 
@@ -323,11 +329,17 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   x--;                        /* columns starts at 0 */
   Mask = x;                   /* expand to 16 bit */
   Mask *= FONT_SIZE_X;        /* offset for character */
+  #ifdef LCD_SHIFT_X
+  Mask += LCD_SHIFT_X;        /* add display offset */
+  #endif
   X_Start = Mask;             /* update start position */
 
   /* vertical position (row) */
   Mask = y;                   /* expand to 16 bit */
   Mask *= FONT_SIZE_Y;        /* offset for character */
+  #ifdef LCD_SHIFT_Y
+  Mask += LCD_SHIFT_Y;        /* add display offset */
+  #endif
   Y_Start = Mask;             /* update start position */
 }
 
@@ -379,16 +391,34 @@ void LCD_ClearLine(uint8_t Line)
     }
   }
 
-  X_End = LCD_PIXELS_X - 1;             /* last column */
+  /* address limit for X */
+  #ifdef LCD_SHIFT_X
+    /* consider X offset */
+    #define LCD_MAX_X          (LCD_PIXELS_X + LCD_SHIFT_X)
+  #else
+    /* native X resolution */
+    #define LCD_MAX_X          LCD_PIXELS_X
+  #endif
+
+  /* address limit for Y */
+  #ifdef LCD_SHIFT_Y
+    /* consider Y offset */
+    #define LCD_MAX_Y          (LCD_PIXELS_Y + LCD_SHIFT_Y)
+  #else
+    /* native Y resolution */
+    #define LCD_MAX_Y          LCD_PIXELS_Y
+  #endif
+
+  X_End = LCD_MAX_X - 1;                /* last column */
   Y_End = Y_Start + FONT_SIZE_Y - 1;    /* last row */
   y = FONT_SIZE_Y;                      /* set default */
 
   /* partial text line at bottom of display */
-  if (Y_End > (LCD_PIXELS_Y - 1))       /* row overflow */
+  if (Y_End > (LCD_MAX_Y - 1))          /* row overflow */
   {
-    x = Y_End - (LCD_PIXELS_Y - 1);     /* difference */
+    x = Y_End - (LCD_MAX_Y - 1);        /* difference */
     y -= (uint8_t)x;                    /* adjust number of rows */
-    Y_End = LCD_PIXELS_Y - 1;           /* set last row */    
+    Y_End = LCD_MAX_Y - 1;              /* set last row */    
   }
 
   LCD_AddressWindow();                  /* set window */
@@ -399,7 +429,7 @@ void LCD_ClearLine(uint8_t Line)
   while (y > 0)                    /* character height (pages) */
   {
     x = X_Start;                   /* reset start position */
-    while (x < LCD_PIXELS_X)       /* all columns */
+    while (x < LCD_MAX_X)          /* all columns */
     {
       /* send background color */
       LCD_Data2(COLOR_BACKGROUND);
@@ -409,6 +439,10 @@ void LCD_ClearLine(uint8_t Line)
 
     y--;                           /* next page */
   }
+
+  /* clean up local constants */
+  #undef LCD_MAX_X
+  #undef LCD_MAX_Y
 }
 
 
@@ -490,6 +524,10 @@ void LCD_Init(void)
   /* update maximums */
   UI.CharMax_X = LCD_CHAR_X;       /* characters per line */
   UI.CharMax_Y = LCD_CHAR_Y;       /* lines */
+  #ifdef SW_SYMBOLS
+  UI.SymbolSize_X = LCD_SYMBOL_CHAR_X;  /* x size in chars */
+  UI.SymbolSize_Y = LCD_SYMBOL_CHAR_Y;  /* y size in chars */
+  #endif
 
   /* set default color in case the color feature is disabled */
   #ifndef LCD_COLOR
@@ -523,6 +561,13 @@ void LCD_Char(unsigned char Char)
   uint8_t           y = 1;         /* bitmap y byte counter */
   uint8_t           Bits;          /* number of bits to be sent */
   uint8_t           n;             /* bitmap bit counter */
+
+  #ifdef UI_SERIAL_COPY
+  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
+  {
+    Serial_Char(Char);             /* send char to serial */
+  }
+  #endif
 
   /* prevent x overflow */
   if (UI.CharPos_X > LCD_CHAR_X) return;
@@ -619,7 +664,7 @@ void LCD_Cursor(uint8_t Mode)
 
 
 /* ************************************************************************
- *   special stuff
+ *   fancy stuff
  * ************************************************************************ */
 
 
@@ -721,107 +766,13 @@ void LCD_Symbol(uint8_t ID)
 
   /* mark text lines as used */
   n = LCD_SYMBOL_CHAR_Y;           /* set line counter */
-  x = SymbolTop;                   /* start line */
+  x = UI.SymbolPos_Y;              /* start line */
   while (n > 1)                    /* first line already set */
   {
     x++;                           /* next line */
     LCD_CharPos(1, x);             /* mark line */
     n--;                           /* next line */
   }
-}
-
-
-
-/*
- *  display fancy probe number
- *
- *  requires:
- *  - Probe: probe number
- *  - Table: pointer to pinout details
- */
-
-void LCD_FancyProbeNumber(uint8_t Probe, uint8_t *Table)
-{
-  uint8_t           Data;          /* pinout data */
-  uint8_t           x;             /* x position */
-  uint8_t           y;             /* y position */
-
-  Data = pgm_read_byte(Table);     /* read pinout details */
-
-  if (Data != PIN_NONE)            /* show pin */
-  {
-    /* determine position based on pinout data */
-    x = SymbolLeft;         /* set default positions */
-    y = SymbolTop;
-    if (Data & PIN_RIGHT) x = SymbolRight;
-    if (Data & PIN_BOTTOM) y = SymbolBottom;
-
-    /* show probe number */
-    LCD_CharPos(x, y);           /* set position */
-    LCD_ProbeNumber(Probe);      /* display probe number */
-  }
-}
-
-
-
-/*
- *  show fancy pinout for semiconductors
- *  - display a nice component symbol
- *    starting in next line, aligned to right side
- *  - display pin numbers left and right of symbol
- *  - symbol ID (0-) in Check.Symbol
- */
-
-void LCD_FancySemiPinout(void)
-{
-  uint8_t           Line;          /* line number */
-  uint8_t           x, y;          /* position of char */
-  uint8_t           *Table;        /* pointer to pin table */
-  uint16_t          Offset;        /* address offset */
-
-  /* save current char position */
-  x = UI.CharPos_X;        /* column */
-  y = UI.CharPos_Y;        /* line */
-
-  /* check for sufficient screen size */
-  Line = y + 1;               /* next line */
-  /* last line is reserved for cursor/touch bar */
-  if (Line > (LCD_CHAR_Y - LCD_SYMBOL_CHAR_Y)) return;  /* too few lines */
-
-  /* determine positions */
-  SymbolTop = Line;                          /* top is current line */
-  SymbolBottom = Line;
-  SymbolBottom += (LCD_SYMBOL_CHAR_Y - 1);   /* plus symbol's height */
-  SymbolRight = LCD_CHAR_X;                  /* align to right side */
-  /* minus symbol's width and pin IDs */
-  SymbolLeft = LCD_CHAR_X - LCD_SYMBOL_CHAR_X - 1;
-
-  /* calculate start address of pinout details */
-  Table = (uint8_t *)&PinTable;         /* start address of pin table */
-  Offset = Check.Symbol * 3;            /* offset for pin details */
-  Table += Offset;                      /* address of pin details */
-
-  /* display probe numbers */
-  LCD_FancyProbeNumber(Semi.A, Table);       /* A pin */
-  Table++;                                   /* details for next pin */
-  LCD_FancyProbeNumber(Semi.B, Table);       /* B pin */
-  Table++;                                   /* details for next pin */
-  LCD_FancyProbeNumber(Semi.C, Table);       /* C pin */
-
-  /* display symbol */
-  #ifdef LCD_COLOR
-    Offset = UI.PenColor;               /* save color */
-    UI.PenColor = COLOR_SYMBOL;         /* set pen color */
-  #endif
-
-  LCD_CharPos(SymbolLeft + 1, SymbolTop);   /* set top left position  */
-  LCD_Symbol(Check.Symbol);             /* display symbol */
-
-  #ifdef LCD_COLOR
-    UI.PenColor = Offset;          /* restore pen color */
-  #endif
-
-  LCD_CharPos(x, y);          /* restore old char position */
 }
 
 #endif

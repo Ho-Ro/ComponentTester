@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Czech (ISO 8859-1)
  *
- *   (c) 2015-2017 by Markus Reschke
+ *   (c) 2015-2018 by Markus Reschke
  *   translation by Kapa
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
@@ -20,8 +20,6 @@
    */
 
   const unsigned char Running_str[] EEMEM = "Probiha mereni..";
-  const unsigned char Weak_str[] EEMEM = "slaba!";
-  const unsigned char Low_str[] EEMEM =  "vybita!";
   const unsigned char Timeout_str[] EEMEM = "Vyprsel cas";
   const unsigned char Failed1_str[] EEMEM = "Zadna soucastka";
   const unsigned char Failed2_str[] EEMEM = "neznama - vadna";
@@ -44,6 +42,11 @@
   const unsigned char Triac_str[] EEMEM = "Triak";
   const unsigned char PUT_str[] EEMEM = "PUT";
   const unsigned char Bye_str[] EEMEM = "Nashledanou...";
+
+  #ifndef BAT_NONE
+    const unsigned char Weak_str[] EEMEM = "slaba!";
+    const unsigned char Low_str[] EEMEM =  "vybita!";
+  #endif
 
   #ifdef SW_SQUAREWAVE
     const unsigned char SquareWave_str[] EEMEM = "Gen. obdelniku";
@@ -80,7 +83,7 @@
 
   #ifdef SW_IR_TRANSMITTER
     const unsigned char IR_Transmitter_str[] EEMEM = "IR RC";
-    const unsigned char IR_Send_str[] EEMEM = "sending...";
+    const unsigned char IR_Send_str[] EEMEM = "vysilam...";
   #endif
 
   #ifdef SW_OPTO_COUPLER

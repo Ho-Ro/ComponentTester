@@ -2,7 +2,7 @@
  *
  *   language specific global variables: German (ISO 8859-1)
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -19,8 +19,6 @@
    */
 
   const unsigned char Running_str[] EEMEM = "Suche...";
-  const unsigned char Weak_str[] EEMEM = "schwach";
-  const unsigned char Low_str[] EEMEM = "leer";
   const unsigned char Timeout_str[] EEMEM = "Timeout";
   const unsigned char Failed1_str[] EEMEM = "Kein Bauteil";
   const unsigned char Failed2_str[] EEMEM = "gefunden!";
@@ -43,6 +41,11 @@
   const unsigned char Triac_str[] EEMEM = "Triac";
   const unsigned char PUT_str[] EEMEM = "PUT";
   const unsigned char Bye_str[] EEMEM = "Ciao!";
+
+  #ifndef BAT_NONE
+    const unsigned char Weak_str[] EEMEM = "schwach";
+    const unsigned char Low_str[] EEMEM = "leer";
+  #endif
 
   #ifdef SW_SQUAREWAVE
     const unsigned char SquareWave_str[] EEMEM = "Rechteck";

@@ -5,11 +5,11 @@
 
            für ATmega328/324/644/1284 mit Text- oder Grafikdisplay
 
-        (c) 2012-2017 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2018 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2017-12-22
+Letzte Änderung:  2018-02-24
 
 Inhaltsübersicht:
   - Über den Tester
@@ -20,6 +20,7 @@ Inhaltsübersicht:
   - Quellcode
   - Firmware übersetzen
   - I2C/SPI
+  - Serielle TTL-Schnittstelle
   - LCD-Module
     - HD44780
     - ILI9163
@@ -34,6 +35,7 @@ Inhaltsübersicht:
     - Drehencoder
     - Mehr/Weniger-Tasten
     - Touch-Screen
+  - Kommunikation mit PC
   - Einschalten
   - Bauteilesuche
   - Ausschalten
@@ -195,6 +197,7 @@ Hardware-Optionen:
 - fester Kondensator für Selbstabgleich von Spannungsoffsets
 - SPI-Bus (Bit-Bang und Hardware)
 - I2C-Bus (Bit-Bang und Hardware)
+- TTL-Serielle (Bit-Bang und Hardware)
 
 Die externe 2,5V Spannungsreferenz sollte nur genutzt werden, wenn sie
 um den Faktor 10 genauer als der Spannungsregler ist. Ansonsten würde
@@ -214,6 +217,8 @@ Und natürlich die Software-Optionen:
 - Test von Modellbau-Servos (braucht zusätzliche Tasten, Display >2 Zeilen)
 - Erkennung von UJTs
 - Farbkodierung für Testpins (benötigt Farbdisplay)
+- Ausgabe der gefundenen Bauteile parallel über TTL-Serielle, z.B auf PC
+  (benötigt TTL-Serielle)
 
 Bitte die Optionen entprechend Deinen Wünschen und den begrenzten Ressourcen 
 der MCU, d.h. RAM, EEPROM und Flash-Speicher, auswählen. Sollte die Firmware
@@ -253,15 +258,6 @@ Das Makefile bietet folgende zusätzliche Targets:
 
 * I2C/SPI
 
-Some displays and other hardware might need I2C or SPI for connecting to the
-MCU. Therefore the firmware includes drivers for both bus systems. To cope
-with different pin assignments of the various testers the bus drivers support
-bit-bang and hardware operation modes. The bit-bang mode can use any IO pins
-on the same port, while the hardware mode uses the dedicated bus pins of the
-MCU. The drawback of the bit-bang mode is its speed, it's slow. The hardware
-mode is much faster. You can spot the difference in speeds easily for high
-resolution color LCD modules.
-
 Manche LCD-Module and andere Komponenten benötigen I2C oder SPI als Schnitt-
 stelle zur MCU. Daher hat der Firmware Treiber für beide Bussysteme. Um
 unterschiedliche Beschaltungen zu unterstützen haben die Bustreiber einen
@@ -283,10 +279,34 @@ Du auch I2C bzw. SPI in config.h aktivieren und Ports & Pins in config-<MCU>.h
 festlegen (schaue nach I2C_PORT bzw. SPI_PORT).
 
 
+* Serielle TTL-Schnittstelle
+
+Der Tester kann auch eine optionale serielle TTL-Schnittstelle haben. Wird
+diese zur Kommunikation mit einem PC genutzt, sollte sie mit einem USB-zu-TTL
+Konverter oder einem RS-232 Treiberbaustein kombiniert werden. Die Firmware
+kann den UART der MCU oder einen Software-UART (Bit-Bang) nutzen. Im Augenblick
+wird nur der TX-Modus unterstützt (Senden zum PC). Die TTL-Serielle wird in
+config.h aktiviert (siehe Abschnitt "Busses"), und Port & Pins sind in
+config-<MCU>.h definiert (schaue nach SERIAL_PORT).
+
+Der Software-UART hat den Nachteil, daß das TX-Signal nicht ständig "high"
+ist, wenn die Schnittstelle ruht. Ursache dafür ist benutze Methode wie
+Port-Pins angesteuert werden. Ein Umschreiben der Ansteuerung würde die
+Firmware deutlich vergrößern. Dieses Problem scheint aber keine Auswirkung
+auf die meisten USB-zu-TTL Konverter zu haben.
+
+Die Standardeinstellung der seriellen Schnittstele ist 9600 8N1:
+  - 9600 bps
+  - 8 Datenbits
+  - keine Parität
+  - 1 Stopbit
+
+
 * LCD-Module
 
 Im Augenblick werden folgende LCD-Module bzw. Controller unterstützt:
 - HD44780 (textbasiertes Display)
+- ILI9163 (grafisches Farb-Display 128x160)
 - ILI9341/ILI9342 (grafisches Farb-Display 240x320 oder 320x240)
 - PCD8544 (grafisches Display 84x48)
 - SSD1306 (grafisches Display 128x64)
@@ -572,12 +592,26 @@ config-<MCU>.h (momentan nur config_644.h, da der 328 zu wenig unbenutze
 IO-Pins hat).
 
 
+* Kommunikation mit PC
+
+Der Tester kann die serielle TTL-Schnittstelle für die Ausgabe von gefundenen
+Bauteilen an ein einfaches Terminalprogramm auf dem PC nutzen. Diese Option
+wird in config.h aktiviert (siehe UI_SERIAL_COPY im Abschnitt "misc settings")
+und benötigt natürlich eine ebenfalls aktivierte serielle TTL-Schnittstelle.
+Die Ausgabe folgt der Ausgabe auf dem LCD-Display, aber nur für gefundene
+Bauteile. Spezielle Zeichen werden durch Standardzeichen ersetzt, z.B. wird
+das Omega (Ohm) zu einem R.
+
+Hinweis: 9600 8N1
+
+
 * Einschalten
 
 Ein langer Tastendruck beim Einschalten aktiviert den Auto-Hold-Modus. In
 diesem Modus wartet der Tester nach einer Ausgabe auf einen kurzen Tastendruck,
 um mit der Bauteilesuche weiter zu machen. Ansonsten läuft der Tester im
-kontinuierlichen Modus. Nach dem Einschalten wird kurz die Firmwareversion
+kontinuierlichen Modus. Die Auswahl des Modus läßt sich per config.h (
+UI_AUTOHOLD) umdrehen. Nach dem Einschalten wird kurz die Firmwareversion
 angezeigt.
 
 Mit einem sehr langen Tastendruck (2s) beim Einschalten kannst Du die
@@ -810,15 +844,23 @@ Zum Beenden die Test-Taste einmal kurz drücken.
 Unterstützte Protokolle:
   - JVC
   - Kaseikyo (Japancode, 48 Bit)
-  - Matsushita (Panasonic) / Emerson
+  - Matsushita (Panasonic MN6014, C6D6 / 12 bits)
   - Motorola
   - NEC (Standard & Erweitert)
-  - Proton / Mitsubishi
+  - Proton / Mitsubishi (M50560)
   - RC-5 (Standard)
   - RC-6 (Standard)
   - Samsung / Toshiba (32 Bit)
   - Sharp
   - Sony SIRC (12, 15 & 20 Bit)
+
+Optionale Protokolle:
+  - IR60 (SDA2008/MC14497)
+  - Matsushita (Panasonic MN6014, C5D6 / 11 bits)
+  - NEC µPD1986C
+  - RECS80 (Standard & Erweitert)
+  - Sanyo (LC7461)
+  - Thomson
 
 Die Trägerfrequenz vom TSOP IR-Empfängermodul muß nicht genau zur Fernsteuerung
 passen. Es verringert sich eigentlich nur die Reichweite, was für unseren Zweck
@@ -864,13 +906,24 @@ gedrückt bleibt. Und wie üblich beenden zwei kurze Tastendrücke die Funktion.
 
 Wenn Du das Protokoll änderst, werden Trägerfrequenz und Tastverhältnis auf
 die Standardwerte des jeweiligen Protokolls gesetzt. Du kannst diese aber
-nach Belieben ändern. Die Trägerfrequenz kann auf 30, 33, 36, 38, 40 oder
-56 kHz gegstellt werden, und das Tastverhältnis auf  1/2 (50%), 1/3 (33%) oder
-1/4 (25%). Die Datenfelder sind die Teile des Fernbedienungscodes, die Du
-setzen kannst. Sie werden weiter unten erklärt und sind meistens nur die
-Adresse und das Kommando.
+nach Belieben ändern. Die Trägerfrequenz kann auf 30 bis 56 kHz gestellt
+werden, und das Tastverhältnis auf  1/2 (50%), 1/3 (33%) oder 1/4 (25%). Die
+Datenfelder sind die Teile des Fernbedienungscodes, die Du setzen kannst. Sie
+werden weiter unten erklärt und sind meistens nur die Adresse und das Kommando.
 
 Unterstützte Protokolle und ihre Datenfelder:
+
+  - JVC
+    <Adresse:8> <Kommando:8>
+
+  - Kaseikyo (Japanese Code)
+    <Hersteller:16> <System:4> <Produkt:8> <Funktion:8>
+
+  - Matsushita (Panasonic, MN6014 12 bits)
+    <Gerät:6> <Taste:6>
+
+  - Motorola
+    <Kommando:9>
 
   - NEC Standard
     <Adresse:8> <Kommando:8>
@@ -878,8 +931,20 @@ Unterstützte Protokolle und ihre Datenfelder:
   - NEC Extended
     <Adresse:16)> <Kommando:8>
 
+  - Proton / Mitsubishi (M50560)
+    <Adresse:8> <Kommando:8> 
+
+  - RC-5 Standard
+    <Adresse:5> <Kommando:6>
+
+  - RC-6 Standard, Mode 0
+    <Adresse:8> <Kommando:8>
+
   - Samsung / Toshiba (32 bits)
-    <custom code:8> <Taste:8>
+    <Gerät:8> <Taste:8>
+
+  - Sharp / Denon
+    <Adresse:5> <Kommando:8> <Maskierung:1>
 
   - Sony SIRC-12
     <Kommando:7> <Adresse:5>
@@ -890,7 +955,10 @@ Unterstützte Protokolle und ihre Datenfelder:
   - Sony SIRC-20
     <Kommando:7> <Adresse:5> <Erweitert:8>
 
-  - weitere werden folgen
+Optionale Protokolle:
+
+  - Thomson
+    <Gerät:4> <Funktion:7>
 
 Die Datenfelder sind durch Leerzeichen getrennt und ihre Syntax ist:
   <Feldname>:<Anzahl Bits>
@@ -1102,7 +1170,8 @@ man für die alten Kabel wieder einen neuen Selbstabgleich machen.
 
 + Werte anzeigen
 
-Diese Funktion zeigt die aktuellen Abgleichwerte an. 
+Diese Funktion zeigt die aktuellen Abgleichwerte an. Die Nutzung einer
+externen 2.5V Spannungsreferenz wird mit einem "*" nach Vcc signalisiert.
 
 
 + Exit

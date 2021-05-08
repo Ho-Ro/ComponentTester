@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Russian (Windows-1251)
  *
- *   (c) 2017 by Markus Reschke
+ *   (c) 2017-2018 by Markus Reschke
  *   translation by indman@EEVblog
  *   based on code from Markus Frejek and Karl-Heinz Kьbbeler
  *
@@ -20,8 +20,6 @@
    */
 
   const unsigned char Running_str[] EEMEM = "Тестирование...";
-  const unsigned char Weak_str[] EEMEM = "слабая";
-  const unsigned char Low_str[] EEMEM = "замена";
   const unsigned char Timeout_str[] EEMEM = "Тайм-аут";
   const unsigned char Failed1_str[] EEMEM = "Компонент не";
   const unsigned char Failed2_str[] EEMEM = "найден!";
@@ -34,7 +32,7 @@
   const unsigned char Show_str[] EEMEM = "Данные";
   const unsigned char Remove_str[] EEMEM = "Раскоротите";
   const unsigned char Create_str[] EEMEM = "Закоротите";
-  const unsigned char ShortCircuit_str[] EEMEM = "тест.контакты!";
+  const unsigned char ShortCircuit_str[] EEMEM = "все т.контакты!";
   const unsigned char DischargeFailed_str[] EEMEM = "Батарея?";
   const unsigned char Error_str[] EEMEM = "Ошибка!";
   const unsigned char Exit_str[] EEMEM = "Выход";
@@ -44,6 +42,11 @@
   const unsigned char Triac_str[] EEMEM = "Симистор";
   const unsigned char PUT_str[] EEMEM = "Транз.(PUT)";
   const unsigned char Bye_str[] EEMEM = "До свидания!";
+
+  #ifndef BAT_NONE
+    const unsigned char Weak_str[] EEMEM = "слабая";
+    const unsigned char Low_str[] EEMEM = "замена";
+  #endif
 
   #ifdef SW_SQUAREWAVE
     const unsigned char SquareWave_str[] EEMEM = "Генератор";
@@ -61,8 +64,8 @@
   #ifdef HW_FREQ_COUNTER_EXT
     const unsigned char CounterChannel_str[] EEMEM = "Ch";
     const unsigned char FreqInput_str[] EEMEM = "BNC";
-    const unsigned char LF_Crystal_str[] EEMEM = "LF crystal";
-    const unsigned char HF_Crystal_str[] EEMEM = "HF crystal";
+    const unsigned char LF_Crystal_str[] EEMEM = "LF кварц";
+    const unsigned char HF_Crystal_str[] EEMEM = "HF кварц";
   #endif
 
   #ifdef SW_ENCODER
@@ -80,12 +83,12 @@
 
   #ifdef SW_IR_TRANSMITTER
     const unsigned char IR_Transmitter_str[] EEMEM = "IR RC";
-    const unsigned char IR_Send_str[] EEMEM = "sending...";
+    const unsigned char IR_Send_str[] EEMEM = "Код.посылка...";
   #endif
 
   #ifdef SW_OPTO_COUPLER
     const unsigned char OptoCoupler_str[] EEMEM = "Oптрон";
-    const unsigned char Start_str[] EEMEM = "Старт";
+    const unsigned char Start_str[] EEMEM = "Начать проверку";
     const unsigned char None_str[] EEMEM = "не найден";
   #endif
 
@@ -99,7 +102,7 @@
   #endif
 
   #ifdef HW_TOUCH
-    const unsigned char TouchSetup_str[] EEMEM = "Touch Setup";
+    const unsigned char TouchSetup_str[] EEMEM = "Настр.сенсора";
   #endif
 
 #endif

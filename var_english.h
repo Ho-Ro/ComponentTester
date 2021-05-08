@@ -2,7 +2,7 @@
  *
  *   language specific global variables: English (ISO 8859-1)
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -19,14 +19,12 @@
    */
 
   const unsigned char Running_str[] EEMEM = "Probing...";
-  const unsigned char Weak_str[] EEMEM = "weak";
-  const unsigned char Low_str[] EEMEM = "low";
   const unsigned char Timeout_str[] EEMEM = "Timeout";
   const unsigned char Failed1_str[] EEMEM = "No component";
   const unsigned char Failed2_str[] EEMEM = "found!";
   const unsigned char Done_str[] EEMEM = "done!";
   const unsigned char Select_str[] EEMEM = "Select";
-  const unsigned char Selftest_str[] EEMEM = "Selftest";
+  const unsigned char Selftest_str[] EEMEM = "Test";
   const unsigned char Adjustment_str[] EEMEM = "Adjustment";
   const unsigned char Save_str[] EEMEM = "Save";
   const unsigned char Load_str[] EEMEM = "Load";
@@ -43,6 +41,11 @@
   const unsigned char Triac_str[] EEMEM = "Triac";
   const unsigned char PUT_str[] EEMEM = "PUT";
   const unsigned char Bye_str[] EEMEM = "Bye!";
+
+  #ifndef BAT_NONE
+    const unsigned char Weak_str[] EEMEM = "weak";
+    const unsigned char Low_str[] EEMEM = "low";
+  #endif
 
   #ifdef SW_SQUAREWAVE
     const unsigned char SquareWave_str[] EEMEM = "Square Wave";

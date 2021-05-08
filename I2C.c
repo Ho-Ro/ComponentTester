@@ -424,7 +424,8 @@ uint8_t I2C_WriteByte(uint8_t Type)
 
 
 
-#if 0
+#ifdef I2C_RW
+
 /*
  *  read byte (master from slave)
  *  - read byte (data) from slave
@@ -586,6 +587,7 @@ uint8_t I2C_ReadByte(uint8_t Type)
 
   return Flag;
 }
+
 #endif
 
 
@@ -641,7 +643,6 @@ void I2C_Stop(void)
 
   /* current state: SDA high / SCL high */
 }
-
 
 #endif
 
@@ -835,7 +836,8 @@ uint8_t I2C_WriteByte(uint8_t Type)
 
 
 
-#if 0
+#ifdef I2C_RW
+
 /*
  *  read byte (master from slave)
  *  - read byte (data) from slave
@@ -895,8 +897,8 @@ uint8_t I2C_ReadByte(uint8_t Type)
 
   return Flag;
 }
-#endif
 
+#endif
 
 
 
