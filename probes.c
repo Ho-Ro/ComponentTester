@@ -2,7 +2,7 @@
  *
  *   probing testpins
  *
- *   (c) 2012-2013 by Markus Reschke
+ *   (c) 2012-2014 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -53,6 +53,7 @@ void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   Probes.ADC_2 = eeprom_read_byte(&ADC_table[Probe2]);
   Probes.Rl_3 = eeprom_read_byte(&Rl_table[Probe3]);
   Probes.Rh_3 = Probes.Rl_3 + Probes.Rl_3;
+//  Probes.ADC_3 = eeprom_read_byte(&ADC_table[Probe3]);
 }
 
 
@@ -451,7 +452,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 
   if (U_Rl > 490)         /* > 700µA (was 92mV/130µA) */
   {
-    CheckDepletionModeFET(U_Rl);
+    CheckDepletionModeFET();
   }
 
 
@@ -464,7 +465,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
    *  or a large resistor
    */
 
-  if (U_Rl < 977)         /* load current < 1.4mA */
+  if (U_Rl < 977)         /* load current < 1.4mA (resistance > 3k) */
   {
     /*
      *  check for:
@@ -513,6 +514,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
       R_PORT = Probes.Rl_1 | Probes.Rl_3;    /* pull up collector & base via Rl */
       U_1 = ReadU_5ms(Probe1);               /* get voltage at collector */
 
+
       /*
        *  If DUT is conducting we might have a NPN BJT, something similar or
        *  a n-channel MOSFET.
@@ -539,7 +541,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
    *  - small resistor (checked later on)
    */
 
-  else              /* load current > 1.4mA */
+  else              /* load current > 1.4mA  (resistance < 3k) */
   {
     /*
      *  We check for a diode even if we already found a component to get Vf, 

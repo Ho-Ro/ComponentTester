@@ -2,7 +2,7 @@
  *
  *   resistor measurements
  *
- *   (c) 2012-2013 by Markus Reschke
+ *   (c) 2012-2014 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -63,7 +63,7 @@ unsigned int SmallResistor(uint8_t ZeroFlag)
   /*
    *  measurement method:
    *  - use Rl as current shunt
-   *  - create a pulse and measure voltage at high side of DUT for 1000 times 
+   *  - create a pulse and measure voltage at high side of DUT for 100 times 
    *  - repeat that for the low side of the DUT
    */
 
@@ -306,7 +306,7 @@ void CheckResistor(void)
            *  use measurements done with Rh
            */
 
-          /* resistor is less 60MOhm */
+          /* resistor is less than 60MOhm */
           if (U_Rh_L >= 38)        /* R < 61.4M & prevent division by zero */
           {
             /*
@@ -515,8 +515,8 @@ void CheckResistor(void)
               if ((CmpValue(Resistor->Value, Resistor->Scale, Value1, Scale) >= 0) &&
                   (CmpValue(Resistor->Value, Resistor->Scale, Value2, Scale) <= 0))
               {
-                Check.Found = COMP_RESISTOR;
                 n = 100;                     /* end loop and signal match */
+                Check.Found = COMP_RESISTOR;
               }
               else                 /* no match */
               {
@@ -540,8 +540,8 @@ void CheckResistor(void)
             {
               /* save data */
               Resistor = &Resistors[Check.Resistors];  /* unused dataset */
-              Resistor->A = Probes.Pin_2;
-              Resistor->B = Probes.Pin_1;
+              Resistor->A = Probes.Pin_2;              /* pin facing Gnd */
+              Resistor->B = Probes.Pin_1;              /* pin facing Vcc */
               Resistor->Value = Value;
               Resistor->Scale = Scale;
               Check.Resistors++;                       /* another one found */
@@ -551,6 +551,33 @@ void CheckResistor(void)
       }
     }
   }
+}
+
+
+
+/*
+ *  check for a specific single resistor
+ *
+ *  requires:
+ *  - HighPin = pin facing Vcc
+ *  - LowPin = pin facing Gnd
+ */
+
+uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin)
+{
+  uint8_t                Flag = 0;      /* return value */
+
+  /* check for a specific resistor */
+  Check.Resistors = 0;                  /* reset counter */
+  UpdateProbes(HighPin, LowPin, 0);     /* set probes */
+  CheckResistor();                      /* check for resistor */
+
+  if (Check.Resistors == 1)             /* found resistor */
+  {
+    Flag = 1;            /* signal detected resistor */
+  }
+
+  return Flag;
 }
 
 

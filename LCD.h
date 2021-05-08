@@ -64,12 +64,12 @@
  *  custom character IDs
  */
 
-#define LCD_CHAR_UNSET    0        /* just a place holder */
-#define LCD_CHAR_DIODE1   1        /* diode icon '>|' */
-#define LCD_CHAR_DIODE2   2	   /* diode icon '|<' */
-#define LCD_CHAR_CAP      3        /* capacitor icon '||' */
-#define LCD_CHAR_RESIS1   6        /* resistor left icon '[' */
-#define LCD_CHAR_RESIS2   7        /* resistor right icon ']' */
+#define LCD_CHAR_UNSET        0    /* just a place holder */
+#define LCD_CHAR_DIODE_AC     1    /* diode icon '>|' */
+#define LCD_CHAR_DIODE_CA     2	   /* diode icon '|<' */
+#define LCD_CHAR_CAP          3    /* capacitor icon '||' */
+#define LCD_CHAR_RESISTOR_L   6    /* resistor left icon '[' */
+#define LCD_CHAR_RESISTOR_R   7    /* resistor right icon ']' */
 
 #ifdef LCD_CYRILLIC
   #define LCD_CHAR_OMEGA  4        /* omega */ 

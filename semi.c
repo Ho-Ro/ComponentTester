@@ -2,7 +2,7 @@
  *
  *   semiconductor tests and measurements
  *
- *   (c) 2012-2013 by Markus Reschke
+ *   (c) 2012-2014 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -150,7 +150,7 @@ unsigned long Get_hFE_C(uint8_t Type)
 
 void GetGateThreshold(uint8_t Type)
 {
-  unsigned long     Uth = 0;       /* gate threshold voltage */
+  signed long       Ugs = 0;       /* gate threshold voltage / Vth */
   uint8_t           Drain_Rl;      /* Rl bitmask for drain */
   uint8_t           Drain_ADC;     /* ADC bitmask for drain */
   uint8_t           PullMode;
@@ -222,21 +222,21 @@ void GetGateThreshold(uint8_t Type)
     /* add ADC reading */
     if (Type & TYPE_N_CHANNEL)          /* n-channel */
     {
-      Uth += ADCW;                        /* U_g = U_measued */
+      Ugs += ADCW;                        /* Ugs = U_g */
     }
     else                                /* p-channel */
     {
-      Uth += (1023 - ADCW);               /* U_g = Vcc - U_measured */
+      Ugs -= (1023 - ADCW);               /* Ugs = - (Vcc - U_g) */
     }
   }
 
   /* calculate V_th */
-  Uth /= 10;                     /* average of 10 samples */
-  Uth *= Config.Vcc;             /* convert to voltage */
-  Uth /= 1024;                   /* using 10 bit resolution */
+  Ugs /= 10;                     /* average of 10 samples */
+  Ugs *= Config.Vcc;             /* convert to voltage */
+  Ugs /= 1024;                   /* using 10 bit resolution */
 
   /* save data */
-  FET.V_th = (unsigned int)Uth;
+  Semi.U_2 = (int)Ugs;           /* gate threshold voltage (in mV) */
 }
 
 
@@ -308,9 +308,10 @@ void CheckDiode(void)
   unsigned int      U1_Rl;              /* Vf #1 with Rl pull-up */
   unsigned int      U1_Rh;              /* Vf #1 with Rh pull-up */
   unsigned int      U1_Zero;            /* Vf #1 zero */
-  unsigned int      U2_Rl;              /* Vf #2 with Rl pull-up */
-  unsigned int      U2_Rh;              /* Vf #2 with Rh pull-up */
+  unsigned int      U2_Rl;              /* Vf #2 with Rl pull-down */
+  unsigned int      U2_Rh;              /* Vf #2 with Rh pull-down */
   unsigned int      U2_Zero;            /* Vf #2 zero */
+  unsigned int      U_Diff;             /* Vf difference */
 
   wdt_reset();                          /* reset watchdog */
 
@@ -330,9 +331,9 @@ void CheckDiode(void)
    *    for Si and Schottky). Ge, Z-diodes and LEDs are hard to determine.
    *    So it might be better to filter out other components.
    *  - For a MOSFET pretection diode we have to make sure that the MOSFET
-   *    in not conducting, to be able to get Vf of the protection diode.
-   *    So we discharge the gate and run the measurements twice for p and n
-   *    channel FETs.
+   *    is not conducting, to be able to get Vf of the protection diode.
+   *    So we discharge the gate and run the measurements twice for assumed
+   *    p and n channel FETs.
    *  - Take care about the internal voltage drop of the µC at the cathode
    *    for high test currents (Rl).
    *  - Filter out resistors by the used voltage divider:
@@ -356,13 +357,14 @@ void CheckDiode(void)
    */
 
   /* we assume: probe-1 = A / probe2 = C */
-  /* set probes: Gnd -- probe-2 / probe-1 -- Rl or Rh -- Vcc */
+  /* set probes: Gnd -- probe-2 / probe-1 -- HiZ */
   ADC_PORT = 0;
   ADC_DDR = Probes.ADC_2;               /* pull down cathode directly */
-  /* R_DDR is set to HiZ by DischargeProbes(); */
+  /* R_DDR is set to HiZ by DischargeProbes() */
   U1_Zero = ReadU(Probes.Pin_1);        /* get voltage at anode */
 
   /* measure voltage across DUT (Vf) with Rh */
+  /* set probes: Gnd -- probe-2 / probe-1 -- Rh -- Vcc */
   R_DDR = Probes.Rh_1;                  /* enable Rh for probe-1 */
   R_PORT = Probes.Rh_1;                 /* pull up anode via Rh */
   PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLUP);     /* discharge gate */
@@ -370,6 +372,7 @@ void CheckDiode(void)
                                         /* neglect voltage at cathode */
 
   /* measure voltage across DUT (Vf) with Rl */
+  /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc */
   R_DDR = Probes.Rl_1;                  /* enable Rl for probe-1 */
   R_PORT = Probes.Rl_1;                 /* pull up anode via Rl */
   PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLUP);     /* discharge gate */
@@ -386,40 +389,57 @@ void CheckDiode(void)
    */
 
   /* we assume: probe-1 = A / probe2 = C */
-  /* set probes: Gnd -- probe-2 / probe-1 -- Rl or Rh -- Vcc */
+  /* set probes: Gnd -- probe-2 / probe-1 -- HiZ */
   ADC_PORT = 0;
   ADC_DDR = Probes.ADC_2;               /* pull down cathode directly */
+  /* R_DDR is set to HiZ by DischargeProbes() */
   U2_Zero = ReadU(Probes.Pin_1);        /* get voltage at anode */
 
-  /* measure voltage across DUT (Vf) with Rh */
-  R_DDR = Probes.Rh_1;                  /* enable Rh for probe-1 */
-  R_PORT = Probes.Rh_1;                 /* pull up anode via Rh */
+  /* set probes: Gnd -- Rh -- probe-2 / probe-1 -- Vcc */
+  ADC_DDR = 0;                          /* set to HiZ to prepare change */
+  ADC_PORT = Probes.ADC_1;              /* pull up anode directly */
+  ADC_DDR = Probes.ADC_1;               /* enable output */
+  R_PORT = 0;                           /* pull down cathode via Rh */
+  R_DDR = Probes.Rh_2;                  /* enable Rh for probe-2 */
   PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLDOWN);   /* discharge gate */
   U2_Rh = ReadU_5ms(Probes.Pin_1);      /* get voltage at anode */
-                                        /* neglect voltage at cathode */
+  U2_Rh -= ReadU(Probes.Pin_2);         /* substract voltage at cathode */
 
-  /* measure voltage across DUT (Vf) with Rl */
-  R_DDR = Probes.Rl_1;                  /* enable Rl for probe-1 */
-  R_PORT = Probes.Rl_1;                 /* pull up anode via Rl */   
+  /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
+  R_DDR = Probes.Rl_2;                  /* pull down cathode via Rl */
   PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLDOWN);   /* discharge gate */
   U2_Rl = ReadU_5ms(Probes.Pin_1);      /* get voltage at anode */
   U2_Rl -= ReadU(Probes.Pin_2);         /* substract voltage at cathode */
 
-
-  R_PORT = 0;                      /* stop pulling up */
+  ADC_DDR = 0;                     /* stop pulling up */
 
 
   /*
    *  process results
    */
 
-  /* choose between measurements of p and n channel setup */
+  /* choose between both measurements */
   if (U1_Rl > U2_Rl)          /* the higher voltage wins */
   {
+    U_Diff = U1_Rl - U2_Rl;   /* difference of U_Rls */
     U2_Rl = U1_Rl;
     U2_Rh = U1_Rh;
     U2_Zero = U1_Zero;
   }
+  else
+  {
+    U_Diff = U2_Rl - U1_Rl;   /* difference of U_Rls */
+  }
+
+
+  /*
+   *  check difference of U_Rl measurements
+   *  - nearly zero for diodes, BJTs etc.
+   *  - about a diode drop for enh-mode MOSFETs
+   *  - >1000mV for dep-mode FETs partly conducting 
+   */
+
+  if (U_Diff > 1000) return;       /* dep-mode FET not fully turned off */
 
 
   /*
@@ -441,9 +461,16 @@ void CheckDiode(void)
    *  As larger the cap as lower U_Rl (charging time 15ms).
    */
 
-  U1_Zero = U2_Rh - U2_Zero;       /* voltage difference */
+  if (U2_Rh > U2_Zero)             /* prevent underrun */
+  {
+    U_Diff = U2_Rh - U2_Zero;      /* calculate difference */
+  }
+  else
+  {
+    U_Diff = U2_Zero - U2_Rh;
+  }
 
-  if ((U2_Zero > 2) && (U1_Zero < 100)) return;   /* capacitor */
+  if ((U2_Zero > 2) && (U_Diff < 100)) return;    /* capacitor */
 
 
   /*
@@ -512,7 +539,7 @@ void CheckDiode(void)
 
 
 /* ************************************************************************
- *   BJT and FET
+ *   BJTs and FETs
  * ************************************************************************ */
 
 
@@ -531,13 +558,13 @@ void VerifyMOSFET(void)
   /* set expected body diode */
   if (Check.Type & TYPE_N_CHANNEL)      /* n-channel */
   {
-    Anode = FET.S;
-    Cathode = FET.D;
+    Anode = Semi.C;      /* anode at source */
+    Cathode = Semi.B;    /* cathode at drain */
   }
   else                                  /* p-channel */
   {
-    Anode = FET.D;
-    Cathode = FET.S;
+    Anode = Semi.B;      /* anode at drain */
+    Cathode = Semi.C;    /* cathode at source */
   }
 
   Diode = &Diodes[0];              /* first diode */
@@ -630,7 +657,7 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
 
 
   /*
-   *  distinguish BJT from depletion-mode MOSFET
+   *  distinguish BJT from enhancement-mode MOSFET
    */
 
   if (U_R_b > BJT_Level)      /* U_R_b exceeds minimum level of BJT */
@@ -640,16 +667,27 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
      *  is flowing constantly. So this can't be a FET.
      *
      *  Problem:
-     *  A reversed collector and emitter also passes the tests, but with
-     *  a low hFE. So we need to run two tests to be sure and select the
-     *  test results with the higher hFE.
+     *  A reversed collector and emitter also passes the tests, but with a
+     *  lower hFE. So we need to run the BJT test twice to be sure and select
+     *  the results with the higher hFE.
      */
 
-    /* two test runs needed at maximium to get right hFE & pins */
-    if (Check.Found == COMP_BJT) Check.Done = 1;
+    if (Check.Found == COMP_BJT)        /* second test run */
+    {
+      Check.Done = 1;                   /* no more tests needed */
 
-    Check.Found = COMP_BJT;
-    Check.Type = BJT_Type;
+      /*
+       *  If the type is different from the one in the first run, we have
+       *  a parasitic BJT (caused by a freewheeling diode on the same substrate).
+       */
+
+      if (!(Check.Type & BJT_Type)) Check.Type |= TYPE_PARASITIC;
+    }
+    else                                /* first test run */
+    {
+      Check.Found = COMP_BJT;
+      Check.Type = BJT_Type;
+    }
 
     /* leakage current */
     I_CE0 = GetLeakageCurrent();        /* get leakage current (in µA) */
@@ -681,72 +719,37 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
     /* get hFE for common collector circuit */
     hFE_C = Get_hFE_C(BJT_Type);
 
-    /* keep largest hFE */
+    /* keep higher hFE */
     if (hFE_C > hFE_E) hFE_E = hFE_C;
 
-    /* only update data if hFE is larger than old one */ 
-    if (hFE_E > BJT.hFE)
+    /* parasitic BJT */
+    if (Check.Type & TYPE_PARASITIC)
+    {
+      /* may we assume that the BJT with the lower hFE is the correct one? */
+
+      hFE_E = 0;    /* we keep the first type found at the moment */
+    }
+
+    /* only update data if hFE is higher than old one or not set yet */
+    if (hFE_E > Semi.F_1)
     {
       /* save data */
-      BJT.hFE = hFE_E;
-      BJT.I_CE0 = I_CE0;
-      BJT.B = Probes.Pin_3;
+      Semi.F_1 = hFE_E;            /* hFE */
+      Semi.I_1 = I_CE0;            /* leakage current */
+      Semi.A = Probes.Pin_3;       /* base pin */
 
+      /* update Collector and Emitter pins */
       if (BJT_Type == TYPE_NPN)    /* NPN */
       {
-        BJT.C = Probes.Pin_1;
-        BJT.E = Probes.Pin_2;
+        Semi.B = Probes.Pin_1;     /* collector pin */
+        Semi.C = Probes.Pin_2;     /* emitter pin */
       }
       else                         /* PNP */
       {
-        BJT.C = Probes.Pin_2;
-        BJT.E = Probes.Pin_1;
+        Semi.B = Probes.Pin_2;     /* collector pin */
+        Semi.C = Probes.Pin_1;     /* emitter pin */
       }
     }
-
-#if 0
-    /*
-     *  Check for proper emitter and collector:
-     *  - I_c is much lower for reversed emitter and collector.
-     *  - So we reverse the probes and measure I_c (= U_R_c / R_c) again.
-     *  - Since R_c is constant we may simply compare U_R_c.
-     *
-     *  This is an alternative solution instead of running the check two times.
-     */
-
-    ADC_DDR = 0;              /* set ADC port to HiZ mode */
-    R_DDR = 0;                /* set resistor port to HiZ mode */
-
-    if (BJT_Type == TYPE_NPN)   /* NPN */
-    {
-      /* we assume: probe-1 = E / probe-2 = C / probe-3 = B */
-      /* set probes: Gnd -- probe-1 / probe-2 -- Rl -- Vcc */
-      ADC_PORT = 0;
-      ADC_DDR = Probes.ADC_1;                     /* pull-down emitter directly */
-      R_PORT = Probes.Rl_2 | Probes.Rh_3;         /* pull-up base via Rh */
-      R_DDR = Probes.Rl_2 | Probes.Rh_3;          /* enable probe resistors */
-      U_R_b = Config.Vcc - ReadU_5ms(Probes.Pin_2);    /* U_R_c = Vcc - U_c */        
-    }
-    else                        /* PNP */
-    { 
-      /* we assume: probe-1 = C / probe-2 = E / probe-3 = B */
-      /* set probes: Gnd -- Rl - probe-1 / probe-2 -- Vcc */
-      R_PORT = 0;
-      R_DDR = Probes.Rl_1 | Probes.Rh_3;     /* pull down base via Rh */
-      ADC_DDR = Probes.ADC_2;
-      ADC_PORT = Probes.ADC_2;               /* pull-up emitter directly */
-      U_R_b = ReadU_5ms(Probes.Pin_1);       /* U_R_c = U_c */
-    }
-
-    /* if not reversed, BJT is identified */
-//    U_R_b *= 10;                   /* be much larger */
-    if (U_R_c > U_R_b)             /* I_c > I_c_reversed */
-    {
-      /* move other stuff here: save data & Comp= */
-      Check.Done = 1;
-    }
-#endif
-
   }
   else if ((U_Rl < 97) && (U_R_c > FET_Level))    /* no BJT */
   {
@@ -784,17 +787,17 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
     GetGateThreshold(FET_Type);
 
     /* save data */
-    FET.G = Probes.Pin_3;
+    Semi.A = Probes.Pin_3;          /* gate pin */
 
     if (FET_Type == TYPE_N_CHANNEL)     /* n-channel */
     {
-      FET.D = Probes.Pin_1;
-      FET.S = Probes.Pin_2;      
+      Semi.B = Probes.Pin_1;       /* drain pin */
+      Semi.C = Probes.Pin_2;       /* source pin */
     }
     else                                /* p-channel */
     {
-      FET.D = Probes.Pin_2;
-      FET.S = Probes.Pin_1;
+      Semi.B = Probes.Pin_2;       /* drain pin */
+      Semi.C = Probes.Pin_1;       /* source pin */
     }
   }
 }
@@ -808,11 +811,13 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
  *  - voltage across Rl in pull-down mode
  */
 
-void CheckDepletionModeFET(unsigned int U_Rl_L)
+void CheckDepletionModeFET(void)
 {
   unsigned int      U_1;                /* voltage #1 */
   unsigned int      U_2;                /* voltage #2 */
-
+  unsigned int      Diff_1 = 0;         /* voltage difference #1 */
+  unsigned int      Diff_2 = 0;         /* voltage difference #2 */
+  uint8_t           Flag = 0;           /* signal */
 
   /*
    *  required probe setup (by calling function):
@@ -834,6 +839,7 @@ void CheckDepletionModeFET(unsigned int U_Rl_L)
 
     R_PORT = Probes.Rh_3;               /* pull up gate via Rh */
     U_2 = ReadU_20ms(Probes.Pin_2);     /* voltage at source */
+    Diff_1 = U_2 - U_1;                 /* source voltage difference */
 
     /*
      *  If the source voltage is higher when the gate is driven by a positive
@@ -844,6 +850,26 @@ void CheckDepletionModeFET(unsigned int U_Rl_L)
 
     if (U_2 > (U_1 + 488))
     {
+
+      /*
+       *  same measurements with assumed drain and source reversed:
+       *  - to detect if JFET is symmetrical
+       *  - to detect drain and source of MOSFET
+       */
+
+      /* we simulate: probe-1 = S / probe-2 = D / probe-3 = G */
+      /* set probes: Gnd -- Rl -- probe-1 / probe-2 -- Vcc */
+      ADC_PORT = Probes.ADC_2;               /* set ADC port to high */
+      ADC_DDR = Probes.ADC_2;                /* pull up drain directly */
+      R_DDR = Probes.Rl_1 | Probes.Rh_3;     /* enable Rl for source and Rh for gate */
+      R_PORT = 0;                            /* pull down source via Rl / pull down gate via Rh */
+      U_1 = ReadU_20ms(Probes.Pin_1);        /* voltage at source */
+
+      R_PORT = Probes.Rh_3;                  /* pull up gate via Rh */
+      U_2 = ReadU_20ms(Probes.Pin_1);        /* voltage at source */
+      Diff_2 = U_2 - U_1;                    /* source voltage difference */
+
+
       /*
        *  Compare gate voltages to distinguish JFET from MOSFET
        */
@@ -854,9 +880,9 @@ void CheckDepletionModeFET(unsigned int U_Rl_L)
       R_DDR = Probes.Rl_1 | Probes.Rh_3;     /* enable Rl for probe-1 & Rh for probe-3 */
       R_PORT = Probes.Rl_1 | Probes.Rh_3;    /* pull up drain via Rl / pull up gate via Rh */
 
-      U_2 = ReadU_20ms(Probes.Pin_3);        /* get voltage at gate */
+      U_1 = ReadU_20ms(Probes.Pin_3);        /* get voltage at gate */
 
-      if (U_2 > 3911)              /* MOSFET */
+      if (U_1 > 3911)              /* MOSFET */
       {
         /* n channel depletion-mode MOSFET */ 
         Check.Type = TYPE_N_CHANNEL | TYPE_DEPLETION | TYPE_MOSFET;
@@ -864,15 +890,10 @@ void CheckDepletionModeFET(unsigned int U_Rl_L)
       else                         /* JFET */
       {
         /* n channel JFET (depletion-mode only) */
-        Check.Type = TYPE_N_CHANNEL | TYPE_JFET;
+        Check.Type = TYPE_N_CHANNEL | TYPE_DEPLETION | TYPE_JFET;
       }
 
-      /* save data */
-      Check.Found = COMP_FET;
-      Check.Done = 1;
-      FET.G = Probes.Pin_3;
-      FET.D = Probes.Pin_1;
-      FET.S = Probes.Pin_2;
+      Flag = 1;                    /* signal match */
     }
   }
 
@@ -882,10 +903,10 @@ void CheckDepletionModeFET(unsigned int U_Rl_L)
    *  - JFETs are depletion-mode only
    */
 
-  if (Check.Done == 0)        /* no transistor found yet */
+  if ((Check.Done == 0) && (Flag == 0))      /* no transistor found yet */
   {
     /* we assume: probe-1 = S / probe-2 = D / probe-3 = G */
-    /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc */ 
+    /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc */
     ADC_PORT = 0;                       /* set ADC port to Gnd */
     ADC_DDR = Probes.ADC_2;             /* pull down drain directly */
     R_DDR = Probes.Rl_1 | Probes.Rh_3;  /* enable Rl for probe-1 & Rh for probe-3 */
@@ -894,6 +915,7 @@ void CheckDepletionModeFET(unsigned int U_Rl_L)
 
     R_PORT = Probes.Rl_1;               /* pull down gate via Rh */
     U_2 = ReadU_20ms(Probes.Pin_1);     /* get voltage at source */
+    Diff_1 = U_1 - U_2;                 /* source voltage difference */
 
     /*
      *  If the source voltage is higher when the gate is driven by a positive
@@ -904,6 +926,25 @@ void CheckDepletionModeFET(unsigned int U_Rl_L)
 
     if (U_1 > (U_2 + 488))
     {
+
+      /*
+       *  same measurements with assumed drain and source reversed:
+       *  - to detect if JFET is symmetrical
+       *  - to detect drain and source of MOSFET
+       */
+
+      /* we simulate: probe-1 = D / probe-2 = S / probe-3 = G */
+      /* set probes: Gnd -- probe-1 / probe-2 -- Rl -- Vcc */
+      ADC_DDR = Probes.ADC_1;             /* pull down drain directly */
+      R_DDR = Probes.Rl_2 | Probes.Rh_3;  /* enable Rl for probe-2 & Rh for probe-3 */
+      R_PORT = Probes.Rl_2 | Probes.Rh_3; /* pull up source via Rl / pull up gate via Rh */
+      U_1 = ReadU_20ms(Probes.Pin_2);     /* get voltage at source */
+
+      R_PORT = Probes.Rl_2;               /* pull down gate via Rh */
+      U_2 = ReadU_20ms(Probes.Pin_2);     /* get voltage at source */
+      Diff_2 = U_1 - U_2;                 /* source voltage difference */
+
+
       /*
        *  Compare gate voltages to distinguish JFET from MOSFET
        */
@@ -912,25 +953,63 @@ void CheckDepletionModeFET(unsigned int U_Rl_L)
       ADC_PORT = Probes.ADC_1;          /* pull up source directly */
       ADC_DDR = Probes.ADC_1;           /* enable pull up for source */
       /* gate is still pulled down via Rh */
-      U_2 = ReadU_20ms(Probes.Pin_3);   /* get voltage at gate */
+      U_1 = ReadU_20ms(Probes.Pin_3);   /* get voltage at gate */
 
-      if (U_2 < 977)               /* MOSFET */
+      if (U_1 < 977)               /* MOSFET */
       {
-        /* p channel depletion-mode MOSFET */ 
-        Check.Type =  TYPE_P_CHANNEL | TYPE_DEPLETION | TYPE_MOSFET; //Depletion-MOSFET
+        /* p-channel depletion-mode MOSFET */ 
+        Check.Type =  TYPE_P_CHANNEL | TYPE_DEPLETION | TYPE_MOSFET;
       }
       else                         /* JFET */
       {
-        /* p channel JFET (depletion-mode only) */
+        /* p-channel JFET (depletion-mode only) */
         Check.Type = TYPE_P_CHANNEL | TYPE_DEPLETION | TYPE_JFET;
       }
 
-      /* save data */
-      Check.Found = COMP_FET;
-      Check.Done = 1;
-      FET.G = Probes.Pin_3;
-      FET.D = Probes.Pin_2;
-      FET.S = Probes.Pin_1;
+      Flag = 1;                    /* signal match */
+    }
+  }
+
+
+  /*
+   *  on match process and save data
+   */
+
+  if (Flag == 1)         /* found depletion-mode FET */
+  {
+    /* common stuff */
+    Check.Found = COMP_FET;
+    Check.Done = 1;
+    Semi.A = Probes.Pin_3;         /* gate pin */
+
+    /*
+     *  drain & source pinout
+     *  - larger voltage difference wins
+     */
+
+    if (Diff_1 > Diff_2)      /* drain and source as assumed */
+    {
+      Semi.B = Probes.Pin_1;       /* drain pin */
+      Semi.C = Probes.Pin_2;       /* source pin */
+    }
+    else                      /* drain and source reversed */
+    {
+      Semi.B = Probes.Pin_2;       /* drain pin */
+      Semi.C = Probes.Pin_1;       /* source pin */
+    }
+
+    /*
+     *  drain & source symmetry
+     *  - if both voltage differences are about the same we got a
+     *    symmetrical FET
+     */
+
+    U_2 = Diff_1 / 50;             /* 2% of Diff_1 */
+    U_1 = Diff_1 - U_2;            /* 98% */
+    U_2 += Diff_1;                 /* 102% */
+    if ((Diff_2 >= U_1) && (Diff_2 <= U_2))
+    {
+      Check.Type |= TYPE_SYMMETRICAL; 
     }
   }
 }
@@ -943,7 +1022,7 @@ void CheckDepletionModeFET(unsigned int U_Rl_L)
 
 
 /*
- *  check for thyristor and triac
+ *  check for Thyristor and Triac
  *
  *  returns:
  *  - 1 if component was found
@@ -955,97 +1034,134 @@ uint8_t CheckThyristorTriac(void)
   uint8_t           Flag = 0;           /* return value */
   unsigned int      U_1;                /* voltage #1 */
   unsigned int      U_2;                /* voltage #2 */
+  unsigned int      V_GT;               /* gate trigger voltage */
 
   /*
-   *  check for a thyristor (SCR) or triac
+   *  check for a Thyristor (SCR) or Triac
    *  - A thyristor conducts also after the gate is discharged as long
    *    as the load current stays alive and doesn't reverse polarity.
-   *  - A triac is a pair of anti-parallel thyristors. 
+   *  - A triac is similar to a pair of anti-parallel thyristors but is
+   *    triggered also by negative gate current. 
    *  - It's possible that the tester doesn't deliver enough current, so
    *    it can't detect all types.
    */
 
   /*
    *  probes need to be set already to:
-   *    Gnd -- probe-2 / probe-1 -- Rl -- Vcc
+   *    Gnd -- probe-2 / probe-1 -- Rl -- Vcc / probe-3 -- Rl -- Vcc
    */
 
-  /* we assume: probe-1 = A / probe-2 = C / probe-3 = G */
+  /* we assume: probe-1 = A / probe-2 = C / probe-3 = G for a SCR */
+  /*            probe-1 = MT2 / probe-2 = MT1 / probe-3 = G for a triac */  
+
+  /* V_GT (gate trigger voltage) */
+  U_1 = ReadU(Probes.Pin_3);            /* voltage at gate */
+  U_2 = ReadU(Probes.Pin_2);            /* voltage at cathode */
+  V_GT = U_1 - U_2;                     /* = Ug - Uc */
+
+  /* discharge gate and check load current */
   PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLDOWN);    /* discharge gate */
   U_1 = ReadU_5ms(Probes.Pin_1);        /* get voltage at anode */
 
+  /* simulate short loss of current and check load current again */ 
   R_PORT = 0;                           /* pull down anode */
   wait5ms();
   R_PORT = Probes.Rl_1;                 /* and pull up anode again */
   U_2 = ReadU_5ms(Probes.Pin_1);        /* get voltage at anode (below Rl) */
 
-  /* voltages match behaviour of thyristor or triac */
+  /* voltages at anode match behaviour of thyristor or triac */
   if ((U_1 < 1600) && (U_2 > 4400))
   {
-    Check.Found = COMP_THYRISTOR;       /* if not detected as a triac below */
-    Check.Done = 1;
-
     /*
-     *  check if we got a triac
-     *  - reverse A and C (A = MT2 / C = MT1)
-     *  - check if behaviour is the same
+     *  Now we check if the DUT is a thyristor or a triac:
+     *  - set Gate to HiZ and reverse Anode & Cathode
+     *  - check if DUT doesn't conduct
+     *  - trigger gate by pulling it down to Gnd for a short moment
+     *  - check if DUT passes current
+     *  A thyrister shouldn't conduct but a triac should (Q3 operation mode).
      */
 
-    /* we assume: probe-1 = MT2 / probe-2 = MT1 / probe-3 = G */
+    /* reverse Anode and Cathode (MT2 and MT1) */
+    /* set probes: Gnd -- probe-1 / probe-2 -- Rl -- Vcc  */
     R_DDR = 0;                          /* disable all probe resistors */
     R_PORT = 0;
-    ADC_PORT = Probes.ADC_2;            /* pull up MT1 directly */
+    ADC_PORT = Probes.ADC_2;            /* pull up Cathode directly */
     wait5ms();
-    R_DDR = Probes.Rl_1;                /* pull down MT2 via Rl */ 
-    /* probe-3/gate is in HiZ mode */
+    R_DDR = Probes.Rl_1;                /* pull down Anode via Rl */ 
+    /* probe-3 = gate is in HiZ mode */
 
-    /* triac shouldn't conduct without a triggered gate */ 
-    U_1 = ReadU_5ms(Probes.Pin_1);      /* get voltage at MT2 */
+    /* check if DUT doesn't conduct */
+    U_1 = ReadU_5ms(Probes.Pin_1);      /* get voltage at Anode */
 
-    /* voltage of MT2 is low (no current) */
-    if (U_1 <= 244)
+    if (U_1 <= 244)      /* voltage at Anode is low (no current) */
     {
-      /* trigger gate for reverse direction */
-      R_DDR = Probes.Rl_1 | Probes.Rl_3;     /* and pull down gate via Rl */
-      U_1 = ReadU_5ms(Probes.Pin_3);         /* get voltage at gate */
-      U_2 = ReadU(Probes.Pin_1);             /* get voltage at MT2 */  
+      /* trigger the gate with a negative current (Triac: Q3) */
+      PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLDOWN);
 
-      /*
-       * voltage at gate is ok and voltage at MT2 is high
-       * (current = triac is conducting)
-       */
+      /* check for conduction */
+      U_1 = ReadU_5ms(Probes.Pin_1);    /* get voltage at Anode */
 
-      if ((U_1 >= 977) && (U_2 >= 733))
+      if (U_1 < 733)         /* no current -> Thyristor */
       {
-        /* check if triac still conducts without triggered gate */ 
-        R_DDR = Probes.Rl_1;                 /* set probe3 to HiZ mode */
-        U_1 = ReadU_5ms(Probes.Pin_1);       /* get voltage at MT2 */
+        Check.Found = COMP_THYRISTOR;   /* we found a Thyristor */
+        Check.Done = 1;                 /* detected component */
+        Flag = 2;                       /* save data and signal success */
+      }
+      else                   /* got current -> Triac */
+      {
+        /*
+         *  To verify the Triac we stop the current flow for a moment and check
+         *  the voltage at MT2 again. The Triac shouldn't conduct anymore,
+         */
 
-        /* voltage at MT2 is still high (current = triac is conducting) */
-        if (U_1 >= 733)
+        /* drop load current for a moment */
+        R_PORT = Probes.Rl_1;           /* pull up MT2 via Rl */
+        wait5ms();
+        R_PORT = 0;                     /* and pull down MT2 via Rl */
+
+        /* and check load current again */
+        U_2 = ReadU_5ms(Probes.Pin_1);  /* get voltage at MT2 */
+
+        if (U_2 <= 244)       /* no current */
         {
-          /* check if triac stops conducting when load current drops to zero */
-          R_PORT = Probes.Rl_1;              /* pull up MT2 via Rl */
-          wait5ms();
-          R_PORT = 0;                        /* and pull down MT2 via Rl */
-          U_1 = ReadU_5ms(Probes.Pin_1);     /* get voltage at MT2 */
-
-          /* voltage at MT2 is low (no current = triac is not conducting) */
-          if (U_1 <= 244)
+          if (Check.Found == COMP_TRIAC)     /* second test run */
           {
-            /* now we are pretty sure that the DUT is a triac */
-            Check.Found = COMP_TRIAC;
+            Check.Done = 1;             /* no more tests needed */
+          }
+
+          Check.Found = COMP_TRIAC;     /* found Triac */
+
+          /*
+           *  Triac could be in Q3 or Q4 operation mode. If G and MT1 are swapped
+           *  the triac would pass the former check in Q4 mode but the current
+           *  through MT2 would be a little bit lower. Another issue is that some
+           *  Triacs don't support Q4. So we support up to two test runs and prefer
+           *  the one with the higher voltage at MT2.
+           */
+
+          if (U_1 > Semi.I_1)      /* first run or higher current */
+          {
+            Semi.I_1 = U_1;        /* update reference value */
+            Flag = 2;              /* save data and signal success */
+          }
+          else                     /* wrong pinout */
+          {
+            Flag = 1;              /* signal success, but don't save data */
           }
         }
       }
     }
+  }
 
-    /* save data (we misuse BJT) */
-    BJT.B = Probes.Pin_3;
-    BJT.C = Probes.Pin_1;
-    BJT.E = Probes.Pin_2;
+  if (Flag == 2)         /* save data and signal success */
+  {
+    /* save data */
+    Semi.A = Probes.Pin_3;    /* Gate pin */
+    Semi.B = Probes.Pin_1;    /* Anode/MT2 pin */
+    Semi.C = Probes.Pin_2;    /* Cathode/MT1 pin */
+    Semi.U_1 = V_GT;          /* gate trigger voltage (in mV) */
 
-    Flag = 1;            /* signal that we found a component */
+    Flag = 1;                 /* signal success */
   }
 
   return Flag;

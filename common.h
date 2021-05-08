@@ -2,7 +2,7 @@
  *
  *   common header file
  *
- *   (c) 2012-2013 by Markus Reschke
+ *   (c) 2012-2014 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -55,19 +55,20 @@
 #define TYPE_DISCHARGE        1    /* discharge error */
 
 
-/* FET type bit masks (also used for IGBTs) */
+/* FET types, also used for IGBTs (bit mask) */
 #define TYPE_N_CHANNEL        0b00000001     /* n channel */
 #define TYPE_P_CHANNEL        0b00000010     /* p channel */
 #define TYPE_ENHANCEMENT      0b00000100     /* enhancement mode */
 #define TYPE_DEPLETION        0b00001000     /* depletion mode */
 #define TYPE_MOSFET           0b00010000     /* MOSFET */
 #define TYPE_JFET             0b00100000     /* JFET */
-#define TYPE_IGBT             0b01000000     /* IGBT (no FET) */
+#define TYPE_SYMMETRICAL      0b01000000     /* symmetrical drain/source */
 
 
-/* BJT (bipolar junction transistor) type IDs */ 
-#define TYPE_NPN              1    /* NPN */
-#define TYPE_PNP              2    /* PNP */
+/* BJT types (bit mask) */ 
+#define TYPE_NPN              0b00000001     /* NPN */
+#define TYPE_PNP              0b00000010     /* PNP */
+#define TYPE_PARASITIC        0b00000100     /* parasitic BJT */
 
 
 /* tester operation modes */
@@ -75,13 +76,13 @@
 #define MODE_AUTOHOLD         1    /* auto hold */
 
 
-/* multiplicator tables */
+/* multiplicator table IDs */
 #define TABLE_SMALL_CAP       1
 #define TABLE_LARGE_CAP       2
 #define TABLE_INDUCTOR        3
 
 
-/* bit flags for PullProbe() */
+/* bit flags for PullProbe() (bit mask) */
 #define FLAG_PULLDOWN         0b00000000
 #define FLAG_PULLUP           0b00000001
 #define FLAG_1MS              0b00001000
@@ -117,19 +118,20 @@ typedef struct
 typedef struct
 {
   /* probe pins */
-  uint8_t             Pin_1;       /* probe-1 */
-  uint8_t             Pin_2;       /* probe-2 */
-  uint8_t             Pin_3;       /* probe-3 */
+  uint8_t           Pin_1;         /* probe-1 */
+  uint8_t           Pin_2;         /* probe-2 */
+  uint8_t           Pin_3;         /* probe-3 */
 
   /* bit masks for switching probes and test resistors */
-  uint8_t             Rl_1;        /* Rl mask for probe-1 */
-  uint8_t             Rh_1;        /* Rh mask for probe-1 */
-  uint8_t             Rl_2;        /* Rl mask for probe-2 */
-  uint8_t             Rh_2;        /* Rh mask for probe-2 */
-  uint8_t             Rl_3;        /* Rl mask for probe-3 */
-  uint8_t             Rh_3;        /* Rh mask for probe-3 */
-  uint8_t             ADC_1;       /* ADC mask for probe-1 */
-  uint8_t             ADC_2;       /* ADC mask for probe-2 */
+  uint8_t           Rl_1;          /* Rl mask for probe-1 */
+  uint8_t           Rh_1;          /* Rh mask for probe-1 */
+  uint8_t           Rl_2;          /* Rl mask for probe-2 */
+  uint8_t           Rh_2;          /* Rh mask for probe-2 */
+  uint8_t           Rl_3;          /* Rl mask for probe-3 */
+  uint8_t           Rh_3;          /* Rh mask for probe-3 */
+  uint8_t           ADC_1;         /* ADC mask for probe-1 */
+  uint8_t           ADC_2;         /* ADC mask for probe-2 */
+//  uint8_t           ADC_3;         /* ADC mask for probe-3 */
 } Probe_Type;
 
 
@@ -151,7 +153,7 @@ typedef struct
 {
   uint8_t           A;             /* probe pin #1 */
   uint8_t           B;             /* probe pin #2 */
-  uint8_t           Scale;         /* exponent of factor (value * 10^x) */
+  int8_t            Scale;         /* exponent of factor (value * 10^x) */
   unsigned long     Value;         /* resistance */
 } Resistor_Type;
 
@@ -185,33 +187,33 @@ typedef struct
 } Diode_Type;
 
 
-/* bipolar junction transistor */
+/* semiconductors */
 typedef struct
 {
-  uint8_t           B;             /* probe pin connected to base */
-  uint8_t           C;             /* probe pin connected to collector */
-  uint8_t           E;             /* probe pin connected to emitter */
-  unsigned long     hFE;           /* current amplification factor */
-  /* U_BE voltage */
-  uint16_t          I_CE0;         /* leakage current (in µA) */
-} BJT_Type;
+  uint8_t           A;             /* probe pin connected to pin A */
+  uint8_t           B;             /* probe pin connected to pin B */
+  uint8_t           C;             /* probe pin connected to pin C */
+  uint16_t          U_1;           /* voltage #1 */
+  int16_t           U_2;           /* voltage #2 */
+  uint16_t          I_1;           /* current #1 */
+  unsigned long     F_1;           /* factor #1 */
+} Semi_Type;
 
+/* 
 
-/* FET */
-typedef struct
-{
-  uint8_t           G;             /* test pin connected to gate */
-  uint8_t           D;             /* test pin connected to drain */
-  uint8_t           S;             /* test pin connected to source */
-  uint16_t          V_th;          /* threshold voltage of gate in mV */
-} FET_Type;
+  Mapping
 
+          BJT         FET         SCR         Triac       IGBT
+  ------------------------------------------------------------------
+  A       Base        Gate        Gate        Gate        Gate
+  B       Collector   Drain       Anode       MT2         Collector
+  C       Emitter     Source      Cathode     MT1         Emitter
+  U_1     U_BE (mV)               V_GT (mV)   V_GT (mV)
+  U_2                 V_th (mV)                           V_th (mV)
+  I_1     I_CE0 (µA)                          Help (mV)
+  F_1     hFE
 
-/* Error (failed discharge */
-typedef struct
-{
-
-} Error_Type;
+*/
 
 
 

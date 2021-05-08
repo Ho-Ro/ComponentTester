@@ -2,7 +2,7 @@
  *
  *   global variables
  *
- *   (c) 2012-2013 by Markus Reschke
+ *   (c) 2012-2014 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -47,8 +47,7 @@
   Resistor_Type     Resistors[3];            /* resistors (3 combinations) */
   Capacitor_Type    Caps[3];                 /* capacitors (3 combinations) */
   Diode_Type        Diodes[6];               /* diodes (3 combinations in 2 directions) */
-  BJT_Type          BJT;                     /* bipolar junction transistor */
-  FET_Type          FET;                     /* FET */
+  Semi_Type         Semi;                    /* semiconductor (BJT, FET, ...) */
 
   #ifdef EXTRA
     Inductor_Type   Inductor;                /* inductor */
@@ -81,9 +80,6 @@
     const unsigned char Low_str[] EEMEM = "leer";
     const unsigned char Failed1_str[] EEMEM = "Kein Bauteil";
     const unsigned char Failed2_str[] EEMEM = "gefunden!";
-    const unsigned char Thyristor_str[] EEMEM = "Thyristor";
-    const unsigned char Triac_str[] EEMEM = "Triac";
-    const unsigned char GAK_str[] EEMEM = "GAK=";
     const unsigned char Done_str[] EEMEM = "fertig!";
     const unsigned char Select_str[] EEMEM = "Wähle";
     const unsigned char Selftest_str[] EEMEM = "Selbsttest";
@@ -96,6 +92,9 @@
     const unsigned char DischargeFailed_str[] EEMEM = "Batterie?";
     const unsigned char Error_str[] EEMEM = "Fehler!";
     const unsigned char Exit_str[] EEMEM = "Abbrechen";
+    const unsigned char BJT_str[] EEMEM = "Transistor";
+    const unsigned char Thyristor_str[] EEMEM = "Thyristor";
+    const unsigned char Triac_str[] EEMEM = "Triac";
 
   /* language specific: another language */
   #elif defined (UI_WHATEVER)
@@ -108,9 +107,6 @@
     const unsigned char Low_str[] EEMEM = "low";
     const unsigned char Failed1_str[] EEMEM = "No component";
     const unsigned char Failed2_str[] EEMEM = "found!";
-    const unsigned char Thyristor_str[] EEMEM = "SCR";
-    const unsigned char Triac_str[] EEMEM = "Triac";
-    const unsigned char GAK_str[] EEMEM = "GAC=";
     const unsigned char Done_str[] EEMEM = "done!";
     const unsigned char Select_str[] EEMEM = "Select";
     const unsigned char Selftest_str[] EEMEM = "Selftest";
@@ -123,6 +119,9 @@
     const unsigned char DischargeFailed_str[] EEMEM = "Battery?";
     const unsigned char Error_str[] EEMEM = "Error!";
     const unsigned char Exit_str[] EEMEM = "Exit";
+    const unsigned char BJT_str[] EEMEM = "BJT";
+    const unsigned char Thyristor_str[] EEMEM = "SCR";
+    const unsigned char Triac_str[] EEMEM = "Triac";
   #endif
 
   /* language independent */
@@ -136,13 +135,11 @@
   const unsigned char Depletion_str[] EEMEM = "dep.";
   const unsigned char IGBT_str[] EEMEM = "IGBT";
   const unsigned char GateCap_str[] EEMEM = "Cgs=";
-  const unsigned char GDS_str[] EEMEM = "GDS=";
-  const unsigned char GCE_str[] EEMEM = "GCE=";
   const unsigned char NPN_str[] EEMEM = "NPN";
   const unsigned char PNP_str[] EEMEM = "PNP";
-  const unsigned char EBC_str[] EEMEM = "EBC=";
   const unsigned char hFE_str[] EEMEM ="h_FE=";
   const unsigned char V_BE_str[] EEMEM ="V_BE=";
+  const unsigned char V_GT_str[] EEMEM ="V_GT=";
   const unsigned char I_CEO_str[] EEMEM = "I_CEO=";
   const unsigned char Vf_str[] EEMEM = "Vf=";
   const unsigned char DiodeCap_str[] EEMEM = "C=";
@@ -161,10 +158,11 @@
   const unsigned char ROffset_str[] EEMEM = "R0";
   const unsigned char CompOffset_str[] EEMEM = "AComp";
   const unsigned char Checksum_str[] EEMEM = "ChkSum";
-  const unsigned char PWM_str[] EEMEM = "PWM";
-  const unsigned char Hertz_str[] EEMEM = "Hz";
 
   #ifdef EXTRA
+    const unsigned char PWM_str[] EEMEM = "PWM";
+    const unsigned char Hertz_str[] EEMEM = "Hz";
+
     #ifdef HW_ZENER
       const unsigned char Zener_str[] EEMEM = "Zener";
       const unsigned char Min_str[] EEMEM = "Min";
@@ -172,12 +170,11 @@
   #endif
 
   const unsigned char Cap_str[] EEMEM = {'-',LCD_CHAR_CAP, '-',0};
-  const unsigned char Diode_AC_str[] EEMEM = {'-', LCD_CHAR_DIODE1, '-', 0};
-  const unsigned char Diode_CA_str[] EEMEM = {'-', LCD_CHAR_DIODE2, '-', 0};
-  const unsigned char Diodes_str[] EEMEM = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
-  const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
+  const unsigned char Diode_AC_str[] EEMEM = {'-', LCD_CHAR_DIODE_AC, '-', 0};
+  const unsigned char Diode_CA_str[] EEMEM = {'-', LCD_CHAR_DIODE_CA, '-', 0};
+  const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
-  const unsigned char Version_str[] EEMEM = "v1.10m";
+  const unsigned char Version_str[] EEMEM = "v1.11m";
 
 
   /*
@@ -216,9 +213,6 @@
   /* unit prefixes: p, n, µ, m, 0, k, M (used by value display) */
   const unsigned char Prefix_table[] EEMEM = {'p', 'n', LCD_CHAR_MICRO, 'm', 0, 'k', 'M'};
 
-  /* PWM menu: frequencies */
-  const uint16_t PWM_Freq_table[] MEM_TEXT = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
-
   /* voltage based factors for large caps (using Rl) */
   /* voltage in mV:                             300    325    350    375    400    425    450    475    500    525    550    575    600    625    650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400 */
   const uint16_t LargeCap_table[] MEM_TEXT = {23022, 21195, 19629, 18272, 17084, 16036, 15104, 14271, 13520, 12841, 12224, 11660, 11143, 10668, 10229, 9822, 9445, 9093, 8765, 8458, 8170, 7900, 7645, 7405, 7178, 6963, 6760, 6567, 6384, 6209, 6043, 5885, 5733, 5589, 5450, 5318, 5191, 5069, 4952, 4839, 4731, 4627, 4526, 4430, 4336};
@@ -228,8 +222,11 @@
   const uint16_t SmallCap_table[] MEM_TEXT = {954, 903, 856, 814, 775, 740, 707, 676, 648};
 //const uint16_t SmallCap_table[] MEM_TEXT = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
 
-  /* ratio based factors for inductors */
   #ifdef EXTRA
+    /* PWM menu: frequencies */    
+    const uint16_t PWM_Freq_table[] MEM_TEXT = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
+
+    /* ratio based factors for inductors */
     /* ratio:                                    200   225   250   275   300   325   350   375   400   425   450   475   500   525   550   575   600   625  650  675  700  725  750  775  800  825  850  875  900  925  950  975 */
     const uint16_t Inductor_table[] MEM_TEXT = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
   #endif
@@ -280,8 +277,7 @@
   extern Resistor_Type   Resistors[3];            /* resistors (3 combinations) */
   extern Capacitor_Type  Caps[3];                 /* capacitors (3 combinations) */
   extern Diode_Type      Diodes[6];               /* diodes (3 combinations in 2 directions) */
-  extern BJT_Type        BJT;                     /* bipolar junction transistor */
-  extern FET_Type        FET;                     /* FET */
+  extern Semi_Type       Semi;                    /* semiconductor (BJT, FET, ...) */
 
   #ifdef EXTRA
     extern Inductor_Type Inductor;                /* inductor */
@@ -347,17 +343,17 @@
   /* unit prefixes: p, n, µ, m, 0, k, M (used by value display) */
   extern const unsigned char Prefix_table[];
 
-  /* PWM menu: frequencies */
-  extern const uint16_t PWM_Freq_table[];
-
   /* voltage based factors for large caps (using Rl) */
   extern const uint16_t LargeCap_table[];
 
   /* voltage based factors for small caps (using Rh) */
   extern const uint16_t SmallCap_table[];
 
-  /* voltage based factors for inductors */
   #ifdef EXTRA
+    /* PWM menu: frequencies */
+    extern const uint16_t PWM_Freq_table[];
+
+    /* voltage based factors for inductors */
     extern const uint16_t Inductor_table[];
   #endif
 

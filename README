@@ -3,11 +3,37 @@
 
                    ReadMe for the Component Tester firmware
 
-        (c) 2012-2013 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2014 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit:  2013-10-17
+Last edit:  2014-03-10
+
+Content
+- About
+- Safety Advice
+- Whats different?
+- Building the firmware
+- Source Code
+- Test Key
+- Startup
+- Probing
+- Power Off
+- Menu
+  - PWM Tool
+  - Zener Tool
+  - Selftest
+  - Self Adjustment
+  - Save
+  - Show Values
+  - Exit
+- Resistors
+- Measuring Capacitance
+- Discharging Components
+- ADC Oversampling
+- Vf (V_BE) of BJTs
+- Displaying Results
+  - Special Components
 
 
 * About
@@ -25,6 +51,7 @@ Since the firmware's size exceeds 16kB Flash some features are only enabled
 for the ATmega328/P:
 - inductance measurement
 - Zener voltage measurement (hardware option)
+- PWM tool
 
 
 * Safety Advice
@@ -110,7 +137,7 @@ In both modes you can enter a menu with additional functions or power off
 the tester. For details please see below.
 
 
-* Power Off 
+* Power Off
 
 While displaying the result of the last test a long key press powers the
 tester off. The tester will clear the display and then power off. As long
@@ -284,6 +311,16 @@ measurements by increasing the number of samples. Note that more samples will
 take more time resulting in slower measurements.
 
 
+q* Vf (V_BE) of BJTs
+
+When checking for diodes Vf is measured with Rl (high test current) and Rh (
+low test current), and both voltages are stored. The output function for BJTs
+looks up the matching diode for V_BE and interpolates the two Vf measurements
+based on the transistors hfe for a virtual test current. That way we get some
+nice results for different kinds of transistors, since Vf of a small signal
+BJT isn't measured with the same test current as for a power BJT.
+
+
 * Displaying Results
 
 Several names and abbreviations are changed. The output for several devices
@@ -304,18 +341,29 @@ For some devices the capacitance is shown also. In case the capacitance is
 below 5pF or the measurement failed for some reason the value displayed
 will be 0pF.
 
-If a JFET is detected only the gate pin is shown since drain and source
-can't be differentiated.
+If a depletion-mode FET with symmetrical Drain and Source is found, e.g. a
+JFET, the pinout shows an 'x' instead of a 'D' or 'S' because both can't be
+distinguished, they are functionally identical. Please see the FET's datasheet
+if you need more details about the pinout.
+
+The pinout for a Triac is shown with the pin IDs 'G', '1' and '2'. '1' is MT1
+and '2' is MT2.
 
 
-* Vf (V_BE) of BJTs
++ Special Components
 
-When checking for diodes Vf is measured with Rl (high test current) and Rh (
-low test current), and both voltages are stored. The output function for BJTs
-looks up the matching diode for V_BE and interpolates the two Vf measurements
-based on the transistors hfe for a virtual test current. That way we get some
-nice results for different kinds of transistors, since Vf of a small signal
-BJT isn't measured with the same test current as for a power BJT.
+For a BJT with a base emitter resistor the tester displays the base emitter
+resistor and skips the hFE output. If the BJT also got a freewheeling diode the
+BJT might be detected as BJT or two diodes based on the value of the base
+emitter resistor (low value resistor -> 2 diodes). In the latter case the tester
+shows the two diodes and the resistor while hinting at a possible NPN or PNP
+BJT, The problem is that the low value base emitter resistor prevents the proper
+identification of the BJT.
+
+Another special case is a BJT with an integrated freewheeling diode on the same
+subtrate as the BJT. That integrated diode junction creates a parasitic
+transistor. A NPN BJT will have a parasitic PNP and vice versa. If such a BJT
+is found the tester prints a '+' behind the BJT type.
 
 
 * Unsupported Components

@@ -584,27 +584,30 @@ void MainMenu(void)
   #ifdef EXTRA
     #define MENU_ITEMS  7
   #else
-    #define MENU_ITEMS  6  
+    #define MENU_ITEMS  5  
   #endif
 
   uint8_t           Item = 0;           /* item number */
   uint8_t           Flag = 1;           /* control flag */
   uint8_t           ID;                 /* ID of selected item */
+  #ifdef EXTRA
   uint16_t          Frequency;          /* PWM frequency */  
+  #endif
   void              *MenuItem[MENU_ITEMS];   /* menu item strings */
   uint8_t           MenuID[MENU_ITEMS];      /* menu item IDs */
 
   /* setup menu */
+  #ifdef EXTRA
   MenuItem[Item] = (void *)PWM_str;
   MenuID[Item] = 5;
-  #ifdef EXTRA
     #ifdef HW_ZENER
   Item++;
   MenuItem[Item] = (void *)Zener_str;
   MenuID[Item] = 6;
     #endif
-  #endif
   Item++;
+  #endif
+
   MenuItem[Item] = (void *)Selftest_str;
   MenuID[Item] = 1;
   Item++;
@@ -648,6 +651,7 @@ void MainMenu(void)
       ShowAdjust();
       break;
 
+    #ifdef EXTRA
     case 5:              /* PWM tool */
       /* run PWM menu */
       lcd_clear();
@@ -657,7 +661,6 @@ void MainMenu(void)
       PWM_Tool(Frequency);                             /* and run PWM tool */
       break;
 
-    #ifdef EXTRA
       #ifdef HW_ZENER
     case 6:              /* Zener tool */
       Zener_Tool();

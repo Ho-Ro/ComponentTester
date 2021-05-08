@@ -105,9 +105,9 @@
 
 #ifndef EXTRAS_C
 
-  extern void PWM_Tool(uint16_t Frequency);
-
   #ifdef EXTRA
+    extern void PWM_Tool(uint16_t Frequency);
+
     #ifdef HW_ZENER
       extern void Zener_Tool(void);
     #endif
@@ -130,7 +130,7 @@
 
   extern void VerifyMOSFET(void);
   extern void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl);
-  extern void CheckDepletionModeFET(unsigned int U_Rl_L);
+  extern void CheckDepletionModeFET(void);
 
   extern uint8_t CheckThyristorTriac(void);
 
@@ -145,6 +145,7 @@
 
   extern unsigned int SmallResistor(uint8_t ZeroFlag);
   extern void CheckResistor(void);
+  extern uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin);
 
 #endif
 

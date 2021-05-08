@@ -6,6 +6,29 @@
 
 ------------------------------------------------------------------------------
 
+v1.11m 2014-03
+- Improved pinout detection for Triacs (G and MT1) and changed display
+  to report MT1 and MT2.
+- Added pinout display function for semiconductors and changed output to
+  "123=" style for better readabilty.
+- Optimized several component output functions.
+- Improved the BJT check to detect transistors with a built-in freewheeling
+  diode on the same substrate (creating a parasitic BJT). The BJT output
+  prints a '+' behind the BJT type for such transistors.
+- Modified diode display to support possible BJTs with protection diode and
+  low value B-E resistor. Those are detected as dual diodes. The B-E resistor
+  will be shown to signal that special case.
+- Modified BJT display to support base-emitter resistors. If a B-E resistor is
+  found hFE and V_BE will be skipped since both values can't be measured in a
+  reasonable way in that case. 
+- Improved diode test to detect body diodes of dep-mode FETs.
+- Fixed detection problem of drain and source for depletion-mode FETs.
+- Added detection of symmetrical drain and source for depletion-mode FETs.
+- Vth is negative for p-channel FETs now.  
+- Added measurement of V_GT for SCRs and Triacs.
+- Due to flash size constraints the PWM tool is now available for the 
+  ATmega328 only.
+
 v1.10m 2013-10
 - Added support for external 2.5V voltage reference (hardware option).
 - Added support for relay based cap discharging (hardware option).

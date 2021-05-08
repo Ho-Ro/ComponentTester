@@ -32,6 +32,8 @@
  * ************************************************************************ */
 
 
+#ifdef EXTRA
+
 /*
  *  PWM tool
  *  - use probe #2 (PB2, OC1B) as PWM output
@@ -169,6 +171,8 @@ void PWM_Tool(uint16_t Frequency)
   R_DDR = 0;                  /* set HiZ mode */
   Config.SleepMode = SLEEP_MODE_PWR_SAVE;    /* reset sleep mode to default */
 }
+
+#endif
 
 
 

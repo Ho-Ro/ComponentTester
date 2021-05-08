@@ -27,6 +27,34 @@
 #include "functions.h"        /* external functions */
 
 
+/* ************************************************************************
+ *   ESR measurement
+ * ************************************************************************ */
+
+
+#ifdef EXTRA
+
+#if 0
+/*
+ *  measure ESR
+ *
+ *  returns:
+ *  - ESR in 0.01 Ohm
+ */
+
+unsigned int MeasureESR(void)
+{
+  unsigned int           ESR = 0;
+
+  /* setup probes: Gnd -- probe 1 / probe 2 -- Rl -- Vcc */
+
+  return ESR;
+}
+#endif
+
+#endif
+
+
 
 /* ************************************************************************
  *   capacitance measurements
