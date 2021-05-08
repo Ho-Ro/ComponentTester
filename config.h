@@ -162,7 +162,8 @@
  *  - low and high frequency crystal oscillators
  *    and buffered frequency input
  *  - prescalers 1:1 and 16:1 (32:1)
- *  - see COUNTER_PORT in config-<MCU>.h for port pins
+ *  - uses T0 directly as frequency input
+ *  - see COUNTER_CTRL_PORT in config-<MCU>.h for port pins
  *  - requires a display with more than 2 text lines
  *  - uncomment to enable
  *  - select the circuit's prescaler setting: either 16:1 or 32:1 
@@ -219,6 +220,34 @@
 
 
 /*
+ *  L/C meter hardware option
+ *  - uses T0 directly as frequency input
+ *  - see LC_CTRL_PORT in config-<MCU>.h for port pins
+ *  - uncomment to enable
+ */
+
+//#define HW_LC_METER
+
+
+/*
+ *  L/C meter: value of reference capacitor C_p (in 0.1 pF)
+ *  - should be around 1000pF
+ */
+
+#define LC_METER_C_REF        10000
+
+
+/*
+ *  L/C meter: also display frequency of LC oscillator
+ *  - helps to spot the oscillator's frequency drifting 
+ *  - requires display with more than two text lines
+ *  - uncomment to enable
+ */
+
+//#define LC_METER_SHOW_FREQ
+
+
+/*
  *  relay for parallel cap (sampling ADC)
  *  - uncomment to enable (not implemented yet)
  */
@@ -260,7 +289,7 @@
 
 
 /*
- *  ESR measurement and in-circuit ESR measurement
+ *  ESR measurement
  *  - requires MCU clock >= 8 MHz
  *  - choose SW_OLD_ESR for old method starting at 180nF
  *  - uncomment to enable
@@ -268,6 +297,15 @@
 
 #define SW_ESR
 //#define SW_OLD_ESR
+
+
+/*
+ *  ESR Tool (in-circuit ESR measurement)
+ *  - requires SW_ESR or SW_OLD_ESR to be enabled
+ *  - uncomment to enable
+ */
+
+//#define SW_ESR_TOOL
 
 
 /*
@@ -429,6 +467,16 @@
 
 
 /*
+ *  display I_C/I_E test current for hFE measurement
+ *  - I_C for common emitter circuit
+ *    I_E for common collector circuit
+ *  - uncomment to enable
+ */
+
+//#define SW_HFE_CURRENT
+
+
+/*
  *  R/C/L monitors
  *  - monitor passive components connected to probes #1 and #3
  *  - monitors for L require SW_INDUCTOR to be enabled
@@ -549,6 +597,7 @@
  *  - Polish (based on ISO 8859-1)
  *  - Polish 2 (with Polish characters based on ISO 8859-2)
  *  - Spanish
+ *  - Romanian
  *  - Russian (with cyrillic characters based on Windows-1251)
  *  - Russian 2 (with cyrillic characters based on Windows-1251)
  */
@@ -561,6 +610,7 @@
 //#define UI_ITALIAN
 //#define UI_POLISH
 //#define UI_POLISH_2
+//#define UI_ROMANIAN
 //#define UI_RUSSIAN
 //#define UI_RUSSIAN_2
 //#define UI_SPANISH
@@ -661,6 +711,8 @@
  *  - If this number is reached the tester will power off.
  *  - When set to zero the tester will run only once and turn off
  *    after CYCLE_DELAY.
+ *  - When set to 255 this feature will be disabled and the tester runs
+ *    until it's powered off manually.
  */
 
 #define CYCLE_MAX        5
@@ -1279,6 +1331,15 @@
 #endif
 
 
+/* options which require ESR measurement */
+#if ! defined (SW_ESR) && ! defined (SW_OLD_ESR)
+  /* ESR tool */
+  #ifdef SW_ESR_TOOL
+    #undef SW_ESR_TOOL
+  #endif
+#endif
+
+
 /* options which require a MCU clock >= 8MHz */
 #if CPU_FREQ < 8000000
 
@@ -1343,12 +1404,15 @@
 
 /* options which require TTL serial */
 #ifndef HW_SERIAL
+  /* VT100 display */
   #ifdef LCD_VT100
     #undef LCD_VT100
   #endif
+  /* serial copy */
   #ifdef UI_SERIAL_COPY
     #undef UI_SERIAL_COPY
   #endif
+  /* remote commands */
   #ifdef UI_SERIAL_COMMANDS
     #undef UI_SERIAL_COMMANDS
   #endif
@@ -1528,7 +1592,7 @@
 
 /* E96 norm values */
 #if defined (SW_R_E96_T) || defined (SW_R_E96_CC)
-  #define SW_E86
+  #define SW_E96
 #endif
 
 
@@ -1560,6 +1624,14 @@
 #endif
 
 
+/* SmoothLongKeyPress() */
+#if defined (SW_PWM_PLUS) || defined (SW_SERVO) || defined (HW_EVENT_COUNTER) || defined (HW_LC_METER)
+  #ifndef FUNC_SMOOTHLONGKEYPRESS
+    #define FUNC_SMOOTHLONGKEYPRESS
+  #endif
+#endif
+
+
 /* Display_FullValue() */
 #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO)
   #ifndef FUNC_DISPLAY_FULLVALUE
@@ -1573,7 +1645,7 @@
   #endif
 #endif
 
-#if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE)
+#if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE) || defined (LC_METER_SHOW_FREQ)
   #ifndef FUNC_DISPLAY_FULLVALUE
     #define FUNC_DISPLAY_FULLVALUE
   #endif

@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit: 2020-09-21
+Last edit: 2020-12-16
 
 Content
   - About
@@ -28,6 +28,7 @@ Content
     - ILI9341/ILI9342
     - ILI9481
     - ILI9486
+    - ILI9488
     - PCD8544
     - PCF8814
     - SH1106
@@ -58,6 +59,7 @@ Content
     - ESR Tool
     - Capacitor Leakage Check
     - R/C/L Monitors
+    - LC Meter
     - Frequency Counter
       - Basic Counter
       - Extended Counter
@@ -252,17 +254,18 @@ Hardware options:
 - Zener voltage measurement
 - frequency counter (basic and extendend version)
 - event counter
+- LC Meter
 - IR detector/decoder for remote controls
   (fixed IR receiver module)
 - fixed cap for self-adjustment of voltage offsets
 - SPI bus (bit-bang and hardware)
 - I2C bus (bit-bang and hardware)
 - TTL Serial (bit-bang and hardware)
-- OneWire bus (Bit-Bang)
+- OneWire bus (bit-bang)
 
 The external 2.5V voltage reference should be only enabled if it's at least
 10 times more precise than the voltage regulator. Otherwise it would make
-the results worse. If you're using a MCP1702 with a typical tolerance of
+the results worse. If you're using an MCP1702 with a typical tolerance of
 0.4% as voltage regulator you really don't need a 2.5V voltage reference.
 
 And of course the software options:
@@ -306,6 +309,8 @@ Available UI languages:
   - provided by Gino_09@EEVblog
 - Polish
   - provided by Szpila
+- Romanian
+  - provided by Dumidan@EEVblog
 - Russian
   - provided by indman@EEVblog
   - font with cyrillic characters based on Windows-1251
@@ -429,8 +434,9 @@ At the moment following display controllers are supported:
 - HD44780 (character display, 2-4 lines with 16-20 characters)
 - ILI9163 (color graphic display 128x160)
 - ILI9341/ILI9342 (color graphic display 240x320 or 320x240)
-- ILI9481 (color graphic display 320x480, untested)
+- ILI9481 (color graphic display 320x480, partly untested)
 - ILI9486 (color graphic display 320x480, partly untested)
+- ILI9488 (color graphic display 320x480, partly untested)
 - PCD8544 (graphic display 84x48)
 - PCF8814 (graphic display 96x65)
 - SH1106 (graphic display 128x64)
@@ -622,6 +628,25 @@ The ILI9486 is driven by 8-bit parallel or 16-bit parallel. And it uses the
 same pin assignment as the ILI9481.
 
 
++ ILI9488 (partly untested)
+
+The ILI9488 is driven by 8-bit parallel or 16-bit parallel. And it uses the
+same pin assignment as the ILI9481. Additionally, 4-line SPI is supported:
+
+  display     config-<MCU>.h   default      remark
+                               ATmega 644
+  ---------------------------------------------------------------
+  /RES        LCD_RES          PB2          optional
+  /CS         LCD_CS           PB5          optional
+  D/C         LCD_DC           PB3
+  SCL         LCD_SCL          PB7          SPI clock
+  SDA         LCD_SDA          PB5          SPI MOSI
+
+Because of the high resolution of the display and the RGB666 color schema (3
+bytes per pixel) SPI is quite slow, even for hardware SPI and a 16 MHz MCU
+clock. So I wouldn't recommend to use the SPI interface.
+
+
 + PCD8544
 
 The PCD8544 is driven by SPI. The pin assignment is:
@@ -632,7 +657,7 @@ The PCD8544 is driven by SPI. The pin assignment is:
   /RES        LCD_RES          PD4          optional
   /SCE        LCD_SCE          PD5          optional
   D/C         LCD_DC           PD3
-  SCLK        LCD_SCLK         PD2          SPI clock
+  SCL         LCD_SCLK         PD2          SPI clock
   SDIN        LCD_SDIN         PD1          SPI MOSI
 
 Since the display has just 84 pixels in x direction you'll get 14 chars per
@@ -1234,6 +1259,45 @@ Available monitors:
 - L Monitor (inductance)
 - R/C/L Monitor (R plus optionally L, or C plus optionally ESR)
 - R/L Monitor (resistance plus optionally inductance)
+
+
++ LC Meter (hardware option)
+
+The LC Meter hardware option is based on a simple LC oscillator circuit used
+by various inexpensive PIC LC meters. The common design (82µH and 1nF) has a
+base frequency of around 595 kHz, and connecting an additional capacitor or
+inductor will decrease that frequency. With the help of a reference capacitor
+with a known value, the measured frequencies and some math the value of the
+unknown capacitor/inductor can be calculated.
+
+The PIC LC meters usually have measurement ranges of 10nH to 100mH, and 0.1pF
+to 900nF. They seem to use a gate time of 100ms for the frequency counter.
+The m-firmwmare uses auto-ranging with gate times of 100ms and 1000ms to
+improve the resolution for low value L/Cs. Thus the ranges start at about 1nH
+and 10fF. The maximum inductance supported is roughly 150nH. Regarding 
+capacitance I've run into an issue with my PCB. At around 33nF the output
+signal starts having some spurs in the rising and falling edges causing the
+frequency counter to see more pulses than there really are. Could be a problem
+with my PCB layout. Despite that, the maximum should be around 900nF (beyond
+that the LC oscillator will become unstabe).
+
+When starting the LC Meter the tester will run a self-adjustment indicated
+by an "adjusting..." message. After that you can connect the capacitor or
+inductor you like to check. A short button press switches between C and L
+measurement modes (default mode is C). The frequency of the LC oscillator
+drifts over time (up to 100 Hz) and needs a re-adjustment. If you see an
+increasing zero value or a "-" without any component connected please run
+the self-adjustment by a long key press. If there's any problem with the
+self-adjustment or you abort it by pressing some buttom the tester will exit
+the LC meter and report an error. Two short button presses will end the
+LC Meter tool.
+
+Hints:
+- The reference cap should be a low tolerance 1nF film cap. You can also use
+  any common film cap around 1nF, measure its capacitance with a proper LCR
+  meter, and update LC_METER_C_REF.
+- If you're interested in the LC oscillator's frequency and its drifting
+  enable LC_METER_SHOW_FREQ.
 
 
 + Frequency Counter (hardware option)
@@ -1871,7 +1935,7 @@ A measured capacitance value more than 5pF (incl. the zero offset) is
 considered valid. Lower values are too uncertain and could be caused by
 placing the probe leads a little bit differently and things like that.
 
-The tester tries to measure the ESR for capacitors with more than 10nF.
+The tester tries to measure the ESR for capacitors larger than 10nF.
 Alternatively you can also enable the old ESR measurement method starting
 at 180nF. But since the ESR measurement isn't done via an AC signal with a
 specific frequency, please don't expect a solid result. The method used might
@@ -1995,12 +2059,16 @@ used for measuring hFE:
   - e: common emitter circuit
   - c: common collector circuit
 
+If you have enabled the output of the hFE test current (SW_HFE_CURRENT) then
+the tester will display I_C for common emitter circuit and I_E for common
+collector circuit.
+
 When checking for diodes Vf is measured with Rl (high test current) and Rh (
 low test current), and both voltages are stored. The output function for BJTs
 looks up the matching diode for V_BE and interpolates the two Vf measurements
 based on the transistors hFE for a virtual test current. That way we get more
-suitable results for different kinds of transistors, since Vf of a small signal
-BJT isn't measured with the same test current as for a power BJT.
+suitable results for different kinds of transistors, since V_BE of a small
+signal BJT isn't measured with the same test current as for a power BJT.
 
 In case of a BJT with a base emitter resistor the tester displays that
 resistor. Be aware that the B-E resistor has an impact on V_BE and hFE. If the
@@ -2281,6 +2349,20 @@ Probing Commands:
   - returns reverse h_FE value (collector and emitter reversed)
   - applies to BJT
   - example response: "23"
+
+  I_C
+  - returns I_C test current for hFE measurement
+  - requires output of test current for hFE measurement to be enabled
+  - for hFE measurement with common emitter circuit
+  - applies to BJT
+  - example response: "3245uA"
+
+  I_E
+  - returns I_E test current for hFE measurement
+  - requires output of test current for hFE measurement to be enabled
+  - for hFE measurement with common collector circuit
+  - applies to BJT
+  - example response: "3245uA"
 
   V_BE
   - returns V_BE value (base-emitter voltage)

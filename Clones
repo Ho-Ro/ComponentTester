@@ -52,7 +52,8 @@ LCD module:
 #define SPI_SCK          LCD_SCL        /* port pin used for SCK */
 #define SPI_MOSI         LCD_SDA        /* port pin used for MOSI */
 
-If you prefer that the tester starts with a cleared display uncomment LCD_LATE_ON.
+If you prefer that the tester starts with a cleared display uncomment
+LCD_LATE_ON.
 
 Rotary Encoder:
 #define ENCODER_PORT     PORTD     /* port data register */
@@ -239,7 +240,7 @@ LCD module:
 
 ------------------------------------------------------------------------------
 
-Multifunction Tester TC-1
+Multifunction Tester TC-1 and family (T7)
 - ATmega324 (very poor pin assignment), 16MHz clock
   later models may have an ATmega644
 - ST7735 color display (bit-bang SPI)
@@ -495,8 +496,8 @@ LCD module:
 
 ------------------------------------------------------------------------------
 
-Arduino Uno or Mega 2560
-- Uno: ATmega 328, 16MHz clock
+Arduino Nano, Uno or Mega 2560
+- Nano/Uno: ATmega 328, 16MHz clock
   Mega 2560: ATmega 2560, 16MHz clock
 - Download the Arduino pinout diagram to get the mapping between Arduino and
   ATmega pins.

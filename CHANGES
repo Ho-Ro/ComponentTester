@@ -6,6 +6,38 @@
 
 ------------------------------------------------------------------------------
 
+v1.42m 2020-12
+- Updated 6x8 fonts (thanks to Bohu).
+- New ISO8859-2 based 6x8 font (FONT_6X8_ISO8859_2_HF, thanks to Bohu).
+- Added LC meter hardware option (HW_LC_METER). It's based on a simple LC
+  oscillator circuit, similar to some inexensive LC meter kits.
+- Changed Display_Value() to support also fempto (f).
+- When CYCLE_MAX is set to 255 the automatic power-off is disabled and the
+  tester keeps running until it's powered off manually.
+- Fixed issue with display of strange frequencies in the extended frequency
+  counter in a specific situation (reported by Szybkijanek@EEVblog).
+  Also changed display output of a missing signal or a too low frequency from
+  '0Hz' to '-'.
+- The basic counter displays now a '-' instead of '0Hz' in case of a missing
+  signal or a too low frequency.
+- Added option to display I_C/I_E test current for hFE measurement (
+  SW_HFE_CURRENT, suggested by Obelix2007@EEVblog). Also added corresponding
+  remote control commands (I_C and I_E).
+- Added Romanian texts (thanks to Dumidan@EEVblog).
+- Added configuration switch for ESR tool (SW_ESR_TOOL, suggested by
+  indman@EEVblog).
+- Changed text output of E series norm values to also display unit (suggested
+  by indman@EEVblog).
+- Updated alternative Polish texts (thanks to Jacon@EEVblog).
+- Last textline on display was simply overwritten when UI_KEY_HINTS is
+  enabled (reported by Obelix2007@EEVblog). Added function to wait for user
+  feedback before clearing last line.
+- Updated Spanish texts (thanks to pepe10000@EEVblog).
+- Corrected error in "#define" for E96 norm values (reported by
+  Obelix2007@EEVblog).
+- Added driver for ILI9488 based displays (8/16 bit parallel and 4-line SPI,
+  thanks to Bohu for a sample display).
+
 v1.41m 2020-09
 - New remote command "MHINT" for hints about measurements (at the moment just
   the test circuit type for h_FE).

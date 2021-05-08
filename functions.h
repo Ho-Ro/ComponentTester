@@ -198,6 +198,9 @@
 #ifndef DISPLAY_C
 
   extern void Display_NextLine(void);
+  #ifdef UI_KEY_HINTS
+  extern void Display_LastLine(void);
+  #endif
   #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
   extern void Display_Char(unsigned char Char);
   #endif
@@ -339,7 +342,7 @@
 
   extern uint8_t TestKey(uint16_t Timeout, uint8_t Mode);
   extern void WaitKey(void);
-  #if defined (SW_PWM_PLUS) || defined (SW_SERVO) || defined (HW_EVENT_COUNTER)
+  #ifdef FUNC_SMOOTHLONGKEYPRESS
   extern void SmoothLongKeyPress(void);
   #endif
 
@@ -391,7 +394,7 @@
   extern void Zener_Tool(void);
   #endif
 
-  #if defined (SW_ESR) || defined (SW_OLD_ESR)
+  #ifdef SW_ESR_TOOL
   extern void ESR_Tool(void);
   #endif
 
@@ -458,6 +461,19 @@
 
   #ifdef HW_EVENT_COUNTER
   extern void EventCounter(void);
+  #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from tools_LC_Meter.c
+ * ************************************************************************ */
+
+#ifndef TOOLS_LC_METER_C
+
+  #ifdef HW_LC_METER
+  extern uint8_t LC_Meter(void);
   #endif
 
 #endif

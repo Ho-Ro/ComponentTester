@@ -1,14 +1,15 @@
 /* ************************************************************************
  *
- *   driver functions for ILI9486 compatible color graphic displays
+ *   driver functions for ILI9488 compatible color graphic displays
  *   - 320 x 480 pixels
  *   - interfaces
- *     - 8 bit parallel
+ *     - 8 bit parallel (untested)
  *     - 9 bit parallel (not supported)
  *     - 16 bit parallel (untested)
  *     - 18 bit parallel (not supported)
+ *     - 24 bit parallel (not supported)
  *     - 3 line SPI (not supported, would be insanely slow)
- *     - 4 line SPI (not done yet)
+ *     - 4 line SPI (hardware SPI strongly recommended)
  *
  *   (c) 2020 by Markus Reschke
  *
@@ -44,7 +45,7 @@
  *    DB14     LCD_DB14 (LCD_PORT3 pin #6)
  *    DB15     LCD_DB15 (LCD_PORT3 pin #7)
  *  - max. clock rate for parallel bus
- *    15MHz write
+ *    25MHz write
  *    6.25MHz read register data
  *    2.2MHz read frame memory
  *  - pin assignment for 4 line SPI
@@ -52,11 +53,11 @@
  *    /CSX        Gnd or LCD_CS (optional)
  *    D/CX        LCD_DC
  *    SCL (WRX)   LCD_SCL / SPI_SCK
- *    DIN/SDA     LCD_DIN / SPI_MOSI
- *    DOUT        LCD_DOUT / SPI_MISO (not used yet)
+ *    SDA         LCD_SDA / SPI_MOSI
+ *    SDO         LCD_SDO / SPI_MISO (not used yet)
  *    For hardware SPI LCD_SCL and LCD_DIN have to be the MCU's SCK and
  *    MOSI pins.
- *  - max. SPI clock: 15MHz write and 6.6MHz read
+ *  - max. SPI clock: 20MHz write and 6.6MHz read
  *  - ILI9486 has a PWM output (CAPC_PWM) for controlling backlight LEDs,
  *    but it's rarely used.
  */
@@ -65,7 +66,7 @@
 /* local includes */
 #include "config.h"           /* global configuration */
 
-#ifdef LCD_ILI9486
+#ifdef LCD_ILI9488
 
 
 /*
@@ -86,7 +87,7 @@
 #include "variables.h"        /* global variables */
 #include "functions.h"        /* external functions */
 #include "colors.h"           /* color definitions */
-#include "ILI9486.h"          /* ILI9486 specifics */
+#include "ILI9488.h"          /* ILI9488 specifics */
 
 
 /* fonts and symbols */
@@ -145,6 +146,15 @@
   #endif
 #endif
 
+/* color modes */
+#ifdef LCD_SPI
+  /* SPI interface: use RGB666 (RGB565 not supported by SPI) */
+  #define COLORMODE_RGB666
+#else
+  /* parallel interface: use RGB565 */
+  #define COLORMODE_RGB565
+#endif
+
 
 
 /*
@@ -160,6 +170,12 @@ uint16_t            Y_End;         /* end position Y (page/row) */
 /* text line management */
 uint16_t            LineFlags;     /* bitfield for up to 16 lines */
 
+#ifdef COLORMODE_RGB666
+/* colors in RGB666 8-bit frame format */
+uint8_t             RGB666_FG[3];       /* foreground/pen color */
+uint8_t             RGB666_BG[3];       /* background color */
+#endif
+
 
 
 /* ************************************************************************
@@ -171,11 +187,10 @@ uint16_t            LineFlags;     /* bitfield for up to 16 lines */
  *  protocol:
  *  - write: CSX low -> D/CX -> D7-0 with rising edge of SCL
  *  - D/CX: high = data / low = command
- *  - commands and data have to be sent as 2 bytes
- *    Really?
  *
  *  hints:
  *  - RGB111 and RGB666 are supported when using 4-line SPI
+ *    (datasheet lists also RGB565, but this is wrong)
  */
 
 
@@ -260,9 +275,8 @@ void LCD_Cmd(uint8_t Cmd)
   LCD_PORT &= ~(1 << LCD_CS);      /* set /CSX low */
   #endif
 
-  /* send command: 2 bytes */
-  SPI_Write_Byte(0);               /* send dummy MSB */
-  SPI_Write_Byte(Cmd);             /* send command byte as LSB */
+  /* send command */
+  SPI_Write_Byte(Cmd);             /* send command byte */
 
   #ifdef LCD_CS
   /* deselect chip */
@@ -289,9 +303,8 @@ void LCD_Data(uint8_t Data)
   LCD_PORT &= ~(1 << LCD_CS);      /* set /CSX low */
   #endif
 
-  /* send data: 2 bytes */
-  SPI_Write_Byte(0);               /* send dummy MSB */
-  SPI_Write_Byte(Data);            /* send data byte as LSB */
+  /* send data */
+  SPI_Write_Byte(Data);            /* send data byte */
 
   #ifdef LCD_CS
   /* deselect chip */
@@ -802,6 +815,101 @@ void LCD_Data2(uint16_t Data)
 
 
 /* ************************************************************************
+ *   conversion functions
+ * ************************************************************************ */
+
+
+#ifdef COLORMODE_RGB666
+
+/*
+ *  RGB565 to RGB666
+ *  - DB[15-11] -> R[5-1], DB15 -> R0
+ *    R[5-0] = (R[4-0] << 1) | (R4 >> 4)
+ *  - DB[10-5] -> G[5-0]
+ *    G[5-0] = G[5-0]
+ *  - DB[4-0] -> B[5-1], DB4 -> B0
+ *    B[5-0] = (B[4-0] << 1) | (B4 >> 4)
+ */
+
+/*
+ *  8-bit frame format for RGB666
+ *  - first byte:  R[5-0] -> D[7-2], D[1-0] are 0
+ *  - second byte: G[5-0] -> D[7-2], D[1-0] are 0
+ *  - third byte:  B[5-0] -> D[7-2], D[1-0] are 0
+ */
+
+
+/*
+ *  expand RGB565 value to RGB666 in 8-bit frame format
+ *
+ *  requires:
+ *  - Color: RGB565 color value
+ *  - RGB666: pointer to array of uint8_t for R, G and B
+ */
+
+void RGB565_2_RGB666(uint16_t Color, uint8_t *RGB666)
+{
+  uint8_t           R6;       /* red */
+  uint8_t           G6;       /* green */
+  uint8_t           B6;       /* blue */
+
+  /*
+   *  blue
+   */
+
+  /* get blue-5 and convert to blue-6 */
+  B6 = Color & 0b0000000000011111;      /* get DB[4-0] */
+  B6 <<= 1;                             /* shift one step left */
+  if (B6 & 0b00100000)                  /* DB4/B4 set (now B5) */
+  {
+    B6 |= 0b00000001;                   /* set B0 (copy B4 to B0) */
+  }
+
+  /* convert to frame format */
+  B6 <<= 2;                             /* shift two steps left */
+
+
+  /* 
+   *  green
+   */
+
+  /* get green-6 */
+  Color >>= 5;                          /* shift right for G */
+  G6 = Color & 0b0000000000111111;      /* get DB[10-5] */
+
+  /* convert to frame format */
+  G6 <<= 2;                             /* shift two steps left */
+
+
+  /*
+   *  red
+   */
+
+  /* get red-5 and convert to red-6 */
+  Color >>= 6;                          /* shift right for R */
+  R6 = Color & 0b0000000000011111;      /* get DB[15-11] */
+  R6 <<= 1;                             /* shift one step left */
+  if (R6 & 0b00100000)                  /* DB15/R4 set (now R5) */
+  {
+    R6 |= 0b00000001;                   /* set R0 (copy R4 to R0) */
+  }
+
+  /* convert to frame format */
+  R6 <<= 2;                             /* shift two steps left */
+
+  /* copy converted values */
+  *RGB666 = R6;               /* red */
+  RGB666++;                   /* next */
+  *RGB666 = G6;               /* green */
+  RGB666++;                   /* next */
+  *RGB666 = B6;               /* blue */
+}
+
+#endif
+
+
+
+/* ************************************************************************
  *   high level functions
  * ************************************************************************ */
 
@@ -928,6 +1036,11 @@ void LCD_ClearLine(uint8_t Line)
 
   LCD_AddressWindow();                  /* set window */
 
+  #ifdef COLORMODE_RGB666
+  /* convert RGB565 color to RGB666 */ 
+  RGB565_2_RGB666(COLOR_BACKGROUND, &RGB666_BG[0]);
+  #endif
+
   /* clear all pixels in window */
   LCD_Cmd(CMD_MEM_WRITE);          /* start writing */
 
@@ -937,7 +1050,13 @@ void LCD_ClearLine(uint8_t Line)
     while (x < LCD_PIXELS_X)       /* all columns */
     {
       /* send background color */
+      #if defined (COLORMODE_RGB565)
       LCD_Data2(COLOR_BACKGROUND);
+      #elif defined (COLORMODE_RGB666)
+      LCD_Data(RGB666_BG[0]);      /* R6 */
+      LCD_Data(RGB666_BG[1]);      /* G6 */
+      LCD_Data(RGB666_BG[2]);      /* B6 */
+      #endif
 
       x++;                         /* next column */
     }
@@ -1000,65 +1119,47 @@ void LCD_Init(void)
    *  set registers of display controller
    */
 
+  #if 0
   /* interface mode control */
   LCD_Cmd(CMD_IF_MODE_CTRL);
-  LCD_Data(0);                          /* reset */
+  LCD_Data(0);                          /* reset (default) */
+  #endif
 
   /* pixel format for RGB image data */
+  #if defined (COLORMODE_RGB565)
   LCD_Cmd(CMD_SET_PIX_FORMAT);
   LCD_Data(FLAG_DBI_16);                /* 16 bits / RGB565 */
-  /* todo: for SPI we have to set RGB666 */
+  #elif defined (COLORMODE_RGB666)
+  LCD_Cmd(CMD_SET_PIX_FORMAT);
+  LCD_Data(FLAG_DBI_18);                /* 18 bits / RGB666 */
+  #endif
 
   /* power control 1 */
   LCD_Cmd(CMD_POWER_CTRL_1);
-  LCD_Data(FLAG_VRH1_410);              /* 1.25 x 4.10 = 5.1250V */
-  LCD_Data(FLAG_VRH2_415);              /* -1.25 x 4.15 = -5.1875V */
+  LCD_Data(FLAG_VRH1_365);              /* 1.25 x 3.65 = 4.5625 V */
+  LCD_Data(FLAG_VRH2_365);              /* -1.25 x 3.65 = -4.5625 V */
 
   /* power control 2 */
   LCD_Cmd(CMD_POWER_CTRL_2);
-  LCD_Data(FLAG_SAP_4 | FLAG_BT_5);     /* constant current and step-up factor */
-  LCD_Data(FLAG_VC_EXT);                /* external VCI */
-
-  /* power control 3 */
-  LCD_Cmd(CMD_POWER_CTRL_3);
-  LCD_Data(FLAG_DCA0_2 | FLAG_DCA1_8);  /* 2 und 8 Hz */
+  LCD_Data(FLAG_POWER_CTRL2 | FLAG_BT_4);    /* step-up factor */
 
   /* VCOM control */
   LCD_Cmd(CMD_VCOM_CTRL);
   LCD_Data(0);                          /* pseudo read */
-  LCD_Data(FLAG_VCOM_190625);           /* factor -1.90625 */
+  LCD_Data(FLAG_VCOM_146875);           /* factor -1.46875 */
   LCD_Data(FLAG_VCOM_REG);              /* use value from register */
   LCD_Data(0);                          /* pseudo read */
 
+  #if 0
   /* display inversion control */
   LCD_Cmd(CMD_INVERS_CTRL);
-  LCD_Data(FLAG_DINV_2DOT);             /* 2-dot inversion */
-
-  #if 0
-  /* display function control (default values) */
-  LCD_Cmd(CMD_FUNC_CTRL);
-  LCD_Data(FLAG_PT_2);                  /* AGND */
-  LCD_Data(FLAG_ISC_05);                /* 5 frames / 84 ms */
-  LCD_Data(FLAG_NL_480);                /* 480 lines */
+  LCD_Data(FLAG_DINV_2DOT);             /* 2-dot inversion (default) */
   #endif
 
-  /* gamma setting */
-  uint8_t      GammaPos[15] = {0x1F, 0x25, 0x22, 0x0B, 0x06, 0x0A, 0x4E, 0xC6, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-  uint8_t      GammaNeg[15] = {0x1F, 0x3F, 0x3F, 0x0F, 0x1F, 0x0F, 0x46, 0x49, 0x31, 0x05, 0x09, 0x03, 0x1C, 0x1A, 0x00};
-
-  /* positive gamma correction */
-  LCD_Cmd(CMD_GAMMA_CTRL_POS);
-  for (Bits = 0; Bits < 15; Bits++)     /* 15 values */
-  {
-    LCD_Data(GammaPos[Bits]);           /* send value */
-  }
-
-  /* negative gamma correction */
-  LCD_Cmd(CMD_GAMMA_CTRL_NEG);
-  for (Bits = 0; Bits < 15; Bits++)     /* 15 values */
-  {
-    LCD_Data(GammaNeg[Bits]);           /* send value */
-  }
+  /* entry mode */
+  LCD_Cmd(CMD_ENTRY_MODE);
+  LCD_Data(FLAG_DTE_GON_3 | FLAG_EPF_2);     /* normal display */
+  /* and standard RGB565-to-RGB666 conversion method  */
 
   /* memory access control */
   LCD_Cmd(CMD_MEM_CTRL);
@@ -1163,6 +1264,12 @@ void LCD_Char(unsigned char Char)
   Offset = COLOR_PEN;                   /* use default pen color */
   #endif
 
+  #ifdef COLORMODE_RGB666
+  /* convert RGB565 colors to RGB666 */ 
+  RGB565_2_RGB666(COLOR_BACKGROUND, &RGB666_BG[0]);
+  RGB565_2_RGB666(Offset, &RGB666_FG[0]);
+  #endif
+
   LCD_Cmd(CMD_MEM_WRITE);              /* start writing */
 
   /* read character bitmap and send it to display */
@@ -1193,11 +1300,25 @@ void LCD_Char(unsigned char Char)
       {
         if (Index & 0b00000001)         /* bit set */
         {
+          /* send foreground/pen color */
+          #if defined (COLORMODE_RGB565)
           LCD_Data2(Offset);            /* foreground color */
+          #elif defined (COLORMODE_RGB666)
+          LCD_Data(RGB666_FG[0]);       /* R6 */
+          LCD_Data(RGB666_FG[1]);       /* G6 */
+          LCD_Data(RGB666_FG[2]);       /* B6 */
+          #endif
         }
         else                            /* bit unset */
         {
+          /* send background color */
+          #if defined (COLORMODE_RGB565)
           LCD_Data2(COLOR_BACKGROUND);  /* background color */
+          #elif defined (COLORMODE_RGB666)
+          LCD_Data(RGB666_BG[0]);       /* R6 */
+          LCD_Data(RGB666_BG[1]);       /* G6 */
+          LCD_Data(RGB666_BG[2]);       /* B6 */
+          #endif
         }
 
         Index >>= 1;                      /* shift byte for next bit */
@@ -1288,6 +1409,12 @@ void LCD_Symbol(uint8_t ID)
   Offset = COLOR_PEN;                   /* use default pen color */
   #endif
 
+  #ifdef COLORMODE_RGB666
+  /* convert RGB565 colors to RGB666 */ 
+  RGB565_2_RGB666(COLOR_BACKGROUND, &RGB666_BG[0]);
+  RGB565_2_RGB666(Offset, &RGB666_FG[0]);
+  #endif
+
   LCD_Cmd(CMD_MEM_WRITE);               /* start writing */
 
   /* read character bitmap and send it to display */
@@ -1326,11 +1453,25 @@ void LCD_Symbol(uint8_t ID)
         {
           if (Data & 0b00000001)             /* bit set */
           {
+            /* send foreground/pen color */
+            #if defined (COLORMODE_RGB565)
             LCD_Data2(Offset);               /* foreground color */
+            #elif defined (COLORMODE_RGB666)
+            LCD_Data(RGB666_FG[0]);          /* R6 */
+            LCD_Data(RGB666_FG[1]);          /* G6 */
+            LCD_Data(RGB666_FG[2]);          /* B6 */
+            #endif
           }
           else                               /* bit unset */
           {
+            /* send background color */
+            #if defined (COLORMODE_RGB565)
             LCD_Data2(COLOR_BACKGROUND);     /* background color */
+            #elif defined (COLORMODE_RGB666)
+            LCD_Data(RGB666_BG[0]);          /* R6 */
+            LCD_Data(RGB666_BG[1]);          /* G6 */
+            LCD_Data(RGB666_BG[2]);          /* B6 */
+            #endif
           }
 
           n--;                          /* next pixel */
@@ -1393,6 +1534,11 @@ void LCD_Box(uint16_t Color)
   x_Size = X_End - X_Start + 1;
   y_Size = Y_End - Y_Start + 1;
 
+  #ifdef COLORMODE_RGB666
+  /* convert RGB565 color to RGB666 */ 
+  RGB565_2_RGB666(Color, &RGB666_FG[0]);
+  #endif
+
   LCD_Cmd(CMD_MEM_WRITE);          /* start writing */
 
   while (y_Size > 0)               /* loop trough rows */
@@ -1401,7 +1547,15 @@ void LCD_Box(uint16_t Color)
 
     while (x > 0)                  /* loop through columns */
     {
+      /* send foreground/pen color */
+      #if defined (COLORMODE_RGB565)
       LCD_Data2(Color);            /* send color code for dot */
+      #elif defined (COLORMODE_RGB666)
+      LCD_Data(RGB666_FG[0]);      /* R6 */
+      LCD_Data(RGB666_FG[1]);      /* G6 */
+      LCD_Data(RGB666_FG[2]);      /* B6 */
+      #endif
+
       x--;                         /* next one */
     }
 

@@ -52,7 +52,7 @@ void Display_NextLine(void)
   uint8_t           Line;          /* line number */
 
   /*
-   *  LCD/OLED display module
+   *  display module
    */
 
   #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
@@ -111,10 +111,49 @@ void Display_NextLine(void)
 
 
 
+#ifdef UI_KEY_HINTS
+
+/*
+ *  last line automation for key hint
+ */
+
+void Display_LastLine(void)
+{
+  uint8_t           Line;          /* line number */
+
+  /*
+   *  display module
+   */
+
+  #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
+  if (Cfg.OP_Control & OP_OUT_LCD)      /* copy to LCD enabled */
+  {
+  #endif
+
+  Line = UI.CharPos_Y;             /* get current line number */
+
+  /* check if we reached the last line */
+  if (Line == UI.CharMax_Y)         
+  {
+    WaitKey();                     /* wait for key press */
+    LCD_ClearLine(Line);           /* clear last line */
+    LCD_CharPos(1, Line);          /* move to start of last line */
+    MilliSleep(500);               /* smooth UI */
+  }
+
+  #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
+  }
+  #endif
+}
+
+#endif
+
+
+
 /*
  *  display a single character
  *  - wrapper for outputting a character to different channels
- *  - if we have only the LCD display we simply create an alias for
+ *  - if we have only the display we simply create an alias for
  *    LCD_Char() in functions.h to save a few bytes
  *
  *  requires:
@@ -126,7 +165,7 @@ void Display_NextLine(void)
 void Display_Char(unsigned char Char)
 {
   /*
-   *  LCD/OLED display module
+   *  display module
    */
 
   if (Cfg.OP_Control & OP_OUT_LCD)      /* copy to LCD enabled */
@@ -600,9 +639,9 @@ void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit)
    *  determine prefix and offset (= number of digits right of dot)
    */
 
-  if (Exponent >= -12)                  /* prevent index underflow */
+  if (Exponent >= -15)                  /* prevent index underflow */
   {
-    Exponent += 12;                     /* shift exponent to be >= 0 */
+    Exponent += 15;                     /* shift exponent to be >= 0 */
     Index = Exponent / 3;               /* number of 10^3 steps */
     Offset = Exponent % 3;              /* offset to lower 10^3 step */
 
@@ -712,7 +751,7 @@ void Display_SignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
  *
  *  requires:
  *  - Value: unsigned value (2 or 3 digits)
- *  - Scale: exponent/multiplier (10^n)
+ *  - Scale: exponent/multiplier (10^n with n >= -12)
  */
 
 void Display_EValue(uint16_t Value, int8_t Scale, unsigned char Unit)

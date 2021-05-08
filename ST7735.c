@@ -55,6 +55,8 @@
 /* horizontally aligned, horizontal bit order flipped */
 #include "font_8x8_hf.h"
 #include "font_10x16_hf.h"
+#include "font_6x8_iso8859-2_hf.h"
+#include "font_8x8_iso8859-2_hf.h"
 #include "font_10x16_iso8859-2_hf.h"
 #include "font_8x16_win1251_hf.h"
 #include "font_8x16alt_win1251_hf.h"

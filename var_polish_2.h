@@ -103,6 +103,11 @@
     const unsigned char Stop_str[] MEM_TYPE = "Stop";
   #endif
 
+  #ifdef HW_LC_METER
+    const unsigned char LC_Meter_str[] MEM_TYPE = "LC Meter";
+    const unsigned char Adjusting_str[] MEM_TYPE = "adjusting...";
+  #endif
+
   #ifdef SW_ENCODER
     const unsigned char Encoder_str[] MEM_TYPE = "Enkoder obrot.";
     const unsigned char TurnRight_str[] MEM_TYPE = "Obróæ w prawo!";
@@ -123,7 +128,7 @@
 
   #ifdef SW_OPTO_COUPLER
     const unsigned char OptoCoupler_str[] MEM_TYPE = "Transoptor";
-    const unsigned char None_str[] MEM_TYPE = "brak";
+    const unsigned char None_str[] MEM_TYPE = "Brak";
     const unsigned char CTR_str[] MEM_TYPE = "CTR";
   #endif
 
@@ -178,7 +183,7 @@
   #endif
 
   #ifdef SW_ONEWIRE_SCAN
-    const unsigned char OneWire_Scan_str[] MEM_TYPE = "OneWire Scan";
+    const unsigned char OneWire_Scan_str[] MEM_TYPE = "Skanuj 1-Wire";
     const unsigned char Bus_str[] MEM_TYPE = "Bus";
   #endif
 

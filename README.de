@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2020-09-21
+Letzte Änderung: 2020-12-16
 
 Inhaltsübersicht:
   - Über den Tester
@@ -28,6 +28,7 @@ Inhaltsübersicht:
     - ILI9341/ILI9342
     - ILI9481
     - ILI9486
+    - ILI9488
     - PCD8544
     - PCF8814
     - SH1106
@@ -55,9 +56,10 @@ Inhaltsübersicht:
     - PWM-Generator
     - Rechteck-Signalgenerator
     - Zenertest
-    - ESR-Messung
+    - ESR-Tool
     - Kondensatorleckstrom
     - R/C/L-Monitore
+    - L/C-Meter
     - Frequenzzähler
       - Einfacher Zähler
       - Erweiterter Zähler
@@ -255,6 +257,7 @@ Hardware-Optionen:
 - Messung von Zenerdioden (DC-DC-Konverter)
 - Frequenzzähler (einfache und erweiterte Version)
 - Ereigniszähler
+- LC-Meter
 - Test von IR-Fernbedienungen (festes IR-Empfängermodul)
 - fester Kondensator für Selbstabgleich von Spannungsoffsets
 - SPI-Bus (Bit-Bang und Hardware)
@@ -303,6 +306,8 @@ Verfügbare Sprachen:
   - von Gino_09@EEVblog
 - Polnisch
   - von Szpila
+- Romänisch
+  - von Dumidan@EEVblog
 - Russisch
   - von indman@EEVblog
   - Zeichensatz mit kyrillischen Zeichen basierend auf Windows-1251
@@ -433,8 +438,9 @@ Im Augenblick werden folgende Controller unterstützt:
 - HD44780 (textbasiertes Display, 2-4 Zeilen mit je 16-20 Zeichen)
 - ILI9163 (grafisches Farb-Display 128x160)
 - ILI9341/ILI9342 (grafisches Farb-Display 240x320 oder 320x240)
-- ILI9481 (grafisches Farb-Display 320x480, ungetestet)
+- ILI9481 (grafisches Farb-Display 320x480, teilweise ungetestet)
 - ILI9486 (grafisches Farb-Display 320x480, teilweise ungetestet)
+- ILI9488 (grafisches Farb-Display 320x480, teilweise ungetestet)
 - PCD8544 (grafisches Display 84x48)
 - PCF8814 (grafisches Display 96x65)
 - SH1106 (grafisches Display 128x64)
@@ -625,6 +631,26 @@ LCD_ROTATE). Falls nötig, kannst Du die auch X und/oder Y umdrehen.
 
 Der ILI9486 wird per 8-Bit-Parallel oder 16-Bit-Parallel gesteuert. Und er
 benutzt die gleiche Pin-Belegung wie der ILI9481.
+
+
++ ILI9488 (teilweise ungetestet)
+
+Der ILI9488 wird per 8-Bit-Parallel oder 16-Bit-Parallel gesteuert. Und er
+benutzt die gleiche Pin-Belegung wie der ILI9481. Zusätzlich wird 4-Draht-SPI
+unterstützt:
+
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 644
+  ---------------------------------------------------------------
+  /RES        LCD_RES          PB2          optional
+  /CS         LCD_CS           PB5          optional
+  D/C         LCD_DC           PB3
+  SCL         LCD_SCL          PB7          SPI Clock
+  SDA         LCD_SDA          PB5          SPI MOSI
+
+Wegen der hohen Auflösung der Anzeige und dem RGB666-Farbschema (3 Bytes pro
+Pixel) ist SPI recht langsam, selbst für Hardware-SPI und einen
+16MHz-MCU-Takt. Daher rate ich von der Nutzung der SPI-Schnittstelle ab.
 
 
 + PCD8544
@@ -1207,9 +1233,9 @@ Beschaltung für Zenerdiode:
    Pin -: Anode
 
 
-+ ESR-Messung
++ ESR-Tool
 
-Die ESR-Messung kann den Kondensator in der Schaltung messen und zeigt
+Das ESR-Tool kann den Kondensator in der Schaltung messen und zeigt
 neben der Kapazität den ESR an, wenn ein Kondensator tatsächlich entdeckt
 wird. Stelle sicher, daß der Kondenstor vor dem Anschließen entladen wurde!
 Die gemessenen Werte können von einer Messung außerhalb der Schaltung wegen
@@ -1261,6 +1287,48 @@ Verfügbare Monitore:
 - L-Monitor (Induktivität)
 - R/C/L-Monitor (R plus optional L, oder C plus optional ESR)
 - R/L-Monitor (Widerstand plus optional Induktivität)
+
+
++ L/C-Meter (Hardware-Option)
+
+Das L/C-Meter basiert auf einer einfachen LC-Oszillatorschaltung, welche von
+mehreren preiswerten PIC-L/C-Metern benutzt wird. Das übliche Design (82µH und
+1nF) hat eine Grundfrequenz von etwa 595 kHz, und das Verbinden eines
+zusätzlichen Kondensators oder einer Induktivität veringert diese Frequenz.
+Mit der Hilfe von einen Referenzkondensator mit bekanntem Wert, den gemessenen
+Frequenzen und etwas Mathematik kann der Wert des unbekannten Kondensators bzw.
+Induktivität berechnet werden.
+
+Die PIC-L/C-Meter haben in der Regel einen Messbereich von 10nH bis 100mH,
+und 0.1pF bis 900nF. Sie scheinen eine Torzeit von 100ms für den Frequenz-
+zähler zu nutzen. Die m-Firmware hat dagegen eine automatische Bereichswahl
+mit Torzeiten von 100ms und 1000ms, um die Auflösung für kleine L/C-Werte zu
+verbessern. Somit starten die Messbereiche bei ca. 1nH und 10fF. Die maximal
+messbare Induktivität ist grob 150nH. Bei der Kapazität bin ich mit meiner
+Platine auf ein Problem mit dem Ausgangssignal ab ca. 33nF gestoßen. Dort
+bekommen die Flanken kleine Sporne, wodurch der Frequenzzähler mehr Pulse
+sieht als wirklich da sind. Das könnte am Layout der Platine liegen.
+Ansonsten sollte das Maximum ebenfalls bei ca. 900nF liegen (darüber wird der
+LCD-Oszillator instabil).
+
+Nach dem Starten vom L/C-Meter führt der Tester als Erstes einen Selbst-
+abgleich durch, angezeigt durch eine "abgleichen..." Nachricht. Danach
+kann der Kondensator oder die Spule zum Messen verbunden werden. Ein kurzer
+Tastendruch schaltet zwischen C und L-Messung um (Standard: C-Messung). Die
+Frequenz des LC-Oszillators driftet mit der Zeit etwas (bis zu 100 Hz) und
+benötigt dann einen erneuten Abgleich. Wenn Du einen größer werdenden Null-
+Wert oder ein "-" ohne angeklemmtem Bauteil siehst, bitte den Selbstabgleich
+über einen langen Tastendruck starten. Falls es ein Problem mit dem Abgleich
+gibt oder er durch einen Tastendruck abgebrochen wird, verläßt der Tester das
+L/C-Meter und gibt einen Fehler aus. Zwei kurze Tastendrücke beenden das
+L/C-Meter.
+
+Hinweise:
+- Der Referenzkondensator sollte ein 1nF-Folientyp mit kleiner Toleranz sein.
+  Du kannst aber auch einen üblichen Folienkondensator um die 1nF nehmen, ihn
+  mit einem guten LCR-Meter messen, und LC_METER_C_REF entsprechend ändern.
+- Wenn Dich die Frequenz des LC-Oszillators und ihr Driften interessiert, dann
+  aktiviere LC_METER_SHOW_FREQ.
 
 
 + Frequenzzähler (Hardware-Option)
@@ -2042,6 +2110,10 @@ die zum Messen benutzt wurde:
   - e: Emitterschaltung
   - c: Kollectorschaltung
 
+Wenn Du die Ausgabe vom hFE-Teststrom aktiviert hast (SW_HFE_CURRENT), dann
+zeigt der Tester I_C für die Emitterschaltung und I_E für die Kollector-
+schaltung.
+
 Beim Test auf Dioden wird Vf zum einen mit Rl (hoher Teststrom) und zum
 anderen mit Rh (niedriger Teststrom) gemessen. Die Ausgabefunktion für
 Bipolartransistoren interpoliert aus den beiden Vf-Werten V_BE abhängig vom
@@ -2333,6 +2405,20 @@ Testkommandos:
   - gibt den umgekehrten h_FE zurück (Kollektor und Emitter verdreht)
   - nur für BJT
   - Beispielantwort: "23"
+
+  I_C
+  - gibt den Teststrom I_C der hFE-Messung zurück
+  - benötigt aktivierte Ausgabe des Teststroms der hFE-Messung
+  - für hFE-Messung mit Emitterschaltung
+  - nur für BJT
+  - Beispielantwort: "3245uA"
+
+  I_E
+  - gibt den Teststrom I_E der hFE-Messung zurück
+  - benötigt aktivierte Ausgabe des Teststroms der hFE-Messung
+  - für hFE-Messung mit Kollektorschaltung
+  - nur für BJT
+  - Beispielantwort: "3245uA"
 
   V_BE
   - gibt V_BE zurück (Basis-Emitter-Spannung)

@@ -604,6 +604,9 @@ uint32_t Get_hFE_C(uint8_t Type)
   uint16_t          U_R_e;         /* voltage across emitter resistor */
   uint16_t          U_R_b;         /* voltage across base resistor */
   uint16_t          Ri;            /* internal resistance of MCU */
+  #ifdef SW_HFE_CURRENT
+  int32_t           I_e;           /* emitter current */
+  #endif
 
 
   /*
@@ -637,6 +640,11 @@ uint32_t Get_hFE_C(uint8_t Type)
 
     U_R_e = ReadU_5ms(Probes.Ch_2);          /* U_R_e = U_e */
     U_R_b = Cfg.Vcc - ReadU(Probes.Ch_3);    /* U_R_b = Vcc - U_b */
+
+    #ifdef SW_HFE_CURRENT
+    I_e = (int32_t)U_R_e;               /* U_R_e (mV) */
+    Ri = NV.RiL;                        /* RiL (0.1 Ohms) */
+    #endif
   }
   else                             /* PNP */
   {
@@ -649,6 +657,11 @@ uint32_t Get_hFE_C(uint8_t Type)
 
     U_R_e = Cfg.Vcc - ReadU_5ms(Probes.Ch_1);     /* U_R_e = Vcc - U_e */
     U_R_b = ReadU(Probes.Ch_3);                   /* U_R_b = U_b */
+
+    #ifdef SW_HFE_CURRENT
+    I_e = -(int32_t)U_R_e;              /* negative U_R_e (mV) */
+    Ri = NV.RiH;                        /* RiH (0.1 Ohms) */
+    #endif
   }
 
 
@@ -662,6 +675,15 @@ uint32_t Get_hFE_C(uint8_t Type)
 
   hFE = (uint32_t)((U_R_e - U_R_b) / U_R_b);
 
+  #ifdef SW_HFE_CURRENT
+  /* calculate emitter current: I_e = U_R_e / (Rl + Ri) */
+  /* NPN: Ri = RiL / PNP: Ri = RiH */
+  I_e *= 10000;                    /* scale to 0.1 µV (for µA and Ri's 0.1 Ohms */
+  Ri += (R_LOW * 10);              /* Ri + Rl (in 0.1 Ohms) */
+  I_e /= Ri;                       /* / (Rl + Ri) */
+  Semi.U_2 = (int16_t)I_e;         /* save I_e (in µA) */
+  #endif
+
 
   /*
    *  for a possible high gain BJT or Darlington change the base resistor
@@ -670,7 +692,7 @@ uint32_t Get_hFE_C(uint8_t Type)
 
   if (U_R_b <= 15)            /* I_b <= 21 µA */
   {
-    if (Type == TYPE_NPN)            /* NPN */
+    if (Type == TYPE_NPN)          /* NPN */
     {
       /* change probes: probe-3 -- Rh -- Vcc */
       R_DDR = Probes.Rl_2 | Probes.Rh_3;     /* select Rl for probe-2 & Rh for probe-3 */
@@ -679,9 +701,13 @@ uint32_t Get_hFE_C(uint8_t Type)
       U_R_e = ReadU_5ms(Probes.Ch_2);             /* U_R_e = U_e */
       U_R_b = Cfg.Vcc - ReadU(Probes.Ch_3);       /* U_R_b = Vcc - U_b */
 
-      Ri = NV.RiL;                           /* get internal resistance */
+      #ifdef SW_HFE_CURRENT
+      I_e = (int32_t)U_R_e;             /* U_R_e (mV) */
+      #endif
+
+      Ri = NV.RiL;                      /* get internal resistance */
     }
-    else                             /* PNP */
+    else                           /* PNP */
     {
       /* change probes: Gnd -- Rh -- probe-3 */
       R_DDR = Probes.Rl_1 | Probes.Rh_3;     /* pull down base via Rh */
@@ -689,7 +715,11 @@ uint32_t Get_hFE_C(uint8_t Type)
       U_R_e = Cfg.Vcc - ReadU_5ms(Probes.Ch_1);   /* U_R_e = Vcc - U_e */
       U_R_b = ReadU(Probes.Ch_3);                 /* U_R_b = U_b */
 
-      Ri = NV.RiH;                           /* get internal resistance */
+      #ifdef SW_HFE_CURRENT
+      I_e = -(int32_t)U_R_e;            /* negative U_R_e (mV) */
+      #endif
+
+      Ri = NV.RiH;                      /* get internal resistance */
     }
 
     /*
@@ -699,14 +729,25 @@ uint32_t Get_hFE_C(uint8_t Type)
      *      = (U_R_e * R_b) / (U_R_b * R_e)
      */
 
-    if (U_R_b == 0) U_R_b = 1;               /* prevent division by zero */
-    hFE2 = U_R_e * R_HIGH;                   /* U_R_e * R_b */
-    hFE2 /= U_R_b;                           /* / U_R_b */
-    hFE2 *= 10;                              /* upscale to 0.1 */
-    hFE2 /= (R_LOW * 10) + Ri;               /* / R_e in 0.1 Ohm */
+    if (U_R_b == 0) U_R_b = 1;          /* prevent division by zero */
+    hFE2 = U_R_e * R_HIGH;              /* U_R_e * R_b */
+    hFE2 /= U_R_b;                      /* / U_R_b */
+    hFE2 *= 10;                         /* upscale to 0.1 */
+    Ri += (R_LOW * 10);                 /* R_e = Ri + Rl (in 0.1 Ohms) */
+    hFE2 /= Ri;                         /* / R_e in 0.1 Ohms */
 
     /* keep the higher hFE */
-    if (hFE2 > hFE) hFE = hFE2;
+    if (hFE2 > hFE)                     /* hFE_Rh higher */
+    {
+      hFE = hFE2;                       /* update hFE */
+      #ifdef SW_HFE_CURRENT
+      /* calculate emitter current: I_e = U_R_e / (Rl + Ri) */
+      /* NPN: Ri = RiL / PNP: Ri = RiH */
+      I_e *= 10000;                /* scale to 0.1 µV (for µA and Ri's 0.1 Ohms */
+      I_e /= Ri;                   /* / (Rl + Ri) */
+      Semi.U_2 = (int16_t)I_e;     /* update I_e (in µA) */
+      #endif
+    }
   }
 
   #else
@@ -732,6 +773,10 @@ uint32_t Get_hFE_C(uint8_t Type)
     U_R_e = ReadU_5ms(Probes.Ch_2);               /* U_R_e = U_e */
     U_R_b = Cfg.Vcc - ReadU(Probes.Ch_3);         /* U_R_b = Vcc - U_b */
 
+    #ifdef SW_HFE_CURRENT
+    I_e = (int32_t)U_R_e;               /* U_R_e (mV) */
+    #endif
+
     Ri = NV.RiL;                        /* get internal resistance */
   }
   else                             /* PNP */
@@ -745,6 +790,10 @@ uint32_t Get_hFE_C(uint8_t Type)
 
     U_R_e = Cfg.Vcc - ReadU_5ms(Probes.Ch_1);     /* U_R_e = Vcc - U_e */
     U_R_b = ReadU(Probes.Ch_3);                   /* U_R_b = U_b */
+
+    #ifdef SW_HFE_CURRENT
+    I_e = -(int32_t)U_R_e;              /* negative U_R_e (mV) */
+    #endif
 
     Ri = NV.RiH;                        /* get internal resistance */
   }
@@ -760,7 +809,16 @@ uint32_t Get_hFE_C(uint8_t Type)
   hFE = U_R_e * R_HIGH;                 /* U_R_e * R_b */
   hFE /= U_R_b;                         /* / U_R_b */
   hFE *= 10;                            /* upscale to 0.1 */
-  hFE /= (R_LOW * 10) + Ri;             /* / R_e in 0.1 Ohm */
+  Ri += (R_LOW * 10);                   /* R_e = Ri + Rl (in 0.1 Ohms) */
+  hFE /= Ri;                            /* / R_e in 0.1 Ohms */
+
+  #ifdef SW_HFE_CURRENT
+  /* calculate emitter current: I_e = U_R_e / (Rl + Ri) */
+  /* NPN: Ri = RiL / PNP: Ri = RiH */
+  I_e *= 10000;                    /* scale to 0.1 µV (for µA and Ri's 0.1 Ohms */
+  I_e /= Ri;                       /* / (Rl + Ri) */
+  Semi.U_2 = (int16_t)I_e;         /* save I_e (in µA) */
+  #endif
 
   #endif
 
@@ -786,8 +844,12 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
   uint16_t          U_R_b;         /* voltage across base resistor */
   uint16_t          BJT_Level;     /* voltage threshold for BJT */
   uint16_t          FET_Level;     /* voltage threshold for FET */
+  uint16_t          Ri;            /* internal resistance of MCU */
   uint32_t          hFE_C;         /* hFE (common collector) */
   uint32_t          hFE_E;         /* hFE (common emitter) */
+  #ifdef SW_HFE_CURRENT
+  int32_t           I_c;           /* collector current */
+  #endif
 
   /*
    *  init, set probes and measure
@@ -815,6 +877,12 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
     wait50ms();                              /* wait to skip gate charging of a FET */
     U_R_c = Cfg.Vcc - ReadU(Probes.Ch_1);    /* U_R_c = Vcc - U_c */ 
     U_R_b = Cfg.Vcc - ReadU(Probes.Ch_3);    /* U_R_b = Vcc - U_b */
+
+    #ifdef SW_HFE_CURRENT
+    I_c = (int32_t)U_R_c;          /* U_R_c (mV) */
+    #endif
+
+    Ri = NV.RiH;                   /* RiH (0.1 Ohms) */
   }
   else                        /* PNP / p-channel */
   {
@@ -834,6 +902,12 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
     R_DDR = Probes.Rl_2 | Probes.Rh_3;  /* pull down base via Rh */
     U_R_c = ReadU_5ms(Probes.Ch_2);     /* U_R_c = U_c */
     U_R_b = ReadU(Probes.Ch_3);         /* U_R_b = U_b */
+
+    #ifdef SW_HFE_CURRENT
+    I_c = -(int32_t)U_R_c;         /* negative U_R_c (mV) */
+    #endif
+
+    Ri = NV.RiL;                   /* RiL (0.1 Ohms) */
   }
 
 
@@ -908,17 +982,17 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
     hFE_E = U_R_c * R_HIGH;             /* U_R_c * R_b */
     hFE_E /= U_R_b;                     /* / U_R_b */
     hFE_E *= 10;                        /* upscale to 0.1 */
-
-    if (BJT_Type == TYPE_NPN)      /* NPN */
-    {
-      hFE_E /= (R_LOW * 10) + NV.RiH;   /* / R_c in 0.1 Ohm */
-    }
-    else                           /* PNP */
-    {
-      hFE_E /= (R_LOW * 10) + NV.RiL;   /* / R_c in 0.1 Ohm */
-    }
+    Ri += (R_LOW * 10);                 /* R_c = Ri + Rl (in 0.1 Ohms) */
+    hFE_E /= Ri;                        /* / R_c in 0.1 Ohms */
 
     Flag = HFE_COMMON_EMITTER;          /* common emitter circuit */
+
+    #ifdef SW_HFE_CURRENT
+    /* calculate collector current: I_c = U_R_c / (Rl + Ri) */
+    /* NPN: Ri = RiH / PNP: Ri = RiL */
+    I_c *= 10000;                  /* scale to 0.1 µV (for µA and Ri's 0.1 Ohms */
+    I_c /= Ri;                     /* / (Rl + Ri) */
+    #endif
 
     /* get hFE for common collector circuit */
     hFE_C = Get_hFE_C(BJT_Type);
@@ -928,6 +1002,9 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
     {
       hFE_E = hFE_C;                    /* take hFE_C */
       Flag = HFE_COMMON_COLLECTOR;      /* common collector circuit */
+      #ifdef SW_HFE_CURRENT
+      I_c = (int32_t)Semi.U_2;          /* take I_e from hFE_C measurement */
+      #endif
     }
 
     /* update logic */
@@ -998,7 +1075,10 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
       /* save data */
       Semi.F_1 = hFE_E;                 /* hFE */
       Semi.Flags = Flag;                /* hFE circuit type */
-      Semi.C_value = Caps[0].Value;     /* E-B capacitance */
+      #ifdef SW_HFE_CURRENT
+      Semi.U_3 = (int16_t)I_c;          /* I_c/I_e (in µA) */
+      #endif
+      Semi.C_value = Caps[0].Value;     /* B-E/E-B capacitance */
       Semi.C_scale = Caps[0].Scale;
       Semi.A = Probes.ID_3;             /* base pin */
 

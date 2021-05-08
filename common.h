@@ -158,7 +158,7 @@
 #define RX_BUFFER_SIZE        11        /* 10 chars + terminating 0 */
 
 /* number of entries in data tables */
-#define NUM_PREFIXES          7         /* unit prefixes */
+#define NUM_PREFIXES          8         /* unit prefixes */
 #define NUM_LARGE_CAP         46        /* large cap factors */
 #define NUM_SMALL_CAP         9         /* small cap factors */
 #define NUM_PWM_FREQ          8         /* PWM frequencies */
@@ -223,6 +223,8 @@
 #define CMD_V_GT              40   /* return V_GT */
 #define CMD_V_T               41   /* return V_T */
 #define CMD_R_BB              42   /* return R_BB */
+#define CMD_I_C               43   /* return I_C */
+#define CMD_I_E               44   /* return I_E */
 
 
 
@@ -639,14 +641,14 @@ typedef struct
   B        Collector    Drain        Anode        MT2          Collector
   C        Emitter      Source       Cathode      MT1          Emitter
   U_1      V_BE (mV)    R_DS (0.01)  V_GT (mV)    V_GT (mV)
-  U_2                   V_th (mV)                              V_th (mV)
-  U_3                   V_GS(off)
+  U_2      I_E (µA)     V_th (mV)                              V_th (mV)
+  U_3      I_C/E (µA)   V_GS(off)
   F_1      hFE                                    MT2 (mV)
   F_2      hFEr
   I_value  I_CEO        I_DSS
   I_scale  I_CEO        I_DSS
-  C_value  C_BE
-  C_scale  C_BE
+  C_value  C_EB/BE
+  C_scale  C_EB/BE
 */
 
 

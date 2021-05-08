@@ -134,6 +134,7 @@
 #define FONT_8X8_HF                     /* 8x8 font */
 //#define FONT_10X16_HF                   /* 10x16 font */
 //#define FONT_8X8_ISO8859_2_HF           /* 8x8 Central European font */
+//#define FONT_10X16_ISO8859_2_HF         /* 10x16 Central European font */
 //#define FONT_8X16_WIN1251_HF            /* 8x16 cyrillic font */
 //#define FONT_8X16ALT_WIN1251_HF         /* 8x16 alternative cyrillic font */
 #define SYMBOLS_30X32_HF                /* 30x32 symbols */
@@ -659,6 +660,8 @@
 //#define LCD_LATE_ON                     /* turn on LCD after clearing it */
 /* font and symbols: horizontally aligned & flipped */
 #define FONT_10X16_HF                   /* 10x16 font */
+//#define FONT_6X8_ISO8859_2_HF           /* 6x8 Central European font */
+//#define FONT_8X8_ISO8859_2_HF           /* 8x8 Central European font */
 //#define FONT_10X16_ISO8859_2_HF         /* 10x16 Central European font */
 //#define FONT_8X16_WIN1251_HF            /* 8x16 cyrillic font */
 //#define FONT_8X16ALT_WIN1251_HF         /* 8x16 alternative cyrillic font */
@@ -737,6 +740,8 @@
 #define LCD_DB7          PD3            /* port pin used for DB7 */
 #define LCD_RS           PD4            /* port pin used for RS */
 #define LCD_EN           PD5            /* port pin used for E */
+//#define LCD_RW           PD?            /* port pin used for RW (optional) */
+//#define LCD_RESET        PD?            /* port pin used for /RESET (optional) */
 /* display settings */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */

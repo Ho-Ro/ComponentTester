@@ -33,8 +33,9 @@
  */
 
 /* program control */
+#if CYCLE_MAX < 255
 uint8_t        MissedParts;          /* counter for failed/missed components */
-
+#endif
 
 
 /* ************************************************************************
@@ -148,9 +149,10 @@ void Show_SimplePinout(uint8_t ID_1, uint8_t ID_2, uint8_t ID_3)
  *  - Scale: exponent/multiplier (* 10^n)
  *  - ESeries: E6-192
  *  - Tolerance: in 0.1%
+ *  - Unit: unit character
  */
 
-void Show_ENormValues(uint32_t Value, int8_t Scale, uint8_t ESeries, uint8_t Tolerance)
+void Show_ENormValues(uint32_t Value, int8_t Scale, uint8_t ESeries, uint8_t Tolerance, unsigned char Unit)
 {
   uint8_t           n;             /* number of norm values (1 or 2) */
   uint8_t           Pos;           /* char x position */
@@ -202,23 +204,16 @@ void Show_ENormValues(uint32_t Value, int8_t Scale, uint8_t ESeries, uint8_t Tol
     Pos = UI.CharPos_X;       /* get current char position */
 
     /* display first norm value */
-    Display_EValue(Semi.I_value, Semi.I_scale, 0);
+    Display_EValue(Semi.I_value, Semi.I_scale, Unit);
 
     if (n == 2)               /* got two norm values */
     {
-      if (ESeries >= E48)     /* second value in another line */
-      {
-        /* move to next line at same position (after E series) */
-        Display_NextLine();
-        LCD_CharPos(Pos, UI.CharPos_Y);
-      }
-      else                    /* both values in one line */
-      {
-        Display_Space();      /* display: " " */
-      }
+      /* move to next line at same position (after E series) */
+      Display_NextLine();
+      LCD_CharPos(Pos, UI.CharPos_Y);
 
       /* display second norm value */
-      Display_EValue(Semi.C_value, Semi.C_scale, 0);
+      Display_EValue(Semi.C_value, Semi.C_scale, Unit);
     }
   }
   else                        /* no norm value */
@@ -360,7 +355,9 @@ void Show_Fail(void)
   Display_EEString(Failed1_str);        /* display: No component */
   Display_NL_EEString(Failed2_str);     /* display: found! */
 
+  #if CYCLE_MAX < 255
   MissedParts++;              /* increase counter */
+  #endif
 }
 
 
@@ -550,12 +547,12 @@ void Show_Resistor(void)
 
       #ifdef SW_L_E6_T
       /* show E series norm values for E6 20% */
-      Show_ENormValues(Inductor.Value, Inductor.Scale, E6, 200);
+      Show_ENormValues(Inductor.Value, Inductor.Scale, E6, 200, 'H');
       #endif
 
       #ifdef SW_L_E12_T
       /* show E series norm values for E12 10% */
-      Show_ENormValues(Inductor.Value, Inductor.Scale, E12, 100);
+      Show_ENormValues(Inductor.Value, Inductor.Scale, E12, 100, 'H');
       #endif
     }
     #ifdef SW_R_EXX
@@ -563,7 +560,7 @@ void Show_Resistor(void)
     {
       #ifdef SW_R_E24_5_T
       /* show E series norm values for E24 5% */
-      Show_ENormValues(R1->Value, R1->Scale, E24, 50);
+      Show_ENormValues(R1->Value, R1->Scale, E24, 50, LCD_CHAR_OMEGA);
       #endif
 
       #ifdef SW_R_E24_5_CC
@@ -573,7 +570,7 @@ void Show_Resistor(void)
 
       #ifdef SW_R_E24_1_T
       /* show E series norm values for E24 1% */
-      Show_ENormValues(R1->Value, R1->Scale, E24, 10);
+      Show_ENormValues(R1->Value, R1->Scale, E24, 10, LCD_CHAR_OMEGA);
       #endif
 
       #ifdef SW_R_E24_1_CC
@@ -583,7 +580,7 @@ void Show_Resistor(void)
 
       #ifdef SW_R_E96_T
       /* show E series norm values for E96 1% */
-      Show_ENormValues(R1->Value, R1->Scale, E96, 10);
+      Show_ENormValues(R1->Value, R1->Scale, E96, 10, LCD_CHAR_OMEGA);
       #endif
 
       #ifdef SW_R_E96_CC
@@ -598,7 +595,7 @@ void Show_Resistor(void)
   {
     #ifdef SW_R_E24_5_T
     /* show E series norm values for E24 5% */
-    Show_ENormValues(R1->Value, R1->Scale, E24, 50);
+    Show_ENormValues(R1->Value, R1->Scale, E24, 50, LCD_CHAR_OMEGA);
     #endif
 
     #ifdef SW_R_E24_5_CC
@@ -608,7 +605,7 @@ void Show_Resistor(void)
 
     #ifdef SW_R_E24_1_T
     /* show E series norm values for E24 1% */
-    Show_ENormValues(R1->Value, R1->Scale, E24, 10);
+    Show_ENormValues(R1->Value, R1->Scale, E24, 10, LCD_CHAR_OMEGA);
     #endif
 
     #ifdef SW_R_E24_1_CC
@@ -618,7 +615,7 @@ void Show_Resistor(void)
 
     #ifdef SW_R_E96_T
     /* show E series norm values for E96 1% */
-    Show_ENormValues(R1->Value, R1->Scale, E96, 10);
+    Show_ENormValues(R1->Value, R1->Scale, E96, 10, LCD_CHAR_OMEGA);
     #endif
 
     #ifdef SW_R_E96_CC
@@ -694,12 +691,12 @@ void Show_Capacitor(void)
 
   #ifdef SW_C_E6_T
   /* show E series norm values for E6 20% */
-  Show_ENormValues(MaxCap->Value, MaxCap->Scale, E6, 200);
+  Show_ENormValues(MaxCap->Value, MaxCap->Scale, E6, 200, 'F');
   #endif
 
   #ifdef SW_C_E12_T
   /* show E series norm values for E12 10% */
-  Show_ENormValues(MaxCap->Value, MaxCap->Scale, E12, 100);
+  Show_ENormValues(MaxCap->Value, MaxCap->Scale, E12, 100, 'F');
   #endif
 }
 
@@ -1038,7 +1035,9 @@ void Show_BJT(void)
    *  B   - Collector pin
    *  C   - Emitter pin
    *  U_1 - U_BE (mV) (not implemented yet)
+   *  U_3 - I_C/I_E (µA)
    *  F_1 - hFE
+   *  F_2 - reverse hFE
    *  I_value/I_scale - I_CEO
    */
 
@@ -1162,13 +1161,30 @@ void Show_BJT(void)
   if (Semi.Flags & HFE_COMMON_EMITTER)         /* common emitter */
   {
     /* common emitter circuit */
-    Display_Char('e');                       /* display: e */
+    Display_Char('e');                         /* display: e */
   }
   else if (Semi.Flags & HFE_COMMON_COLLECTOR)  /* common collector */
   {
     /* common collector circuit */
-    Display_Char('c');                       /* display: c */
+    Display_Char('c');                         /* display: c */
   }
+
+  #ifdef SW_HFE_CURRENT
+  /* display test current for hFE measurement */
+  Display_NL_EEString(I_str);                  /* display: I_ */
+  if (Semi.Flags & HFE_COMMON_EMITTER)         /* common emitter */
+  {
+    /* I_C */
+    Display_Char('C');                         /* display: C */
+  }
+  else if (Semi.Flags & HFE_COMMON_COLLECTOR)  /* common collector */
+  {
+    /* I_E */
+    Display_Char('E');                         /* display: E */
+  }
+  Display_Space();
+  Display_SignedValue(Semi.U_3, -6, 'A');      /* display I_C/I_E */
+  #endif
 
   #ifdef SW_REVERSE_HFE
   /* display reverse hFE */
@@ -2125,7 +2141,9 @@ int main(void)
    */
 
   /* cycling */
+  #if CYCLE_MAX < 255
   MissedParts = 0;                      /* reset counter */
+  #endif
   Key = KEY_POWER_ON;                   /* just powered on */
 
   /* default offsets and values */
@@ -2413,11 +2431,13 @@ show_component:
   }
   #endif
 
+  #if CYCLE_MAX < 255
   /* component was found */
   if (Check.Found >= COMP_RESISTOR)
   {
     MissedParts = 0;          /* reset counter */
   }
+  #endif
 
 
   /*
@@ -2440,6 +2460,7 @@ cycle_control:
 
   /* wait for key press or timeout */
   #ifdef UI_KEY_HINTS
+    Display_LastLine();
     UI.KeyHint = (unsigned char *)Menu_or_Test_str;
     Key = TestKey((uint16_t)CYCLE_DELAY, CURSOR_BLINK | CURSOR_TEXT | CHECK_OP_MODE | CHECK_KEY_TWICE | CHECK_BAT);
   #else
@@ -2449,11 +2470,14 @@ cycle_control:
   if (Key == KEY_TIMEOUT)          /* timeout (no key press) */
   {
     /* implies continuous mode */
+
+    #if CYCLE_MAX < 255
     /* check if we reached the maximum number of missed parts in a row */
     if (MissedParts >= CYCLE_MAX)
     {
       Key = KEY_POWER_OFF;         /* signal power off */
     }
+    #endif
   }
   else if (Key == KEY_TWICE)       /* two short key presses */
   {

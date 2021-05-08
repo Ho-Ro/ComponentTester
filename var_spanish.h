@@ -91,8 +91,8 @@
   #ifdef HW_FREQ_COUNTER_EXT
     const unsigned char CounterChannel_str[] MEM_TYPE = "Ch";
     const unsigned char FreqInput_str[] MEM_TYPE = "BNC";
-    const unsigned char LF_Crystal_str[] MEM_TYPE = "LF cristal";
-    const unsigned char HF_Crystal_str[] MEM_TYPE = "HF cristal";
+    const unsigned char LF_Crystal_str[] MEM_TYPE = "Cristal BF";
+    const unsigned char HF_Crystal_str[] MEM_TYPE = "Cristal AF";
   #endif
 
   #ifdef HW_EVENT_COUNTER
@@ -101,6 +101,11 @@
     const unsigned char Time_str[] MEM_TYPE = "Tiempo";
     const unsigned char Events_str[] MEM_TYPE = "Eventos";
     const unsigned char Stop_str[] MEM_TYPE = "Parar";
+  #endif
+
+  #ifdef HW_LC_METER
+    const unsigned char LC_Meter_str[] MEM_TYPE = "LC Meter";
+    const unsigned char Adjusting_str[] MEM_TYPE = "adjusting...";
   #endif
 
   #ifdef SW_ENCODER
@@ -149,23 +154,23 @@
   #endif
 
   #ifdef SW_MONITOR_R
-    const unsigned char Monitor_R_str[] MEM_TYPE = "R Monitor";
+    const unsigned char Monitor_R_str[] MEM_TYPE = "Monitor Resis.";
   #endif
 
   #ifdef SW_MONITOR_C
-    const unsigned char Monitor_C_str[] MEM_TYPE = "Cond. Monitor";
+    const unsigned char Monitor_C_str[] MEM_TYPE = "Monitor Capac.";
   #endif
 
   #ifdef SW_MONITOR_L
-    const unsigned char Monitor_L_str[] MEM_TYPE = "I Monitor";
+    const unsigned char Monitor_L_str[] MEM_TYPE = "Monitor Induc.";
   #endif
 
   #ifdef SW_MONITOR_RCL
-    const unsigned char Monitor_RCL_str[] MEM_TYPE = "R/C/I Monitor";
+    const unsigned char Monitor_RCL_str[] MEM_TYPE = "Monitor R/C/I";
   #endif
 
   #ifdef SW_MONITOR_RL
-    const unsigned char Monitor_RL_str[] MEM_TYPE = "R/I Monitor";
+    const unsigned char Monitor_RL_str[] MEM_TYPE = "Monitor R/I";
   #endif
 
   #ifdef HW_TOUCH

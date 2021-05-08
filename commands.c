@@ -1444,6 +1444,60 @@ uint8_t Cmd_V_T(void)
 
 
 
+/*
+ *  command: I_C / I_E
+ *  - return test current for hFE measurement
+ *    I_C value (common emitter circuit)
+ *    I_E value (common collector circuit)
+ *
+ *  requires:
+ *  - Cmd: command ID
+ *
+ *  returns:
+ *  - SIGNAL_ERR on error
+ *  - SIGNAL_NA on n/a
+ *  - SIGNAL_OK on success
+ */
+
+uint8_t Cmd_I_C(uint8_t Cmd)
+{
+  uint8_t           Flag = SIGNAL_OK;   /* return value */
+
+  if (Check.Found == COMP_BJT)          /* BJT */
+  {
+    if (Cmd == CMD_I_C)                 /* I_C */
+    {
+      if (Semi.Flags & HFE_COMMON_EMITTER)        /* common emitter */
+      {
+        Display_SignedValue(Semi.U_3, -6, 'A');   /* send I_C */
+      }
+      else                                        /* error */
+      {
+        Flag = SIGNAL_ERR;                        /* signal error */
+      }
+    }
+    else if (Cmd == CMD_I_E)            /* I_E */
+    {
+      if (Semi.Flags & HFE_COMMON_COLLECTOR)      /* common collector */
+      {
+        Display_SignedValue(Semi.U_3, -6, 'A');   /* send I_E */
+      }
+      else                                        /* error */
+      {
+        Flag = SIGNAL_ERR;                        /* signal error */
+      }
+    }
+  }
+  else                                  /* wrong component */
+  {
+    Flag = SIGNAL_ERR;                  /* signal error */
+  }
+
+  return Flag;
+}
+
+
+
 /* ************************************************************************
  *   command parsing and processing
  * ************************************************************************ */
@@ -1723,6 +1777,13 @@ uint8_t RunCommand(uint8_t ID)
     case CMD_V_T:             /* return V_T */
       Flag = Cmd_V_T();                      /* run command */
       break;
+
+    #ifdef SW_HFE_CURRENT
+    case CMD_I_C:             /* return I_C */
+    case CMD_I_E:             /* return I_E */
+      Flag = Cmd_I_C(ID);                    /* run command */
+      break;
+    #endif
 
     default:                  /* unknown/unsupported */
       Flag = SIGNAL_ERR;                     /* signal error */

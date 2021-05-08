@@ -359,10 +359,12 @@ uint8_t ReadEncoder(void)
     {
       Temp >>= 1;                       /* shift right to get A */
     }
+
     if (Temp == 1)                      /* valid change */
     {
       /*
        *  detect direction
+       *  - check sequence: next AB for AB=11, AB=10, AB=01, AB=00
        *  - right turn (CW):
        *    Gray code for AB: 00-10-11-01 -> check sequence 01110010
        *  - left turn (CCW):
@@ -1144,7 +1146,7 @@ void WaitKey(void)
 
 
 
-#if defined (SW_PWM_PLUS) || defined (SW_SERVO) || defined (HW_EVENT_COUNTER)
+#ifdef FUNC_SMOOTHLONGKEYPRESS
 
 /*
  *  smooth UI for a long key press to prevent a second long-key-press
@@ -1374,9 +1376,15 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
     if (Lines == 1)
     {
       LCD_CharPos(UI.CharMax_X, UI.CharMax_Y);    /* set position to bottom right */
-      if (Selected < Items) n = '>';      /* another item follows */
-      else n = '<';                       /* last item */
-      Display_Char(n);
+      if (Selected < Items)        /* another item follows */
+      {
+        n = '>';                   /* '>' for more */
+      }
+      else n = '<';                /* last item */
+      {
+        n = '<';                   /* '<' for less */
+      }
+      Display_Char(n);             /* display char */
     }
 
     #ifndef HW_KEYS
@@ -1589,6 +1597,7 @@ void AdjustmentMenu(uint8_t Mode)
 #define MENUITEM_MONITOR_L        27
 #define MENUITEM_MONITOR_RCL      28
 #define MENUITEM_MONITOR_RL       29
+#define MENUITEM_LC_METER         30
 
 
 /*
@@ -1624,7 +1633,7 @@ uint8_t PresentMainMenu(void)
     #define ITEM_03      0
   #endif
 
-  #if defined (SW_ESR) || defined (SW_OLD_ESR)
+  #ifdef SW_ESR_TOOL
     #define ITEM_04      1
   #else
     #define ITEM_04      0
@@ -1750,9 +1759,15 @@ uint8_t PresentMainMenu(void)
     #define ITEM_24      0
   #endif
 
+  #ifdef HW_LC_METER
+    #define ITEM_25      1
+  #else
+    #define ITEM_25      0
+  #endif
+
   #define ITEMS_1        (ITEM_01 + ITEM_02 + ITEM_03 + ITEM_04 + ITEM_05 + ITEM_06 + ITEM_07 + ITEM_08 + ITEM_09 + ITEM_10)
   #define ITEMS_2        (ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20)
-  #define ITEMS_3        (ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24)
+  #define ITEMS_3        (ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24 + ITEM_25)
 
   /* number of menu items */
   #define MENU_ITEMS     (ITEMS_0 + ITEMS_1 + ITEMS_2 + ITEMS_3)
@@ -1798,7 +1813,7 @@ uint8_t PresentMainMenu(void)
   n++;
   #endif
 
-  #if defined (SW_ESR) || defined (SW_OLD_ESR)
+  #ifdef SW_ESR_TOOL
   /* in-circuit ESR */
   Item_Str[n] = (void *)ESR_str;
   Item_ID[n] = MENUITEM_ESR;
@@ -1844,6 +1859,13 @@ uint8_t PresentMainMenu(void)
   /* monitor R/L */
   Item_Str[n] = (void *)Monitor_RL_str;
   Item_ID[n] = MENUITEM_MONITOR_RL;
+  n++;
+  #endif
+
+  #ifdef HW_LC_METER
+  /* LC meter */
+  Item_Str[n] = (void *)LC_Meter_str;
+  Item_ID[n] = MENUITEM_LC_METER;
   n++;
   #endif
 
@@ -2020,6 +2042,7 @@ uint8_t PresentMainMenu(void)
   #undef ITEM_22
   #undef ITEM_23
   #undef ITEM_24
+  #undef ITEM_25
 
   return(ID);                 /* return item ID */
 }
@@ -2104,7 +2127,7 @@ void MainMenu(void)
       break;
     #endif
 
-    #if defined (SW_ESR) || defined (SW_OLD_ESR)
+    #ifdef SW_ESR_TOOL
     /* ESR tool */
     case MENUITEM_ESR:
       ESR_Tool();
@@ -2250,6 +2273,13 @@ void MainMenu(void)
       Monitor_RL();
       break;
     #endif
+
+    #ifdef HW_LC_METER
+    /* LC meter */
+    case MENUITEM_LC_METER:
+      Flag = LC_Meter();
+      break;
+    #endif
   }
 
   /* display result */
@@ -2295,6 +2325,7 @@ void MainMenu(void)
 #undef MENUITEM_FONT_TEST
 #undef MENUITEM_MONITOR_L
 #undef MENUITEM_MONITOR_RCL
+#undef MENUITEM_LC_METER
 
 
 

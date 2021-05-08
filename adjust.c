@@ -795,12 +795,12 @@ uint8_t SelfAdjustment(void)
   if (CapCounter == 15)
   {
     #ifdef CAP_MULTIOFFSET
-    /* calculate average offset (pF) for each probe pair */
+    /* separately for each probe pair (in pF) */
     NV.CapZero[0] = CapSum1 / 5;        /* probes 1-2 */
     NV.CapZero[1] = CapSum2 / 5;        /* probes 1-3 */
     NV.CapZero[2] = CapSum3 / 5;        /* probes 2-3 */
     #else
-    /* calculate average offset (pF) for all probe pairs */
+    /* for all probe pairs (in pF) */
     NV.CapZero = CapSum / CapCounter;
     #endif
 
@@ -811,12 +811,12 @@ uint8_t SelfAdjustment(void)
   if (RCounter == 15)
   { 
     #ifdef R_MULTIOFFSET
-    /* calculate average offset (0.01 Ohms) for each probe pair */
+    /* separately for each probe pair (in 0.01 Ohms) */
     NV.RZero[0] = RSum1 / 5;            /* probes 1-2 */
     NV.RZero[1] = RSum2 / 5;            /* probes 1-3 */
     NV.RZero[2] = RSum3 / 5;            /* probes 2-3 */
     #else
-    /* calculate average offset (0.01 Ohms) for all probe pairs */
+    /* for all probe pairs (in 0.01 Ohms) */
     NV.RZero = RSum / RCounter;
     #endif
 

@@ -103,6 +103,11 @@
     const unsigned char Stop_str[] MEM_TYPE = "Stop";
   #endif
 
+  #ifdef HW_LC_METER
+    const unsigned char LC_Meter_str[] MEM_TYPE = "LC Meter";
+    const unsigned char Adjusting_str[] MEM_TYPE = "adjusting...";
+  #endif
+
   #ifdef SW_ENCODER
     const unsigned char Encoder_str[] MEM_TYPE = "Enkoder";
     const unsigned char TurnRight_str[] MEM_TYPE = "Pokrec w prawo!";

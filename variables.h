@@ -75,7 +75,7 @@
   Semi_Type         Semi;                    /* common semiconductor */
   AltSemi_Type      AltSemi;                 /* special semiconductor */
 
-  #ifdef SW_INDUCTOR
+  #if defined (SW_INDUCTOR) || defined (HW_LC_METER)
     Inductor_Type   Inductor;                /* inductor */
   #endif
 
@@ -142,13 +142,14 @@
   #include "var_italian.h"
   #include "var_polish.h"
   #include "var_polish_2.h"
+  #include "var_romanian.h"
   #include "var_russian.h"
   #include "var_russian_2.h"
   #include "var_spanish.h"
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.41m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.42m";
 
 
   /* common terms and texts */
@@ -191,7 +192,7 @@
 
 
   /* options */
-  #if defined (SW_ESR) || defined (SW_OLD_ESR)
+  #ifdef SW_ESR_TOOL
     const unsigned char ESR_str[] MEM_TYPE = "ESR";
   #endif
 
@@ -242,6 +243,10 @@
 
   #ifdef SW_DS18B20
     const unsigned char DS18B20_str[] MEM_TYPE = "DS18B20";
+  #endif
+
+  #ifdef SW_HFE_CURRENT
+    const unsigned char I_str[] MEM_TYPE ="I_";
   #endif
 
   #ifdef SW_REVERSE_HFE
@@ -323,6 +328,10 @@
     const unsigned char Cmd_I_DSS_str[] MEM_TYPE = "I_DSS";
     const unsigned char Cmd_C_GE_str[] MEM_TYPE = "C_GE";
     const unsigned char Cmd_V_T_str[] MEM_TYPE = "V_T";
+    #ifdef SW_HFE_CURRENT
+      const unsigned char Cmd_I_C_str[] MEM_TYPE = "I_C";
+      const unsigned char Cmd_I_E_str[] MEM_TYPE = "I_E";
+    #endif
 
     /* command reference table */
     const Cmd_Type Cmd_Table[] MEM_TYPE = {
@@ -368,6 +377,10 @@
       #ifdef SW_UJT
         {CMD_R_BB, R_BB_str},
       #endif
+      #ifdef SW_HFE_CURRENT
+        {CMD_I_C, Cmd_I_C_str},
+        {CMD_I_E, Cmd_I_E_str},
+      #endif
       {0, 0}
     };
   #endif
@@ -378,8 +391,8 @@
    *  - stored in EEPROM/Flash
    */
 
-  /* unit prefixes: p, n, µ, m, 0, k, M (used by value display) */
-  const unsigned char Prefix_table[NUM_PREFIXES] MEM_TYPE = {'p', 'n', LCD_CHAR_MICRO, 'm', 0, 'k', 'M'};
+  /* unit prefixes: f, p, n, µ, m, 0, k, M (used by value display) */
+  const unsigned char Prefix_table[NUM_PREFIXES] MEM_TYPE = {'f', 'p', 'n', LCD_CHAR_MICRO, 'm', 0, 'k', 'M'};
 
   /* voltage based factors for large caps (using Rl) */
   /* voltage in mV:                                          300    325    350    375    400    425    450    475    500    525    550    575    600    625    650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400 */
@@ -508,7 +521,7 @@
   extern Semi_Type       Semi;               /* common semiconductor */
   extern AltSemi_Type    AltSemi;            /* special semiconductor */
 
-  #ifdef SW_INDUCTOR
+  #if defined (SW_INDUCTOR) || defined (HW_LC_METER)
     extern Inductor_Type Inductor;           /* inductor */
   #endif
 
@@ -616,7 +629,7 @@
     extern const unsigned char Menu_or_Test_str[];
   #endif
 
-  #if defined (SW_ESR) || defined (SW_OLD_ESR)
+  #ifdef SW_ESR_TOOL
     extern const unsigned char ESR_str[];
   #endif
 
@@ -650,6 +663,11 @@
     extern const unsigned char Time_str[];
     extern const unsigned char Events_str[];
     extern const unsigned char Stop_str[];
+  #endif
+
+  #ifdef HW_LC_METER
+    extern const unsigned char LC_Meter_str[];
+    extern const unsigned char Adjusting_str[];
   #endif
 
   #ifdef SW_ENCODER
@@ -831,6 +849,10 @@
     extern const unsigned char Cmd_I_DSS_str[];
     extern const unsigned char Cmd_C_GE_str[];
     extern const unsigned char Cmd_V_T_str[];
+    #ifdef SW_HFE_CURRENT
+      extern const unsigned char Cmd_I_C_str[];
+      extern const unsigned char Cmd_I_E_str[];
+    #endif
 
     /* command reference table */
     extern const Cmd_Type Cmd_Table[];

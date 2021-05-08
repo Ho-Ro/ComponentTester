@@ -35,7 +35,7 @@
  */
 
 /* ProbePinout() */
-#if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (SW_SQUAREWAVE) || defined (SW_SERVO) || defined (SW_ESR) || defined (SW_OLD_ESR)
+#if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (SW_SQUAREWAVE) || defined (SW_SERVO) || defined (SW_ESR_TOOL)
   #ifndef FUNC_PROBE_PINOUT
     #define FUNC_PROBE_PINOUT
   #endif
@@ -80,7 +80,7 @@ void ProbePinout(uint8_t Mode)
     ID_2 = 's';
     ID_3 = '-';
   }
-  #if defined (SW_ESR) || defined (SW_OLD_ESR)
+  #ifdef SW_ESR_TOOL
   else if (Mode == PROBES_ESR)     /* ESR measurement */
   {
     /* probe #1: + / probe #3: - */
@@ -335,7 +335,7 @@ void Zener_Tool(void)
  * ************************************************************************ */
 
 
-#if defined (SW_ESR) || defined (SW_OLD_ESR)
+#ifdef SW_ESR_TOOL
 
 /*
  *  ESR tool

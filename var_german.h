@@ -102,6 +102,11 @@
     const unsigned char Stop_str[] MEM_TYPE = "Stop";
   #endif
 
+  #ifdef HW_LC_METER
+    const unsigned char LC_Meter_str[] MEM_TYPE = "LC-Meter";
+    const unsigned char Adjusting_str[] MEM_TYPE = "abgleichen...";
+  #endif
+
   #ifdef SW_ENCODER
     const unsigned char Encoder_str[] MEM_TYPE = "Dreh-Encoder";
     const unsigned char TurnRight_str[] MEM_TYPE = "Drehe rechts!";
@@ -148,23 +153,23 @@
   #endif
 
   #ifdef SW_MONITOR_R
-    const unsigned char Monitor_R_str[] MEM_TYPE = "R Monitor";
+    const unsigned char Monitor_R_str[] MEM_TYPE = "R-Monitor";
   #endif
 
   #ifdef SW_MONITOR_C
-    const unsigned char Monitor_C_str[] MEM_TYPE = "C Monitor";
+    const unsigned char Monitor_C_str[] MEM_TYPE = "C-Monitor";
   #endif
 
   #ifdef SW_MONITOR_L
-    const unsigned char Monitor_L_str[] MEM_TYPE = "L Monitor";
+    const unsigned char Monitor_L_str[] MEM_TYPE = "L-Monitor";
   #endif
 
   #ifdef SW_MONITOR_RCL
-    const unsigned char Monitor_RCL_str[] MEM_TYPE = "RCL Monitor";
+    const unsigned char Monitor_RCL_str[] MEM_TYPE = "RCL-Monitor";
   #endif
 
   #ifdef SW_MONITOR_RL
-    const unsigned char Monitor_RL_str[] MEM_TYPE = "RL Monitor";
+    const unsigned char Monitor_RL_str[] MEM_TYPE = "RL-Monitor";
   #endif
 
   #ifdef HW_TOUCH

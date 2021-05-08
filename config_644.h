@@ -124,12 +124,13 @@
 //#define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
-//#define LCD_LATE_ON                     /* turn on LCD after clearing it */
 #define LCD_BGR                         /* reverse red and blue color channels */
+//#define LCD_LATE_ON                     /* turn on LCD after clearing it */
 /* font and symbols: horizonally aligned & flipped */
 #define FONT_8X8_HF                     /* 8x8 font */
 //#define FONT_10X16_HF                   /* 10x16 font */
 //#define FONT_8X8_ISO8859_2_HF           /* 8x8 Central European font */
+//#define FONT_10X16_ISO8859_2_HF         /* 10x16 Central European font */
 //#define FONT_8X16_WIN1251_HF            /* 8x16 cyrillic font */
 //#define FONT_8X16ALT_WIN1251_HF         /* 8x16 alternative cyrillic font */
 #define SYMBOLS_30X32_HF                /* 30x32 symbols */
@@ -178,14 +179,16 @@
 
 
 /*
- *  ILI9481 or ILI9486
+ *  ILI9481, ILI9486 or ILI9488
  *  - 8 bit parallel interface
  *  - LCD_DB0 to LCD_DB7 have to match port pins 0 to 7
+ *  - ILI9488 untested
  */
 
 #if 0
 //#define LCD_ILI9481                     /* display controller ILI9481 */
 #define LCD_ILI9486                     /* display controller ILI9486 */
+//#define LCD_ILI9488                     /* display controller ILI9488 */
 #define LCD_GRAPHIC                     /* graphic display */
 #define LCD_COLOR                       /* color display */
 #define LCD_PAR_8                       /* 8 bit parallel interface */
@@ -221,6 +224,43 @@
 //#define FONT_16X26_ISO8859_2_HF         /* 16x26 Central European font */
 //#define FONT_16X26_WIN1251_HF           /* 16x26 cyrillic font */
 #define SYMBOLS_32X32_HF                /* 32x32 symbols */
+#endif
+
+
+
+/*
+ *  ILI9488
+ *  - SPI interface using hardware SPI
+ */
+
+#if 0
+#define LCD_ILI9488                     /* display controller ILI9488 */
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_COLOR                       /* color display */
+#define LCD_SPI                         /* SPI interface */
+/* control and data lines */
+#define LCD_PORT         PORTB          /* port data register */
+#define LCD_DDR          DDRB           /* port data direction register */
+#define LCD_RES          PB2            /* port pin used for /RES (optional) */
+#define LCD_CS           PB4            /* port pin used for /CS (optional) */
+#define LCD_DC           PB3            /* port pin used for D/C */
+#define LCD_SCK          PB7            /* port pin used for SCK */
+#define LCD_SDI          PB5            /* port pin used for SDI (data input) */
+//#define LCD_SDO          PB6            /* port pin used for SDO (data output) */
+/* display settings */
+#define LCD_DOTS_X       320            /* number of horizontal dots */
+#define LCD_DOTS_Y       480            /* number of vertical dots */
+//#define LCD_FLIP_X                      /* enable horizontal flip */
+//#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
+//#define LCD_BGR                         /* reverse red and blue color channels */
+/* font and symbols: horizontally aligned & flipped */
+#define FONT_16X26_HF                   /* 16x26 font */
+//#define FONT_16X26_ISO8859_2_HF         /* 16x26 Central European font */
+//#define FONT_16X26_WIN1251_HF           /* 16x26 cyrillic font */
+#define SYMBOLS_32X32_HF                /* 32x32 symbols */
+/* SPI bus */
+#define SPI_HARDWARE                    /* hardware SPI */
 #endif
 
 
@@ -667,6 +707,8 @@
 //#define LCD_LATE_ON                     /* turn on LCD after clearing it */
 /* font and symbols: horizontally aligned & flipped */
 #define FONT_10X16_HF                   /* 10x16 font */
+//#define FONT_6X8_ISO8859_2_HF           /* 6x8 Central European font */
+//#define FONT_8X8_ISO8859_2_HF           /* 8x8 Central European font */
 //#define FONT_10X16_ISO8859_2_HF         /* 10x16 Central European font */
 //#define FONT_8X16_WIN1251_HF            /* 8x16 cyrillic font */
 //#define FONT_8X16ALT_WIN1251_HF         /* 8x16 alternative cyrillic font */
@@ -737,6 +779,8 @@
 #define LCD_DB7          PB7            /* port pin used for DB7 */
 #define LCD_RS           PB2            /* port pin used for RS */
 #define LCD_EN           PB3            /* port pin used for E */
+//#define LCD_RW           PB?            /* port pin used for RW (optional) */
+//#define LCD_RESET        PB?            /* port pin used for /RESET (optional) */
 /* display settings */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */
@@ -966,6 +1010,17 @@
 
 
 /*
+ *  L/C meter
+ *  - frequency input must be pin PB0/T0
+ */
+
+#define LC_CTRL_PORT     PORTC     /* port data register */ 
+#define LC_CTRL_DDR      DDRC      /* port data direction register */
+#define LC_CTRL_CP       PC0       /* reference cap (low: on / high: off) */
+#define LC_CTRL_LC       PC1       /* L/C selection (low: C / high: L */
+
+
+/*
  *  IR detector/decoder
  *  - fixed module connected to dedicated I/O pin
  */
@@ -1059,6 +1114,7 @@
  *  relay for parallel cap (sampling ADC)
  *  - between TP1 & TP3
  *  - cap should have 10nF - 27nF
+ *  - not supported yet
  */
 
 #define CAP_RELAY_PORT   PORTC     /* port data register */

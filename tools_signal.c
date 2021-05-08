@@ -33,7 +33,7 @@
  */
 
 /* pulse counter */
-#if defined (HW_FREQ_COUNTER_EXT) || defined (HW_EVENT_COUNTER)
+#if defined (HW_FREQ_COUNTER_EXT) || defined (HW_EVENT_COUNTER) || defined (HW_LC_METER)
   volatile uint32_t      Pulses;        /* number of pulses */
 #elif defined (HW_FREQ_COUNTER_BASIC)
   volatile uint16_t      Pulses;        /* number of pulses */
@@ -1458,10 +1458,11 @@ void SquareWave_SignalGenerator(void)
 
 /* ************************************************************************
  *   counter: shared ISRs
+ *   - also used by Get_LC_Frequency() in tools_LC_Meter.c
  * ************************************************************************ */
 
 
-#if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT) || defined (HW_EVENT_COUNTER)
+#if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT) || defined (HW_EVENT_COUNTER) || defined(HW_LC_METER)
 
 /*
  *  ISR for overflow of Timer0
@@ -1484,7 +1485,7 @@ ISR(TIMER0_OVF_vect, ISR_BLOCK)
 
 
 
-#if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT)
+#if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT) || defined(HW_LC_METER)
 
 /*
  *  ISR for match of Timer1's OCR1A (Output Compare Register A)
@@ -1567,12 +1568,12 @@ void FrequencyCounter(void)
       - f = pulses / gatetime
       - pulses = f * gatetime
 
-      range         gate time  prescaler  MCU clock  pulses      
+      range         gate time  prescaler  MCU clock  pulses
       ----------------------------------------------------------
-      -10kHz           1000ms       1024  > 16MHz    -10k
-                       1000ms        256  <= 16MHz   -10k      
+      <10kHz           1000ms       1024  > 16MHz    <10k
+                       1000ms        256  <= 16MHz   <10k      
       10kHz-100kHz      100ms         64  all        1k-10k
-      100kHz-            10ms          8  all        1k-(50k)
+      >100kHz            10ms          8  all        >1k (<50k)
    */
 
   /* start values for autoranging (assuming high frequency) */
@@ -1653,6 +1654,7 @@ void FrequencyCounter(void)
 
     if (Flag == GATE_FLAG)              /* got measurement */
     {
+      /* total sum of pulses during gate period */
       Pulses += TCNT0;                  /* add counter of Timer0 */
 
       /*
@@ -1691,6 +1693,12 @@ void FrequencyCounter(void)
           #endif
           Flag = RUN_FLAG;              /* don't display frequency */
         }
+      }
+
+      /* prevent display of "0 Hz" */
+      if (Pulses == 0)                  /* no signal or f too low */
+      {
+        Flag = RUN_FLAG;                /* don't display frequency */
       }
     }
 
@@ -1774,7 +1782,7 @@ void FrequencyCounter(void)
   uint16_t          Top = 0;            /* top value for timer */
   unsigned char     *String = NULL;     /* string pointer (EEPROM) */
   uint32_t          MinPulses = 0;      /* minimim pulses for range */
-  uint32_t          MaxPulses = 0;      /* maximum pulses for range */
+//  uint32_t          MaxPulses = 0;      /* maximum pulses for range */
   uint32_t          Value;              /* temporary value */
 
   /* control flags */
@@ -1784,6 +1792,8 @@ void FrequencyCounter(void)
   #define UPDATE_CHANNEL      0b00001000     /* update source channel */
   #define UPDATE_RANGE        0b00010000     /* update measurement range */
   #define SHOW_FREQ           0b00100000     /* display frequency */
+  #define RESCAN_FLAG         0b01000000     /* rescan */
+  #define SKIP_FREQ           0b10000000     /* skip display of f */
 
   /* show info */
   LCD_Clear();                          /* clear display */
@@ -1809,14 +1819,14 @@ void FrequencyCounter(void)
       - pulses = f * gatetime / f-prescaler
 
                     gate    timer      MCU       frequency
-      range         time    prescaler  clock     prescaler  pulses     
+      range         time    prescaler  clock     prescaler  pulses
       ----------------------------------------------------------------
       n/a           3000ms       1024  all
-      -100kHz       1000ms       1024  > 16MHz         1:1  -100k
-                    1000ms        256  <= 16MHz        1:1  -100k
+      <100kHz       1000ms       1024  > 16MHz         1:1  <100k
+                    1000ms        256  <= 16MHz        1:1  <100k
       100kHz-1MHz    100ms         64  all             1:1  10k-100k
-      1MHz-          100ms         64  all            16:1  6250-(500k)
-                     100ms         64  all            32:1  3125-(500k)
+      >1MHz          100ms         64  all            16:1  >6250 (<500k)
+                     100ms         64  all            32:1  >3125 (<500k)
    */
 
   /* set up control lines */
@@ -1846,75 +1856,6 @@ void FrequencyCounter(void)
 
   while (Flag > 0)
   {
-    /*
-     *  settings for ranges
-     */
-
-    if (Flag & UPDATE_RANGE)       /* update range settings */
-    {
-      switch (Range)               /* get range specifics */
-      {
-        case 0:     /* -100kHz */
-          Div = 1;                 /* frequency prescaler 1:1 */
-          #if CPU_FREQ <= 16000000
-          Index = 3;               /* table index 3: 256:1 */
-          #else
-          Index = 4;               /* table index 4: 1024:1 */
-          #endif
-          GateTime = 1000;         /* gate time: 1000ms */
-          MinPulses = 0;           /* lower limit: none */
-          MaxPulses = 100000;      /* upper limit: 100k */
-          break;
-
-        case 1:     /* 100kHz-1MHz */
-          Div = 1;                 /* frequency prescaler 1:1 */
-          Index = 2;               /* table index 2: 64:1 */
-          GateTime = 100;          /* gate time: 100ms */
-          MinPulses = 10000;       /* lower limit: 10k */
-          MaxPulses = 100000;      /* upper limit: 100k */
-          break;
-
-        case 2:     /* 1MHz- */
-          Div = FREQ_COUNTER_PRESCALER; /* frequency prescaler 16:1 or 32:1 */
-          Index = 2;               /* table index 2: 64:1 */
-          GateTime = 100;          /* gate time: 100ms */
-          #if FREQ_COUNTER_PRESCALER == 16
-          MinPulses = 6250;        /* lower limit: 6250 */
-          #elif FREQ_COUNTER_PRESCALER == 32
-          MinPulses = 3125;        /* lower limit: 3125 */
-          #endif
-          MaxPulses = 0;           /* upper limit: none */
-          break;
-      }
-
-      /* update Timer1 prescaler */
-      Top = DATA_read_word(&T1_Prescaler_table[Index]);     /* prescaler value */
-      Bits = DATA_read_byte(&T1_RegBits_table[Index]);      /* prescaler bits */
-
-
-      /* calculate compare value for Timer1 (gate time) */
-      /* top = gatetime * MCU_cycles / timer prescaler */
-      Value = GateTime;                 /* gatetime (in ms) */
-      /* * MCU cycles per 탎 and scale gatetime to 탎 */
-      Value *= (MCU_CYCLES_PER_US * 1000);
-      Value /= Top;                     /* divide by timer prescaler */
-      Top = (uint16_t)Value;            /* use lower 16 bit */
-
-
-      /* update frequency counter prescaler */
-      if (Div == FREQ_COUNTER_PRESCALER)     /* set 16:1 */
-      {
-        COUNTER_CTRL_PORT |= (1 << COUNTER_CTRL_DIV);       /* set bit */
-      }
-      else                                   /* set 1:1 */
-      {
-        COUNTER_CTRL_PORT &= ~(1 << COUNTER_CTRL_DIV);      /* clear bit */
-      }
-
-      Flag &= ~UPDATE_RANGE;            /* clear flag */
-    }  
-
-
     /*
      *  set and display source channel
      */
@@ -1952,8 +1893,84 @@ void FrequencyCounter(void)
       Display_Space();
       Display_EEString(String);              /* display channel name */
 
+      /* restart scan in top range */
+      Range = 2;                             /* select top range */
+      Flag |= UPDATE_RANGE;                  /* update range */
+      Flag &= ~(RESCAN_FLAG | SKIP_FREQ);    /* reset rescan */
+
       Flag &= ~UPDATE_CHANNEL;          /* clear flag */
     }
+
+
+    /*
+     *  settings for ranges
+     */
+
+    if (Flag & UPDATE_RANGE)       /* update range settings */
+    {
+      switch (Range)               /* get range specifics */
+      {
+        case 0:     /* <100kHz */
+          Div = 1;                 /* frequency prescaler 1:1 */
+          #if CPU_FREQ <= 16000000
+          Index = 3;               /* table index 3: 256:1 */
+          #else
+          Index = 4;               /* table index 4: 1024:1 */
+          #endif
+          GateTime = 1000;         /* gate time: 1000ms */
+          MinPulses = 0;           /* lower limit: none */
+//          MaxPulses = 100000;      /* upper limit: 100k */
+          break;
+
+        case 1:     /* 100kHz-1MHz */
+          Div = 1;                 /* frequency prescaler 1:1 */
+          Index = 2;               /* table index 2: 64:1 */
+          GateTime = 100;          /* gate time: 100ms */
+          MinPulses = 10000;       /* lower limit: 10k */
+//          MaxPulses = 100000;      /* upper limit: 100k */
+          break;
+
+        case 2:     /* >1MHz */
+          Div = FREQ_COUNTER_PRESCALER; /* frequency prescaler 16:1 or 32:1 */
+          Index = 2;               /* table index 2: 64:1 */
+          GateTime = 100;          /* gate time: 100ms */
+          #if FREQ_COUNTER_PRESCALER == 16
+          MinPulses = 6250;        /* lower limit: 6250 */
+          #elif FREQ_COUNTER_PRESCALER == 32
+          MinPulses = 3125;        /* lower limit: 3125 */
+          #endif
+//          MaxPulses = 0;           /* upper limit: none */
+          break;
+      }
+
+      /* update Timer1 prescaler */
+      Top = DATA_read_word(&T1_Prescaler_table[Index]);     /* prescaler value */
+      Bits = DATA_read_byte(&T1_RegBits_table[Index]);      /* prescaler bits */
+
+
+      /* calculate compare value for Timer1 (gate time) */
+      /* top = gatetime * MCU_cycles / timer prescaler */
+      Value = GateTime;                 /* gatetime (in ms) */
+      /* * MCU cycles per 탎 and scale gatetime to 탎 */
+      Value *= (MCU_CYCLES_PER_US * 1000);
+      Value /= Top;                     /* divide by timer prescaler */
+      Top = (uint16_t)Value;            /* use lower 16 bit */
+
+
+      /* update frequency counter prescaler */
+      if (Div == FREQ_COUNTER_PRESCALER)     /* 16:1 / 32:1 */
+      {
+        /* enable frequency prescaler */
+        COUNTER_CTRL_PORT |= (1 << COUNTER_CTRL_DIV);       /* set pin high */
+      }
+      else                                   /* 1:1 */
+      {
+        /* disable frequency prescaler */
+        COUNTER_CTRL_PORT &= ~(1 << COUNTER_CTRL_DIV);      /* set pin low */
+      }
+
+      Flag &= ~UPDATE_RANGE;            /* clear flag */
+    }  
 
 
     /* set up T0 as input */
@@ -1980,7 +1997,8 @@ void FrequencyCounter(void)
     {
       if (TCCR1B == 0)                  /* Timer1 stopped by ISR */
       {
-        Flag = RUN_FLAG | GATE_FLAG;    /* end waiting loop and signal Timer1 event */
+        Flag |= GATE_FLAG;                   /* signal Timer1 event */
+        Flag &= ~WAIT_FLAG;                  /* end waiting loop */
       }
       else                              /* Timer1 still running */
       {
@@ -1990,26 +2008,32 @@ void FrequencyCounter(void)
         if (Test == KEY_SHORT)          /* short key press */
         {
           /* select next source channel */
-          if (Channel < 2) Channel++;             /* next channel */
-          else Channel = 0;                       /* overrun */
-          Flag = RUN_FLAG | UPDATE_CHANNEL;       /* update channel */
+          if (Channel < 2) Channel++;        /* next channel */
+          else Channel = 0;                  /* overrun */
+
+          Flag |= UPDATE_CHANNEL;            /* update channel */
+          Flag &= ~WAIT_FLAG;                /* end waiting loop */
         }
         else if (Test == KEY_TWICE)     /* two short key presses */
         {
-          Flag = 0;                     /* end processing loop */
+          Flag = 0;                          /* end processing loop */
         }
         #ifdef HW_KEYS
         else if (Test == KEY_RIGHT)     /* right key */
         {
-          if (Channel < 2) Channel++;             /* next channel */
-          else Channel = 0;                       /* overrun */
-          Flag = RUN_FLAG | UPDATE_CHANNEL;       /* update channel */
+          if (Channel < 2) Channel++;        /* next channel */
+          else Channel = 0;                  /* overrun */
+
+          Flag |= UPDATE_CHANNEL;            /* update channel */
+          Flag &= ~WAIT_FLAG;                /* end waiting loop */
         }
         else if (Test == KEY_LEFT)      /* left key */
         {
-          if (Channel > 0) Channel--;             /* previous channel */
-          else Channel = 2;                       /* underrun */
-          Flag = RUN_FLAG | UPDATE_CHANNEL;       /* update channel */
+          if (Channel > 0) Channel--;        /* previous channel */
+          else Channel = 2;                  /* underrun */
+
+          Flag |= UPDATE_CHANNEL;            /* update channel */
+          Flag &= ~WAIT_FLAG;                /* end waiting loop */
         }
         #endif
       }
@@ -2029,28 +2053,50 @@ void FrequencyCounter(void)
 
     if (Flag & GATE_FLAG)               /* got measurement */
     {
+      /* total sum of pulses during gate period */
       Pulses += TCNT0;                  /* add counter of Timer0 */
 
-      /* autoranging */
+      /*
+       *  autoranging
+       */
+
       if (Pulses < MinPulses)           /* range underrun */
       {
         if (Range > 0)                  /* not lowest range yet */
         {
           Range--;                      /* change to lower range */
-          Flag |= UPDATE_RANGE;         /* set flag for updating range */
+          Flag |= UPDATE_RANGE;         /* update range */
         }
       }
+      #if 0
       else if (Pulses > MaxPulses)      /* range overrun */
       {
         if (Range < 2)                  /* not highest range yet */
         {
           Range++;                      /* change to higher range */
-          Flag |= UPDATE_RANGE;         /* set flag for updating range */
+          Flag |= UPDATE_RANGE;         /* update range */
         }
       }
+      #endif
 
       /* show frequency only when not switching ranges */
-      if (! (Flag & UPDATE_RANGE)) Flag |= SHOW_FREQ;
+      if (! (Flag & UPDATE_RANGE))      /* no change of range */
+      {
+        /* prevent display of "0 Hz" (no signal or f too low) */
+        if (Pulses)                     /* got signal */
+        {
+          Flag |= SHOW_FREQ;            /* show frequency */
+        }
+
+        /* manage rescan */
+        Flag &= ~(RESCAN_FLAG | SKIP_FREQ);       /* reset flags */
+
+        if (Range < 2)                            /* not top range */
+        {
+          Range = 2;                              /* change to top range */
+          Flag |= (UPDATE_RANGE | RESCAN_FLAG);   /* update range and rescan */
+        }
+      }
 
 
       /*
@@ -2082,34 +2128,46 @@ void FrequencyCounter(void)
      *  display frequency (in line #2)
      */
 
-    LCD_ClearLine2();                 /* clear line #2 */
-    Display_Char('f');                /* display: f */
-    Display_Space();
-
-    if (Flag & SHOW_FREQ)               /* valid frequency */
+    if (! (Flag & SKIP_FREQ))      /* update frequency display */
     {
-      Test = 0;                         /* dot position */
-      Index = 0;                        /* unit char */
+      LCD_ClearLine2();            /* clear line #2 */
+      Display_Char('f');           /* display: f */
+      Display_Space();
 
-      if (Pulses >= 1000000)            /* f >= 1MHz */
+      if (Flag & SHOW_FREQ)        /* valid frequency */
       {
-        Test = 6;             /* 10^6 */
-        Index = 'M';          /* M for mega */
+        /* determine prefix */
+        Test = 0;                  /* dot position */
+        Index = 0;                 /* unit char */
+
+        if (Pulses >= 1000000)     /* f >= 1MHz */
+        {
+          Test = 6;                     /* 10^6 */
+          Index = 'M';                  /* M for mega */
+        }
+        else if (Pulses >= 1000)   /* f >= 1kHz */
+        {
+          Test = 3;                     /* 10^3 */
+          Index = 'k';                  /* k for kilo */
+        }
+
+        /* display frequency */
+        Display_FullValue(Pulses, Test, Index);
+        Display_EEString(Hertz_str);    /* display: "Hz" */
+
+        Flag &= ~SHOW_FREQ;             /* clear flag */
       }
-      else if (Pulses >= 1000)          /* f >= 1kHz */
+      else                         /* invalid frequency */
       {
-        Test = 3;             /* 10^3 */
-        Index = 'k';          /* k for kilo */
+        Display_Char('-');         /* display: no value */
       }
 
-      Display_FullValue(Pulses, Test, Index);
-      Display_EEString(Hertz_str);      /* display: "Hz" */
-
-      Flag &= ~SHOW_FREQ;               /* clear flag */
-    }
-    else                                /* invalid frequency */
-    {
-      Display_Char('-');                /* display: no value */
+      /* manage rescan */
+      if (Flag & RESCAN_FLAG)      /* in rescan mode */
+      {
+        /* prevent any updates while in rescan mode */
+        Flag |= SKIP_FREQ;         /* skip frequency display */
+      }
     }
   }
 
@@ -2127,12 +2185,14 @@ void FrequencyCounter(void)
   COUNTER_CTRL_DDR &= ~CtrlDir;         /* set former direction */
 
   /* local constants */
-  #undef SHOW_FREQ
-  #undef UPDATE_RANGE
-  #undef UPDATE_CHANNEL
-  #undef GATE_FLAG
-  #undef WAIT_FLAG
   #undef RUN_FLAG
+  #undef WAIT_FLAG
+  #undef GATE_FLAG
+  #undef UPDATE_CHANNEL
+  #undef UPDATE_RANGE
+  #undef SHOW_FREQ
+  #undef RESCAN_FLAG
+  #undef SKIP_FREQ
 }
 
 #endif

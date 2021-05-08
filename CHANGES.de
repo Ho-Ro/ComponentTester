@@ -6,6 +6,39 @@
 
 ------------------------------------------------------------------------------
 
+v1.42m 2020-12
+- Aktualisierte 6x8-Zeichensätze (Dank an Bohu).
+- Neuer 6x8-Zeichensatz nach ISO8859-2 (FONT_6X8_ISO8859_2_HF, Dank an Bohu).
+- Neue Hardware-Option: LC-Meter (HW_LC_METER). Basiert auf einer einfachen
+  Schaltung mit einem LC-Oszillator, ähnlich den preiswerten LC-Meter-
+  Bausätzen.
+- Display_Value() unterstützt nun auch Fempto (f).
+- Wenn CYCLE_MAX auf 255 gesetzt ist, wird die Abschaltautomatik deaktiviert 
+  und der Tester läuft solange, bis er manuell abgeschaltet wird.
+- Problem mit Anzeige seltsamer Frequenzen im erweiterten Frequenzzähler in
+  einer bestimmten Konstellation beseitigt (gemeldet von Szybkijanek@EEVblog).
+  Ebenfalls Anzeige bei fehlendem Signal oder zu niedriger Frequenz von "0Hz"
+  auf "-" geändert.
+- Der einfache Frequenzzähler zeigt nun ein "-" statt "0Hz" an, wenn kein
+  Signal anliegt oder die Frequenz zu niedrig ist.
+- Option zur Ausgabe des Teststroms I_C bzw. I_E der hFE-Messung (
+  SW_HFE_CURRENT, Vorschlag von Obelix2007@EEVblog). Und entsprechende 
+  Fernsteuerkommandos ergänzt (I_C und I_E),
+- Romänische Texte (Dank an Dumidan@EEVblog).
+- Konfigurationsschalter für ESR-Tool (SW_ESR_TOOL, Vorschlag von
+  indman@EEVblog).
+- Textausgabe von E-Normwerten gibt nun auch Einheit aus (Vorschlag von
+  indman@EEVblog).
+- Alternative polnische Texte aktialisiert (Dank an Jacon@EEVblog).
+- Letzte Textzeile auf dem Display wurde einfach überschrieben, wenn
+  UI_KEY_HINTS aktiviert ist (gemeldet von Obelix2007@EEVblog). Funktion zum
+  Warten auf Benutzer vorm Löschen der letzten Zeile eingebaut.
+- Spanische Texte aktualisiert (Dank an pepe10000@EEVblog).
+- Fehler in "#define" für E96-Norm-Werte korrigiert (gemeldet von
+  Obelix2007@EEVblog).
+- Treiber für Display mit ILI9488 (8/16-Bit Parallel und 4-Draht-SPI, Dank an
+  Bohu für ein Testexemplar). 
+
 v1.41m 2020-09
 - Neues Fernsteuerkommando "MHINT" für Hinweise zu Messungen (momentan nur
   Typ der Testschaltung für h_FE).
