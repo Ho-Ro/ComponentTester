@@ -53,8 +53,9 @@
 #define LCD_EN1          PD5            /* port pin used for E */
 #define LCD_CHAR_X       16             /* characters per line */
 #define LCD_CHAR_Y       2              /* number of lines */
-#define FONT_HD44780_INT                /* internal 5x7 font: international */
-//#define FONT_HD44780_CYR                /* internal 5x7 font: Cyrillic */
+/* HD44780 has an internal 5x7 font */
+#define FONT_HD44780_INTERNATIONAL      /* 5x7 font: international version */
+//#define FONT_HD44780_CYRILLIC           /* 5x7 font: cyrillic version */
 #endif
 
 
@@ -81,8 +82,9 @@
 #define LCD_LED          PCF8574_P3     /* port pin used for backlight */
 #define LCD_CHAR_X       16             /* characters per line */
 #define LCD_CHAR_Y       2              /* number of lines */
-#define FONT_HD44780_INT                /* internal 5x7 font: international */
-//#define FONT_HD44780_CYR                /* internal 5x7 font: Cyrillic */
+/* HD44780 has an internal 5x7 font */
+#define FONT_HD44780_INTERNATIONAL      /* 5x7 font: international version */
+//#define FONT_HD44780_CYRILLIC            /* 5x7 font: cyrillic version */
 #define I2C_BITBANG                     /* bit-bang I2C */
 #define I2C_STANDARD_MODE               /* 100kHz bus speed */
 #define I2C_PORT         PORTD          /* I2C port data register */
@@ -118,12 +120,18 @@
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_START_Y      0              /* start line (0-63) */
 #define LCD_CONTRAST     22             /* default contrast (0-63) */
-//#define FONT_6X8_VF                      /* 6x8 font, vertically aligned & flipped */
-#define FONT_8X8_VF                     /* 8x8 font, vertically aligned & flipped */
-//#define FONT_8X16_VFP                   /* 8x16 font, vertically aligned & flipped */
-//#define FONT_8X8_CYRILLIC_VF            /* 8x8 cyrillic font, vertically aligned & flipped */
-//#define FONT_8X16_CYRILLIC_VFP          /* 8x16 cyrillic font, vertically aligned & flipped */
-#define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
+/* font and symbols: vertically aligned & flipped, bank-wise grouping */
+//#define FONT_6X8_VF                      /* 6x8 font */
+#define FONT_8X8_VF                     /* 8x8 font */
+//#define FONT_8X16_VFP                   /* 8x16 font */
+//#define FONT_8X8_CYRILLIC_VF            /* 8x8 cyrillic font */
+//#define FONT_8X8T_CYRILLIC_VF           /* thin 8x8 cyrillic font */
+//#define FONT_8X12T_CYRILLIC_VFP         /* thin 8x12 cyrillic font */
+//#define FONT_8X16_CYRILLIC_VFP          /* 8x16 cyrillic font */
+//#define FONT_6X8_CZECH_VF               /* 6x8 Czech font */
+//#define FONT_8X8_CZECH_VF               /* 8x8 Czech font */
+//#define FONT_8X16_CZECH_VFP             /* 8x16 Czech font */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
 #define SPI_DDR          LCD_DDR        /* SPI port data direction register */
@@ -155,8 +163,10 @@
 //#define LCD_FLIP_X                      /* enable horizontal flip */
 //#define LCD_FLIP_Y                      /* enable vertical flip */
 //#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
-#define FONT_16X26_HF                   /* 16x26 font, horizontally aligned & flipped */
-#define SYMBOLS_32X32_HF                /* 32x32 symbols, horizontally aligned & flipped */
+/* font and symbols: horizontally aligned & flipped */
+#define FONT_16X26_HF                   /* 16x26 font */
+//#define FONT_16X26_CZECH_HF             /* 16x26 Czech font */
+#define SYMBOLS_32X32_HF                /* 32x32 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
 #define SPI_DDR          LCD_DDR        /* SPI port data direction register */
@@ -190,9 +200,11 @@
 //#define LCD_OFFSET_X     4               /* enable x offset of 2 or 4 dots */
 //#define LCD_OFFSET_Y     2               /* enable y offset of 1 or 2 dots */
 //#define LCD_LATE_ON                     /* turn on LCD after clearing it */
-#define FONT_10X16_HF                   /* 10x16 font, horizontally aligned & flipped */
-//#define FONT_8X16_CYRILLIC_HF           /* 8x16 cyrillic font, horizontally aligned & flipped */
-#define SYMBOLS_30X32_HF                /* 30x32 symbols, horizontally aligned & flipped */
+/* font and symbols: horizontally aligned & flipped */
+#define FONT_10X16_HF                   /* 10x16 font */
+//#define FONT_8X16_CYRILLIC_HF           /* 8x16 cyrillic font */
+//#define FONT_10X16_CZECH_HF             /* 10x16 Czech font */
+#define SYMBOLS_30X32_HF                /* 30x32 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
 #define SPI_DDR          LCD_DDR        /* SPI port data direction register */
@@ -224,10 +236,13 @@
 #define LCD_DOTS_Y       48             /* number of vertical dots */
 #define LCD_CONTRAST     66             /* default contrast (1-127) */
 #define FONT_6X8_VF                     /* 6x8 font, vertically aligned & flipped */
+//#define FONT_6X8_CZECH_VF             /* Czech 6x8 font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
 //#define LCD_ROT180                      /* rotate output by 180° (not supported yet) */
-//#define FONT_6X8_V_F                    /* 6x8 font, vertically aligned, hor. flipped */
-//#define SYMBOLS_24X24_VP_F              /* 24x24 symbols, vertically aligned, hor. flipped */
+/* font and symbols: vertically aligned, bank-wise grouping, hor. flipped */
+//#define FONT_6X8_V_F                    /* 6x8 font */
+//#define FONT_6X8_CZECH_V_F              /* Czech 6x8 font */
+//#define SYMBOLS_24X24_VP_F              /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
 #define SPI_DDR          LCD_DDR        /* SPI port data direction register */
@@ -240,8 +255,8 @@
 /*
  *  ST7920, SPI interface (bit-bang)
  *  - for a 180° rotated display (LCD_ROT180)
- *    - comment out "_H" font and symbol
- *    - uncomment "_HF" font and symbol
+ *    - comment out "_H" font and symbols
+ *    - uncomment "_HF" font and symbols
  */
 
 #if 0
@@ -256,11 +271,15 @@
 #define LCD_SID          PD1            /* port pin used for SID (LCD's data input) */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */
-#define FONT_8X8_H                      /* 8x8 font, horizonally aligned */
-#define SYMBOLS_24X24_H                 /* 24x24 symbols, horizonally aligned */
+/* font and symbols: horizonally aligned */
+#define FONT_8X8_H                      /* 8x8 font  */
+//#define FONT_8X8_CZECH_H                /* 8x8 Czech font */
+#define SYMBOLS_24X24_H                 /* 24x24 symbols */
 //#define LCD_ROT180                      /* rotate output by 180° */
-//#define FONT_8X8_HF                     /* 8x8 font, horizonally aligned & flipped */
-//#define SYMBOLS_24X24_HF                /* 24x24 symbols, horizonally aligned & flipped */
+/* font and symbols: horizonally aligned & flipped */
+//#define FONT_8X8_HF                     /* 8x8 font */
+//#define FONT_8X8_CZECH_HF               /* 8x8 Czech font */
+//#define SYMBOLS_24X24_HF                /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
 #define SPI_DDR          LCD_DDR        /* SPI port data direction register */
@@ -293,11 +312,13 @@
 #define LCD_EN           PD5            /* port pin used for E */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */
-#define FONT_8X8_H                      /* 8x8 font, horizonally aligned */
-#define SYMBOLS_24X24_H                 /* 24x24 symbols, horizonally aligned */
+/* font and symbols: horizonally aligned */
+#define FONT_8X8_H                      /* 8x8 font */
+#define SYMBOLS_24X24_H                 /* 24x24 symbols */
 //#define LCD_ROT180                      /* rotate output by 180° */
-//#define FONT_8X8_HF                     /* 8x8 font, horizonally aligned & flipped */
-//#define SYMBOLS_24X24_HF                /* 24x24 symbols, horizonally aligned & flipped */
+/* font and symbols: horizonally aligned & flipped */
+//#define FONT_8X8_HF                     /* 8x8 font */
+//#define SYMBOLS_24X24_HF                /* 24x24 symbols */
 #endif
 
 
@@ -324,10 +345,12 @@
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
 //#define LCD_LATE_ON                     /* turn on LCD after clearing it */
-#define FONT_8X8_HF                     /* 8x8 font, horizonally aligned & flipped */
-//#define FONT_10X16_HF                   /* 10x16 font, horizontally aligned & flipped */
-//#define FONT_8X16_CYRILLIC_HF           /* 8x16 cyrillic font, horizontally aligned & flipped */
-#define SYMBOLS_30X32_HF                /* 30x32 symbols, horizontally aligned & flipped */
+/* font and symbols: horizonally aligned & flipped */
+#define FONT_8X8_HF                     /* 8x8 font */
+//#define FONT_10X16_HF                   /* 10x16 font */
+//#define FONT_8X16_CYRILLIC_HF           /* 8x16 cyrillic font */
+//#define FONT_8X8_CZECH_HF               /* 8x8 Czech font */
+#define SYMBOLS_30X32_HF                /* 30x32 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
 #define SPI_DDR          LCD_DDR        /* SPI port data direction register */
@@ -357,8 +380,18 @@
 #define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_CONTRAST     127            /* default contrast (0-255) */
-#define FONT_8X8_VF                     /* 8x8 font, vertically aligned & flipped */
-#define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
+/* font and symbols: vertically aligned & flipped, bank-wise grouping */
+//#define FONT_6X8_VF                      /* 6x8 font */
+#define FONT_8X8_VF                     /* 8x8 font */
+//#define FONT_8X16_VFP                   /* 8x16 font */
+//#define FONT_8X8_CYRILLIC_VF            /* 8x8 cyrillic font */
+//#define FONT_8X8T_CYRILLIC_VF           /* thin 8x8 cyrillic font */
+//#define FONT_8X12T_CYRILLIC_VFP         /* thin 8x12 cyrillic font */
+//#define FONT_8X16_CYRILLIC_VFP          /* 8x16 cyrillic font */
+//#define FONT_6X8_CZECH_VF               /* 6x8 Czech font */
+//#define FONT_8X8_CZECH_VF               /* 8x8 Czech font */
+//#define FONT_8X16_CZECH_VFP             /* 8x16 Czech font */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
 #define SPI_DDR          LCD_DDR        /* SPI port data direction register */
@@ -387,8 +420,9 @@
 #define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_CONTRAST     127            /* default contrast (0-255) */
-#define FONT_8X8_VF                     /* 8x8 font, vertically aligned & flipped */
-#define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
+/* font and symbols: vertically aligned & flipped, bank-wise grouping */
+#define FONT_8X8_VF                     /* 8x8 font */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_9                           /* support 9 bit frames */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -416,8 +450,9 @@
 #define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_CONTRAST     127            /* default contrast (0-255) */
-#define FONT_8X8_VF                     /* 8x8 font, vertically aligned & flipped */
-#define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
+/* font and symbols: vertically aligned & flipped, bank-wise grouping */
+#define FONT_8X8_VF                     /* 8x8 font */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols */
 #define I2C_BITBANG                     /* bit-bang I2C */
 #define I2C_FAST_MODE                   /* 400kHz bus speed */
 #define I2C_PORT         PORTD          /* I2C port data register */
@@ -448,8 +483,10 @@
 //#define LCD_FLIP_X                      /* enable horizontal flip */
 //#define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_CONTRAST     16             /* default contrast (0-31) */
-#define FONT_6X8_VF                     /* 6x8 font, vertically aligned & flipped */
-#define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
+/* font and symbols: vertically aligned & flipped */
+#define FONT_6X8_VF                     /* 6x8 font */
+//#define FONT_6X8_CZECH_VF             /* Czech 6x8 font */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols  */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_9                           /* support 9 bit frames */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -478,8 +515,10 @@
 #define LCD_DOTS_Y       65             /* number of vertical dots */
 //#define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_CONTRAST     5              /* default contrast (0-255) */
-#define FONT_6X8_VF                     /* 6x8 font, vertically aligned & flipped */
-#define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
+/* font and symbols: vertically aligned & flipped, page-wise grouping */
+#define FONT_6X8_VF                     /* 6x8 font */
+//#define FONT_6X8_CZECH_VF             /* Czech 6x8 font */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_9                           /* support 9 bit frames */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -514,7 +553,8 @@
 #define LCD_CHAR_Y       3              /* number of lines */
 #define LCD_EXTENDED_CMD                /* extended instruction set (EXT pin high) */
 #define LCD_CONTRAST     32             /* default contrast (0-63) */
-#define FONT_ST7036                     /* internal 5x8 font */
+/* ST7036 has internal 5x8 font */
+#define FONT_ST7036                     /* 5x8 font */
 #endif
 
 
@@ -539,7 +579,8 @@
 #define LCD_CHAR_Y       3              /* number of lines */
 #define LCD_EXTENDED_CMD                /* extended instruction set (EXT pin high) */
 #define LCD_CONTRAST     32             /* default contrast (0-63) */
-#define FONT_ST7036                     /* internal 5x8 font */
+/* ST7036 has internal 5x8 font */
+#define FONT_ST7036                     /* 5x8 font */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
 #define SPI_DDR          LCD_DDR        /* SPI port data direction register */
@@ -582,9 +623,10 @@
 
 /*
  *  Test probes:
- *  - Must be an ADC port :-)
+ *  - Must be an ADC port
  *  - Lower 3 pins of the port must be used for probe pins.
  *  - Please don't change the definitions of TP1, TP2 and TP3!
+ *  - Don't share this port with POWER_CTRL or TEST_BUTTON!
  */
 
 #define ADC_PORT         PORTC     /* ADC port data register */
@@ -602,6 +644,7 @@
 /*
  *  Probe resistors
  *  - For PWM/squarewave output via probe #2 R_RL_2 has to be PB2/OC1B.
+ *  - Don't share this port with POWER_CTRL or TEST_BUTTON!
  */
 
 #define R_PORT           PORTB     /* port data register */
@@ -626,6 +669,7 @@
 
 /*
  *  power control
+ *  - can't be same port as ADC_PORT or R_PORT
  */
 
 #define POWER_PORT       PORTD     /* port data register */
@@ -635,6 +679,7 @@
 
 /*
  *  test push button 
+ *  - can't be same port as ADC_PORT or R_PORT
  */
 
 #define BUTTON_PORT      PORTD     /* port data register */

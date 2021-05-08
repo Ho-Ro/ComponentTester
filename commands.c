@@ -1056,16 +1056,8 @@ uint8_t Cmd_H_FE(void)
 
   if (Check.Found == COMP_BJT)          /* BJT */
   {
-    if (! (Info.Flags & INFO_BJT_R_BE))      /* no R_BE detected */
-    {
-      /* send value */
-      Display_Value(Semi.F_1, 0, 0);
-    }
-    else                                     /* R_BE detected */
-    {
-      /* can't measure h_FE with R_BE */
-      Flag = SIGNAL_NA;                 /* signal n/a */
-    }
+    /* send value */
+    Display_Value(Semi.F_1, 0, 0);
   }
   else                                  /* other component */
   {
@@ -1095,11 +1087,11 @@ uint8_t Cmd_H_FE_R(void)
 
   if (Check.Found == COMP_BJT)          /* BJT */
   {
-    if ((Info.Flags & (INFO_BJT_D_FB | INFO_BJT_R_BE)) ||
+    if ((Info.Flags & INFO_BJT_D_FB) ||
         (Semi.F_2 == 0))
     {
-      /* can't measure reverse h_FE with flyback diode or R_BE */
-      /* or value might be inbalid */
+      /* can't measure reverse h_FE with flyback diode */
+      /* or value might be invalid */
       Flag = SIGNAL_NA;                 /* signal n/a */      
     }
     else

@@ -22,7 +22,7 @@
 
 
   /* firmware */
-  const unsigned char Tester_str[] EEMEM = "Component Tester";
+  const unsigned char Tester_str[] EEMEM = "Tester De Piezas";
 
 
   /* common terms and texts */
@@ -68,7 +68,7 @@
   #endif
 
   #ifdef UI_KEY_HINTS
-  const unsigned char Menu_or_Test_str[] EEMEM = "<Menu Test>";
+  const unsigned char Menu_or_Test_str[] EEMEM = "<Menu O Test>";
   #endif
 
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
@@ -96,11 +96,11 @@
   #endif
 
   #ifdef HW_EVENT_COUNTER
-    const unsigned char EventCounter_str[] EEMEM = "Event Counter";
-    const unsigned char Count_str[] EEMEM = "Count";
-    const unsigned char Time_str[] EEMEM = "Time";
-    const unsigned char Events_str[] EEMEM = "Events";
-    const unsigned char Stop_str[] EEMEM = "Stop";
+    const unsigned char EventCounter_str[] EEMEM = "Cont. Eventos";
+    const unsigned char Count_str[] EEMEM = "Contar";
+    const unsigned char Time_str[] EEMEM = "Tiempo";
+    const unsigned char Events_str[] EEMEM = "Eventos";
+    const unsigned char Stop_str[] EEMEM = "Parar";
   #endif
 
   #ifdef SW_ENCODER
@@ -146,6 +146,14 @@
     const unsigned char CapHigh_str[] EEMEM = "Rl";
     const unsigned char CapLow_str[] EEMEM = "Rh";
     const unsigned char CapDischarge_str[] EEMEM = "Descargando";
+  #endif
+
+  #ifdef SW_MONITOR_RL
+    const unsigned char Monitor_RL_str[] EEMEM = "R/L Monitor";
+  #endif
+
+  #ifdef SW_MONITOR_C
+    const unsigned char Monitor_C_str[] EEMEM = "C Monitor";
   #endif
 
   #ifdef HW_TOUCH

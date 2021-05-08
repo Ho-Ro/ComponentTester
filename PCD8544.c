@@ -52,12 +52,14 @@
 #ifndef LCD_ROT180
   /* vertically aligned, vertical bit order flipped, bank-wise grouping */
   #include "font_6x8_vf.h"
+  #include "font_6x8_czech_vf.h"
   #include "symbols_24x24_vfp.h"
 #endif
 
 #ifdef LCD_ROT180
   /* vertically aligned, horizontal bit order flipped, bank-wise grouping */
   #include "font_6x8_v_f.h"
+  #include "font_6x8_czech_v_f.h"
   #include "symbols_24x24_vp_f.h"
 #endif
 

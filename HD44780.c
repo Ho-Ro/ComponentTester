@@ -60,8 +60,8 @@
 #include "HD44780.h"          /* HD44780 specifics */
 
 /* fonts (5x8) */
-#include "font_HD44780_int.h"      /* international font version */
-#include "font_HD44780_cyr.h"      /* Cyrillic font version */
+#include "font_HD44780_international.h" /* international font version */
+#include "font_HD44780_cyrillic.h"      /* Cyrillic font version */
 
 
 

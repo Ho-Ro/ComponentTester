@@ -148,7 +148,19 @@
 
   #ifdef SW_DS18B20
   extern uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale, uint8_t *Bits);
+  extern uint8_t DS18B20_Tool(void);
   #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from DHTxx.c
+ * ************************************************************************ */
+
+#ifndef DHTXX_C
+
+  extern uint8_t DHTxx_Tool(void);
 
 #endif
 
@@ -212,11 +224,11 @@
   extern void Display_HexValue(uint16_t Value, uint8_t Bits);
   #endif
 
-  #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO) || defined (SW_DS18B20) || defined (HW_EVENT_COUNTER)
+  #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO) || defined (SW_DS18B20) || defined (HW_EVENT_COUNTER) || defined (SW_DHTXX)
   extern void Display_FullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
-  #ifdef SW_DS18B20
+  #if defined (SW_DS18B20) || defined (SW_DHTXX)
   extern void Display_SignedFullValue(int32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
@@ -286,6 +298,16 @@
     uint32_t Value2, int8_t Scale2);
   extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
 
+  #ifdef UI_ROUND_DS18B20
+  extern int32_t RoundSignedValue(int32_t Value, uint8_t Scale, uint8_t RoundScale);
+  #endif
+
+  #ifdef UI_FAHRENHEIT
+    #if defined (SW_DS18B20) || defined (SW_DHTXX)
+    extern int32_t Celsius2Fahrenheit(int32_t Value, uint8_t Scale);
+    #endif
+  #endif
+
   extern uint8_t TestKey(uint16_t Timeout, uint8_t Mode);
   extern void WaitKey(void);
   #if defined (SW_PWM_PLUS) || defined (SW_SERVO) || defined (HW_EVENT_COUNTER)
@@ -301,14 +323,23 @@
 
 
 /* ************************************************************************
- *   functions from IR.c
+ *   functions from IR_RX.c
  * ************************************************************************ */
 
-#ifndef IR_C
+#ifndef IR_RX_C
 
   #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
   extern void IR_Detector(void);
   #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from IR_TX.c
+ * ************************************************************************ */
+
+#ifndef IR_TX_C
 
   #ifdef SW_IR_TRANSMITTER
   extern void IR_RemoteControl(void);
@@ -318,10 +349,49 @@
 
 
 /* ************************************************************************
- *   functions from tools.c
+ *   functions from tools_misc.c
  * ************************************************************************ */
 
-#ifndef TOOLS_C
+#ifndef TOOLS_MISC_C
+
+  extern void ProbePinout(uint8_t Mode);
+
+  #ifdef HW_ZENER
+  extern void Zener_Tool(void);
+  #endif
+
+  #if defined (SW_ESR) || defined (SW_OLD_ESR)
+  extern void ESR_Tool(void);
+  #endif
+
+  #ifdef SW_ENCODER
+  extern void Encoder_Tool(void);
+  #endif
+
+  #ifdef SW_OPTO_COUPLER
+  extern void OptoCoupler_Tool(void);
+  #endif
+
+  #ifdef SW_CAP_LEAKAGE
+  extern void Cap_Leakage(void);
+  #endif
+
+  #ifdef SW_MONITOR_RL
+  extern void Monitor_RL(void);
+  #endif
+
+  #ifdef SW_MONITOR_C
+  extern void Monitor_C(void);
+  #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from tools_signal.c
+ * ************************************************************************ */
+
+#ifndef TOOLS_SIGNAL_C
 
   #ifdef SW_PWM_SIMPLE
   extern void PWM_Tool(uint16_t Frequency);
@@ -339,36 +409,12 @@
   extern void SquareWave_SignalGenerator(void);
   #endif
 
-  #if defined (SW_ESR) || defined (SW_OLD_ESR)
-  extern void ESR_Tool(void);
-  #endif
-
-  #ifdef HW_ZENER
-  extern void Zener_Tool(void);
-  #endif
-
   #ifdef HW_FREQ_COUNTER
   extern void FrequencyCounter(void);
   #endif
 
   #ifdef HW_EVENT_COUNTER
   extern void EventCounter(void);
-  #endif
-
-  #ifdef SW_ENCODER
-  extern void Encoder_Tool(void);
-  #endif
-
-  #ifdef SW_OPTO_COUPLER
-  extern void OptoCoupler_Tool(void);
-  #endif
-
-  #ifdef SW_DS18B20
-  extern uint8_t DS18B20_Tool(void);
-  #endif
-
-  #ifdef SW_CAP_LEAKAGE
-  extern void Cap_Leakage(void);
   #endif
 
 #endif

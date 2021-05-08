@@ -795,7 +795,7 @@ void Show_BJT(void)
 
 
   /*
-   *  display either optional B-E resistor or h_FE & V_BE
+   *  display B-E resistor if detected
    */
 
   /* check for B-E resistor below 25kOhms */
@@ -814,83 +814,89 @@ void Show_BJT(void)
     Info.Flags |= INFO_BJT_R_BE;   /* R_BE */
     #endif
   }
-  else                                            /* no B-E resistor found */
+
+
+  /*
+   *  display h_FE
+   */
+
+  /* display h_FE */
+  Display_NL_EEString_Space(h_FE_str);       /* display: hFE */
+  Display_Value(Semi.F_1, 0, 0);             /* display h_FE */
+
+  /* display reverse hFE */
+  #ifdef SW_REVERSE_HFE
+  if (Diode == NULL)               /* no freewheeling diode */
   {
-    /* h_FE and V_BE */
-
-    /* display h_FE */
-    Display_NL_EEString_Space(h_FE_str);     /* display: hFE */
-    Display_Value(Semi.F_1, 0, 0);           /* display h_FE */
-
-    /* display reverse hFE */
-    #ifdef SW_REVERSE_HFE
-    if (Diode == NULL)             /* no freewheeling diode */
+    if (Semi.F_2 > 0)              /* valid value */
     {
-      if (Semi.F_2 > 0)            /* valid value */
-      {
-        Display_NL_EEString_Space(h_FE_r_str);    /* display: hFEr */
-        Display_Value(Semi.F_2, 0, 0);            /* display reverse h_FE */
-      }
+      Display_NL_EEString_Space(h_FE_r_str);      /* display: hFEr */
+      Display_Value(Semi.F_2, 0, 0);              /* display reverse h_FE */
     }
-    #endif
+  }
+  #endif
 
-    /* display V_BE (taken from diode's forward voltage) */
-    Diode = SearchDiode(BE_A, BE_C);    /* search for matching B-E diode */
-    if (Diode != NULL)                  /* got it */
+
+  /*
+   *  display V_BE
+   *  (taken from diode's forward voltage)
+   */
+
+  Diode = SearchDiode(BE_A, BE_C);      /* search for matching B-E diode */
+  if (Diode != NULL)                    /* got it */
+  {
+    Display_NL_EEString_Space(V_BE_str);     /* display: Vbe */
+
+    /*
+     *  V_f is quite linear for a logarithmicly scaled I_b.
+     *  So we may interpolate the V_f values of low and high test current
+     *  measurements for a virtual test current. Low test current is 10µA
+     *  and high test current is 7mA. That's a logarithmic scale of
+     *  3 decades.
+     */
+
+    /* calculate slope for one decade */
+    Slope = Diode->V_f - Diode->V_f2;
+    Slope /= 3;
+
+    /* select V_BE based on hFE */
+    if (Semi.F_1 < 100)                 /* low h_FE */
     {
-      Display_NL_EEString_Space(V_BE_str);   /* display: Vbe */
-
       /*
-       *  V_f is quite linear for a logarithmicly scaled I_b.
-       *  So we may interpolate the V_f values of low and high test current
-       *  measurements for a virtual test current. Low test current is 10µA
-       *  and high test current is 7mA. That's a logarithmic scale of
-       *  3 decades.
+       *  BJTs with low hFE are power transistors and need a large I_b
+       *  to drive the load. So we simply take Vf of the high test current
+       *  measurement (7mA). 
        */
 
-      /* calculate slope for one decade */
-      Slope = Diode->V_f - Diode->V_f2;
-      Slope /= 3;
+      V_BE = Diode->V_f;
+    }
+    else if (Semi.F_1 < 250)            /* mid-range h_FE */
+    {
+      /*
+       *  BJTs with a mid-range hFE are signal transistors and need
+       *  a small I_b to drive the load. So we interpolate Vf for
+       *  a virtual test current of about 1mA.
+       */
 
-      /* select V_BE based on hFE */
-      if (Semi.F_1 < 100)               /* low h_FE */
-      {
-        /*
-         *  BJTs with low hFE are power transistors and need a large I_b
-         *  to drive the load. So we simply take Vf of the high test current
-         *  measurement (7mA). 
-         */
+      V_BE = Diode->V_f - Slope;
+    }
+    else                                /* high h_FE */
+    {
+      /*
+       *  BJTs with a high hFE are small signal transistors and need
+       *  only a very small I_b to drive the load. So we interpolate Vf
+       *  for a virtual test current of about 0.1mA.
+       */
 
-        V_BE = Diode->V_f;
-      }
-      else if (Semi.F_1 < 250)          /* mid-range h_FE */
-      {
-        /*
-         *  BJTs with a mid-range hFE are signal transistors and need
-         *  a small I_b to drive the load. So we interpolate Vf for
-         *  a virtual test current of about 1mA.
-         */
-
-        V_BE = Diode->V_f - Slope;
-      }
-      else                              /* high h_FE */
-      {
-        /*
-         *  BJTs with a high hFE are small signal transistors and need
-         *  only a very small I_b to drive the load. So we interpolate Vf
-         *  for a virtual test current of about 0.1mA.
-         */
-
-        V_BE = Diode->V_f2 + Slope;
-      }
+      V_BE = Diode->V_f2 + Slope;
+    }
 
       Display_Value(V_BE, -3, 'V');     /* in mV */
 
-      #ifdef UI_SERIAL_COMMANDS
-      /* set data for remote commands */
-      Info.Val1 = V_BE;            /* copy V_BE */
-      #endif
-    }
+    #ifdef UI_SERIAL_COMMANDS
+    /* set data for remote commands */
+    Info.Val1 = V_BE;              /* copy V_BE */
+    #endif
   }
 
   /* I_CEO: collector emitter open current (leakage) */
@@ -1689,8 +1695,8 @@ cycle_start:
   Check.Type = 0;                  /* reset type flags */
   Check.Done = DONE_NONE;          /* no transistor */
   Check.AltFound = COMP_NONE;      /* no alternative component */
-  Check.Diodes = 0;                /* zero diodes */
-  Check.Resistors = 0;             /* zero resistors */
+  Check.Diodes = 0;                /* reset diode counter */
+  Check.Resistors = 0;             /* reset resistor counter */
   Semi.U_1 = 0;                    /* reset value */
   Semi.U_2 = 0;
   Semi.F_1 = 0;

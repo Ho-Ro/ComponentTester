@@ -1,6 +1,6 @@
 /* ************************************************************************
  *
- *   fixed 8x8 font based on ISO 8859-1
+ *   monospaced 8x8 font based on ISO 8859-1
  *   vertically aligned, vertical bit order flipped
  *
  *   (c) 2015-2018 by Markus Reschke

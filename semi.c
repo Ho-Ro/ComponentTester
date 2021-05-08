@@ -587,7 +587,9 @@ void GetGateThreshold(uint8_t Type)
 uint32_t Get_hFE_C(uint8_t Type)
 {
   uint32_t          hFE;           /* return value */
+  #ifndef NO_HFE_C_RL
   uint32_t          hFE2;          /* temp. hFE value */
+  #endif
   uint16_t          U_R_e;         /* voltage across emitter resistor */
   uint16_t          U_R_b;         /* voltage across base resistor */
   uint16_t          Ri;            /* internal resistance of MCU */
@@ -600,6 +602,13 @@ uint32_t Get_hFE_C(uint8_t Type)
    *  - measure the voltages across the resistors and calculate the currents
    *    (resistor values are well known)
    *  - hFE = ((U_R_e / R_e) - (U_R_b / R_b)) / (U_R_b / R_b)
+   */
+
+  #ifndef NO_HFE_C_RL
+
+  /*
+   *  First use Rl as base resistor, and then Rh if base voltage is quite low.
+   *  Keep higher hFE value.
    */
 
   /*
@@ -633,7 +642,7 @@ uint32_t Get_hFE_C(uint8_t Type)
 
 
   /*
-   *  Both resistors are the same (R_e = R_b): 
+   *  Both resistors are about the same (R_e = R_b): 
    *  - hFE = ((U_R_e / R_e) - (U_R_b / R_b)) / (U_R_b / R_b)
    *  -     = (U_R_e - U_R_b) / U_R_b 
    */
@@ -644,8 +653,8 @@ uint32_t Get_hFE_C(uint8_t Type)
 
 
   /*
-   *  for a possible Darlington change the base resistor from Rl to Rh
-   *  and measure again
+   *  for a possible high gain BJT or Darlington change the base resistor
+   *  from Rl to Rh and measure again
    */
 
   if (U_R_b <= 15)            /* I_b <= 21 µA */
@@ -680,7 +689,7 @@ uint32_t Get_hFE_C(uint8_t Type)
      */
 
     if (U_R_b == 0) U_R_b = 1;               /* prevent division by zero */
-    hFE2 =  U_R_e * R_HIGH;                  /* U_R_e * R_b */
+    hFE2 = U_R_e * R_HIGH;                   /* U_R_e * R_b */
     hFE2 /= U_R_b;                           /* / U_R_b */
     hFE2 *= 10;                              /* upscale to 0.1 */
     hFE2 /= (R_LOW * 10) + Ri;               /* / R_e in 0.1 Ohm */
@@ -688,6 +697,61 @@ uint32_t Get_hFE_C(uint8_t Type)
     /* keep the higher hFE */
     if (hFE2 > hFE) hFE = hFE2;
   }
+
+  #else
+
+  /*
+   *  Skip measurement with Rl as base resistor and use only Rh. A poorly
+   *  designed tester clone causes U_R_b to be too low when using Rl. :(
+   */
+
+  /*
+   *  set up probes and get voltages using Rh as base resistor
+   */
+
+  if (Type == TYPE_NPN)            /* NPN */
+  {
+    /* we assume: probe-1 = C / probe-2 = E / probe-3 = B */
+    /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc / probe-3 -- Rh -- Vcc */
+    ADC_DDR = Probes.Pin_1;             /* set probe-1 to output */
+    ADC_PORT = Probes.Pin_1;            /* pull up collector directly */
+    R_DDR = Probes.Rl_2 | Probes.Rh_3;  /* select Rl for probe-2 & Rh for probe-3 */
+    R_PORT = Probes.Rh_3;               /* pull up base via Rh */
+
+    U_R_e = ReadU_5ms(Probes.ADC_2);              /* U_R_e = U_e */
+    U_R_b = Cfg.Vcc - ReadU(Probes.ADC_3);        /* U_R_b = Vcc - U_b */
+
+    Ri = NV.RiL;                        /* get internal resistance */
+  }
+  else                             /* PNP */
+  {
+    /* we assume: probe-1 = E / probe-2 = C / probe-3 = B */
+    /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc / Gnd -- Rh -- probe-3 */
+    ADC_PORT = 0;                       /* set ADC port low */
+    ADC_DDR = Probes.Pin_2;             /* pull down collector directly */
+    R_DDR = Probes.Rl_1 | Probes.Rh_3;  /* pull down base via Rh */
+    R_PORT = Probes.Rl_1;               /* pull up emitter via Rl */
+
+    U_R_e = Cfg.Vcc - ReadU_5ms(Probes.ADC_1);    /* U_R_e = Vcc - U_e */
+    U_R_b = ReadU(Probes.ADC_3);                  /* U_R_b = U_b */
+
+    Ri = NV.RiH;                        /* get internal resistance */
+  }
+
+  /*
+   *  Since I_b is so small vs. I_e we'll neglect it and use
+   *  hFE = I_e / I_b
+   *      = (U_R_e / R_e) / (U_R_b / R_b)
+   *      = (U_R_e * R_b) / (U_R_b * R_e)
+   */
+
+  if (U_R_b == 0) U_R_b = 1;            /* prevent division by zero */
+  hFE = U_R_e * R_HIGH;                 /* U_R_e * R_b */
+  hFE /= U_R_b;                         /* / U_R_b */
+  hFE *= 10;                            /* upscale to 0.1 */
+  hFE /= (R_LOW * 10) + Ri;             /* / R_e in 0.1 Ohm */
+
+  #endif
 
   return hFE;
 }

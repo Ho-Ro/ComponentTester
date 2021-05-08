@@ -13,7 +13,7 @@
  *  Russian
  */
 
-#if defined (UI_RUSSIAN)
+#if defined (UI_RUSSIAN_2)
 
   /*
    *  constant strings
@@ -146,6 +146,14 @@
     const unsigned char CapHigh_str[] EEMEM = "Rl";
     const unsigned char CapLow_str[] EEMEM = "Rh";
     const unsigned char CapDischarge_str[] EEMEM = "Discharging";
+  #endif
+
+  #ifdef SW_MONITOR_RL
+    const unsigned char Monitor_RL_str[] EEMEM = "R/L Monitor";
+  #endif
+
+  #ifdef SW_MONITOR_C
+    const unsigned char Monitor_C_str[] EEMEM = "C Monitor";
   #endif
 
   #ifdef HW_TOUCH

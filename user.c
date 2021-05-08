@@ -65,8 +65,8 @@ uint8_t NumberOfDigits(uint32_t Value)
  *  compare two scaled values
  *
  *  requires:
- *  - first pair of value and scale
- *  - second pait of value and scale
+ *  - first pair of value and scale (*10^x)
+ *  - second pair of value and scale (*10^x)
  *
  *  returns:
  *  - -1 if first value is smaller than seconds one
@@ -134,8 +134,8 @@ int8_t CmpValue(uint32_t Value1, int8_t Scale1, uint32_t Value2, int8_t Scale2)
  *  rescale value
  *
  *  requires:
- *  - value and scale
- *  - new scale
+ *  - value and scale (*10^x)
+ *  - new scale (*10^x)
  */
 
 uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
@@ -160,6 +160,97 @@ uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
 
   return NewValue;
 }
+
+
+
+#ifdef UI_ROUND_DS18B20
+
+/*
+ *  round value while also scaling
+ *
+ *  requires:
+ *  - Value: value
+ *  - Scale: number of decimal places (0 = none)
+ *  - RoundScale: number of decimal places to round to
+ *
+ *  returns:
+ *  - rounded value
+ */
+
+int32_t RoundSignedValue(int32_t Value, uint8_t Scale, uint8_t RoundScale)
+{
+  int8_t            Offset = 5;         /* rounding offset */
+
+  while (Scale < RoundScale)  /* not enough decimal digits */
+  {
+    Value *= 10;              /* scale by 0.1 */
+    Scale++;                  /* one decimal digit more */
+  }
+
+  if (Value < 0)              /* negative value */
+  {
+    Offset = -5;              /* negative rounding offset */
+  }
+
+  while (Scale > RoundScale)  /* rounding loop */
+  {
+    Value += Offset;          /* for rounding */
+    Value /= 10;              /* /10 */
+    Scale--;                  /* one digit less */
+  }
+
+  return Value;
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   conversion functions
+ * ************************************************************************ */
+
+
+#ifdef UI_FAHRENHEIT
+  #if defined (SW_DS18B20) || defined (SW_DHTXX)
+
+/*
+ *  convert temperature value from Celcius to Fahrenheit
+ *
+ *  requires:
+ *  - Value: temperature in °C
+ *  - Scale: number of decimal places (0 = none)
+ *
+ *  returns:
+ *  - temperature in °F
+ */
+
+int32_t Celsius2Fahrenheit(int32_t Value, uint8_t Scale)
+{
+  int32_t           Offset = 32;   /* offset */
+
+  /*
+   *  convert °C to °F
+   *  - T[°F] = T[°C] * 9/5 + 32
+   */
+
+  /* scale offset to match temperature's scale */
+  while (Scale > 0)
+  {
+    Offset *= 10;             /* scale by 10^1 */
+    Scale--;                  /* next digit */
+  }
+
+  /* convert into Fahrenheit */
+  Value *= 9;
+  Value /= 5;
+  Value += Offset;            /* add scaled offset */
+
+  return Value;
+}
+
+  #endif
+#endif
 
 
 
@@ -1544,8 +1635,26 @@ uint8_t PresentMainMenu(void)
     #define ITEM_21      0
   #endif
 
-  #define MENU_ITEMS (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20 + ITEM_21)
-//  #define MENU_ITEMS     22             /* worst case */
+  #ifdef SW_MONITOR_RL
+    #define ITEM_22      1
+  #else
+    #define ITEM_22      0
+  #endif
+
+  #ifdef SW_MONITOR_C
+    #define ITEM_23      1
+  #else
+    #define ITEM_23      0
+  #endif
+
+  #ifdef SW_DHTXX
+    #define ITEM_24      1
+  #else
+    #define ITEM_24      0
+  #endif
+
+  #define MENU_ITEMS (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20 + ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24)
+//  #define MENU_ITEMS     25             /* worst case */
 
   uint8_t           Item = 0;           /* item number */
   uint8_t           ID;                 /* ID of selected item */
@@ -1581,6 +1690,16 @@ uint8_t PresentMainMenu(void)
   #ifdef SW_CAP_LEAKAGE
   MenuItem[Item] = (void *)CapLeak_str;      /* cap leakage */
   MenuID[Item] = 19;
+  Item++;
+  #endif
+  #ifdef SW_MONITOR_RL
+  MenuItem[Item] = (void *)Monitor_RL_str;   /* monitor RL */
+  MenuID[Item] = 22;
+  Item++;
+  #endif
+  #ifdef SW_MONITOR_C
+  MenuItem[Item] = (void *)Monitor_C_str;    /* monitor C */
+  MenuID[Item] = 23;
   Item++;
   #endif
   #ifdef HW_FREQ_COUNTER
@@ -1619,9 +1738,14 @@ uint8_t PresentMainMenu(void)
   Item++;
   #endif
   #ifdef SW_DS18B20
-  MenuItem[Item] = (void *)DS18B20_str;      /* temperature sensor DS18B20 */
+  MenuItem[Item] = (void *)DS18B20_str;      /* DS18B20 sensor */
   MenuID[Item] = 18;
   Item++;  
+  #endif
+  #ifdef SW_DHTXX
+  MenuItem[Item] = (void *)DHTxx_str;        /* DHT11/DHT22 sensor */
+  MenuID[Item] = 24;
+  Item++;
   #endif
 
   /* standard items */
@@ -1799,7 +1923,7 @@ void MainMenu(void)
     #endif
 
     #ifdef SW_DS18B20
-    case 18:             /* temperature sensor DS18B20 */
+    case 18:             /* DS18B20 sensor */
       Flag = DS18B20_Tool();
       break;
     #endif
@@ -1819,6 +1943,24 @@ void MainMenu(void)
     #ifdef HW_EVENT_COUNTER
     case 21:             /* event counter */
       EventCounter();
+      break;
+    #endif
+
+    #ifdef SW_MONITOR_RL
+    case 22:             /* monitor RL */
+      Monitor_RL();
+      break;
+    #endif
+
+    #ifdef SW_MONITOR_C
+    case 23:             /* monitor C */
+      Monitor_C();
+      break;
+    #endif
+
+    #ifdef SW_DHTXX
+    case 24:             /* DHT11/DHT22 sensor */
+      Flag = DHTxx_Tool();
       break;
     #endif
   }

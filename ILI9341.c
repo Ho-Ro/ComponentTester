@@ -54,6 +54,9 @@
 #include "font_8x8_hf.h"
 #include "font_12x16_hf.h"
 #include "font_16x26_hf.h"
+#include "font_10x16_czech_hf.h"
+#include "font_12x16_czech_hf.h"
+#include "font_16x26_czech_hf.h"
 #include "symbols_24x24_hf.h"
 #include "symbols_32x32_hf.h"
 

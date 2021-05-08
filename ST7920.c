@@ -73,12 +73,14 @@
 #ifndef LCD_ROT180
   /* horizontally aligned */
   #include "font_8x8_h.h"
+  #include "font_8x8_czech_h.h"
   #include "symbols_24x24_h.h"
 #endif
 
 #ifdef LCD_ROT180
   /* horizontally aligned, horizontal bit order flipped */
   #include "font_8x8_hf.h"
+  #include "font_8x8_czech_hf.h"
   #include "symbols_24x24_hf.h"
 #endif
 

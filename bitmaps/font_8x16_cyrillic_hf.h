@@ -1,6 +1,6 @@
 /* ************************************************************************
  *
- *   fixed 8x16 font based on Windows-1251
+ *   monospaced 8x16 font based on Windows-1251
  *   horizontally aligned, bit order horizontally flipped
  *
  *   provided by indman@EEVblog and Gennady_13@VRTP.RU

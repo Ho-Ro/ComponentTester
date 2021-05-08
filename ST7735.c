@@ -50,8 +50,9 @@
 /* fonts and symbols */
 /* horizontally aligned, horizontal bit order flipped */
 #include "font_8x8_hf.h"
-#include "font_8x16_cyrillic_hf.h"
 #include "font_10x16_hf.h"
+#include "font_8x16_cyrillic_hf.h"
+#include "font_10x16_czech_hf.h"
 #include "symbols_24x24_hf.h"
 #include "symbols_30x32_hf.h"
 

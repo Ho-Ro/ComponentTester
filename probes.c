@@ -494,14 +494,14 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   U_Rl = ReadU_5ms(Probes.ADC_2);                 /* get voltage at Rl */
 
   /*
-   *  If we got conduction we could have a p channel FET. For any
+   *  If we got conduction we could have a p-channel FET. For any
    *  other part U_Rl will stay the same.
    */
  
   if (U_Rl >= 977)            /* > 1.4mA */
   {
     /*
-     *  For a possible p channel FET we pull up the gate for a few ms,
+     *  For a possible p-channel FET we pull up the gate for a few ms,
      *  assuming: probe-1 = S / probe-2 = D / probe-3 = G
      */
 

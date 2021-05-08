@@ -94,8 +94,8 @@
 
 
 /* storage modes */
-#define STORAGE_LOAD          1    /* load adjustment values */
-#define STORAGE_SAVE          2    /* save adjustment values */
+#define STORAGE_LOAD          1         /* load adjustment values */
+#define STORAGE_SAVE          2         /* save adjustment values */
 
 
 /* SPI */
@@ -106,24 +106,30 @@
 
 
 /* I2C */
-#define I2C_ERROR             0              /* bus error */
-#define I2C_OK                1              /* operation done */
-#define I2C_START             1              /* start condition */
-#define I2C_REPEATED_START    2              /* repeated start condition */
-#define I2C_DATA              1              /* data byte */
-#define I2C_ADDRESS           2              /* address byte */
-#define I2C_ACK               1              /* acknowledge */
-#define I2C_NACK              2              /* not-acknowledge */
+#define I2C_ERROR             0         /* bus error */
+#define I2C_OK                1         /* operation done */
+#define I2C_START             1         /* start condition */
+#define I2C_REPEATED_START    2         /* repeated start condition */
+#define I2C_DATA              1         /* data byte */
+#define I2C_ADDRESS           2         /* address byte */
+#define I2C_ACK               1         /* acknowledge */
+#define I2C_NACK              2         /* not-acknowledge */
 
 
 /* TTL serial */
 /* control */
-#define SER_RX_PAUSE          1              /* pause RX */
-#define SER_RX_RESUME         2              /* resume RX */
+#define SER_RX_PAUSE          1         /* pause RX */
+#define SER_RX_RESUME         2         /* resume RX */
 
 /* special characters */
-#define CHAR_XON              17             /* software flow control: XON */
-#define CHAR_XOFF             19             /* software flow control: XOFF */
+#define CHAR_XON              17        /* software flow control: XON */
+#define CHAR_XOFF             19        /* software flow control: XOFF */
+
+
+/* modes for probe pinout */
+#define PROBES_PWM            0         /* PWM output */
+#define PROBES_ESR            1         /* ESR measurement */
+#define PROBES_RCL            2         /* monitoring RCL */
 
 
 
@@ -132,17 +138,20 @@
  * ************************************************************************ */
 
 
-/* buffer sizes */
-#define OUT_BUFFER_SIZE      12    /* 11 chars + terminating 0 */
-#define RX_BUFFER_SIZE       11    /* 10 chars + terminating 0 */
+/* string buffer sizes */
+#define OUT_BUFFER_SIZE       12        /* 11 chars + terminating 0 */
+#define RX_BUFFER_SIZE        11        /* 10 chars + terminating 0 */
 
 /* number of entries in data tables */
-#define NUM_PREFIXES          7    /* unit prefixes */
-#define NUM_LARGE_CAP         46   /* large cap factors */
-#define NUM_SMALL_CAP         9    /* small cap factors */
-#define NUM_PWM_FREQ          8    /* PWM frequencies */
-#define NUM_INDUCTOR          32   /* inductance factors */
-#define NUM_TIMER1            5    /* Timer1 prescalers and bits */
+#define NUM_PREFIXES          7         /* unit prefixes */
+#define NUM_LARGE_CAP         46        /* large cap factors */
+#define NUM_SMALL_CAP         9         /* small cap factors */
+#define NUM_PWM_FREQ          8         /* PWM frequencies */
+#define NUM_INDUCTOR          32        /* inductance factors */
+#define NUM_TIMER1            5         /* Timer1 prescalers and bits */
+
+/* IR code buffer size */
+#define IR_CODE_BYTES         6         /* 6 bytes = 48 bit */
 
 
 
@@ -161,36 +170,36 @@
 #define CMD_OFF               2    /* power off */
 
 /* probing commands */
-#define CMD_PROBE             10    /* probe component */
-#define CMD_COMP              11    /* return component type ID */
-#define CMD_MSG               12    /* return error message */
-#define CMD_QTY               13    /* return component quantity */
-#define CMD_NEXT              14    /* select next component */
-#define CMD_TYPE              15    /* return more sepcific type */
-#define CMD_HINT              16    /* return hint on special features */
-#define CMD_PIN               17    /* return pinout */
-#define CMD_R                 18    /* return resistance */
-#define CMD_C                 19    /* return capacitance */
-#define CMD_L                 20    /* return inductance */
-#define CMD_ESR               21    /* return ESR */
-#define CMD_I_L               22    /* return I_leak */
-#define CMD_V_F               23    /* return V_f */
-#define CMD_V_F2              24    /* return V_f of low current measurement */
-#define CMD_C_D               25    /* return C_D */
-#define CMD_I_R               26    /* return I_R */
-#define CMD_R_BE              27    /* return R_BE */
-#define CMD_H_FE              28    /* return hFE */
-#define CMD_H_FE_R            29    /* return reverse hFE */
-#define CMD_V_BE              30    /* return V_BE */
-#define CMD_I_CEO             31    /* return I_CEO */
-#define CMD_V_TH              32    /* return V_th */
-#define CMD_C_GS              33    /* return C_GS */
-#define CMD_R_DS              34    /* return R_DS */
-#define CMD_I_DSS             35    /* return I_DSS */
-#define CMD_C_GE              36    /* return C_GE */
-#define CMD_V_GT              37    /* return V_GT */
-#define CMD_V_T               38    /* return V_T */
-#define CMD_R_BB              39    /* return R_BB */
+#define CMD_PROBE             10   /* probe component */
+#define CMD_COMP              11   /* return component type ID */
+#define CMD_MSG               12   /* return error message */
+#define CMD_QTY               13   /* return component quantity */
+#define CMD_NEXT              14   /* select next component */
+#define CMD_TYPE              15   /* return more sepcific type */
+#define CMD_HINT              16   /* return hint on special features */
+#define CMD_PIN               17   /* return pinout */
+#define CMD_R                 18   /* return resistance */
+#define CMD_C                 19   /* return capacitance */
+#define CMD_L                 20   /* return inductance */
+#define CMD_ESR               21   /* return ESR */
+#define CMD_I_L               22   /* return I_leak */
+#define CMD_V_F               23   /* return V_f */
+#define CMD_V_F2              24   /* return V_f of low current measurement */
+#define CMD_C_D               25   /* return C_D */
+#define CMD_I_R               26   /* return I_R */
+#define CMD_R_BE              27   /* return R_BE */
+#define CMD_H_FE              28   /* return hFE */
+#define CMD_H_FE_R            29   /* return reverse hFE */
+#define CMD_V_BE              30   /* return V_BE */
+#define CMD_I_CEO             31   /* return I_CEO */
+#define CMD_V_TH              32   /* return V_th */
+#define CMD_C_GS              33   /* return C_GS */
+#define CMD_R_DS              34   /* return R_DS */
+#define CMD_I_DSS             35   /* return I_DSS */
+#define CMD_C_GE              36   /* return C_GE */
+#define CMD_V_GT              37   /* return V_GT */
+#define CMD_V_T               38   /* return V_T */
+#define CMD_R_BB              39   /* return R_BB */
 
 
 

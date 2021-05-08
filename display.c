@@ -452,7 +452,7 @@ void Display_HexValue(uint16_t Value, uint8_t Bits)
 
 
 
-#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO) || defined (SW_DS18B20) || defined (HW_EVENT_COUNTER)
+#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO) || defined (SW_DS18B20) || defined (HW_EVENT_COUNTER) || defined (SW_DHTXX)
 
 /*
  *  display unsigned value plus unit
@@ -522,7 +522,7 @@ void Display_FullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
 
 
 
-#ifdef SW_DS18B20
+#if defined (SW_DS18B20) || defined (SW_DHTXX)
 
 /*
  *  display signed value plus unit

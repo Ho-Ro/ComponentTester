@@ -103,16 +103,24 @@
 
 
 /*
- *  voltage measurement up to 50V DC
+ *  voltage measurement up to 50V DC / Zener check
  *  - default pin: PC3 (ATmega 328)
  *  - 10:1 voltage divider
- *  - for Zener diodes
  *  - DC-DC boost converter controled by test push button
- *  - see TP_BAT for port pin
+ *  - see TP_ZENER for port pin
  *  - uncomment to enable
  */
 
 //#define HW_ZENER
+
+
+/*
+ *  high resolution for Zener check
+ *  - 10mV instead of 0.1V
+ *  - uncomment to enable
+ */
+
+#define ZENER_HIGH_RES
 
 
 /*
@@ -168,6 +176,16 @@
 
 
 /*
+ *  trigger output for event counter
+ *  - uses probe #2 as trigger output, probes #1 and #3 are Gnd
+ *  - sets trigger output to high while counting
+ *  - uncomment to enable
+ */
+
+//#define EVENT_COUNTER_TRIGGER_OUT
+
+
+/*
  *  IR remote control detection/decoder (via dedicated MCU pin)
  *  - requires IR receiver module, e.g. TSOP series
  *  - module is connected to fixed I/O pin
@@ -204,6 +222,7 @@
 
 /*
  *  PWM generator with simple user interface
+ *  - signal output via OC1B
  *  - uncomment to enable
  */
 
@@ -212,6 +231,7 @@
 
 /*
  *  PWM generator with fancy user interface
+ *  - signal output via OC1B
  *  - requires additional keys and display with more than 2 text lines
  *  - uncomment to enable
  */
@@ -248,6 +268,7 @@
 
 /*
  *  squarewave signal generator
+ *  - signal output via OC1B
  *  - requires additional keys
  *  - uncomment to enable
  */
@@ -286,6 +307,7 @@
 
 /*
  *  IR remote control sender
+ *  - signal output via OC1B
  *  - requires additional keys and display with more than 4 text lines
  *  - also requires an IR LED with a simple driver
  *  - uncomment to enable
@@ -332,6 +354,7 @@
 
 /*
  *  Servo Check
+ *  - signal output via OC1B
  *  - requires additional keys and display with more than 2 text lines
  *  - uncomment to enable
  */
@@ -340,7 +363,7 @@
 
 
 /*
- *  DS18B20
+ *  DS18B20 - OneWire temperature sensor 
  *  - uncomment to enable
  *  - also enable ONEWIRE_PROBES or ONEWIRE_IO_PIN (see section 'Busses')
  */
@@ -358,12 +381,55 @@
 
 
 /*
- *  Reverse hFE for BJTs
+ *  display reverse hFE for BJTs
  *  - hFE for collector and emitter reversed
  *  - uncomment to enable
  */
 
 #define SW_REVERSE_HFE
+
+
+/*
+ *  monitor resistance and inductance on probes #1 and #3
+ *  - uncomment to enable
+ */
+
+//#define SW_MONITOR_RL
+
+
+/*
+ *  monitor capacitance on probes #1 and #3
+ *  - uncomment to enable
+ */
+
+//#define SW_MONITOR_C
+
+
+/*
+ *  DHT11, DHT22 and compatible humidity & temperature sensors
+ *  - uncomment to enable
+ */
+
+//#define SW_DHTXX
+
+
+
+/* ************************************************************************
+ *   workarounds for some testers
+ * ************************************************************************ */
+
+
+/*
+ *  Disable hFE measurement with common collector circuit and Rl as
+ *  base resistor
+ *  - problem:
+ *    hFE values are too high because base voltage is measured too low
+ *  - affected testers:
+ *    Hiland M664 (under investigation)
+ *  - uncomment to enable
+ */
+
+//#define NO_HFE_C_RL
 
 
 
@@ -393,24 +459,28 @@
 
 
 /*
- *  Languange of user interface. Available languages:
+ *  Language of user interface. Available languages:
  *  - English (default)
- *  - Czech
+ *  - Czech (based on ISO 8859-1)
+ *  - Czech 2 (with Czech characters based on ISO 8859-2)
  *  - Danish
  *  - German
  *  - Polish
  *  - Spanish
- *  - Russian (only 8x16 font horizontally aligned)
+ *  - Russian (with cyrillic characters based on Windows-1251)
+ *  - Russian 2 (with cyrillic characters based on Windows-1251)
  */
 
 #define UI_ENGLISH
 //#define UI_CZECH
+//#define UI_CZECH_2
 //#define UI_DANISH
 //#define UI_GERMAN
 //#define UI_ITALIAN
 //#define UI_POLISH
 //#define UI_SPANISH
 //#define UI_RUSSIAN
+//#define UI_RUSSIAN_2
 
 
 /*
@@ -520,6 +590,16 @@
  */
 
 //#define SW_POWER_OFF
+
+
+/*
+ *  Round some values if appropriate.
+ *  - for
+ *    - DS18B20 (0.1 °C/F)
+ *  - uncomment to enable
+ */
+
+//#define UI_ROUND_DS18B20
 
 
 
@@ -1094,6 +1174,14 @@
 #endif
 #ifdef HW_IR_RECEIVER
   #undef SW_IR_RECEIVER
+#endif
+
+
+/* rounding for DS18B20 requires DS18B20 support */
+#ifdef UI_ROUND_DS18B20
+  #ifndef SW_DS18B20
+    #undef UI_ROUND_DS18B20
+  #endif
 #endif
 
 

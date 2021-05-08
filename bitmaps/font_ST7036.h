@@ -1,6 +1,6 @@
 /* ************************************************************************
  *
- *   internal 5x8 font of ST7036
+ *   internal monospaced 5x8 font of ST7036
  *
  *   (c) 2019 by Markus Reschke
  *

@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2019-09-06
+Last edit:  2019-12-13
 
 Content
   - About
@@ -55,17 +55,21 @@ Content
     - Zener Tool
     - ESR Tool
     - Capacitor Leakage Check
+    - R/L Monitor
+    - C Monitor
     - Frequency Counter
       - Basic Counter
       - Extended Counter
     - Event Counter
+      - Trigger Output
     - Rotary Encoder
     - Contrast
     - IR RC Detector/Decoder
     - IR RC Transmitter
     - Opto Coupler Tool
     - Servo Check
-    - Temperature Sensor DS18B20
+    - DS18B20 Temperature Sensor
+    - DHTxx Sensors
     - Self Test
     - Self Adjustment
     - Save/Load
@@ -79,9 +83,10 @@ Content
   - ADC Oversampling
   - V_BE of BJTs
   - Displaying Results
-    - Special Components
-      - Non-standard BJT
-      - CLD
+    - Additional Hints
+      - BJTs
+      - TRIACs
+      - CLDs
   - Unsupported Components
   - Known Issues
   - Support
@@ -246,24 +251,36 @@ ressources, i.e. RAM, EEPROM and flash memory. If the firmware exceeds the
 MCU's flash size, try to disable some options you don't need.
 
 Available UI languages:
-- Czech (provided by Kapa)
-- Danish (provided by glenndk@mikrocontroller.net)
-  needs minor changes in the font
+- Czech
+  - provided by Kapa
+  - font based on ISO 8859-1
+- Czech 2
+  - provided by Bohu
+  - font with Czech characters based on ISO 8859-2
+- Danish
+  - provided by glenndk@mikrocontroller.net
+  - needs minor changes in the font
 - English (default)
 - German
-- Italian (privided by Gino_09@EEVblog)
-- Polish (provided by Szpila)
-- Spanish (provided by pepe10000@EEVblog)
-- Russian (provided by indman@EEVblog and hapless@@EEVblog)
-  just 8x16 font (horizontally aligned) and HD44780 with Cyrillc font
+- Italian
+  - provided by Gino_09@EEVblog
+- Polish
+  - provided by Szpila
+- Russian
+  - provided by indman@EEVblog
+  - font with cyrillic characters based on Windows-1251
+- Russian 2
+  - provided by hapless@@EEVblog
+  - font with cyrillic characters based on Windows-1251
+  - alternative text 
+- Spanish
+  - provided by pepe10000@EEVblog
 
-There's also an alternative Russian text file (var_russian_2.h). If you prefer
-that one, simply rename it to var_russian.h. A decimal fraction is indicated
-by a dot, but you can change that to a comma if you like by enabling the
-corresponding setting.
+For number values a decimal fraction is indicated by a dot, but you can change
+that to a comma if you like by enabling the corresponding setting.
 
 For MCU specific settings, like pin assignments and display, edit 
-config-<MCU>.h:
+config_<MCU>.h:
 - ATmega 328                config_328.h
 - ATmega 324/644/1284       config_644.h
 
@@ -272,7 +289,7 @@ graphic displays select a font which is small enough to match the
 requirements.
 
 After editing the Makefile, config.h or config-<MCU>.h please run 'make' or
-whatever toolchain you have to compile the firmware. The Makefiles provides
+whatever toolchain you have to compile the firmware. The Makefile provides
 following additional targets:
 - clean    to remove all object and firmware files
 - fuses    to set the ATmega's fuse bits
@@ -986,6 +1003,22 @@ How to connect the capacitor:
    Probe #3: negative (Gnd)
 
 
++ R/L Monitor
+
+The R/L monitor measures continuously the resistance and optionally inductance
+of a component connected to probes #1 and #3. There's a delay of 2 seconds
+between measurements, indicated by a cursor at the bottom right, during which
+you can exit the monitor by two short presses of the test button.
+
+
++ C Monitor
+
+The C monitor measures continuously the capacitance and optionally the ESR of
+a capacitor connected to probes #1 and #3. There's a delay of 2 seconds
+between measurements, indicated by a cursor at the bottom right, during which
+you can exit the monitor by two short presses of the test button.
+
+
 + Frequency Counter (hardware option)
 
 There are two versions of the frequency counter. The basic one is a simple
@@ -1046,6 +1079,18 @@ The limit for the time period is 43200s (12h) and for the events it's 4*10^9.
 If any of those limits is exceeded the counting is automatically stopped.
 The event limit or threshold (when in events mode) is checked every 200ms.
 Therefore some overshoot may occur in case of more than 5 events/s.
+
+
+- Trigger Output
+
+Optionally you can enable a trigger output (EVENT_COUNTER_TRIGGER_OUT) to
+control some other device using the probes. The trigger output is set high
+while counting, i.e. rising edge at start and falling edge at stop.
+
+Pinout for trigger output via probes:
+  Probe #1:    Ground
+  Probe #2:    Output (with 680 Ohms resistor to limit current)
+  Probe #3:    Ground
 
 
 + Rotary Encoder
@@ -1370,16 +1415,48 @@ hitec          PWM Yellow          Vcc Red             Gnd Black
 JR Radios      PWM Orange          Vcc Red             Gnd Brown
 
 
-+ Temperature Sensor DS18B20
++ DS18B20 Temperature Sensor 
 
 This tool reads the OneWire temperature sensor DS18B20 and displays the
-temperature. Please see section "Busses & Interfaces" for the setup of
-the OneWire bus. When using the probes the tester will inform you about
-the pin assignment and waits until it can detect the external pull-up
-resistor. You can skip this by a key press. After connecting the DS18B20
-as the only client on the OneWire bus push the test button for reading the
-sensor (this may take nearly a second). To exit the tool press the test button
-twice quickly.
+temperature. Please see section "Busses & Interfaces" for the setup of the
+OneWire bus. When using the probes the tester will inform you about the pin
+assignment and waits until it detects the external pull-up resistor. You can
+skip this by a key press. After connecting the DS18B20 as the only client on
+the OneWire bus push the test button for reading the sensor (this may take
+nearly a second). To exit the tool press the test button twice quickly.
+
+
++ DHTxx Sensors
+
+Tool for reading DHT11, DHT22 and compatible temperature & humidity sensors.
+First the tester displays the pinout and then waits for the external pull-up
+resistor. After that it shows the selected sensor type (default: DHT11) and
+a short press of the test button reads the sensor. On a successful read the
+tester outputs the measured values, on any error the result will be a "-".
+A long button press changes the sensor type, and two short button presses
+exit the tool. When changing the sensor you also have the option to activate
+automatic reading (each second) which is indicated by an "*" after the sensor
+name.
+
+Supported sensors:
+  DHT11: DHT11, RHT01
+  DHT22: DHT22, RHT03, AM2302
+         DHT21, RHT02, AM2301, HM2301
+         DHT33, RHT04, AM2303
+         DHT44, RHT05
+
+Pin assignment for probes:
+  Probe #1:  Gnd
+  Probe #2:  Data
+  Probe #3:  Vdd (current not limited)
+
+An external pull-up resistor of 4.7kOhms between Data and Vdd is required!
+Some sensor modules include already a 10kOhms pull-up resistor which works
+also fine with short cables.
+
+Hint:
+  Because of the sensor's power demand the 680 Ohms test resistor can't be
+  used to limit current. Be aware that any short circuit may destroy the MCU.
 
 
 + Self Test
@@ -1643,18 +1720,18 @@ shown for 3-pin semiconductors. If there's not enough space left on the display
 for the symbol, the pinout will be skipped. 
 
 
-+ Special Components
++ Additional Hints
 
 
-Non-standard BJT
+BJTs
 
-For a BJT with a base emitter resistor the tester displays the base emitter
-resistor and skips the hFE output. If the BJT also has a freewheeling diode the
-BJT might be detected as BJT or two diodes based on the value of the base
-emitter resistor (low value resistor -> 2 diodes). In the latter case the tester
-shows the two diodes and the resistor while hinting at a possible NPN or PNP
-BJT, The problem is that the low value base emitter resistor prevents the proper
-identification of the BJT.
+In case of a BJT with a base emitter resistor the tester displays that
+resistor. Be aware that the B-E resistor has an impact on V_BE and hFE. If the
+BJT also has a freewheeling diode the BJT might be detected as BJT or two
+diodes based on the value of the base emitter resistor (low value resistor -> 2
+diodes). In the latter case the tester shows the two diodes and the resistor
+while hinting at a possible NPN or PNP BJT. Unfortunately the low value base
+emitter resistor prevents the correct detection of the BJT.
 
 Another special case is a BJT with an integrated freewheeling diode on the same
 subtrate as the BJT. That integrated diode junction creates a parasitic
@@ -1662,7 +1739,7 @@ transistor. A NPN BJT will have a parasitic PNP and vice versa. If such a BJT
 is found the tester shows a '+' behind the BJT type.
 
 
-TRIAC
+TRIACs
 
 TRIACs can be used in three or four different operation modes, also known as
 quadrants. Usually some parameters will differ for each quadrant, like the
@@ -1672,13 +1749,13 @@ another one. Since two test runs are needed to figure out the pins for MT1 and
 MT2 the tester won't be able to distinguish between them in those cases, i.e. 
 the pins could be swapped.
 
-You might also find TRIACs which can be triggered by the tester but have a too
+You might also have TRIACs which can be triggered by the tester but have a too
 high holding current (I_H) preventing their correct detection. If a TRIAC's
-gate trigger current is too high the tester will find typically just a
-resistor. 
+gate trigger current is too high the tester will detect just a resistor
+typically. 
 
 
-CLD
+CLDs
 
 The diode check identifies a CLD (Current Limiting Diode) as a standard diode
 and displays I_F as the leakage current. Note that anode and cathode of a CLD

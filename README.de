@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2019-09-06
+Letzte Änderung: 2019-12-13
 
 Inhaltsübersicht:
   - Über den Tester
@@ -55,17 +55,21 @@ Inhaltsübersicht:
     - Zenertest
     - ESR-Messung
     - Kondensatorleckstrom
+    - R/L-Monitor
+    - C-Monitor
     - Frequenzzähler
       - Einfacher Zähler
       - Erweiterter Zähler
     - Ereigniszähler
+      - Triggerausgang
     - Drehencoder
     - Kontrast
     - Detektor/Decoder für IR-Fernbedienungen
     - IR-Fernbedienung
     - Opto-Koppler-Test
     - Modellbau-Servo-Test
-    - Temperatursensor DS18B20
+    - DS18B20-Temperatursensor
+    - DHTxx-Sensoren
     - Selbsttest
     - Selbstabgleich
     - Speichern/Laden
@@ -79,9 +83,10 @@ Inhaltsübersicht:
   - ADC Oversampling
   - V_BE von Bipolartransistoren
   - Ergebnisanzeige
-    - Spezielle Bauteile
-      - Spezial-Bipolar-Transistor
-      - CLD
+    - Zusätzliche Hinweise
+      - Bipolartransistoren
+      - TRIACs
+      - CLDs
   - Nicht unterstütze Bauelemente
   - Bekannte Probleme
   - Hilfe
@@ -252,25 +257,35 @@ zu groß werden, versuche für Dich nicht so wichtige Optionen wieder zu
 deaktivieren.
 
 Verfügbare Sprachen:
-- Dänisch (von glenndk@mikrocontroller.net)
-  benötigt kleine Änderungen im Font
+- Dänisch
+  - von glenndk@mikrocontroller.net
+  - benötigt kleine Änderungen im Font
 - Deutsch
 - Englisch
-- Italienisch (von Gino_09@EEVblog)
-- Polnisch (von Szpila)
-- Russisch (von indman@EEVblog und hapless@EEVblog)
-  nur 8x16 Zeichensatz (horizontal ausgerichtet) und HD44780 mit kyrillischem
-  Zeichensatz
-- Spanisch (von pepe10000@EEVblog)
-- Tschechisch (von Kapa)
+- Italienisch
+  - von Gino_09@EEVblog
+- Polnisch
+  - von Szpila
+- Russisch
+  - von indman@EEVblog
+  - Zeichensatz mit kyrillischen Zeichen basierend auf Windows-1251
+- Russisch 2
+  - von hapless@EEVblog
+  - Zeichensatz mit kyrillischen Zeichen basierend auf Windows-1251
+- Spanisch
+  - von pepe10000@EEVblog
+- Tschechisch
+  - von Kapa
+  - Zeichensatz basierend auf ISO 8859-1
+- Tschechisch 2
+  - von Bohu
+  - Zeichensatz mit tschechischen Zeichen basierend auf ISO 8859-2
 
-Es gibt für Russisch zusätzlich eine alternative Textdatei (var_russian_2.h).
-Wenn Du diese nehmen möchtest, einfach nach var_russian.h umbenennen. Ist Dir
-ein Komma statt einem Punkt für die Kennzeichnung von Dezimalstellen lieber, 
-gibt es dafür eine Einstellungsoption (Standard: Punkt).
+Bei Zahlenwerten werden die Dezimalstellen standardmäßig durch einen Punkt
+gekennzeichnet, kann aber auf Komma umgestellt werden.
 
 Für die MCU-spezifischen Einstellungen, wie Pin-Zuordnungen und Display,
-editiere config-<MCU>.h:
+editiere config_<MCU>.h:
 - ATmega 328                config_328.h
 - ATmega 324/644/1284       config_644.h
 
@@ -1014,6 +1029,24 @@ Beschaltung für Kondensator:
    Pin #3:  Minus
 
 
++ R/L-Monitor
+
+Der R/L-Monitor misst ständig Widerstand und ggf. Induktivität eines Bauteils
+an den Pins #1 und #3. Zwischen den Messungen gibt es jeweils ein kurze Pause
+von 2 Sekunden, die durch einen Cursor unten rechts signalisiert wird. Während
+der Pause lässt sich der Monitor durch zwei kurze Tastendrücke (Testtaste)
+beenden.
+
+
++ C-Monitor
+
+Der C-Monitor misst ständig Kapazität und ggf. den ESR eines Kondensators an
+den Pins #1 und #3. Zwischen den Messungen gibt es jeweils ein kurze Pause
+von 2 Sekunden, die durch einen Cursor unten rechts signalisiert wird. Während
+der Pause lässt sich der Monitor durch zwei kurze Tastendrücke (Testtaste)
+beenden.
+
+
 + Frequenzzähler (Hardware-Option)
 
 Den Frequenzzähler gibt es in zwei Versionen. Der Einfache besteht aus einem
@@ -1076,6 +1109,19 @@ Der Grenzwert für die Zeit ist 43200s (12h) und für die Ereignisse 4*10^9.
 Sobald einer der Grenzwerte überschritten wird, stoppt der Zähler automatisch.
 Der Grenz- oder Stopwert für Ereignisse wird alle 200ms überprüft. Daher ist
 bei mehr als 5 Ereignissen/s ein Übersteigen des Wertes möglich.
+
+
+- Triggerausgang
+
+Optional kannst Du den Triggerausgang aktivieren (EVENT_COUNTER_TRIGGER_OUT),
+um ein anderes Gerät über die Testpins zu steuern. Der Triggerausgang wird
+während des Zählens auf High gesetzt, d.h. steigende Flanke beim Start und
+fallende Flanke bei Stop.
+
+Beschaltung für Triggerausgang über die Testpins: 
+  Pin #1:      Masse
+  Pin #2:      Ausgang (680 Ohm Widerstand zur Strombegrenzung)
+  Pin #3:      Masse
 
 
 + Drehencoder
@@ -1406,7 +1452,7 @@ hitec          PWM gelb            Vcc rot             Gnd schwarz
 JR Radios      PWM orange          Vcc rot             Gnd braun
 
 
-+ Temperatursensor DS18B20
++ DS18B20-Temperatursensor
 
 Hiermit wird der OneWire-Temperatursensor DS18B20 ausgelesen. Zum Einrichten
 des OneWire-Busses siehe bitte den Abschnitt "Busse & Schnittstellen". Bei
@@ -1415,6 +1461,41 @@ bis ein externer Pull-Up-Widerstand erkannt wurde. Mit einem Tastendruck läßt
 sich dies überspringen. Nach den Verbinden des DS18B20 als einziger Client am
 Bus startet ein Tastendruck das Auslesen der Temeperatur (kann fast eine
 Sekunde dauen). Zum Beenden zweimal kurz die Test-Taste drücken.
+
+
++ DHTxx-Sensoren
+
+Zum Lesen von DHT11, DHT22 und kompatiblen Temperatur & Luftfeuchte-Sensoren.
+Zuerst zeigt der Tester die Beschaltung der Test-Pins und wartet auf den
+externen Pull-Up-Widerstand. Danach wird der ausgewählte Sensortyp angezeigt (
+Standard: DHT11), welcher durch einen kurzen Druck der Testtaste gelesen wird. 
+Bei erfolgreichem Lesen gibt der Tester die Messwerte aus, bei einem Fehler
+nur ein "-". Ein langer Tastendruck ändert den Sensortypen, und zwei kurze
+Tastendrücke beenden die Funktion. Beim Ändern des Sensortyps hast Du die
+Möglichkeit, den automatischen Lesemodus (jede Sekunde) zu aktivieren. Dieser
+wird durch ein "*" nach dem Sensornamen signalisiert.
+
+Unterstützte Sensoren:
+  DHT11: DHT11, RHT01
+  DHT22: DHT22, RHT03, AM2302
+         DHT21, RHT02, AM2301, HM2301
+         DHT33, RHT04, AM2303
+         DHT44, RHT05
+
+Beschaltung von Test-Pins:
+  Probe #1:  Gnd
+  Probe #2:  Data
+  Probe #3:  Vdd (Strom nicht begrenzt)
+
+Ein externer Pull-Up-Widerstand von 4,7kOhm zwischen Data and Vdd wird benötigt!
+Manche Sensormodule haben bereits einen 10kOhm Pull-Up-Widerstand integriert,
+welcher ebenfalls gut mit kürzeren Kabeln funktioniert.
+
+
+Hinweis:
+  Wegen des Strombedarfs des Sensor kann der 680 Ohm Testwiderstand nicht
+  zur Strombegrenzung genutzt werden. Also Vorsicht, ein Kurzschluss kann
+  die MCU beschädigen.
 
 
 + Selbsttest
@@ -1688,18 +1769,18 @@ Testpins für 3-Pin-Halbleiter angezeigt. Sollte nicht genügend Platz auf dem
 Display sein, wird die Ausgabe des Symbols übersprungen.
 
 
-+ Spezielle Bauteile
++ Zusätzliche Hinweise
 
 
-Spezial-Bipolar-Transistor
+Bipolartransistoren
 
 Bei einem Bipolartransistor mit Basis-Emitter-Widerstand wird der Widerstand
-angezeigt, aber hFE ausgelassen. Wenn der Transistor zusätzlich eine
-Schutzdiode hat, kann er als Transistor oder zwei Dioden erkannt werden, je
-nach Wert des Basis-Emitter-Widerstands. Im letzteren Fall werden zwei Dioden
-plus Widerstand mit dem Hinweis auf einen möglichen Transistor angezeigt. Ein
-niedriger Basis-Emitter-Widerstand verhindert leider die eindeutige Erkennung
-des Transistors.
+angezeigt. Beachte, dass der B-E-Widerstand Einfluss auf V_BE und hFE hat.
+Wenn der Transistor zusätzlich eine Schutzdiode hat, kann er als Transistor
+oder zwei Dioden erkannt werden, je nach Wert des Basis-Emitter-Widerstands.
+Im letzteren Fall werden zwei Dioden plus Widerstand mit dem Hinweis auf einen
+möglichen Transistor angezeigt. Ein niedriger Basis-Emitter-Widerstand
+verhindert leider die eindeutige Erkennung des Transistors.
 
 Ein weiterer Spezialfall ist ein Bipolartransistor mit integrierter
 Schutzdiode, die sich auf dem gleichen Substrat befindet. Der integrierte
@@ -1708,7 +1789,7 @@ somit einen paristären PNP und umgekehrt. Wird ein solcher Transistor
 entdeckt, wird er mit einem "+" hinter der Typenangabe gekennzeichnet.
 
 
-TRIAC
+TRIACs
 
 TRIACs werden in drei bzw. vier Modi, auch als Quadranten bekannt, betrieben.
 Typischerweise unterscheiden sich manche Parameter je nach Quadrant, wie z.B.
@@ -1724,7 +1805,7 @@ einem TRIAC der Triggerstom zu hoch für den Tester ist, wird er meistens
 als Widerstand erkannt.
 
 
-CLD
+CLDs
 
 Die Diodenprüfung erkennt eine CLD (Current Limiting Diode) als normale Diode
 und gibt ihren Strom I_F als Leckstrom aus. Zu beachten ist, daß bei einer CLD

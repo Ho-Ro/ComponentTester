@@ -1,8 +1,8 @@
 /* ************************************************************************
  *
- *   OneWire communication
+ *   OneWire communication and tools
  *
- *   (c) 2018 by Markus Reschke
+ *   (c) 2018-2019 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -93,7 +93,7 @@ void OneWire_Setup(void)
  *  set up probes for OneWire bus
  *  - probe-1: Gnd
  *  - probe-2: Vcc (current limited by Rl)
- *  - probe-3: DQ
+ *  - probe-3: DQ (pull-up resistor required)
  *
  *  requires:
  *  - String: string stored in EEPROM for first display line 
@@ -117,16 +117,17 @@ uint8_t OneWire_Probes(const unsigned char *String)
   Show_SimplePinout('-', '+', 'd');
 
   /* set probes: probe-1 -- Gnd / probe-2 -- Rl -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
-  ADC_PORT = 0;                              /* pull down directly: */
-  ADC_DDR = (1 << TP1);                      /* probe-1 */
   /* pull up probe-2 via Rl, pull down probe-3 via Rh */
   R_DDR = (1 << R_RL_2) | (1 << R_RH_3);     /* enable resistors */
   R_PORT = (1 << R_RL_2);                    /* pull up probe-2, pull down probe-3 */
+  ADC_PORT = 0;                              /* pull down directly: */
+  ADC_DDR = (1 << TP1);                      /* probe-1 */
+  wait20ms();                                /* time to settle */
 
   /* wait for external pull-up resistor or key press */
   while (Run)
   {
-    if (ADC_PIN & (1 << TP3))      /* check for high level */
+    if (ADC_PIN & (1 << TP3))      /* check for high level of probe-3 */
     {
       Flag = 1;                              /* signal "bus ok" */
       Run = 0;                               /* end loop */
@@ -137,7 +138,7 @@ uint8_t OneWire_Probes(const unsigned char *String)
       Flag = TestKey(100, CHECK_BAT);
       if (Flag)                              /* key pressed */
       {
-        Flag = 0;                            /* signed "skipped" */
+        Flag = 0;                            /* signal "skipped" */
         Run = 0;                             /* end loop */
       }
     }
@@ -565,15 +566,15 @@ void OneWire_CRC8(uint8_t Byte)
  *  - single client on the bus
  *
  *  requires:
- *  - T: for returning temperature in °C
- *  - Depth: for returning bit depth (9-12) 
+ *  - Value: pointer to temperature in °C
+ *  - Scale: pointer to scale factor (*10^x)
  *
  *  returns:
  *  - 1 on success
  *  - 0 on any problem
  */
 
-uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale, uint8_t *Bits)
+uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale)
 {
   uint8_t           Flag = 0;           /* return value */
   uint8_t           Run = 0;            /* loop control */
@@ -703,8 +704,6 @@ uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale, uint8_t *Bits)
     {
       Run |= 0b00000010;           /* set upper bit */
     }
-    *Bits = Run + 9;               /* save bit depth */
-                                   /* 0-3 -> 9-12 bits */
 
 
     /*
@@ -722,7 +721,7 @@ uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale, uint8_t *Bits)
 
     /*
      *  remove undefined bits based on bit depth and 
-     *  also calculate scaling factors
+     *  also calculate scaling factor
      */
 
     n = 3 - Run;                        /* number of bits to ignore */
@@ -753,6 +752,95 @@ uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale, uint8_t *Bits)
   }
 
   return Flag;
+}
+
+
+
+/*
+ *  temperature sensor DS18B20
+ *
+ *  returns:
+ *  - 1 on success
+ *  - 0 on any error
+ */
+
+uint8_t DS18B20_Tool(void)
+{
+  uint8_t           Flag = 1;      /* control flag */
+  uint8_t           Test;          /* key / feedback */
+  int8_t            Scale;         /* temperature scale 10^x */
+  int32_t           Value;         /* temperature value */
+
+  #ifdef ONEWIRE_PROBES
+  /* inform user about pinout and check for external pull-up resistor */
+  Flag = OneWire_Probes(DS18B20_str);
+
+  if (Flag == 0)              /* bus error */
+  {
+    return 0;                 /* exit tool and signal error */
+  }
+  #endif
+
+  LCD_ClearLine2();                     /* clear line #2 */
+  Display_EEString(Start_str);          /* display: Start */
+
+
+  /*
+   *  processing loop
+   */
+
+  while (Flag)
+  {
+    /* user input */
+
+    /* wait for user input */
+    Test = TestKey(0, CURSOR_BLINK | CHECK_KEY_TWICE | CHECK_BAT);
+
+    if (Test == KEY_TWICE)         /* two short key presses */
+    {
+      Flag = 0;                    /* end loop */
+    }
+
+    LCD_ClearLine2();                   /* clear line #2 */
+
+    if (Flag)            /* ok to proceed */
+    {
+      /* get temperature from DS18B20 (in °C) */
+      Test = DS18B20_ReadTemperature(&Value, &Scale);
+
+      if (Test)                    /* got temperature */
+      {
+        /* Scale is -1 to -4: 1-4 decimal places */
+        Scale = -Scale;
+
+        #ifdef UI_FAHRENHEIT
+        /* convert Celsius into Fahrenheit */
+        Value = Celsius2Fahrenheit(Value, Scale);
+        #endif
+
+        #ifdef UI_ROUND_DS18B20
+        /* round value and scale to 0.1° */
+        Value = RoundSignedValue(Value, Scale, 1);
+        Scale = 1;                 /* 1 decimal */
+        #endif
+
+        /* todo: add degree symbol to bitmap fonts */
+        Display_SignedFullValue(Value, Scale, '°');
+
+        #ifdef UI_FAHRENHEIT
+          Display_Char('F');       /* display: F (Fahrenheit) */
+        #else
+          Display_Char('C');       /* display: C (Celsius) */
+        #endif
+      }
+      else                         /* some error */
+      {
+        Display_Char('-');         /* display n/a */
+      }
+    }
+  }
+
+  return 1;                   /* signal success */
 }
 
 #endif

@@ -8,7 +8,31 @@
 
 ------------------------------------------------------------------------------
 
-v1.37m 2019-??
+v1.38m 2019-12
+- Optionales Runden der Temperatur für DS18B20 (UI_ROUND_DS18B20, Vorschlag
+  von Obelix2007@EEVblog)
+- Unterstützung von DHT11, DHT22 und kompatiblen Sensoren (SW_DHTXX, Dank
+  an indman@EEVblog und Obelix2007@EEVblog fürs Testen).
+- Zwei dünne kyrillische Zeichensätze ergänzt (Dank an Andrey@EEVblog).
+- Ausgabe von Bipolartransistoren so geändert, dass nun V_BE und hFE auch im
+  Fall eines B-E-Widerstands angezeigt werden. Ebenfalls Fernsteuerkommandos
+  entsprechend angepasst.  
+- Alternative tschechische Texte plus mehrere Zeichensätze mit tschechischen
+  Zeichen (Dank an Bohu).
+- Funktionen zum Beobachten von R/C/L (SW_MONITOR_RL und SW_MONITOR_C,
+  Vorschlag von indman@EEVblog).
+- Trigger-Ausgang für Ereigniszähler (Vorschlag von Bohu).
+- Tschechische Texte aktualisiert (Dank an Bohu).
+- Die hFE-Messung mit Common-Collector-Schaltung und Rl als Basiswiderstand
+  kann deaktiviert werden (NO_HFE_C_RL), damit bestimmte Tester keine
+  überhöhten Ergebnisse liefern (gemeldet von Obelix2007@EEVblog).
+- Option zur Ausgabe der Zener-Spannung in hoher Auflösung (ZENER_HIGH_RES,
+  Vorschlag von Andbro@EEVblog).
+- OneWire_Probes() verbessert, um Fehl-Erkennung zu minimieren. 
+- Russische Texte aktualisiert (Dank an indman@EEVblog).
+- Spanische Texte aktualisiert (Dank an pepe10000@EEVblog).
+
+v1.37m 2019-09
 - Fehler in DS18B20_Tool(), wenn ONEWIRE_IO_PIN aktiviert ist, beseitigt (
   gemeldet von Bohu).
 - Problem bei der Anzeige der Watchdog-Fehlermeldung auf Farbanzeigen gelöst.
@@ -29,8 +53,8 @@ v1.37m 2019-??
 - Option zum Anzeigen von Bedienungshilfen  (UI_KEY_HINTS). Momentan nur
   "Menu/Test" (Vorschlag von carrascoso@EEVblog).
 - Polnische Texte aktualisiert (C szpila@EEVblog). 
-- Russische Texte (Dank an indman@EEVblog).
-- Spanische Texte (Dank an pepe10000@EEVblog).
+- Russische Texte aktualisiert (Dank an indman@EEVblog).
+- Spanische Texte aktualisiert (Dank an pepe10000@EEVblog).
 
 v1.36m 2019-05
 - Optionalen 6x8 Zeichensatz im ST7565R-Treiber ergänzt.

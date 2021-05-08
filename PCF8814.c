@@ -51,6 +51,7 @@
 /* fonts and symbols */
 /* vertically aligned, vertical bit order flipped, page-wise grouping */
 #include "font_6x8_vf.h"
+#include "font_6x8_czech_vf.h"
 #include "symbols_24x24_vfp.h"
 
 

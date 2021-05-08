@@ -96,6 +96,11 @@
   I2C_Type          I2C;                     /* I2C */
   #endif
 
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
+  /* demodulated/raw IR code */
+  uint8_t           IR_Code[IR_CODE_BYTES];  /* raw data */
+  #endif
+
 
   /*
    *  NVRAM values with their defaults
@@ -128,17 +133,19 @@
 
   /* language specific text */
   #include "var_czech.h"
+  #include "var_czech_2.h"
   #include "var_danish.h"
   #include "var_english.h"
   #include "var_german.h"
   #include "var_italian.h"
   #include "var_polish.h"
-  #include "var_spanish.h"
   #include "var_russian.h"
+  #include "var_russian_2.h"
+  #include "var_spanish.h"
 
 
   /* firmware */
-  const unsigned char Version_str[] EEMEM = "v1.37m";
+  const unsigned char Version_str[] EEMEM = "v1.38m";
 
 
   /* common terms and texts */
@@ -237,6 +244,12 @@
     const unsigned char h_FE_r_str[] EEMEM ="hFEr";
   #endif
 
+  #ifdef SW_DHTXX
+    const unsigned char DHTxx_str[] EEMEM ="DHTxx";
+    const unsigned char RH_str[] EEMEM ="RH";
+    const unsigned char DHT11_str[] EEMEM ="DHT11";
+    const unsigned char DHT22_str[] EEMEM ="DHT22";
+  #endif
 
   /* component symbols */
   const unsigned char Cap_str[] EEMEM = {'-', LCD_CHAR_CAP, '-',0};
@@ -460,6 +473,11 @@
   extern I2C_Type        I2C;                /* I2C */
   #endif
 
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
+  /* demodulated/raw IR code */
+  extern uint8_t         IR_Code[];          /* raw data */
+  #endif
+
 
   /*
    *  NVRAM values with their defaults
@@ -669,9 +687,25 @@
     extern const unsigned char CapDischarge_str[];
   #endif
 
+  #ifdef SW_MONITOR_RL
+    extern const unsigned char Monitor_RL_str[];
+  #endif
+
+  #ifdef SW_MONITOR_C
+    extern const unsigned char Monitor_C_str[];
+  #endif
+
   #ifdef SW_POWER_OFF
     extern const unsigned char PowerOff_str[];
   #endif
+
+  #ifdef SW_DHTXX
+    extern const unsigned char DHTxx_str[];
+    extern const unsigned char RH_str[];
+    extern const unsigned char DHT11_str[];
+    extern const unsigned char DHT22_str[];
+  #endif
+
 
 
   /* remote commands */

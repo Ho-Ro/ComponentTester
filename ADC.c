@@ -2,7 +2,7 @@
  *
  *   ADC functions
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2019 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -66,7 +66,7 @@ sample:
    *  - recommended by datasheet
    */
 
-  Bits = Probe & ADC_REF_MASK;     /* get reference bits */
+  Bits = Probe & ADC_REF_MASK;     /* get bits for voltage reference */
   if (Bits != Cfg.RefFlag)         /* reference has changed */
   {
     wait100us();                   /* time for voltage stabilization */
@@ -122,11 +122,11 @@ sample:
   /* get voltage of reference used */
   if (Bits == ADC_REF_BANDGAP)     /* bandgap reference */
   {
-    U = Cfg.Bandgap;          /* voltage of bandgap reference */
+    U = Cfg.Bandgap;                 /* voltage of bandgap reference */
   }
-  else                             /* - */
+  else                             /* Vcc as reference */
   {
-    U = Cfg.Vcc;              /* voltage of Vcc */   
+    U = Cfg.Vcc;                     /* voltage of Vcc */   
   }
 
   /* convert to voltage; */

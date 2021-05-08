@@ -148,6 +148,14 @@
     const unsigned char CapDischarge_str[] EEMEM = "Discharging";
   #endif
 
+  #ifdef SW_MONITOR_RL
+    const unsigned char Monitor_RL_str[] EEMEM = "R/L Monitor";
+  #endif
+
+  #ifdef SW_MONITOR_C
+    const unsigned char Monitor_C_str[] EEMEM = "C Monitor";
+  #endif
+
   #ifdef HW_TOUCH
     const unsigned char TouchSetup_str[] EEMEM = "Touch Setup";
   #endif

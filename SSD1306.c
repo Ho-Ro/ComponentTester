@@ -62,7 +62,16 @@
 
 /* fonts and symbols */
 /* vertically aligned, vertical bit order flipped, bank-wise grouping */
+#include "font_6x8_vf.h"
 #include "font_8x8_vf.h"
+#include "font_8x16_vfp.h"
+#include "font_8x8_cyrillic_vf.h"
+#include "font_8x8t_cyrillic_vf.h"
+#include "font_8x12t_cyrillic_vfp.h"
+#include "font_8x16_cyrillic_vfp.h"
+#include "font_6x8_czech_vf.h"
+#include "font_8x8_czech_vf.h"
+#include "font_8x16_czech_vfp.h"
 #include "symbols_24x24_vfp.h"
 
 

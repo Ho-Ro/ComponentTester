@@ -1,6 +1,6 @@
 /* ************************************************************************
  *
- *   fixed 8x16 font
+ *   monospaced 8x16 font
  *   vertically aligned, vertical bit order flipped, bank-wise grouping
  *
  *   provided by indman@EEVblog and Gennady_13@VRTP.RU

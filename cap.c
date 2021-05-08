@@ -2,7 +2,7 @@
  *
  *   capacitor measurements
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2019 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -233,7 +233,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     {
       /* charge cap a little bit more (negative pulse) */
 
-      /* set probes: GND -- probe-2 / probe-1 -- Rl -- 5V */
+      /* set probes: GND -- probe-2 / probe-1 -- Rl -- Vcc */
       ADC_DDR = Probes.Pin_2;      /* pull down probe-2 directly */
       R_PORT = Probes.Rl_1;        /* pull up probe-1 via Rl */
       R_DDR = Probes.Rl_1;         /* enable pull up */
@@ -246,7 +246,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     {
       /* charge cap a little bit more (positive pulse) */
 
-      /* set probes: GND -- probe-1 / probe-2 -- Rl -- 5V */
+      /* set probes: GND -- probe-1 / probe-2 -- Rl -- Vcc */
       ADC_DDR = Probes.Pin_1;      /* pull down probe-1 directly */
       R_PORT = Probes.Rl_2;        /* pull up probe-2 via Rl */
       R_DDR = Probes.Rl_2;         /* enable pull up */
@@ -258,7 +258,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
     /*
      *  forward mode, probe-1 only (probe-2 in HiZ mode)
-     *  set probes: GND -- probe-1 -- Rl -- 5V / probe-2 -- HiZ
+     *  set probes: GND -- probe-1 -- Rl -- Vcc / probe-2 -- HiZ
      *  get voltage at probe-1 (voltage at RiL)
      */
 
@@ -277,7 +277,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
     /*
      *  forward mode, positive charging pulse
-     *  set probes: GND -- probe-1 / probe-2 -- Rl -- 5V
+     *  set probes: GND -- probe-1 / probe-2 -- Rl -- Vcc
      *  get voltage at probe-2 (voltage at DUT, i.e. RiL + ESR)
      */
 
@@ -305,7 +305,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
     /*
      *  reverse mode, probe-2 only (probe-1 in HiZ mode)
-     *  set probes: GND -- probe-2 -- Rl -- 5V / probe-1 -- HiZ
+     *  set probes: GND -- probe-2 -- Rl -- Vcc / probe-1 -- HiZ
      *  get voltage at probe 2 (voltage at RiL)
      */
 
@@ -324,7 +324,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
     /*
      *  reverse mode, negative charging pulse
-     *  set probes: GND -- probe-2 / probe-1 -- Rl -- 5V
+     *  set probes: GND -- probe-2 / probe-1 -- Rl -- Vcc
      *  get voltage at probe-1 (voltage at DUT, i.e. RiL + ESR)
      */
 
@@ -561,7 +561,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
   /*
    *  charge capacitor with a negative pulse of half length
-   *  pulse: GND -- probe-2 / probe-1 -- Rl -- 5V
+   *  pulse: GND -- probe-2 / probe-1 -- Rl -- Vcc
    */
 
   ADC_PORT = 0;               /* set ADC port to low */
@@ -588,7 +588,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     /*
      *  forward mode, probe-1 only (probe-2 in HiZ mode)
      *  get voltage at probe-1 (facing Gnd)
-     *  set probes: GND -- probe-1 -- Rl -- 5V / probe-2 -- HiZ
+     *  set probes: GND -- probe-1 -- Rl -- Vcc / probe-2 -- HiZ
      */
 
     ADC_DDR = Probes.Pin_1;        /* pull down probe-1 directly to GND */
@@ -608,7 +608,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     /*
      *  forward mode, positive charging pulse
      *  get voltage at probe-2 (facing Vcc)
-     *  set probes: GND -- probe-1 / probe-2 -- Rl -- 5V
+     *  set probes: GND -- probe-1 / probe-2 -- Rl -- Vcc
      */
 
     ADMUX = Probe2;                /* set input channel to probe-2 & set bandgap ref */
@@ -637,7 +637,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     {
       /* charge cap a little bit more (positive pulse) */
 
-      /* set probes: GND -- probe-1 / probe-2 -- Rl -- 5V */
+      /* set probes: GND -- probe-1 / probe-2 -- Rl -- Vcc */
       /* probe-1 is still pulled down directly */
       R_PORT = Probes.Rl_2;        /* pull up probe-2 via Rl */
       R_DDR = Probes.Rl_2;         /* enable pull up */
@@ -651,7 +651,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     /*
      *  reverse mode, probe-2 only (probe-1 in HiZ mode)
      *  get voltage at probe 2 (facing Gnd)
-     *  set probes: GND -- probe-2 -- Rl -- 5V / probe-1 -- HiZ
+     *  set probes: GND -- probe-2 -- Rl -- Vcc / probe-1 -- HiZ
      */
 
     ADC_DDR = Probes.Pin_2;        /* pull down probe-2 directly */
@@ -671,7 +671,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     /*
      *  reverse mode, negative charging pulse
      *  get voltage at probe-1 (facing Vcc)
-     *  set probes: GND -- probe-2 / probe-1 -- Rl -- 5V
+     *  set probes: GND -- probe-2 / probe-1 -- Rl -- Vcc
      */
 
     ADMUX = Probe1;                /* set input channel to probe-1 & set bandgap ref */
@@ -700,7 +700,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     {
       /* charge cap a little bit more (negative pulse) */
 
-      /* set probes: GND -- probe-2 / probe-1 -- Rl -- 5V */
+      /* set probes: GND -- probe-2 / probe-1 -- Rl -- Vcc */
       /* probe-2 is still pulled down directly */
       R_PORT = Probes.Rl_1;        /* pull up probe-1 via Rl */
       R_DDR = Probes.Rl_1;         /* enable pull up */

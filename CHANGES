@@ -8,7 +8,30 @@
 
 ------------------------------------------------------------------------------
 
-v1.37m 2019-??
+v1.38m 2019-12
+- Optional rounding of temperature value for DS18B20 (UI_ROUND_DS18B20,
+  suggested by Obelix2007@EEVblog)
+- Support for DHT11, DHT22 and compatible sensors (SW_DHTXX, thanks to
+  indman@EEVblog and Obelix2007@EEVblog for testing).
+- Added two thin cyrillic fonts (Thanks to Andrey@EEVblog).
+- Changed output of BJTs to show V_BE and hFE also in case of a B-E resistor.
+  Adapted remote commands accordingly as well.
+- Added alternative Czech texts and several fonts with Czech characters (thanks
+  to Bohu).
+- Added tools for monitoring R/C/L on probes #1 and #3 (SW_MONITOR_RL and
+  SW_MONITOR_C, suggested by indman@EEVblog).
+- Added option for trigger output for event counter (suggested by Bohu).
+- Updated Czech texts (thanks to Bohu).
+- Added option to disable hFE measurement with common collector circuit and
+  Rl as base resistor (NO_HFE_C_RL) to cope with some testers (issue
+  reported by Obelix2007@EEVblog).
+- Added option to output Zener voltage in high resolution (ZENER_HIGH_RES,
+  suggested by Andbro@EEVblog).
+- Improved OneWire_Probes() to minimize misdetection.
+- Updated Russian texts (thanks to indman@EEVblog).
+- Updated Spanish texts (thanks to pepe10000@EEVblog).
+
+v1.37m 2019-09
 - Fixed error in DS18B20_Tool() when ONEWIRE_IO_PIN is enabled (reported by
   Bohu).
 - Fixed issue with display of error message on color displays when the 

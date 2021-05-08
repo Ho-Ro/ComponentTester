@@ -2,7 +2,7 @@
  *
  *   TTL serial interface (hardware USART)
  *
- *   (c) 2018 by Markus Reschke
+ *   (c) 2019 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -13,7 +13,7 @@
  *    SERIAL_DDR    port data direction register
  *    SERIAL_PIN    port input pins register
  *    SERIAL_TX     pin for Tx (transmit)
- *    SERIAL_RX     pin for Rx (receive) - not supported
+ *    SERIAL_RX     pin for Rx (receive)
  *  - For hardware USART the MCU specific pins are used:
  *    ATmega 328:        RxD PD0 / TxD PD1
  *    ATmega 644: USART0 RxD PD0 / TxD PD1

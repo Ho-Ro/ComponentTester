@@ -4,7 +4,7 @@
  *   - 128 x 160 (132 x 162) pixels
  *   - SPI interface (4 line)
  *
- *   (c) 2017-2018 by Markus Reschke
+ *   (c) 2017-2019 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -53,8 +53,10 @@
 /* fonts and symbols */
 /* horizontally aligned, horizontal bit order flipped */
 #include "font_8x8_hf.h"
-#include "font_8x16_cyrillic_hf.h"
 #include "font_10x16_hf.h"
+#include "font_8x16_cyrillic_hf.h"
+#include "font_8x8_czech_hf.h"
+#include "font_10x16_czech_hf.h"
 #include "symbols_24x24_hf.h"
 #include "symbols_30x32_hf.h"
 

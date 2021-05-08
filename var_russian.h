@@ -22,7 +22,7 @@
 
 
   /* firmware */
-  const unsigned char Tester_str[] EEMEM = "Component Tester";
+  const unsigned char Tester_str[] EEMEM = "Мультитестер";
 
 
   /* common terms and texts */
@@ -52,7 +52,7 @@
 
 
   /* units */
-  const unsigned char Hertz_str[] EEMEM = "Hz";
+  const unsigned char Hertz_str[] EEMEM = "Гц";
 
 
   /* options */
@@ -68,11 +68,11 @@
   #endif
 
   #ifdef UI_KEY_HINTS
-  const unsigned char Menu_or_Test_str[] EEMEM = "<Menu Test>";
+  const unsigned char Menu_or_Test_str[] EEMEM = "<Меню Тест>";
   #endif
 
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
-    const unsigned char PWM_str[] EEMEM = "PWM";
+    const unsigned char PWM_str[] EEMEM = "ШИМ";
   #endif
 
   #ifdef SW_SQUAREWAVE
@@ -96,11 +96,11 @@
   #endif
 
   #ifdef HW_EVENT_COUNTER
-    const unsigned char EventCounter_str[] EEMEM = "Event Counter";
-    const unsigned char Count_str[] EEMEM = "Count";
-    const unsigned char Time_str[] EEMEM = "Time";
-    const unsigned char Events_str[] EEMEM = "Events";
-    const unsigned char Stop_str[] EEMEM = "Stop";
+    const unsigned char EventCounter_str[] EEMEM = "Счетчик";
+    const unsigned char Count_str[] EEMEM = "Подсчет";
+    const unsigned char Time_str[] EEMEM = "Время";
+    const unsigned char Events_str[] EEMEM = "События";
+    const unsigned char Stop_str[] EEMEM = "Стоп";
   #endif
 
   #ifdef SW_ENCODER
@@ -124,7 +124,7 @@
   #ifdef SW_OPTO_COUPLER
     const unsigned char OptoCoupler_str[] EEMEM = "Oптрон";
     const unsigned char None_str[] EEMEM = "не найден";
-    const unsigned char CTR_str[] EEMEM = "CTR";
+    const unsigned char CTR_str[] EEMEM = "Оптрон";
   #endif
 
   #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20) || defined (HW_EVENT_COUNTER)
@@ -147,6 +147,14 @@
     const unsigned char CapHigh_str[] EEMEM = "Rl";
     const unsigned char CapLow_str[] EEMEM = "Rh";
     const unsigned char CapDischarge_str[] EEMEM = "Разряд";
+  #endif
+
+  #ifdef SW_MONITOR_RL
+    const unsigned char Monitor_RL_str[] EEMEM = "R/L монитор";
+  #endif
+
+  #ifdef SW_MONITOR_C
+    const unsigned char Monitor_C_str[] EEMEM = "C/ESR монитор";
   #endif
 
   #ifdef HW_TOUCH
