@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2014-08-28
+Last edit:  2014-09-30
 
 Content
   - About
@@ -26,6 +26,7 @@ Content
     - Zener Tool
     - ESR Tool
     - Frequency Counter
+    - Rotary Encoder
     - Selftest
     - Self Adjustment
     - Save
@@ -64,6 +65,7 @@ for the ATmega328/P:
 - SIgnal Generator (requires also rotary encoder)
 - ESR measurement and ESR tool
 - frequency counter (hardware option)
+- rotary encoder test
 
 Hint: Run the self adjustment for a new tester or if you've done any
 modifications, like a firmware update or changing probe leads.
@@ -274,6 +276,20 @@ frequencies from about 10Hz up to 1/4 of the MCU clock with a resolution
 of 1Hz for frequencies below 10kHz. The frequency is measured and displayed
 continously until you end the measurement by a key press. The autoranging
 algorithm selects a gate time between 1ms and 1000ms based on the frequency.
+
+
++ Rotary Encoder
+
+This test checks rotary encoders while determining the pin-out. Your job is
+to connect the probes to the A, B and Common pin and to turn the encoder
+a few steps clockwise. The algorithm needs four greycode steps to determine
+the proper function and pin-out. The turning direction is important to
+distinguish the A nd B pins, because reversed pins cause a reversed direction.
+
+When a rotary encoder is detected the tester will display the pin-out and
+wait for a key press (or a moment for continous mode) before resuming testing.
+To exit the rotary encoder test please press the test push button once while
+testing.
 
 
 + Selftest

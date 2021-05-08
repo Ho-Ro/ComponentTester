@@ -288,7 +288,7 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
   Counter = (unsigned long)Ticks_L;          /* lower 16 bits */
   Counter |= (unsigned long)Ticks_H << 16;   /* upper 16 bits */
 
-  Offset = -4;                /* subtract processing overhead */
+  Offset = -3;                /* subtract processing overhead */
 
   if (Mode & MODE_DELAYED_START)             /* delayed start */
   {
@@ -314,11 +314,10 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
   /* convert counter (MCU cycles) to time (in ns) */
   if (Counter > 0)
   {
-    Counter += (CPU_FREQ / 2000000);         /* add half of cycles for rounding */
     Counter *= (1000000000 / CPU_FREQ);      /* divide by frequeny and scale to ns */
   }
 
-  if (Counter <= 500) Flag = 2;         /* signal "inductance too low" */
+  if (Counter <= 100) Flag = 2;         /* signal "inductance too low" */
   *Time = Counter;                      /* save time */
 
   return Flag;

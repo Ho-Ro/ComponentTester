@@ -35,6 +35,11 @@
 
 /*
  *  setup probes, bitmasks for probes and test resistors
+ *
+ *  requires:
+ *  - Probe1: pin ID [0-2], mostly high level pin
+ *  - Probe2: pin ID [0-2], mostly low level pin
+ *  - Probe3: pin ID [0-2], mostly switch/gate pin
  */
 
 void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
@@ -53,7 +58,7 @@ void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   Probes.ADC_2 = eeprom_read_byte(&ADC_table[Probe2]);
   Probes.Rl_3 = eeprom_read_byte(&Rl_table[Probe3]);
   Probes.Rh_3 = Probes.Rl_3 + Probes.Rl_3;
-//  Probes.ADC_3 = eeprom_read_byte(&ADC_table[Probe3]);
+  Probes.ADC_3 = eeprom_read_byte(&ADC_table[Probe3]);
 }
 
 

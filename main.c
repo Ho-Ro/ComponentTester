@@ -49,8 +49,8 @@ uint8_t        RunsMissed;              /* counter for failed/missed measurement
 
 void UpdateLine2(void)
 {
-  TestKey(3000, 11);                  /* next page */
-  LCD_ClearLine2();                   /* only change line #2 */
+  WaitKey();                  /* next page */
+  LCD_ClearLine2();           /* only change line #2 */
 }
 
 
@@ -58,7 +58,9 @@ void UpdateLine2(void)
  *  show pinout for semiconductor
  *
  *  required:
- *  - address of pin ID table in EEPROM
+ *  - character for pin A
+ *  - character for pin B
+ *  - character for pin C
  */
 
 void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
@@ -67,12 +69,12 @@ void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
   unsigned char     Pin[3];   /* component pins */
   unsigned char     ID[3];    /* component pin IDs */
 
-  /* copy probe pins */
+  /* copy probe pin numbers */
   Pin[0] = Semi.A;
   Pin[1] = Semi.B;
   Pin[2] = Semi.C;
 
-  /* copy pin IDs */
+  /* copy pin characters/IDs */
   ID[0] = A;
   ID[1] = B;
   ID[2] = C;
@@ -482,7 +484,7 @@ void Show_Diode(void)
       R_Pin1 += '1';                      /* convert to character */
       R_Pin2 += '1';
       Show_SingleResistor(R_Pin1, R_Pin2);   /* show resistor */
-      TestKey(3000, 11);                  /* next page */
+      WaitKey();                          /* next page */
       CapFlag = 0;                        /* skip capacitance */
     }
   }

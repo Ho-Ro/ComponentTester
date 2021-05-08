@@ -141,7 +141,7 @@ typedef struct
   uint8_t           Rh_3;          /* Rh mask for probe-3 */
   uint8_t           ADC_1;         /* ADC mask for probe-1 */
   uint8_t           ADC_2;         /* ADC mask for probe-2 */
-//  uint8_t           ADC_3;         /* ADC mask for probe-3 */
+  uint8_t           ADC_3;         /* ADC mask for probe-3 */
 } Probe_Type;
 
 

@@ -172,7 +172,7 @@ unsigned long RescaleValue(unsigned long Value, int8_t Scale, int8_t NewScale)
  * ************************************************************************ */
 
 
-#ifdef SW_FREQ_GEN
+#ifdef SW_SIGNAL_GEN
 
 /*
  *  display unsigned value
@@ -391,14 +391,12 @@ uint8_t ReadEncoder(void)
   /* update state history */
   if (Enc.Dir == (DIR_RIGHT | DIR_LEFT))     /* first scan */
   {
-    Enc.History = AB;                        /* set as last state */
-    Enc.Dir = DIR_NONE;                      /* reset direction */
+    Enc.History = AB;                   /* set as last state */
+    Enc.Dir = DIR_NONE;                 /* reset direction */
   }
 
-  Old_AB = Enc.History & 0b00000011;    /* save last state */
-  Enc.History <<= 2;                    /* last state becomes old state */
-  Enc.History |= AB;                    /* and save new state */
-  Enc.History &= 0x0F;                  /* keep lower nibble */
+  Old_AB = Enc.History;                 /* save last state */
+  Enc.History = AB;                     /* and save new state */
 
   /* process signals */
   if (Old_AB != AB)        /* signals changed */
@@ -472,9 +470,11 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 {
   uint8_t           Flag = 0;      /* return value */
   uint8_t           Run = 1;       /* loop control */
-  uint8_t           Test;          /* temp. value */
   uint8_t           Counter = 0;   /* time counter */
-  uint8_t           Counter2 = 10; /* time counter #2 */ 
+  #ifdef HW_ENCODER
+  uint8_t           Test;          /* temp. value */
+  uint8_t           Counter2 = 10; /* time counter #2 */
+  #endif
 
 
   /*
@@ -625,6 +625,19 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   }
 
   return Flag;
+}
+
+
+
+/*
+ *  convenience version of TestKey() to wait for any user input or timeout
+ *  based on the tester's operation mode
+ */
+
+void WaitKey(void)
+{
+  /* wait for key press or 3000ms timeout */
+  TestKey(3000, 11);
 }
 
 
@@ -828,7 +841,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 void MainMenu(void)
 {
   #if RES_FLASH >= 32
-    #define MENU_ITEMS  10
+    #define MENU_ITEMS  11
   #else
     #define MENU_ITEMS  5  
   #endif
@@ -852,7 +865,7 @@ void MainMenu(void)
   MenuID[Item] = 5;
   Item++;
   #endif
-  #ifdef SW_FREQ_GEN
+  #ifdef SW_SIGNAL_GEN
   MenuItem[Item] = (void *)FreqGen_str;      /* Squarewave Generator */
   MenuID[Item] = 6;
   Item++;
@@ -870,6 +883,11 @@ void MainMenu(void)
   #ifdef HW_FREQ_COUNTER
   MenuItem[Item] = (void *)FreqCounter_str;  /* frequency counter */
   MenuID[Item] = 9;
+  Item++;
+  #endif
+  #ifdef SW_ENCODER
+  MenuItem[Item] = (void *)Encoder_str;      /* rotary encoder check */
+  MenuID[Item] = 10;
   Item++;
   #endif
 
@@ -932,9 +950,9 @@ void MainMenu(void)
       break;
     #endif
 
-    #ifdef SW_FREQ_GEN
-    case 6:              /* squarewave generator */
-      FrequencyGenerator();
+    #ifdef SW_SIGNAL_GEN
+    case 6:              /* squarewave signal generator */
+      SignalGenerator();
       break;   
     #endif
 
@@ -954,7 +972,13 @@ void MainMenu(void)
     case 9:              /* frequency counter */
       FrequencyCounter();
       break;
-    #endif    
+    #endif
+
+    #ifdef SW_ENCODER
+    case 10:             /* rotary encoder check */
+      Encoder_Tool();
+      break;
+    #endif
   }
 
   /* display end of item */

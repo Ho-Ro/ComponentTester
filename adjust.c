@@ -172,7 +172,7 @@ void ShowAdjust(void)
   LCD_EEString2(RiHigh_str);            /* display: Ri+ */
   DisplayValue(Config.RiH, -1, LCD_CHAR_OMEGA);
 
-  TestKey(3000, 11);                    /* let the user read */
+  WaitKey();                  /* let the user read */
 
   /* display C-Zero */
   LCD_Clear();
@@ -184,19 +184,26 @@ void ShowAdjust(void)
   LCD_EEString2(ROffset_str);                      /* display: R0 */
   DisplayValue(Config.RZero, -2, LCD_CHAR_OMEGA);  /* display R0 */
 
-  TestKey(3000, 11);                    /* let the user read */
+  WaitKey();                  /* let the user read */
 
-  /* display offset of bandgap reference */
+  /* display internal bandgap reference */
   LCD_Clear();
-  LCD_EEString2(URef_str);              /* display: Vref */
-  DisplaySignedValue(Config.RefOffset, -3, 'V');
+  LCD_EEString2(URef_str);                   /* display: Vref */
+  DisplayValue(Config.Bandgap, -3, 'V');     /* display bandgap ref */
+
+  /* display Vcc */
+  LCD_Line2();
+  LCD_EEString2(Vcc_str);                    /* display: Vcc */
+  DisplayValue(Config.Vcc, -3, 'V');         /* display Vcc */
+
+  WaitKey();                  /* let the user read */
 
   /* display offset of analog comparator */
-  LCD_Line2();
-  LCD_EEString2(CompOffset_str);        /* display: AComp */
+  LCD_Clear();
+  LCD_EEString2(CompOffset_str);             /* display: AComp */
   DisplaySignedValue(Config.CompOffset, -3, 'V');
 
-  TestKey(3000, 11);                    /* let the user read */
+  WaitKey();                  /* let the user read */
 }
 
 

@@ -496,10 +496,11 @@
 #if RES_FLASH >= 32
   #define SW_PWM
   #ifdef HW_ENCODER
-    #define SW_FREQ_GEN
+    #define SW_SIGNAL_GEN
   #endif
   #define SW_INDUCTOR
   #define SW_ESR
+  #define SW_ENCODER
 #endif
 
 

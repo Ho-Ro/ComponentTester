@@ -106,10 +106,23 @@
     const unsigned char Thyristor_str[] EEMEM = "Thyristor";
     const unsigned char Triac_str[] EEMEM = "Triac";
     const unsigned char Bye_str[] EEMEM = "Ciao!";
+    #ifdef SW_SIGNAL_GEN
+      const unsigned char FreqGen_str[] EEMEM = "Signal Gen.";
+    #endif
+    #ifdef HW_ZENER
+      const unsigned char Zener_str[] EEMEM = "Zener";
+      const unsigned char Min_str[] EEMEM = "Min";
+    #endif
+    #ifdef HW_FREQ_COUNTER
+      const unsigned char FreqCounter_str[] EEMEM = "Freq. Záhler";
+    #endif
+    #ifdef SW_ENCODER
+      const unsigned char Encoder_str[] EEMEM = "Dreh-Encoder";
+      const unsigned char TurnRight_str[] EEMEM = "Drehe rechts!";
+    #endif
 
   /* language specific: Czech */
   #elif defined (UI_CZECH)
-
     const unsigned char Running_str[] EEMEM = "Probiha mereni..";
     const unsigned char Weak_str[] EEMEM = "slaba!";
     const unsigned char Low_str[] EEMEM =  "vybita!";
@@ -131,6 +144,20 @@
     const unsigned char Thyristor_str[] EEMEM = "Tyrystor";
     const unsigned char Triac_str[] EEMEM = "Triak";
     const unsigned char Bye_str[] EEMEM = "Nashledanou...";
+    #ifdef SW_SIGNAL_GEN
+      const unsigned char FreqGen_str[] EEMEM = "Signal Gen.";
+    #endif
+    #ifdef HW_ZENER
+      const unsigned char Zener_str[] EEMEM = "Zener";
+      const unsigned char Min_str[] EEMEM = "Min";
+    #endif
+    #ifdef HW_FREQ_COUNTER
+      const unsigned char FreqCounter_str[] EEMEM = "Freq. Counter";
+    #endif
+    #ifdef SW_ENCODER
+      const unsigned char Encoder_str[] EEMEM = "Rotary Encoder";
+      const unsigned char TurnRight_str[] EEMEM = "Turn right!";
+    #endif
 
   /* language specific: another language */
   #elif defined (UI_WHATEVER)
@@ -158,6 +185,20 @@
     const unsigned char Thyristor_str[] EEMEM = "SCR";
     const unsigned char Triac_str[] EEMEM = "Triac";
     const unsigned char Bye_str[] EEMEM = "Bye!";
+    #ifdef SW_SIGNAL_GEN
+      const unsigned char FreqGen_str[] EEMEM = "Signal Gen.";
+    #endif
+    #ifdef HW_ZENER
+      const unsigned char Zener_str[] EEMEM = "Zener";
+      const unsigned char Min_str[] EEMEM = "Min";
+    #endif
+    #ifdef HW_FREQ_COUNTER
+      const unsigned char FreqCounter_str[] EEMEM = "Freq. Counter";
+    #endif
+    #ifdef SW_ENCODER
+      const unsigned char Encoder_str[] EEMEM = "Rotary Encoder";
+      const unsigned char TurnRight_str[] EEMEM = "Turn right!";
+    #endif
   #endif
 
   /* language independent */
@@ -192,10 +233,10 @@
   const unsigned char ProbeComb_str[] EEMEM = "12 13 23";
   const unsigned char CapOffset_str[] EEMEM = "C0";
   const unsigned char ROffset_str[] EEMEM = "R0";
+  const unsigned char Vcc_str[] EEMEM = "Vcc";
   const unsigned char CompOffset_str[] EEMEM = "AComp";
   const unsigned char Checksum_str[] EEMEM = "ChkSum";
 
-  /* options */
   #ifdef SW_ESR
     const unsigned char Probes_str[] EEMEM = "Pins";
     const unsigned char ESR_str[] EEMEM = "ESR";
@@ -206,16 +247,7 @@
     const unsigned char PWM_Probes_str[] EEMEM = "2-13";
     const unsigned char Hertz_str[] EEMEM = "Hz";
   #endif
-  #ifdef SW_FREQ_GEN
-    const unsigned char FreqGen_str[] EEMEM = "f Gen.";
-  #endif
-  #ifdef HW_ZENER
-    const unsigned char Zener_str[] EEMEM = "Zener";
-    const unsigned char Min_str[] EEMEM = "Min";
-  #endif
-  #ifdef HW_FREQ_COUNTER
-    const unsigned char FreqCounter_str[] EEMEM = "Freq. Counter";
-  #endif
+
 
   /* component symbols */
   const unsigned char Cap_str[] EEMEM = {'-',LCD_CHAR_CAP, '-',0};
@@ -224,7 +256,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.15m";
+  const unsigned char Version_str[] EEMEM = "v1.16m";
 
 
   /*
@@ -283,7 +315,7 @@
     const uint16_t Inductor_table[] MEM_TEXT = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
   #endif
 
-  #if defined (HW_FREQ_COUNTER) || defined (SW_FREQ_GEN)
+  #if defined (HW_FREQ_COUNTER) || defined (SW_SIGNAL_GEN)
     /* Timer1 prescalers and corresponding bitmasks */
     const uint16_t T1_Prescaler_table[] MEM_TEXT = {1, 8, 64, 256, 1024};
     const uint8_t T1_Bitmask_table[] MEM_TEXT = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
@@ -387,6 +419,7 @@
   extern const unsigned char ProbeComb_str[];
   extern const unsigned char CapOffset_str[];
   extern const unsigned char ROffset_str[];
+  extern const unsigned char Vcc_str[];
   extern const unsigned char CompOffset_str[];
   extern const unsigned char Checksum_str[];
 
@@ -401,7 +434,7 @@
     extern const unsigned char PWM_Probes_str[];
     extern const unsigned char Hertz_str[];
   #endif
-  #ifdef SW_FREQ_GEN
+  #ifdef SW_SIGNAL_GEN
     extern const unsigned char FreqGen_str[];
   #endif
   #ifdef HW_ZENER
@@ -411,7 +444,10 @@
   #ifdef HW_FREQ_COUNTER
     extern const unsigned char FreqCounter_str[];
   #endif
-
+  #ifdef SW_ENCODER
+    extern const unsigned char Encoder_str[];
+    extern const unsigned char TurnRight_str[];
+  #endif
 
   /*
    *  constant tables (stored in EEPROM or PROGMEM)
@@ -436,7 +472,7 @@
     extern const uint16_t Inductor_table[];
   #endif
 
-  #if defined (HW_FREQ_COUNTER) || defined (SW_FREQ_GEN)
+  #if defined (HW_FREQ_COUNTER) || defined (SW_SIGNAL_GEN)
     /* Timer1 prescalers and corresponding bitmasks */
     extern const uint16_t T1_Prescaler_table[];
     extern const uint8_t T1_Bitmask_table[];

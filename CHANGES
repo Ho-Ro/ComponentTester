@@ -6,6 +6,13 @@
 
 ------------------------------------------------------------------------------
 
+v1.16m 2014-09
+- Added test for rotary encoders.
+- Fixed some minor issues in MeasureInductance() to increase accuracy.
+- Changed ShowAdjust() to display absolute value of Vcc and the internal
+  bandgap reference (suggestion from Vlastimil Valouch).
+- Some minor improvements.
+
 v1.15m 2014-09
 - Improved TestKey() to detect the dynamic turning velocity of a optional
   rotary encoder.

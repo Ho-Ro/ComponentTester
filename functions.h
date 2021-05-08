@@ -19,6 +19,8 @@
 
 #ifndef MAIN_C
 
+  extern void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C);
+
 #endif
 
 
@@ -93,7 +95,7 @@
     extern unsigned long RescaleValue(unsigned long Value, int8_t Scale, int8_t NewScale);
   #endif
 
-  #ifdef SW_FREQ_GEN
+  #ifdef SW_SIGNAL_GEN
     extern void DisplayFullValue(unsigned long Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
@@ -101,6 +103,7 @@
   extern void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit);
 
   extern uint8_t TestKey(uint16_t Timeout, uint8_t Mode);
+  extern void WaitKey(void);
   extern int8_t ShortCircuit(uint8_t Mode);
   extern void MainMenu(void);
 
@@ -116,8 +119,8 @@
   #ifdef SW_PWM
     extern void PWM_Tool(uint16_t Frequency);
   #endif
-  #ifdef SW_FREQ_GEN
-    extern void FrequencyGenerator(void);
+  #ifdef SW_SIGNAL_GEN
+    extern void SignalGenerator(void);
   #endif
   #ifdef SW_ESR
     extern void ESR_Tool(void);
@@ -127,6 +130,9 @@
   #endif
   #ifdef HW_FREQ_COUNTER
     extern void FrequencyCounter(void);
+  #endif
+  #ifdef SW_ENCODER
+    extern void Encoder_Tool(void);
   #endif
 
 #endif
