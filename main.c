@@ -910,26 +910,20 @@ void Show_Diode(void)
 
   if (D2)           /* second diode */
   {
-    if (A <= 3)          /* common anode or in-series */
-    {
-      Display_EEString(Diode_AC_str);   /* show ->|- */
-    }
-    else                 /* common cathode */
-    {
-      Display_EEString(Diode_CA_str);   /* show -|<- */
-    }
-
     if (A == C)          /* anti parallel */
     {
       n = D2->A;              /* get anode */
+      Display_EEString(Diode_CA_str);   /* show -|<- */
     }
     else if (A <= 3)     /* common anode or in-series */
     {
       n = D2->C;              /* get cathode */
+      Display_EEString(Diode_AC_str);   /* show ->|- */
     }
     else                 /* common cathode */
     {
       n = D2->A;              /* get anode */
+      Display_EEString(Diode_CA_str);   /* show -|<- */
     }
 
     Display_ProbeNumber(n);             /* display pin */
