@@ -1,7 +1,7 @@
 #
 #  Makefile
 #
-#  (c) 2012-2018 by Markus Reschke
+#  (c) 2012-2019 by Markus Reschke
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
@@ -101,14 +101,15 @@ HEADERS = config.h config_328.h config_644.h colors.h
 HEADERS += common.h variables.h $(wildcard var_*.h) functions.h
 HEADERS += OneWire.h
 HEADERS += HD44780.h ST7565R.h ILI9341.h PCD8544.h ST7735.h ST7920.h
-HEADERS += SSD1306.h ILI9163.h ADS7843.h
+HEADERS += SSD1306.h ILI9163.h STE2007.h PCF8814.h ST7036.h ADS7843.h
 
 # objects
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o
 OBJECTS_C += resistor.o cap.o semi.o inductor.o tools.o IR.o
 OBJECTS_C += display.o SPI.o I2C.o serial.o commands.o OneWire.o
 OBJECTS_C += HD44780.o ST7565R.o ILI9341.o PCD8544.o ST7735.o ST7920.o
-OBJECTS_C += SSD1306.o ILI9163.o VT100.o ADS7843.o
+OBJECTS_C += SSD1306.o ILI9163.o STE2007.o PCF8814.o ST7036.o VT100.o
+OBJECTS_C += ADS7843.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 

@@ -2,7 +2,7 @@
  *
  *   tools / hardware options / software options
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2019 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -93,7 +93,8 @@ void ProbePinout(uint8_t Mode)
 
   Show_SimplePinout(ID_1, ID_2, ID_3);  /* display pinout */
 
-  TestKey(5000, CURSOR_NONE);      /* wait for any key press or 5s */  
+  /* wait for any key press or 5s */
+  TestKey(5000, CURSOR_NONE | CHECK_BAT);
   LCD_ClearLine2();                /* clear line #2 */
 }
 
@@ -237,19 +238,16 @@ void PWM_Tool(uint16_t Frequency)
      *    two short key presses -> exit tool
      */
 
-    Test = TestKey(0, CURSOR_NONE);     /* wait for user feedback */
+    /* wait for user feedback */
+    Test = TestKey(0, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
+
     if (Test == KEY_SHORT)              /* short key press */
     {
-      MilliSleep(50);                   /* debounce button a little bit longer */
-      Prescaler = TestKey(200, CURSOR_NONE); /* check for second key press */
-      if (Prescaler > 0)                /* second key press */
-      {
-        Test = 0;                         /* end loop */
-      }
-      else                              /* single key press */
-      {
-        if (Ratio <= 95) Ratio += 5;      /* +5% and limit to 100% */
-      }
+      if (Ratio <= 95) Ratio += 5;      /* +5% and limit to 100% */
+    }
+    else if (Test == KEY_TWICE)         /* two short key presses */
+    {
+      Test = 0;                         /* end loop */
     }
     #ifdef HW_KEYS
     else if (Test == KEY_RIGHT)         /* right key */
@@ -533,7 +531,8 @@ void PWM_Tool(void)
      *  user feedback
      */
 
-    Test = TestKey(0, CURSOR_NONE);     /* wait for user feedback */
+    /* wait for user feedback */
+    Test = TestKey(0, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
 
     /* consider rotary encoder's turning velocity */
     Step = UI.KeyStep;             /* get velocity (1-7) */
@@ -566,27 +565,21 @@ void PWM_Tool(void)
     /* process user input */
     if (Test == KEY_SHORT)              /* short key press */
     {
-      MilliSleep(50);                   /* debounce button a little bit longer */
-      Test = TestKey(200, CURSOR_NONE); /* check for second key press */
-
-      if (Test > KEY_TIMEOUT)           /* second key press */
+      /* toggle frequency/ratio mode */
+      if (Mode == MODE_FREQ)       /* frequency mode */
       {
-        Flag = 0;                       /* end loop */
+        Mode = MODE_RATIO;         /* change to ratio mode */
       }
-      else                              /* single key press */
+      else                         /* ratio mode */
       {
-        /* toggle frequency/ratio mode */
-        if (Mode == MODE_FREQ)     /* frequency mode */
-        {
-          Mode = MODE_RATIO;       /* change to ratio mode */
-        }
-        else                       /* ratio mode */
-        {
-          Mode = MODE_FREQ;        /* change to frequency mode */
-        }
-
-        Flag |= DISPLAY_FREQ | DISPLAY_RATIO;  /* update display */
+        Mode = MODE_FREQ;          /* change to frequency mode */
       }
+
+      Flag |= DISPLAY_FREQ | DISPLAY_RATIO;  /* update display */
+    }
+    else if (Test == KEY_TWICE)         /* two short key presses */
+    {
+      Flag = 0;                         /* end loop */
     }
     else if (Test == KEY_LONG)          /* long key press */
     {
@@ -969,7 +962,8 @@ void Servo_Check(void)
      *  user feedback
      */
 
-    Test = TestKey(0, CURSOR_BLINK);    /* wait for user feedback */
+    /* wait for user feedback */
+    Test = TestKey(0, CURSOR_BLINK | CHECK_KEY_TWICE | CHECK_BAT);
 
     /* consider rotary encoder's turning velocity (1-7) */
     Step = UI.KeyStep;             /* get velocity */
@@ -1014,27 +1008,21 @@ void Servo_Check(void)
     /* process user input */
     if (Test == KEY_SHORT)              /* short key press */
     {
-      MilliSleep(50);                   /* debounce button a little bit longer */
-      Test = TestKey(200, CURSOR_NONE); /* check for second key press */
-
-      if (Test > KEY_TIMEOUT)           /* second key press */
+      /* toggle pulse/frequency mode */
+      if (Mode == MODE_PULSE)           /* pulse width mode */
       {
-        Flag = 0;                       /* end loop */
+        Mode = MODE_FREQ;               /* change to frequency mode */
       }
-      else                              /* single key press */
+      else                              /* frequency mode */
       {
-        /* toggle pulse/frequency mode */
-        if (Mode == MODE_PULSE)         /* pulse width mode */
-        {
-          Mode = MODE_FREQ;             /* change to frequency mode */
-        }
-        else                            /* frequency mode */
-        {
-          Mode = MODE_PULSE;            /* change to pulse width mode */
-        }
-
-        Flag |= DISPLAY_PULSE | DISPLAY_FREQ;     /* update display */
+        Mode = MODE_PULSE;              /* change to pulse width mode */
       }
+
+      Flag |= DISPLAY_PULSE | DISPLAY_FREQ;     /* update display */
+    }
+    else if (Test == KEY_TWICE)         /* two short key presses */
+    {
+      Flag = 0;                         /* end loop */
     }
     else if (Test == KEY_LONG)          /* long key press */
     {
@@ -1448,7 +1436,8 @@ void SquareWave_SignalGenerator(void)
      *  user feedback
      */
 
-    Test = TestKey(0, CURSOR_NONE);     /* wait for user feedback */
+    /* wait for user feedback */
+    Test = TestKey(0, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
 
     /* consider rotary encoder's turning velocity */
     Step = UI.KeyStep;             /* get velocity (1-7) */
@@ -1466,35 +1455,28 @@ void SquareWave_SignalGenerator(void)
     if (Test == KEY_RIGHT)         /* encoder: right turn */
     {
       /* increase frequency -> decrease top value */
-      Temp = Top - Step;           /* take advantage of underflow */
+      Temp = Top - Step;                /* take advantage of underflow */
       if ((Temp > Top) || (Temp < 0x003))    /* underflow */
       {
-        Temp = 0x0003;             /* lower limit */
+        Temp = 0x0003;                  /* lower limit */
       }
-      Top = Temp;                  /* set new value */
+      Top = Temp;                       /* set new value */
     }
     else if (Test == KEY_LEFT)     /* encoder: left turn */
     {
       /* decrease frequency -> increase top value */
-      Temp = Top + Step;           /* take advantage of overflow */
+      Temp = Top + Step;                /* take advantage of overflow */
       if ((Temp < Top)  || (Temp == 0xFFFF))      /* overflow */
       {
-        Temp = 0xFFFE;             /* upper limit */
+        Temp = 0xFFFE;                  /* upper limit */
       }
-      Top = Temp;                  /* set new value */
+      Top = Temp;                       /* set new value */
     }
-    else if (Test == KEY_SHORT)         /* short key press */
+    else if (Test == KEY_TWICE)    /* two short key presses */
     {
-      MilliSleep(50);              /* debounce button a little bit longer */
-      Test = TestKey(200, CURSOR_NONE);   /* check for second key press */
-
-      if (Test > KEY_TIMEOUT)      /* second key press */
-      {
-        Flag = 0;                  /* end loop */
-      }
-      /* else: todo: add some function here? */
+      Flag = 0;                         /* end loop */
     }
-    else if (Test == KEY_LONG)          /* long key press */
+    else if (Test == KEY_LONG)     /* long key press */
     {
       /* set default frequency: 1kHz */
       Index = 0;                        /* prescaler 1/1 */
@@ -1564,15 +1546,12 @@ void ESR_Tool(void)
      *  two short key presses -> exit tool
      */
 
-    Test = TestKey(0, CURSOR_BLINK);    /* wait for user feedback */
-    if (Test == KEY_SHORT)              /* short key press */
+    /* wait for user feedback */
+    Test = TestKey(0, CURSOR_BLINK | CHECK_KEY_TWICE | CHECK_BAT);
+
+    if (Test == KEY_TWICE)              /* two short key presses */
     {
-      MilliSleep(50);                   /* debounce button a little bit longer */
-      Test = TestKey(200, CURSOR_NONE); /* check for second key press */
-      if (Test > KEY_TIMEOUT)           /* second key press */
-      {
-        Run = 0;                        /* end loop */
-      }
+      Run = 0;                          /* end loop */
     }
 
     /* measure cap */
@@ -1634,7 +1613,8 @@ void ESR_Tool(void)
 /*
  *  Zener tool:
  *  - Zener diode voltage measurement hardware option
- *  - use dedicated analog input (TP_ZENER) with 10:1 voltage divider
+ *  - uses dedicated analog input (TP_ZENER) with 10:1 voltage divider
+ *  - test push button enables boost converter
  */
 
 void Zener_Tool(void)
@@ -1654,13 +1634,20 @@ void Zener_Tool(void)
   while (Run > 0)             /* processing loop */
   {
     Counter = 0;              /* reset key press time */
-    MilliSleep(30);           /* delay */
-    Counter2++;               /* increase delay time */
+    MilliSleep(30);           /* delay by 30ms */
+    Counter2++;               /* increase delay time counter */
+    if (Counter2 > 200)       /* prevent overflow & timer (about 6s) */
+    {
+      Counter2 = 10;          /* reset counter (above delay for quick key presses) */
+      #ifndef BAT_NONE
+      CheckBattery();         /* and check battery */
+      #endif
+    }
 
     /*
      *  key press triggers measurement
      *  - also enables boost converter via hardware
-     *  two short key presses exit tool
+     *  - two short key presses exit tool
      */
 
     while (!(BUTTON_PIN & (1 << TEST_BUTTON)))    /* as long as key is pressed */
@@ -1681,15 +1668,21 @@ void Zener_Tool(void)
       {
         Min = UINT16_MAX;          /* reset to default */
       }
-      else if (Counter >= 10)      /* ensure stable DC */
+      else if (Counter >= 10)      /* ensure stable voltage */
       {
         if (Value < Min) Min = Value;   /* update minimum */
       }
 
-      /* timer */
-      MilliSleep(30);                        /* delay next run / also debounce */
-      Counter++;                             /* increaye key press time */
-      if (Counter > 240) Counter = 201;      /* prevent overflow */
+      /* timing */
+      MilliSleep(30);              /* delay next run / also debounce by 30ms */
+      Counter++;                   /* increase key press time counter */
+      if (Counter > 100)           /* prevent overflow & timer (about 3s) */
+      {
+        Counter = 12;              /* reset counter (above time for short key press) */
+        #ifndef BAT_NONE
+        CheckBattery();            /* and check battery */
+        #endif
+      }
     }
 
 
@@ -2250,24 +2243,19 @@ void FrequencyCounter(void)
       }
       else                              /* Timer1 still running */
       {
-        Test = TestKey(0, CURSOR_NONE);      /* check for user feedback */
+        /* wait for user feedback */
+        Test = TestKey(0, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
 
         if (Test == KEY_SHORT)          /* short key press */
         {
-          MilliSleep(50);               /* debounce button a little bit longer */
-          Test = TestKey(200, CURSOR_NONE);  /* check for second key press */
-
-          if (Test > KEY_TIMEOUT)       /* second key press */
-          {
-            Flag = 0;                   /* end processing loop */
-          }
-          else                          /* single key press */
-          {
-            /* select next source channel */
-            if (Channel < 2) Channel++;           /* next channel */
-            else Channel = 0;                     /* overrun */
-            Flag = RUN_FLAG | UPDATE_CHANNEL;     /* update channel */
-          }
+          /* select next source channel */
+          if (Channel < 2) Channel++;             /* next channel */
+          else Channel = 0;                       /* overrun */
+          Flag = RUN_FLAG | UPDATE_CHANNEL;       /* update channel */
+        }
+        else if (Test == KEY_TWICE)     /* two short key presses */
+        {
+          Flag = 0;                     /* end processing loop */
         }
         #ifdef HW_KEYS
         else if (Test == KEY_RIGHT)     /* right key */
@@ -2647,7 +2635,8 @@ void Encoder_Tool(void)
 
     if (Flag > 0)             /* detected encoder */
     {
-      TestKey(3000, CURSOR_STEADY | UI_OP_MODE);  /* let the user read */
+      /* let the user read or skip the text */
+      TestKey(3000, CURSOR_STEADY | CHECK_OP_MODE | CHECK_BAT);
       Flag = 5;                    /* reset flag */
     }
     else                      /* nothing found yet */
@@ -2743,14 +2732,13 @@ void OptoCoupler_Tool(void)
   while (Run)
   {
     /* user input */
-    Test = TestKey(0, CURSOR_BLINK);    /* get user input */
 
-    if (Test == KEY_SHORT)         /* short key press */
+    /* wait for user feedback */
+    Test = TestKey(0, CURSOR_BLINK | CHECK_KEY_TWICE | CHECK_BAT);
+
+    if (Test == KEY_TWICE)         /* two short key presses */
     {
-      /* a second key press ends tool */
-      MilliSleep(50);
-      Test = TestKey(300, CURSOR_NONE);
-      if (Test > KEY_TIMEOUT) Run = 0;  /* end loop */
+      Run = 0;                     /* end loop */
     }
 
     if (Run)                       /* check opto coupler */
@@ -3043,9 +3031,13 @@ void OptoCoupler_Tool(void)
 
 /*
  *  temperature sensor DS18B20
+ *
+ *  returns:
+ *  - 1 on success
+ *  - 0 on any error
  */
 
-void DS18B20_Tool(void)
+uint8_t DS18B20_Tool(void)
 {
   uint8_t           Flag;     /* control flag */
   uint8_t           Test;     /* key / feedback */
@@ -3056,8 +3048,14 @@ void DS18B20_Tool(void)
   int32_t           Temp;     /* temporary value */
   #endif
 
-  /* inform user about pinout and check for client */
+  /* inform user about pinout and check for external pull-up resistor */
   Flag = OneWire_Probes(DS18B20_str);
+
+  if (Flag == 0)              /* bus error */
+  {
+    return 0;                 /* exit tool and signal error */
+  }
+
   LCD_ClearLine2();                     /* clear line #2 */
   Display_EEString(Start_str);          /* display: Start */
 
@@ -3069,17 +3067,13 @@ void DS18B20_Tool(void)
   while (Flag)
   {
     /* user input */
-    Test = TestKey(0, CURSOR_BLINK);    /* get user input */
 
-    if (Test == KEY_SHORT)         /* short key press */
+    /* wait for user input */
+    Test = TestKey(0, CURSOR_BLINK | CHECK_KEY_TWICE | CHECK_BAT);
+
+    if (Test == KEY_TWICE)         /* two short key presses */
     {
-      /* a second key press ends tool */
-      MilliSleep(50);
-      Test = TestKey(300, CURSOR_NONE);
-      if (Test > KEY_TIMEOUT)           /* any key */
-      {
-        Flag = 0;                       /* end loop */
-      }
+      Flag = 0;                    /* end loop */
     }
 
     LCD_ClearLine2();                   /* clear line #2 */
@@ -3129,6 +3123,8 @@ void DS18B20_Tool(void)
       }
     }
   }
+
+  return 1;                   /* signal success */
 }
 
 #endif
@@ -3313,21 +3309,17 @@ void Cap_Leakage(void)
 
     if (! (Flag & CHANGED_MODE))        /* skip when mode has changed */
     {
-      Test = TestKey(2000, CURSOR_NONE);   /* check for user feedback */
+      /* wait for user feedback or timeout of 2s */
+      Test = TestKey(2000, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
+      /* also delay for next loop run */
 
       if (Test == KEY_SHORT)            /* short key press */
       {
-        MilliSleep(50);                 /* debounce button a little bit longer */
-        Test = TestKey(200, CURSOR_NONE);  /* check for second key press */
-
-        if (Test > KEY_TIMEOUT)         /* second key press */
-        {
-          Flag = 0;                     /* end processing loop */
-        }
-        else                            /* single key press */
-        {
-          Test = 100;                   /* next mode */
-        }
+        Test = 100;                     /* next mode */
+      }
+      else if (Test == KEY_TWICE)       /* two short key presses */
+      {
+        Flag = 0;                       /* end processing loop */
       }
       #ifdef HW_KEYS
       else if (Test == KEY_RIGHT)       /* right key */

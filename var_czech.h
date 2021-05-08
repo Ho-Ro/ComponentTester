@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Czech (ISO 8859-1)
  *
- *   (c) 2015-2018 by Markus Reschke
+ *   (c) 2015-2019 by Markus Reschke
  *   translation by Kapa
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
@@ -44,8 +44,14 @@
   const unsigned char Bye_str[] EEMEM = "Nashledanou...";
 
   #ifndef BAT_NONE
+    const unsigned char Battery_str[] EEMEM = "Bat";
+    const unsigned char OK_str[] EEMEM = "ok";
     const unsigned char Weak_str[] EEMEM = "slaba!";
     const unsigned char Low_str[] EEMEM =  "vybita!";
+  #endif
+
+  #ifdef BAT_EXT_UNMONITORED
+    const unsigned char External_str[] EEMEM = "ext";
   #endif
 
   #ifdef SW_SQUAREWAVE
@@ -114,6 +120,10 @@
 
   #ifdef HW_TOUCH
     const unsigned char TouchSetup_str[] EEMEM = "Touch Setup";
+  #endif
+
+  #ifdef SW_POWER_OFF
+    const unsigned char PowerOff_str[] EEMEM = "Off";
   #endif
 
 #endif

@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2019-02-04
+Last edit:  2019-05-04
 
 Content
   - About
@@ -28,10 +28,13 @@ Content
     - ILI9163
     - ILI9341/ILI9342
     - PCD8544
+    - PCF8814
     - SSD1306
+    - ST7036
     - ST7565R
     - ST7735
     - ST7920
+    - STE2007/HX1230
     - VT100 Terminal
   - Test push button and other input options
     - Test Key
@@ -44,6 +47,7 @@ Content
     - VT100 Output
   - Startup
   - Probing
+  - Battery Monitoring
   - Power Off
   - Menu
     - PWM Tool
@@ -65,6 +69,7 @@ Content
     - Self Adjustment
     - Save/Load
     - Show Values
+    - Power Off
     - Exit
   - Resistors
   - Capacitors
@@ -334,14 +339,17 @@ Pin assignment for probes:
 * Displays
 
 At the moment following LCD controllers are supported:
-- HD44780 (character display)
+- HD44780 (character display, 2-4 lines with 16-20 characters)
 - ILI9163 (color graphic display 128x160)
 - ILI9341/ILI9342 (color graphic display 240x320 or 320x240)
 - PCD8544 (graphic display 84x48)
+- PCF8814 (graphic display 96x65)
 - SSD1306 (graphic display 128x64)
+- ST7036 (character display, 3 lines with 16 characters)
 - ST7565R (graphic display 128x64)
 - ST7735 (color graphic display 128x160)
 - ST7920 (graphic display up to 256x64)
+- STE2007/HX1230 (graphic display 96x68)
 - VT100 Terminal
 
 Take care about the LCD's supply voltage and logic levels! Use a level shifter
@@ -363,8 +371,9 @@ the rotary encoder would screw up the display by interfering with the data bus.
 The HD44780 is driven in 4 bit mode. The pin assignment for the parallel
 port is:
 
-  display     config-<MCU>.h   default
+  display     config-<MCU>.h   default      remark
                                ATmega 328
+  ---------------------------------------------------------------
   DB4         LCD_DB4          PD0
   DB5         LCD_DB5          PD1
   DB6         LCD_DB6          PD2
@@ -377,7 +386,8 @@ You can also drive the LCD via a PCF8574 based I2C backpack which requires
 I2C to be enabled. The I2C address has to be specified too. The pin
 assignment defines how the LCD is connected to the PCF8574:
 
-  display     config-<MCU>.h   default
+  display     config-<MCU>.h   default      remark
+  ---------------------------------------------------------------
   DB4         LCD_DB4          PCF8574_P4
   DB5         LCD_DB5          PCF8574_P5
   DB6         LCD_DB6          PCF8574_P6
@@ -392,10 +402,11 @@ assignment defines how the LCD is connected to the PCF8574:
 
 The ILI9163 is driven by 4-wire SPI. The pin assignment is:
 
-  display     config-<MCU>.h   default   remark
-                               328
-  /RESX       LCD_RES          PD4       optional
-  /CSX        LCD_CS           PD5       optional
+  display     config-<MCU>.h   default      remark
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RESX       LCD_RES          PD4          optional
+  /CSX        LCD_CS           PD5          optional
   D/CX        LCD_DC           PD3
   SCL         LCD_SCL          PD2
   SDIO        LCD_SDA          PD1
@@ -411,14 +422,15 @@ for a moment.
 
 The ILI9341/ILI9342 is driven by SPI. The pin assignment is:
 
-  display     config-<MCU>.h   default   remark
-                               328
-  /RES        LCD_RES          PD4       optional
-  /CS         LCD_CS           PD5       optional
+  display     config-<MCU>.h   default      remark
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RES          PD4          optional
+  /CS         LCD_CS           PD5          optional
   D/C         LCD_DC           PD3
   SCK         LCD_SCK          PD2
   SDI         LCD_SDI          PD1
-  SDO         LCD_SDO          PD0       ILI9341 only, not used yet
+  SDO         LCD_SDO          PD0          ILI9341 only, not used yet
 
 You might need to play with the x/y flip and rotate settings to get the
 correct orientation for your display. And don't forget to set x and y dots
@@ -437,10 +449,11 @@ when using the bit-bang SPI.
 
 The PCD8544 is driven by SPI. The pin assignment is:
 
-  display     config-<MCU>.h   default   remark
-                               328
-  /RES        LCD_RES          PD4       optional
-  /SCE        LCD_SCE          PD5       optional
+  display     config-<MCU>.h   default      remark
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RES          PD4          optional
+  /SCE        LCD_SCE          PD5          optional
   D/C         LCD_DC           PD3
   SCLK        LCD_SCLK         PD2
   SDIN        LCD_SDIN         PD1
@@ -450,31 +463,47 @@ line with a 6x8 font. So up to two chars might be not displayed. To mitigate
 that you could shorten some texts in variables.h.
 
 
++ PCF8814
+
+The PCF8814 is driven in the 3-wire SPI mode usually. The pin assignment for 
+the 3-wire SPI (bit-bang only) is:
+
+  display     config-<MCU>.h   default      remark
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RESET        PD4
+  /CS         LCD_CS           PD5          optional
+  SCLK        LCD_SCLK         PD2
+  SDIN        LCD_SDIN         PD1
+
+If necessary you can rotate the output via the y-flip setting and pulling
+the PCF8814's MX pin (x-flip) down or up.
+
+
 + SSD1306
 
 The SSD1306 is driven by 3-wire SPI, 4-wire SPI or I2C. 3-wire SPI requires
 bit-bang mode and SPI_9 to be enabled. The pin assignment for 4-wire SPI is:
 
-  display     config-<MCU>.h   default   remark
-                               328
-  /RES        LCD_RESET        PD4       optional
-  /CS         LCD_CS           PD5       optional
+  display     config-<MCU>.h   default      remark
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RESET        PD4          optional
+  /CS         LCD_CS           PD5          optional
   DC          LCD_DC           PD3
   SCLK (D0)   LCD_SCLK         PD2
   SDIN (D1)   LCD_SDIN         PD1
 
 For 3-wire SPI (bit-bang only):
 
-  display     config-<MCU>.h   default   remark
-                               328
-  /RES        LCD_RESET        PD4       optional
-  /CS         LCD_CS           PD5       optional
+  /RES        LCD_RESET        PD4          optional
+  /CS         LCD_CS           PD5          optional
   SCLK (D0)   LCD_SCLK         PD2
   SDIN (D1)   LCD_SDIN         PD1
 
 And for I2C:
 
-  /RES        LCD_RESET        PD4       optional
+  /RES        LCD_RESET        PD4          optional
   SCL (D0)    I2C_SCL          PD1
   SDA (D1&2)  I2C_SDA          PD0
   SA0 (D/C)                    Gnd (0x3c) / 3.3V (0x3d)
@@ -483,14 +512,46 @@ Using the x/y flip settings you can change the output orientation if
 neccessary.
 
 
++ ST7036 (untested)
+
+The ST7036 is driven by a 4 bit parallel interface or 4-wire SPI. The pin
+assignment for the 4 bit parallel interface is:
+
+  display     config-<MCU>.h   default      remark
+                               ATmega 328
+  ---------------------------------------------------------------
+  DB4         LCD_DB4          PD0
+  DB5         LCD_DB5          PD1
+  DB6         LCD_DB6          PD2
+  DB7         LCD_DB7          PD3
+  RS          LCD_RS           PD4
+  R/W                          Gnd          optional LCD_RW
+  E           LCD_EN           PD5
+  XRESET                       Vcc          optional LCD_RESET
+
+And for 4-wire SPI:
+
+  XRESET      LCD_RESET        PD4          optional
+  CSB         LCD_CS           PD5          optional
+  RS          LCD_RS           PD3
+  SCL (DB6)   LCD_SCL          PD2
+  SI (DB7)    LCD_SI           PD1
+
+The ST7036i speaks I2C but isn't supported (yet). A special feature of the
+ST7036 is a dedicated pin to enable an extended instruction set (pin EXT) which
+is enabled usually. In case it's disabled the settings LCD_EXTENDED_CMD and
+LCD_CONTRAST need to be commented out.
+
+
 + ST7565R
 
 The ST7565R is driven by 4/5 line SPI. The pin assignment is:
 
-  display     config-<MCU>.h   default    remark
-                               328
-  /RES        LCD_RESET        PD0        optional
-  /CS1        LCD_CS           PD5        optional
+  display     config-<MCU>.h   default      remark
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RESET        PD0          optional
+  /CS1        LCD_CS           PD5          optional
   A0          LCD_A0           PD1
   SCL (DB6)   LCD_SCL          PD2
   SI (DB7)    LCD_SI           PD3
@@ -503,10 +564,11 @@ the correct orientation for your display.
 
 The ST7735 is driven by 4-wire SPI. The pin assignment is:
 
-  display     config-<MCU>.h   default   remark
-                               328
-  /RESX       LCD_RES          PD4       optional
-  /CSX        LCD_CS           PD5       optional
+  display     config-<MCU>.h   default      remark
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RESX       LCD_RES          PD4          optional
+  /CSX        LCD_CS           PD5          optional
   D/CX        LCD_DC           PD3
   SCL         LCD_SCL          PD2
   SDA         LCD_SDA          PD1
@@ -522,13 +584,13 @@ see some random pixels for a moment.
 The ST7920 can be driven in 4 bit parallel mode or SPI. The pin assignment
 for the 4 bit paralllel interface is:
 
-  display     config-<MCU>.h   default   remark
-                               328
-
-  /XRESET     LCD_RESET        Vcc       optional
+  display     config-<MCU>.h   default      remark
+                               ATmega 328
+  ---------------------------------------------------------------
+  /XRESET     LCD_RESET        Vcc          optional
   E           LCD_EN           PD5
   RS          LCD_RS           PD4
-  RW          LCD_RW           Gnd       optional
+  RW          LCD_RW           Gnd          optional
   D4          LCD_DB4          PD0
   D5          LCD_DB5          PD1
   D6          LCD_DB6          PD2
@@ -536,14 +598,30 @@ for the 4 bit paralllel interface is:
 
 And for SPI:
 
- /XRESET      LCD_RESET        PD4       optional
- CS (RS)      LCD_CS           PD5       optional
+ /XRESET      LCD_RESET        PD4          optional
+ CS (RS)      LCD_CS           PD5          optional
  SCLK (E)     LCD_SCLK         PD2
  SID (RW)     LCD_SID          PD1
 
 Because of the ST7920's poor design only fonts with a width of 8 pixels can be
 used. To cope with the horizontal 16 bit addressing grid I had to add a screen
 buffer for characters.
+
+
++ STE2007/HX1230
+
+The STE2007 is driven in the 3-wire SPI mode usually. The pin assignment for 
+the 3-wire SPI (bit-bang only) is:
+
+  display     config-<MCU>.h   default      remark
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RESET        PD4          optional
+  /CS         LCD_CS           PD5          optional
+  SCLK        LCD_SCLK         PD2
+  SDIN        LCD_SDIN         PD1
+
+If necessary you can rotate the output via the x/y flip settings.
 
 
 + VT100 Terminal
@@ -729,6 +807,29 @@ active during probing cycles.
 
 In both modes you can enter a menu with additional functions or power off
 the tester. For details please see below.
+
+
+* Battery Monitoring
+
+Each probing cycling starts with the display of the battery voltage and a brief
+status (ok, weak, low). The tester will power off when the low voltage
+threshold is reached. The battery is checked regularly during operation.
+
+The default configuration for the battery monitoring is set for a 9V battery,
+but it can be changed for most other power sources. Please see section
+"power management" in config.h for all the settings.
+
+The monitoring can be disabled by BAT_NONE, set to direct voltage check for
+power sources lower than 5V by BAT_DIRECT, or set for voltage check via a
+voltage divider, specified by BAT_R1 and BAT_R2, by BAT_DIVIDER. Some testers
+support an optional external power supply but don't allow its monitoring. In
+this case enable BAT_EXT_UNMONITORED to prevent problems with the automatic
+power-off by a low battery. This will also set the "ext" battery status when
+powered by the external power source.
+
+The tresholds for a weak and a low battery are set by BAT_WEAK and BAT_LOW
+while BAT_OFFSET specifies any voltage drop caused by the circuit, e.g. a
+reverse polarity protection diode and a PNP power control transistor.
 
 
 * Power Off
@@ -1340,9 +1441,14 @@ This displays the current adjustment values and offsets used. The usage of an
 external 2.5V voltage reference is indicated by a '*' behind Vcc.
 
 
++ Power Off
+
+This function will power off the tester if enabled by SW_POWER_OFF.
+
+
 + Exit
 
-If you entered the menu by mistake you can exit it by this command.
+If you've entered the menu by mistake you can exit it by this command.
 
 
 * Resistors

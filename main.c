@@ -2,7 +2,7 @@
  *
  *   main part
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2019 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -1213,6 +1213,188 @@ void Show_UJT(void)
 
 
 /* ************************************************************************
+ *   voltage reference
+ * ************************************************************************ */
+
+
+#ifdef HW_REF25
+
+/*
+ *  external 2.5V voltage reference
+ */
+
+void Reference_2V5(void)
+{
+  uint16_t          U_Ref;         /* reference voltage */
+  uint32_t          Temp;          /* temporary value */
+
+  Cfg.Samples = 200;               /* do a lot of samples for high accuracy */
+  U_Ref = ReadU(TP_REF);           /* read voltage of reference (mV) */
+  Cfg.Samples = ADC_SAMPLES;       /* set samples back to default */
+
+  /* check for valid voltage range */
+  if ((U_Ref > 2250) && (U_Ref < 2750))      /* voltage is fine */
+  {
+    /* adjust Vcc (assuming 2.495V typically) */
+    Temp = ((uint32_t)Cfg.Vcc * UREF_25) / U_Ref;
+    Cfg.Vcc = (uint16_t)Temp;
+
+    Cfg.OP_Mode |= OP_EXT_REF;          /* set flag */
+  }
+  else                                       /* voltage out of range */
+  {
+    Cfg.OP_Mode &= ~OP_EXT_REF;         /* clear flag */
+  }
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   power control and monitoring
+ * ************************************************************************ */
+
+
+/*
+ *  power off
+ */
+
+void PowerOff(void)
+{
+  /* display feedback (otherwise the user will wait :) */
+  LCD_Clear();
+  #ifdef LCD_COLOR
+  UI.PenColor = COLOR_TITLE;            /* set pen color */
+  #endif
+  Display_EEString(Bye_str);            /* display: Bye! */
+
+  cli();                                /* disable interrupts */
+  wdt_disable();                        /* disable watchdog */
+  POWER_PORT &= ~(1 << POWER_CTRL);     /* power off myself */
+
+  /*
+   *  As long as the user keeps the test button pressed the MCU is still
+   *  powered. Therefor we make sure that nothing happens by making the
+   *  MCU sleep which also saves power.
+   */
+
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);  /* set sleep mode to "power down" */
+  sleep_mode();                         /* enter sleep mode */
+}
+
+
+
+#ifndef BAT_NONE
+
+/*
+ *  display battery status
+ *  - uses voltage stored in Cfg.Vbat
+ */
+
+void ShowBattery(void)
+{
+  /* display battery voltage */
+  Display_EEString_Space(Battery_str);     /* display: Bat. */
+
+  #ifdef BAT_EXT_UNMONITORED
+  /* check for unmonitored external power supply */
+  if (Cfg.Vbat < 900)              /* < 0.9V */
+  {
+    /* powered by unmonitored external PSU */
+    /* low voltage caused by diode's leakage current */
+
+    /* display status */
+    Display_EEString(External_str);     /* display: ext */
+  }
+  else                             /* battery operation */
+  {
+     /* powered by battery */
+  #endif
+
+    /* display battery voltage */
+    Display_Value(Cfg.Vbat / 10, -2, 'V');
+    Display_Space();
+
+    /* display status */
+    if (Cfg.Vbat < BAT_LOW)        /* low level reached */
+    {
+      Display_EEString(Low_str);        /* display: low */
+    }
+    else if (Cfg.Vbat < BAT_WEAK)  /* warning level reached */
+    {
+      Display_EEString(Weak_str);       /* display: weak */
+    }
+    else                           /* ok */
+    {
+      Display_EEString(OK_str);         /* display: ok */
+    }
+
+  #ifdef BAT_EXT_UNMONITORED
+  }
+  #endif
+}
+
+
+
+/*
+ *  check battery
+ *  - store battery voltage in Cfg.Vbat
+ *  - power off in case of a low battery
+ */
+
+void CheckBattery(void)
+{
+  uint16_t          U_Bat;         /* battery voltage */
+  uint32_t          Temp;          /* temporary value */
+
+  /* get current battery voltage */
+  U_Bat = ReadU(TP_BAT);           /* read voltage (mV) */
+
+  #ifdef BAT_DIVIDER
+  /*
+   *  ADC pin is connected to a voltage divider (top: R1 / bottom: R2).
+   *  - U2 = (Uin / (R1 + R2)) * R2 
+   *  - Uin = (U2 * (R1 + R2)) / R2
+   */
+
+  Temp = (((uint32_t)(BAT_R1 + BAT_R2) * 1000) / BAT_R2);   /* factor (0.001) */
+  Temp *= U_Bat;                   /* Uin (0.001 mV) */
+  Temp /= 1000;                    /* Uin (mV) */
+  U_Bat = (uint16_t)Temp;
+  #endif
+
+  U_Bat += BAT_OFFSET;             /* add offset for voltage drop */
+  Cfg.Vbat = U_Bat;                /* save battery voltage */
+  Cfg.BatTimer = 100;              /* reset timer for next battery check (in 100ms) */
+                                   /* about 10s */
+
+  /* check for low-voltage situation */
+  if (U_Bat < BAT_LOW)             /* low level reached */
+  {
+    #ifdef BAT_EXT_UNMONITORED
+    /* not for unmonitored external power supply */
+    if (U_Bat >= 900)                   /* >= 0.9V */
+    {
+      /* battery operation */
+    #endif
+
+      LCD_Clear();                 /* clear display */
+      ShowBattery();               /* display battery status */
+      MilliSleep(3000);            /* let user read info */
+      PowerOff();                  /* power off */
+
+    #ifdef BAT_EXT_UNMONITORED
+    }
+    #endif
+  }
+}
+
+#endif
+
+
+
+/* ************************************************************************
  *   the one and only main()
  * ************************************************************************ */
 
@@ -1225,10 +1407,6 @@ int main(void)
 {
   uint8_t           Test;          /* test value */
   uint8_t           Key;           /* user feedback */
-  #if defined (HW_REF25) || ! defined (BAT_NONE)
-  uint16_t          U_Bat;         /* voltage of power supply */
-  uint32_t          Temp;          /* some value */
-  #endif
 
 
   /*
@@ -1351,7 +1529,6 @@ int main(void)
 
   #ifndef UI_SERIAL_COMMANDS
   /* key press >300ms selects alternative operation mode */
-// todo: (Key == 2) ?
   if (Key > 1)
   {
     #ifdef UI_AUTOHOLD
@@ -1451,7 +1628,7 @@ int main(void)
       LCD_ClearLine2();
       Display_EEString(Error_str);      /* display: Error */
       MilliSleep(1000);                 /* smooth UI */
-      TestKey(2500, CURSOR_BLINK | UI_OP_MODE);
+      TestKey(2500, CURSOR_BLINK | CHECK_OP_MODE | CHECK_BAT);
     }
   }
   #endif
@@ -1468,7 +1645,7 @@ cycle_start:
   /* reset variables */
   Check.Found = COMP_NONE;         /* no component */
   Check.Type = 0;                  /* reset type flags */
-  Check.Done = DONE_NONE;
+  Check.Done = DONE_NONE;          /* no transistor */
   Check.AltFound = COMP_NONE;      /* no alternative component */
   Check.Diodes = 0;                /* zero diodes */
   Check.Resistors = 0;             /* zero resistors */
@@ -1509,23 +1686,7 @@ cycle_start:
 
   #ifdef HW_REF25
   /* external 2.5V reference */
-  Cfg.Samples = 200;               /* do a lot of samples for high accuracy */
-  U_Bat = ReadU(TP_REF);           /* read voltage of reference (mV) */
-  Cfg.Samples = ADC_SAMPLES;       /* set samples back to default */
-
-  /* check for valid voltage range */
-  if ((U_Bat > 2250) && (U_Bat < 2750))      /* voltage is fine */
-  {
-    /* adjust Vcc (assuming 2.495V typically) */
-    Temp = ((uint32_t)Cfg.Vcc * UREF_25) / U_Bat;
-    Cfg.Vcc = (uint16_t)Temp;
-
-    Cfg.OP_Mode |= OP_EXT_REF;          /* set flag */
-  }
-  else                                       /* voltage out of range */
-  {
-    Cfg.OP_Mode &= ~OP_EXT_REF;         /* clear flag */
-  }
+  Reference_2V5();                      /* consider 2.5V reference */
   #endif
 
   /* internal bandgap reference */
@@ -1544,61 +1705,10 @@ cycle_start:
     /* no battery monitoring */
     Display_EEString(Tester_str);       /* display: Component Tester */
   #else
-    /* get current battery voltage */
-    U_Bat = ReadU(TP_BAT);              /* read voltage U2 (mV) */
-
-    #ifdef BAT_DIVIDER
-    /*
-     *  ADC pin is connected to a voltage divider (top: R1 / bottom: R2).
-     *  - U2 = (Uin / (R1 + R2)) * R2 
-     *  - Uin = (U2 * (R1 + R2)) / R2
-     */
-
-    Temp = (((uint32_t)(BAT_R1 + BAT_R2) * 1000) / BAT_R2);   /* factor (0.001) */
-    Temp *= U_Bat;                      /* Uin (0.001 mV) */
-    Temp /= 1000;                       /* Uin (mV) */
-    U_Bat = (uint16_t)Temp;
-    #endif
-
-    U_Bat += BAT_OFFSET;                /* add offset for voltage drop */
-
-    /* display battery voltage */
-    Display_EEString_Space(Battery_str);     /* display: Bat. */
-
-    #ifdef BAT_EXT_UNMONITORED
-    if (U_Bat < 900)               /* < 0.9V */
-    {
-      /* low voltage caused by diode's leakage current */
-      Display_EEString(External_str);   /* display: ext */
-    }
-    else                           /* battery operation */
-    {
-    #endif
-
-      /* display battery voltage */
-      Display_Value(U_Bat / 10, -2, 'V');
-      Display_Space();
-
-      /* check limits */
-      if (U_Bat < BAT_LOW)         /* low level reached */
-      {
-        Display_EEString(Low_str);      /* display: low */
-        MilliSleep(2000);               /* let user read info */
-        Key = KEY_POWER_OFF;            /* signal power off */
-        goto cycle_action;              /* power off */
-      }
-      else if (U_Bat < BAT_WEAK)   /* warning level reached */
-      {
-        Display_EEString(Weak_str);     /* display: weak */
-      }
-      else                         /* ok */
-      {
-        Display_EEString(OK_str);       /* display: ok */
-      }
-
-    #ifdef BAT_EXT_UNMONITORED
-    }
-    #endif
+    /* battery monitoring */
+    CheckBattery();                     /* check battery voltage */
+                                        /* will power off on low battery */
+    ShowBattery();                      /* display battery status */
   #endif
 
 
@@ -1791,8 +1901,8 @@ cycle_control:
 
   UI.LineMode = LINE_STD;          /* reset next-line mode */
 
-  /* get key press or timeout */
-  Key = TestKey((uint16_t)CYCLE_DELAY, CURSOR_BLINK | UI_OP_MODE);
+  /* wait for key press or timeout */
+  Key = TestKey((uint16_t)CYCLE_DELAY, CURSOR_BLINK | CHECK_OP_MODE | CHECK_KEY_TWICE | CHECK_BAT);
 
   if (Key == KEY_TIMEOUT)          /* timeout (no key press) */
   {
@@ -1803,16 +1913,9 @@ cycle_control:
       Key = KEY_POWER_OFF;         /* signal power off */
     }
   }
-  else if (Key == KEY_SHORT)       /* short key press */
+  else if (Key == KEY_TWICE)       /* two short key presses */
   {
-    /* a second key press triggers main menu */
-    MilliSleep(50);
-    Key = TestKey(300, CURSOR_NONE);
-
-    if (Key > KEY_TIMEOUT)         /* any key press */
-    {
-      Key = KEY_MAINMENU;          /* signal mainmenu */
-    }
+    Key = KEY_MAINMENU;            /* signal main menu */
   }
   else if (Key == KEY_LONG)        /* long key press */
   {
@@ -1821,7 +1924,7 @@ cycle_control:
   #ifdef HW_KEYS
   else if (Key == KEY_LEFT)        /* rotary encoder: left turn */
   {
-    Key = KEY_MAINMENU;            /* signal mainmenu */
+    Key = KEY_MAINMENU;            /* signal main menu */
   }
   #endif
   #ifdef SERIAL_RW
@@ -1845,8 +1948,9 @@ cycle_control:
   }
   #endif
 
-
+#if defined (UI_SHORT_CIRCUIT_MENU) || defined (UI_SERIAL_COMMANDS)
 cycle_action:
+#endif
 
   #ifdef SERIAL_RW
   Serial_Ctrl(SER_RX_PAUSE);       /* disable TTL serial RX */
@@ -1893,16 +1997,7 @@ cycle_action:
   }
   else if (Key == KEY_POWER_OFF)   /* power off */
   {
-    /* display feedback (otherwise the user will wait :) */
-    LCD_Clear();
-    #ifdef LCD_COLOR
-    UI.PenColor = COLOR_TITLE;               /* set pen color */
-    #endif
-    Display_EEString(Bye_str);               /* display: Bye! */
-
-    cli();                                   /* disable interrupts */
-    wdt_disable();                           /* disable watchdog */
-    POWER_PORT &= ~(1 << POWER_CTRL);        /* power off myself */
+    PowerOff();                    /* power off */
   }
   else                             /* default action */
   {

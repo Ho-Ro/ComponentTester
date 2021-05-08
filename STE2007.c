@@ -1,34 +1,34 @@
 /* ************************************************************************
  *
- *   driver functions for ST7565R compatible grafic displays
- *   - 128 x 64 (132 x 64) pixels
- *   - SPI interface (4 and 5 line)
+ *   driver functions for STE2007 compatible grafic displays
+ *   - compatible controllers: HX1230
+ *   - aka Nokia 1202 display
+ *   - 96 x 68 pixels
+ *   - SPI interface (4 line (not supported yet), 3 line)
+ *     modules are wired for 3-line SPI usually
+ *   - I2C (not supported yet)
  *
- *   (c) 2015-2019 by Markus Reschke
+ *   (c) 2019 by Markus Reschke
  *
  * ************************************************************************ */
 
 /*
  *  hints:
- *  - pin assignment for SPI
- *    /CS1        LCD_CS (optional)
+ *  - pin assignment for SPI (3-line)
  *    /RES        LCD_RESET (optional)
- *    A0          LCD_A0
- *    SCL (DB6)   LCD_SCL / SPI_SCK
- *    SI (DB7)    LCD_SI / SPI_MOSI
- *    For hardware SPI LCD_SCL and LCD_SI have to be the MCU's SCK and
- *    MOSI pins.
- *  - max. SPI clock rate: 20MHz
- *  - write only
- *  - horizontal flip might require an offset of 4 dots
- *    (132 RAM dots - 128 real dots = 4)
+ *    /CS         LCD_CS  (optional)
+ *    SCLK        LCD_SCLK
+ *    SDAIN       LCD_SDIN
+ *    Bit-bang mode only!
+ *  - max. SPI clock rate: 4MHz
+ *  - max. I2C clock rate: 400kHz (fast mode) or 3.4MHz (high speed mode)
  */
 
 
 /* local includes */
 #include "config.h"           /* global configuration */
 
-#ifdef LCD_ST7565R
+#ifdef LCD_STE2007
 
 
 /*
@@ -47,16 +47,13 @@
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
 #include "functions.h"        /* external functions */
-#include "ST7565R.h"          /* ST7565R specifics */
+#include "STE2007.h"          /* STE2007 specifics */
 
 /* fonts and symbols */
-/* vertically aligned, vertical bit order flipped, bank-wise grouping */
+/* vertically aligned, vertical bit order flipped, page-wise grouping */
 #include "font_6x8_vf.h"
-#include "font_8x8_vf.h"
-#include "font_8x8_cyrillic_vf.h"
-#include "font_8x16_vfp.h"
-#include "font_8x16_cyrillic_vfp.h"
 #include "symbols_24x24_vfp.h"
+
 
 
 /*
@@ -65,6 +62,9 @@
 
 /* pages/bytes required for character's height */
 #define CHAR_PAGES       ((FONT_SIZE_Y + 7) / 8)
+
+/* number of pages */
+#define LCD_PAGES        9
 
 /* number of lines and characters per line */
 #define LCD_CHAR_X       (LCD_DOTS_X / FONT_SIZE_X)
@@ -98,12 +98,18 @@ uint8_t             Y_Start;       /* start position Y (page) */
 
 
 /* ************************************************************************
- *   low level functions for SPI interface
+ *   low level functions for SPI interface (3 wire)
  * ************************************************************************ */
 
 
-#ifdef LCD_SPI
+/*
+ *  The 3 wire SPI interface ignores the D/C line and adds a D/C control
+ *  bit to the SPI data resulting in a 9 bit frame:  
+ *  - first bit for D/C, followed by D7 to D0
+ *  - bitbang SPI only since the MCU's hardware SPI supports just bytes
+ */
 
+#if defined (LCD_SPI) && defined (SPI_BITBANG) && defined (SPI_9)
 
 /*
  *  set up interface bus
@@ -121,15 +127,12 @@ void LCD_BusSetup(void)
 
   Bits = LCD_DDR;                  /* get current directions */
 
-  /* basic output pins */
-  Bits |= (1 << LCD_A0);           /* A0 */
-
   /* optional output pins */
   #ifdef LCD_RESET
     Bits |= (1 << LCD_RESET);      /* /RES */
   #endif
   #ifdef LCD_CS
-    Bits |= (1 << LCD_CS);         /* /CS1 */
+    Bits |= (1 << LCD_CS);         /* /CS */
   #endif
 
   LCD_DDR = Bits;                  /* set new directions */
@@ -137,7 +140,7 @@ void LCD_BusSetup(void)
   /* set default levels */
   #ifdef LCD_CS
     /* disable chip */
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS1 high */
+    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
   #endif
 
   #ifdef LCD_RESET
@@ -149,16 +152,6 @@ void LCD_BusSetup(void)
   /*
    *  init SPI bus
    */
-
-  #ifdef SPI_HARDWARE
-  /*
-   *  set SPI clock rate (max. 20MHz)
-   *  - max. MCU clock 20MHz / 2 = 10MHz
-   *  - f_osc/2 (SPR1 = 0, SPR0 = 0, SPI2X = 1)
-   */
-
-  SPI.ClockRate = SPI_CLOCK_2X;    /* set clock rate flags */
-  #endif
 
   SPI_Setup();                     /* set up SPI bus */
 }
@@ -174,19 +167,17 @@ void LCD_BusSetup(void)
  
 void LCD_Cmd(uint8_t Cmd)
 {
-  /* indicate command mode */
-  LCD_PORT &= ~(1 << LCD_A0);      /* set A0 low */
-
   /* select chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS1 low */
+    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS low */
   #endif
 
+  SPI_Write_Bit(0);                /* indicate command (D/C=0) */
   SPI_Write_Byte(Cmd);             /* write command byte */
 
   /* deselect chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS1 high */
+    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
   #endif
 }
 
@@ -201,19 +192,17 @@ void LCD_Cmd(uint8_t Cmd)
 
 void LCD_Data(uint8_t Data)
 {
-  /* indicate data mode */
-  LCD_PORT |= (1 << LCD_A0);       /* set A0 high */
-
   /* select chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS1 low */
+    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS low */
   #endif
 
+  SPI_Write_Bit(1);                /* indicate data (D/C=1) */
   SPI_Write_Byte(Data);            /* write data byte */
 
   /* deselect chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS1 high */
+    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
   #endif
 }
 
@@ -241,17 +230,18 @@ void LCD_DotPos(uint8_t x, uint8_t y)
 {
   uint8_t           Temp;     /* temp. value */
 
+  /* vertical position (page) */
+  LCD_Cmd(CMD_PAGE | y);           /* set page */
+
   /* horizontal position (column) */
   Temp = x;
   Temp &= 0b00001111;              /* filter lower nibble */
   LCD_Cmd(CMD_COLUMN_L | Temp);    /* set lower nibble */
+
   Temp = x;
   Temp >>= 4;                      /* shift upper nibble to lower */
-  Temp &= 0b00001111;              /* filter nibble */
+  Temp &= 0b00000111;              /* filter nibble (just 3 bits) */
   LCD_Cmd(CMD_COLUMN_H | Temp);    /* set upper nibble */
-
-  /* vertical position (page) */
-  LCD_Cmd(CMD_PAGE | y);           /* set page */
 }
 
 
@@ -273,14 +263,14 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   UI.CharPos_X = x;
   UI.CharPos_Y = y;
 
-  /* update display */
+  /*
+   *  set start dot position
+   *  - start is left top of character
+   */
 
   /* horizontal position (column) */
   x--;                             /* columns start at 0 */
   x *= FONT_SIZE_X;                /* offset for character */
-  #ifdef LCD_OFFSET_X
-  x += 4;                          /* x offset of 4 dots */
-  #endif
   X_Start = x;                     /* update start position */
 
   /* vertical position (page) */
@@ -299,17 +289,17 @@ void LCD_CharPos(uint8_t x, uint8_t y)
  *  requires:
  *  - Line: line number (1-)
  *    special case line 0: clear remaining space in current line
- */ 
+ */
 
 void LCD_ClearLine(uint8_t Line)
 {
   uint8_t           MaxPage;            /* page limit */
-  uint8_t           n = 1;              /* counter */
+  uint8_t           n = 1;              /* counter */  
 
   if (Line == 0)         /* special case: rest of current line */
   {
-    Line = UI.CharPos_Y;      /* get current line */
-    n = UI.CharPos_X;         /* get current character position */
+    Line = UI.CharPos_Y;      /* current line */
+    n = UI.CharPos_X;         /* current character position */
   }
 
   LCD_CharPos(n, Line);       /* set char position */
@@ -325,7 +315,7 @@ void LCD_ClearLine(uint8_t Line)
 
     /* clear page */
     n = X_Start;              /* reset counter */
-    while (n < 132)           /* up to internal RAM size */
+    while (n < 96)            /* for all columns */
     {
       LCD_Data(0);            /* send empty byte */
       n++;                    /* next byte */
@@ -338,18 +328,29 @@ void LCD_ClearLine(uint8_t Line)
 
 
 /*
- *  clear the display 
- */
+ *  clear the display
+ */ 
 
 void LCD_Clear(void)
 {
-  uint8_t           n = 1;         /* counter */
+  uint8_t           Page = 0;      /* page counter */
+  uint8_t           Pos;           /* column counter */
 
-  /* we have to clear all dots manually :( */
-  while (n <= LCD_CHAR_Y)          /* for all lines */
+  /* we have to clear all dots manually :-( */
+
+  LCD_DotPos(0, 0);           /* set start address */
+
+  while (Page < LCD_PAGES)         /* loop through all pages */
   {
-    LCD_ClearLine(n);              /* clear line */
-    n++;                           /* next line */
+    Pos = 0;                       /* start at the left */
+
+    while (Pos < 96)               /* for all 96 columns */
+    {
+      LCD_Data(0);                 /* send empty byte */
+      Pos++;                       /* next column */
+    }
+
+    Page++;                        /* next page */           
   }
 
   LCD_CharPos(1, 1);          /* reset character position */
@@ -359,27 +360,23 @@ void LCD_Clear(void)
 
 /*
  *  set contrast
+ *
  *  required:
- *  - value: 0-63
+ *  - value: 0-31
  */
 
 void LCD_Contrast(uint8_t Contrast)
 {
-  if (Contrast <= 63)              /* limit value */
-  {
-    /* set contrast */
-    LCD_Cmd(CMD_V0_MODE);          /* set command */
-    LCD_Cmd(Contrast);             /* contrast value */
+  /* set contrast */
+  LCD_Cmd(CMD_EV | Contrast);      /* set electronic volume */
 
-    NV.Contrast = Contrast;        /* update value */
-  }
+  NV.Contrast = Contrast;          /* update value */
 }
 
 
 
 /*
  *  initialize LCD
- *  - for a single 3.3V supply
  */
  
 void LCD_Init(void)
@@ -387,55 +384,41 @@ void LCD_Init(void)
   #ifdef LCD_RESET
   /* reset display */
   LCD_PORT &= ~(1 << LCD_RESET);        /* set /RES low */
-  wait1us();                            /* wait 1탎 */
+  wait3us();                            /* wait >2.5탎 */
   LCD_PORT |= (1 << LCD_RESET);         /* set /RES high */
-  wait1us();                            /* wait 1탎 */
+  wait3us();                            /* wait 2.5탎 */
   #endif
 
-  /* set start line: user defined value (default 0) */
-  LCD_Cmd(CMD_START_LINE | LCD_START_Y);
-
-  /* set segment driver direction (ADC) */
-  #ifdef LCD_FLIP_X
-    LCD_Cmd(CMD_SEGMENT_DIR | FLAG_ADC_REVERSE);  /* flip horizontally */
-  #else  
-    LCD_Cmd(CMD_SEGMENT_DIR | FLAG_ADC_NORMAL);   /* normal */
-  #endif
-
-  /* set common driver direction */
-  #ifdef LCD_FLIP_Y
-    LCD_Cmd(CMD_COMMON_DIR | FLAG_COM_REVERSE);   /* flip vertically */
-  #else
-    LCD_Cmd(CMD_COMMON_DIR | FLAG_COM_NORMAL);    /* normal */
-  #endif
-
-  /* set LCD bias to 1/9 (duty 1/65) */
-  LCD_Cmd(CMD_LCD_BIAS | FLAG_BIAS_19);
-
-  /* set power mode: all on */
-  LCD_Cmd(CMD_POWER_MODE | FLAG_FOLOWER_ON | FLAG_REGULATOR_ON | FLAG_BOOSTER_ON);
-
-  /* set booster ratio to 4x */
-  LCD_Cmd(CMD_BOOSTER_MODE);       /* set command */
-  LCD_Cmd(FLAG_BOOSTER_234);       /* ratio */
-
-  /* set contrast: resistor ratio 6.5 */
-  LCD_Cmd(CMD_V0_RATIO | FLAG_RATIO_65);
+  /* should we set VOP? */
 
   /* set contrast: default value */
   LCD_Contrast(LCD_CONTRAST);
 
-  /* no indicator */
-  LCD_Cmd(CMD_INDICATOR_MODE);     /* set command */
-  LCD_Cmd(FLAG_INDICATOR_OFF);     /* mode */
+  /* set pixel mode: normal */
+  LCD_Cmd(CMD_PIXEL_MODE | FLAG_PIXEL_NORMAL);
+
+  /* enable booster */
+  LCD_Cmd(CMD_PWR_CONTROL | FLAG_PWR_ON);
+
+  /* segment driver direction */
+  #ifdef LCD_FLIP_X
+  LCD_Cmd(CMD_SEG_DIR | FLAG_SEG_REVERSED);  /* flip horizontally */
+  #endif
+
+  /* common driver direction */
+  #ifdef LCD_FLIP_Y
+  LCD_Cmd(CMD_COM_DIR | FLAG_COM_REVERSED);  /* flip vertically */
+  #endif
 
   /* switch display on */
   LCD_Cmd(CMD_DISPLAY | FLAG_DISPLAY_ON);
 
+  /* display needs about ???ms */
+
   /* update maximums */
   UI.CharMax_X = LCD_CHAR_X;       /* characters per line */
   UI.CharMax_Y = LCD_CHAR_Y;       /* lines */
-  UI.MaxContrast = 63;             /* LCD contrast */
+  UI.MaxContrast = 31;             /* maximum LCD contrast */
   #ifdef SW_SYMBOLS
   UI.SymbolSize_X = LCD_SYMBOL_CHAR_X;  /* x size in chars */
   UI.SymbolSize_Y = LCD_SYMBOL_CHAR_Y;  /* y size in chars */
@@ -559,7 +542,7 @@ void LCD_Symbol(uint8_t ID)
 
   Page = Y_Start;                  /* get start page */
 
-  /* read symbol bitmap and send it to display */
+  /* read character bitmap and send it to display */
   while (y <= SYMBOL_BYTES_Y)
   {
     if (y > 1)                /* multi-page bitmap */
@@ -591,6 +574,7 @@ void LCD_Symbol(uint8_t ID)
 /* ************************************************************************
  *   clean-up of local constants
  * ************************************************************************ */
+
 
 /* source management */
 #undef LCD_DRIVER_C

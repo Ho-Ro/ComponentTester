@@ -1,9 +1,9 @@
 /* ************************************************************************
  *
  *   driver functions for ADS7843 compatible touchscreen controller
- *   (compatibles: XPT2046)
+ *   - compatible controllers: XPT2046
  *
- *   (c) 2015-2017 by Markus Reschke
+ *   (c) 2015-2019 by Markus Reschke
  *
  * ************************************************************************ */
 

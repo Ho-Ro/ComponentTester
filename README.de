@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2019-02-04
+Letzte Änderung: 2019-05-04
 
 Inhaltsübersicht:
   - Über den Tester
@@ -28,10 +28,13 @@ Inhaltsübersicht:
     - ILI9163
     - ILI9341/ILI9342
     - PCD8544
+    - PCF8814
     - SSD1306
+    - ST7036
     - ST7565R
     - ST7735
     - ST7920
+    - STE2007/HX1230
     - VT100 Terminal
   - Tasten und Eingabeoptionen
     - Test-Taste
@@ -44,6 +47,7 @@ Inhaltsübersicht:
     - VT100-Ausgabe
   - Einschalten
   - Bauteilesuche
+  - Batterieüberwachung
   - Ausschalten
   - Menü
     - PWM-Generator
@@ -65,6 +69,7 @@ Inhaltsübersicht:
     - Selbstabgleich
     - Speichern/Laden
     - Werte anzeigen
+    - Ausschalten
     - Exit
   - Widerstände
   - Kondensatoren
@@ -342,14 +347,17 @@ Beschaltung von Test-Pins:
 * LCD-Module
 
 Im Augenblick werden folgende LCD-Module bzw. Controller unterstützt:
-- HD44780 (textbasiertes Display)
+- HD44780 (textbasiertes Display, 2-4 Zeilen mit je 16-20 Zeichen)
 - ILI9163 (grafisches Farb-Display 128x160)
 - ILI9341/ILI9342 (grafisches Farb-Display 240x320 oder 320x240)
 - PCD8544 (grafisches Display 84x48)
+- PCF8814 (grafisches Display 96x65)
 - SSD1306 (grafisches Display 128x64)
+- ST7036 (textbasiertes Display, 3 Zeilen mit je 16 Zeichen)
 - ST7565R (grafisches Display 128x64)
 - ST7735 (grafisches Farb-Display 128x160)
 - ST7920 (grafisches Display bis zu 256x64)
+- STE2007/HX1230 (grafisches Display 96x68)
 - VT100 Terminal
 
 Beachte die Versorgungsspannung und die Logikpegel des LCD-Moduls! Benutze
@@ -371,8 +379,9 @@ zu fehlerhaften Ausgaben führen.
 
 Der HD44780 wird im 4-Bit-Modus bestrieben. Die Pins für den Parallelbus sind:
 
-  Modul       config-<MCU>.h   Standard
-                               328
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 328
+  ---------------------------------------------------------------
   DB4         LCD_DB4          PD0
   DB5         LCD_DB5          PD1
   DB6         LCD_DB6          PD2
@@ -386,7 +395,8 @@ Dazu muss zum einen I2C aktiviert werden, und zum anderen wird auch die
 I2C-Adresse des PCF8574 benötigt. Das Pinout beschreibt wie das LCD-Modul mit
 dem PCF8574 verdrahtet ist:
 
-  Modul       config-<MCU>.h   Standard
+  Modul       config-<MCU>.h   Standard     Hinweis
+  ---------------------------------------------------------------
   DB4         LCD_DB4          PCF8574_P4
   DB5         LCD_DB5          PCF8574_P5
   DB6         LCD_DB6          PCF8574_P6
@@ -399,12 +409,13 @@ dem PCF8574 verdrahtet ist:
 
 + ILI9163
 
-Der ILI9163 wird mittels 4-Draht SPI gesteuert. Die Pins sind:
+Der ILI9163 wird mittels 4-Draht-SPI gesteuert. Die Pins sind:
 
-  Modul       config-<MCU>.h   Standard   Hinweis
-                               328
-  /RESX       LCD_RES          PD4        optional
-  /CSX        LCD_CS           PD5        optional
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RESX       LCD_RES          PD4          optional
+  /CSX        LCD_CS           PD5          optional
   D/CX        LCD_DC           PD3
   SCL         LCD_SCL          PD2
   SDIO        LCD_SDA          PD1
@@ -420,14 +431,15 @@ Anschalten kurz zufällige Pixel zu sehen.
 
 Der ILI9341/ILI9342 wird mittels SPI gesteuert. Die Pins sind:
 
-  Modul       config-<MCU>.h   Standard   Hinweis
-                               328
-  /RES        LCD_RES          PD4        optional
-  /CS         LCD_CS           PD5        optional
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RES          PD4          optional
+  /CS         LCD_CS           PD5          optional
   D/C         LCD_DC           PD3
   SCK         LCD_SCK          PD2
   SDI         LCD_SDI          PD1
-  SDO         LCD_SDO          PD0        nur ILI9341, noch nicht benutzt
+  SDO         LCD_SDO          PD0          nur ILI9341, noch nicht benutzt
 
 Für eine korrekte Anzeige mußt Du evtl. mit den Einstellungen X/Y-Flip und
 Rotate experimentieren. Und nicht vergessen die X und Y-AUflösung korrekt
@@ -438,7 +450,7 @@ Einfarben oder Mehrfarben-Modus über die LCD_COLOR Definition im LCD-Bereich
 in config.h wählen (Standard: Einfarben-Modus).
 
 Aufgrund der hohen Pixelzahl ist die Ausgabe etwas langsam. Das Löschen der
-kompletten Anzeige dauert etwa 3 Sekunden bei 8MHz MCU-Takt, wenn Bit-Bang
+kompletten Anzeige dauert etwa 3 Sekunden bei 8MHz MCU-Takt, wenn Bit-Bang-
 SPI genutzt wird.
 
 
@@ -446,10 +458,11 @@ SPI genutzt wird.
 
 Der PCD8544 wird mittels SPI gesteuert. Die Pins sind:
 
-  Modul       config-<MCU>.h   Standard   Hinweis
-                               328
-  /RES        LCD_RES          PD4        optional
-  /SCE        LCD_SCE          PD5        optional
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RES          PD4          optional
+  /SCE        LCD_SCE          PD5          optional
   D/C         LCD_DC           PD3
   SCLK        LCD_SCLK         PD2
   SDIN        LCD_SDIN         PD1
@@ -459,34 +472,48 @@ pro Zeile bei einem 6x8-Zeichensatz. Also werden bis zu zwei Zeichen
 verschluckt. Wenn das stört, kannst Du in variables.h die Texte etwas kürzen.
 
 
++ PCF8814
+
+Der PCF8814 wird typischerweise per 3-Draht-SPI gesteuert. Die Pins für
+3-Draht-SPI sind:
+
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RESET        PD4
+  /CS         LCD_CS           PD5          optional
+  SCLK        LCD_SCLK         PD2
+  SDIN        LCD_SDIN         PD1
+
+Bei Bedarf kann die Ausgabe über die Y-Flip-Einstellung und den MX-Pin (X-Flip)
+des PCF8814 (Pull-Up/Down) rotiert werden.
+
+
 + SSD1306
 
-Der SSD1306 wird mittels 3-Line SPI, 4-Line SPI oder I2C gesteuert. 3-Line SPI
-benötigt den Bit-Bang-Modus, und SPI_9 muss aktiviert sein. Die Pins für 4-Line
-SPI sind:
+Der SSD1306 wird mittels 3-Line-SPI, 4-Line-SPI oder I2C gesteuert. 3-Line-SPI
+benötigt den Bit-Bang-Modus, und SPI_9 muss aktiviert sein. Die Pins für
+4-Line-SPI sind:
 
-  Modul       config-<MCU>.h   Standard   Hinweis
-                               328
-
-  /RES        LCD_RESET        PD4        optional
-  /CS         LCD_CS           PD5        optional
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RESET        PD4          optional
+  /CS         LCD_CS           PD5          optional
   DC          LCD_DC           PD3
   SCLK (D0)   LCD_SCLK         PD2
   SDIN (D1)   LCD_SDIN         PD1
 
-Für 3-Line SPI (nur Bit-Bang):
+Für 3-Line-SPI (nur Bit-Bang):
 
-  Modul       config-<MCU>.h   Standard   Hinweis
-                               328
-
-  /RES        LCD_RESET        PD4        optional
-  /CS         LCD_CS           PD5        optional
+  /RES        LCD_RESET        PD4          optional
+  /CS         LCD_CS           PD5          optional
   SCLK (D0)   LCD_SCLK         PD2
   SDIN (D1)   LCD_SDIN         PD1
 
 Und für I2C:
 
-  /RES        LCD_RESET        PD4        optional
+  /RES        LCD_RESET        PD4          optional
   SCL (D0)    I2C_SCL          PD1
   SDA (D1&2)  I2C_SDA          PD0
   SA0 (D/C)                    Gnd (0x3c) / 3.3V (0x3d)
@@ -495,14 +522,47 @@ Mit den X/Y-Flip Einstellungen kannst Du die Orientierung der Anzeige
 anpassen, wenn notwenig.
 
 
++ ST7036 (ungetestet)
+
+Der ST7036 wird per 4-bit-Parallel-Schnittstelle oder 4-Draht-SPI angesprochen.
+Die Pins für die 4-bit-Parallel-Schnittstelle sind:
+
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 328
+  ---------------------------------------------------------------
+  DB4         LCD_DB4          PD0
+  DB5         LCD_DB5          PD1
+  DB6         LCD_DB6          PD2
+  DB7         LCD_DB7          PD3
+  RS          LCD_RS           PD4
+  R/W                          Gnd          optional LCD_RW
+  E           LCD_EN           PD5
+  XRESET                       Vcc          optional LCD_RESET
+
+Und für 4-Draht-SPI:
+
+  XRESET      LCD_RESET        PD4          optional
+  CSB         LCD_CS           PD5          optional
+  RS          LCD_RS           PD3
+  SCL (DB6)   LCD_SCL          PD2
+  SI (DB7)    LCD_SI           PD1
+
+Der ST7036i spricht I2C, wird aber (noch) nicht unterstützt. Ein spezielles
+Merkmal des ST7036 ist ein Pin zum Aktivieren eines erweiterten Befehlsatzes (
+Pin EXT), welcher bei den meisten Modulen eingeschaltet ist. Sollte er
+abgeschaltet sein, sind die Einstellungen LCD_EXTENDED_CMD und LCD_CONTRAST
+auszukommentieren.
+
+
 + ST7565R
 
-Der ST7565R wird mittels 4/5-Line SPI gesteuert. Die Pins sind:
+Der ST7565R wird mittels 4/5-Line-SPI gesteuert. Die Pins sind:
 
-  Modul       config-<MCU>.h   Standard   Hinweis
-                               328
-  /RES        LCD_RESET        PD0        optional
-  /CS1        LCD_CS           PD5        optional
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RESET        PD0          optional
+  /CS1        LCD_CS           PD5          optional
   A0          LCD_A0           PD1
   SCL (DB6)   LCD_SCL          PD2
   SI (DB7)    LCD_SI           PD3
@@ -513,12 +573,13 @@ X-Offset experimentieren.
 
 + ST7735
 
-Der ST7735 wird mittels 4-Draht SPI gesteuert. Die Pins sind:
+Der ST7735 wird mittels 4-Draht-SPI gesteuert. Die Pins sind:
 
-  Modul       config-<MCU>.h   Standard   Hinweis
-                               328
-  /RESX       LCD_RES          PD4        optional
-  /CSX        LCD_CS           PD5        optional
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RESX       LCD_RES          PD4          optional
+  /CSX        LCD_CS           PD5          optional
   D/CX        LCD_DC           PD3
   SCL         LCD_SCL          PD2
   SDA         LCD_SDA          PD1
@@ -534,13 +595,13 @@ Ansonsten sind beim Anschalten kurz zufällige Pixel zu sehen.
 Der ST7920 kann per 4-bit-Parallel-Modus oder SPI gesteuert werden. Die Pins
 für den Parallelbus sind:
 
-  Modul       config-<MCU>.h   Standard  Hinweis
-                               328
-
-  /XRESET     LCD_RESET        Vcc       optional
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 328
+  ---------------------------------------------------------------
+  /XRESET     LCD_RESET        Vcc          optional
   E           LCD_EN           PD5
   RS          LCD_RS           PD4
-  RW          LCD_RW           Gnd       optional
+  RW          LCD_RW           Gnd          optional
   D4          LCD_DB4          PD0
   D5          LCD_DB5          PD1
   D6          LCD_DB6          PD2
@@ -548,14 +609,30 @@ für den Parallelbus sind:
 
 Und für SPI:
 
- /XRESET      LCD_RESET        PD4       optional
- CS (RS)      LCD_CS           PD5       optional
+ /XRESET      LCD_RESET        PD4          optional
+ CS (RS)      LCD_CS           PD5          optional
  SCLK (E)     LCD_SCLK         PD2
  SID (RW)     LCD_SID          PD1
 
 Wegen dem schlechten Design des ST7920 können nur Zeichensätze mit einer Breite
 von 8 Pixeln verwendet werden. Zur Handhabung der horizontalen Addressierung in
 16-Bit Schritten mußte ich einen Bildschirmpuffer für Zeichen einrichten.
+
+
++ STE2007/HX1230
+
+Der STE2007 wird typischerweise per 3-Draht-SPI gesteuert. Die Pins für 3-Draht-SPI 
+sind:
+
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RESET        PD4          optional
+  /CS         LCD_CS           PD5          optional
+  SCLK        LCD_SCLK         PD2
+  SDIN        LCD_SDIN         PD1
+
+Falls nötig, kannst Du die Ausgabe über die X/Y-Flip-Einstellungen rotieren.
 
 
 + VT100 Terminal
@@ -746,6 +823,32 @@ Hold-Modus gibt es eine optionale automatische Abschaltung (POWER_OFF_TIMEOUT),
 welche nur während der Bauteilesuche und Ausgabe aktiv ist.
 
 In beiden Modi kannst Du das Hauptmenü aufrufen (siehe weiter unten).
+
+
+* Batterieüberwachung
+
+Jeder Zyklus der Bauteilesuche beginnt mit der Anzeige der Batteriespannung
+und des Status (ok, schwach, leer). Bei Unterschreiten der Schwellspannung für
+eine leere Batterie schaltet sich der Tester aus. Die Batterie wird regelmäßig
+während des Betriebs überprüft.
+
+Die Standardkonfiguration der Batterieüberwachung ist für eine 9V-Batterie
+ausgelegt, kann aber an fast jede andere Stromversorgung angepaßt werden. Im
+Abschnitt "power management" in config.h findest Du alle Einstellungen dazu.
+
+Die Batterieüberwachung kann mittels BAT_NONE deaktiviert werden, auf direkte
+Messung für Batterien mit weniger als 5V per BAT_DIRECT konfiguriert werden,
+oder auf indirekte Messung über einen Spannungsteiler (definiert durch BAT_R1
+und BAT_R2) gesetzt werden. Manche Tester unterstützen zwar eine optionale
+externe Stromversorgung, aber erlauben keine Überwachung dieser. In diesem
+Fall kannst Du per BAT_EXT_UNMONITORED Probleme mit dem automatischen
+Abschalten bei zu niedriger Batteriespannung umgehen. Bei externer Strom-
+versorgung wird der Batteriestatus dann auf "ext" (für extern) gesetzt.
+
+Die Schwellwerte für eine schwache und leere Batterie werden über BAT_WEAK
+und BAT_LOW gesetzt, während BAT_OFFSET den Spannungsverlust durch die
+Schaltung definiert, z.B. Verpolungsschutzdiode und PNP-Transistor zum
+Schalten der Stromversorgung.
 
 
 * Ausschalten
@@ -1074,7 +1177,7 @@ einfache Treiberschaltung für die IR-LED.
 
 Der Tester zeigt Dir das Protokoll, die Trägerfrequencz, das Tastverhältnis
 des Trägers und ein paar Datenfelder. Mit einem kurzen Druck der Test-Taste
-schaltest du zwischen den Punkten hin und her. Der ausgewählte Punkt wird
+schaltest Du zwischen den Punkten hin und her. Der ausgewählte Punkt wird
 durch ein "*" gekennzeichnet. Über den Drehencoder (oder andere Eingabeoption)
 änderst Du die Einstellung bzw. den Wert eines Punktes.  Bei einem langen
 Druck der Test-Taste sendet der Tester den IR-Code solange die Test-Taste
@@ -1369,6 +1472,12 @@ man für die alten Kabel wieder einen neuen Selbstabgleich machen.
 
 Diese Funktion zeigt die aktuellen Abgleichwerte an. Die Nutzung einer
 externen 2.5V Spannungsreferenz wird mit einem "*" nach Vcc signalisiert.
+
+
++ Ausschalten
+
+Hiermit kannst Du den Tester abschalten, sofern die Funktion über SW_POWER_OFF
+aktiviert wurde.
 
 
 + Exit

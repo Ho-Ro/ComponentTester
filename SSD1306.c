@@ -13,25 +13,26 @@
 /*
  *  hints:
  *  - pin assignment for SPI (4 line)
- *    /CS         LCD_CS (optional)
- *    /RES        LCD_RESET (optional)
+ *    /CS         Gnd or LCD_CS (optional)
+ *    /RES        Vcc or LCD_RESET (optional)
  *    DC          LCD_DC
  *    SCLK (D0)   LCD_SCLK / SPI_SCK
  *    SDIN (D1)   LCD_SDIN / SPI_MOSI
  *    For hardware SPI LCD_SCL and LCD_SI have to be the MCU's SCK and
  *    MOSI pins.
  *  - pin assignment for SPI (3 line)
- *    /CS         LCD_CS (optional)
- *    /RES        LCD_RESET (optional)
+ *    /CS         Gnd or LCD_CS (optional)
+ *    /RES        Vcc or LCD_RESET (optional)
  *    SCLK (D0)   LCD_SCLK / SPI_SCK
  *    SDIN (D1)   LCD_SDIN / SPI_MOSI
+ *    Bit-bang mode only!
  *  - max. SPI clock rate: 10MHz
  *  - pin assignment for I2C
- *    /RES            LCD_RESET (optional)
- *    SA0 (D/C)       Gnd for 0x3c / 3.3V for 0x3d
+ *    /RES            Vcc or LCD_RESET (optional)
+ *    SA0 (D/C)       slave address SA0 (Gnd for 0x3c / 3.3V for 0x3d)
  *    SCL (D0)        I2C_SCL
  *    SDA (D1 & D2)   I2C_SDA
- *  - max. I2C clock rate: 400kHz
+ *  - max. I2C clock rate: 400kHz (fast mode)
  */
 
 
@@ -242,7 +243,7 @@ void LCD_Data(uint8_t Data)
  *  The 3 wire SPI interface ignores the D/C line and adds a D/C control
  *  bit to the SPI data resulting in a 9 bit frame:  
  *  - first bit for D/C, followed by D7 to D0
- *  - supported only by bitbang SPI since the MCU's hardware SPI does just bytes
+ *  - bitbang SPI only since the MCU's hardware SPI supports just bytes
  */
 
 #if defined (LCD_SPI) && defined (SPI_BITBANG) && defined (SPI_9)
@@ -661,8 +662,9 @@ void LCD_Clear(void)
 
 /*
  *  set contrast
+ *
  *  required:
- *  - value: 0-255
+ *  - Contrast: 0-255
  */
 
 void LCD_Contrast(uint8_t Contrast)
@@ -696,12 +698,12 @@ void LCD_Init(void)
 
   /* segment mapping */
   #ifdef LCD_FLIP_X
-    LCD_Cmd(CMD_SEGMENT_MAP | FLAG_SEG_127);      /* flip horizontally */
+  LCD_Cmd(CMD_SEGMENT_MAP | FLAG_SEG_127);   /* flip horizontally */
   #endif
 
   /* COM output scan direction */
   #ifdef LCD_FLIP_Y
-    LCD_Cmd(CMD_COM_SCAN_DIR | FLAG_COM_63);      /* flip vertically */
+  LCD_Cmd(CMD_COM_SCAN_DIR | FLAG_COM_63);   /* flip vertically */
   #endif
 
   /* set contrast: default value */
@@ -710,12 +712,12 @@ void LCD_Init(void)
   /* switch display on */
   LCD_Cmd(CMD_DISPLAY | FLAG_DISPLAY_ON);
 
-  /* dispays needs about 100ms */
+  /* display needs about 100ms */
 
   /* update maximums */
   UI.CharMax_X = LCD_CHAR_X;       /* characters per line */
   UI.CharMax_Y = LCD_CHAR_Y;       /* lines */
-  UI.MaxContrast = 255;            /* LCD contrast */
+  UI.MaxContrast = 255;            /* maximum LCD contrast */
 
   LCD_Clear();                /* clear display */
 }

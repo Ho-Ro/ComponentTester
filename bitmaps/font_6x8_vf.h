@@ -3,7 +3,7 @@
  *   fixed 6x8 font based on ISO 8859-1
  *   vertically aligned, vertical bit order flipped
  *
- *   (c) 2016-2018 by Markus Reschke
+ *   (c) 2016-2019 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -16,7 +16,7 @@
 
 
 /* font size */
-#define FONT_SIZE_X          6     /* width:  8 dots */
+#define FONT_SIZE_X          6     /* width:  6 dots */
 #define FONT_SIZE_Y          8     /* height: 8 dots */
 
 /* font data format */

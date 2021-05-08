@@ -2,7 +2,7 @@
  *
  *   global variables
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2019 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -136,7 +136,7 @@
 
   /* language independent */
   const unsigned char Tester_str[] EEMEM = "Component Tester";
-  const unsigned char Version_str[] EEMEM = "v1.35m";
+  const unsigned char Version_str[] EEMEM = "v1.36m";
   const unsigned char MOS_str[] EEMEM = "MOS";
   const unsigned char FET_str[] EEMEM = "FET";
   const unsigned char Channel_str[] EEMEM = "-ch";
@@ -173,24 +173,20 @@
   const unsigned char I_leak_str[] EEMEM = "I_l";
   const unsigned char R_DS_str[] EEMEM = "Rds";
 
-  #ifndef BAT_NONE
-    const unsigned char Battery_str[] EEMEM = "Bat";
-    const unsigned char OK_str[] EEMEM = "ok";
-  #endif
-  #ifdef BAT_EXT_UNMONITORED
-    const unsigned char External_str[] EEMEM = "ext";
-  #endif
 
   /* options */
   #if defined (SW_ESR) || defined (SW_OLD_ESR)
     const unsigned char ESR_str[] EEMEM = "ESR";
   #endif
+
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
     const unsigned char PWM_str[] EEMEM = "PWM";
   #endif
+
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT)
     const unsigned char Hertz_str[] EEMEM = "Hz";
   #endif
+
   #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     const unsigned char IR_NEC_str[] EEMEM = "NEC";
     const unsigned char IR_SIRC_str[] EEMEM = "SIRC";
@@ -202,6 +198,7 @@
     const unsigned char IR_uPD1986C_str[] EEMEM = "µPD1986C";
     #endif
   #endif
+
   #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
     const unsigned char IR_JVC_str[] EEMEM = "JVC";
     const unsigned char IR_Kaseikyo_str[] EEMEM = "Kas";
@@ -216,6 +213,7 @@
     const unsigned char IR_Thomson_str[] EEMEM = "Thom";
     #endif
   #endif
+
   #ifdef SW_IR_TRANSMITTER
     const unsigned char IR_NEC_Std_str[] EEMEM = "NEC Std";
     const unsigned char IR_NEC_Ext_str[] EEMEM = "NEC Ext";
@@ -223,24 +221,29 @@
     const unsigned char IR_SIRC_15_str[] EEMEM = "SIRC-15";
     const unsigned char IR_SIRC_20_str[] EEMEM = "SIRC-20";
   #endif
+
   #ifdef SW_OPTO_COUPLER
     const unsigned char CTR_str[] EEMEM = "CTR";
     const unsigned char If_str[] EEMEM = "If";
     const unsigned char t_on_str[] EEMEM = "t_on";
     const unsigned char t_off_str[] EEMEM = "t_off";
   #endif
+
   #ifdef SW_UJT
     const unsigned char R_BB_str[] EEMEM = "R_BB";
   #endif
+
   #ifdef SW_DS18B20
     const unsigned char DS18B20_str[] EEMEM = "DS18B20";
   #endif
+
 
   /* component symbols */
   const unsigned char Cap_str[] EEMEM = {'-', LCD_CHAR_CAP, '-',0};
   const unsigned char Diode_AC_str[] EEMEM = {'-', LCD_CHAR_DIODE_AC, '-', 0};
   const unsigned char Diode_CA_str[] EEMEM = {'-', LCD_CHAR_DIODE_CA, '-', 0};
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
+
 
   /* remote commands */
   #ifdef UI_SERIAL_COMMANDS
@@ -519,43 +522,48 @@
   extern const unsigned char Profile2_str[];
 
 
-  #ifdef BAT_EXT_UNMONITORED
-    extern const unsigned char External_str[];
-  #endif
-
   /* options */
   #if defined (SW_ESR) || defined (SW_OLD_ESR)
     extern const unsigned char ESR_str[];
   #endif
+
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
     extern const unsigned char PWM_str[];    
   #endif
+
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT)
     extern const unsigned char Hertz_str[];
   #endif
+
   #ifdef SW_SQUAREWAVE
     extern const unsigned char SquareWave_str[];
   #endif
+
   #ifdef HW_ZENER
     extern const unsigned char Zener_str[];
     extern const unsigned char Min_str[];
   #endif
+
   #ifdef HW_FREQ_COUNTER
     extern const unsigned char FreqCounter_str[];
   #endif
+
   #ifdef HW_FREQ_COUNTER_EXT
     extern const unsigned char CounterChannel_str[];
     extern const unsigned char FreqInput_str[];
     extern const unsigned char LF_Crystal_str[];
     extern const unsigned char HF_Crystal_str[];
   #endif
+
   #ifdef SW_ENCODER
     extern const unsigned char Encoder_str[];
     extern const unsigned char TurnRight_str[];
   #endif
+
   #ifdef SW_CONTRAST
     extern const unsigned char Contrast_str[];
   #endif
+
   #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     extern const unsigned char IR_Detector_str[];
     extern const unsigned char IR_NEC_str[];
@@ -568,6 +576,7 @@
     extern const unsigned char IR_uPD1986C_str[];
     #endif
   #endif
+
   #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
     extern const unsigned char IR_JVC_str[];
     extern const unsigned char IR_Kaseikyo_str[];
@@ -582,6 +591,7 @@
     extern const unsigned char IR_Thomson_str[];
     #endif
   #endif
+
   #ifdef SW_IR_TRANSMITTER
     extern const unsigned char IR_Transmitter_str[];
     extern const unsigned char IR_Send_str[];
@@ -591,6 +601,7 @@
     extern const unsigned char IR_SIRC_15_str[];
     extern const unsigned char IR_SIRC_20_str[];
   #endif
+
   #ifdef SW_OPTO_COUPLER
     extern const unsigned char OptoCoupler_str[];
     extern const unsigned char None_str[];
@@ -599,29 +610,39 @@
     extern const unsigned char t_on_str[];
     extern const unsigned char t_off_str[];
   #endif
+
   #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20)
     extern const unsigned char Start_str[];
   #endif
+
   #ifdef SW_UJT
     extern const unsigned char UJT_str[];
     extern const unsigned char R_BB_str[];
   #endif
+
   #ifdef SW_SERVO
     extern const unsigned char Servo_str[];
     extern const unsigned char Sweep_str[];
   #endif
+
   #ifdef HW_TOUCH
     extern const unsigned char TouchSetup_str[];
   #endif
+
   #ifdef SW_DS18B20
     extern const unsigned char DS18B20_str[];
   #endif
+
   #ifdef SW_CAP_LEAKAGE
     extern const unsigned char CapLeak_str[];
     extern const unsigned char CapCharge_str[];
     extern const unsigned char CapHigh_str[];
     extern const unsigned char CapLow_str[];
     extern const unsigned char CapDischarge_str[];
+  #endif
+
+  #ifdef SW_POWER_OFF
+    extern const unsigned char PowerOff_str[];
   #endif
 
 

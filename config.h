@@ -149,8 +149,8 @@
  */
 
 //#define HW_FREQ_COUNTER_EXT
-#define FREQ_COUNTER_PRESCALER   16   /* 16:1 */
-//#define FREQ_COUNTER_PRESCALER   32   /* 32:1 */
+#define FREQ_COUNTER_PRESCALER     16   /* 16:1 */
+//#define FREQ_COUNTER_PRESCALER     32   /* 32:1 */
 
 
 /*
@@ -315,15 +315,6 @@
 #define SW_UJT
 
 
-/*
- *  color coding for probes
- *  - requires color graphics LCD
- *  - uncomment to enable
- *  - edit colors.h to select correct probe colors
- */
-
-#define SW_PROBE_COLORS
-
 
 /*
  *  Servo Check
@@ -479,6 +470,24 @@
 //#define POWER_OFF_TIMEOUT     60
 
 
+/*
+ *  color coding for probes
+ *  - requires color graphics LCD
+ *  - uncomment to enable
+ *  - edit colors.h to select correct probe colors
+ */
+
+#define SW_PROBE_COLORS
+
+
+/*
+ *  main menu: power off tester
+ *  - uncomment to enable
+ */
+
+//#define SW_POWER_OFF
+
+
 
 /* ************************************************************************
  *   power management
@@ -524,8 +533,9 @@
 /*
  *  Voltage drop by reverse voltage protection diode and power management
  *  transistor (in mV):
- *  - Schottky diode about 200mV / PNP BJT about 100mV.
+ *  - or any other circuitry in the power section
  *  - Get your DMM and measure the voltage drop!
+ *  - Schottky diode about 200mV / PNP BJT about 100mV.
  */  
 
 #define BAT_OFFSET       290
@@ -534,7 +544,7 @@
 /*
  *  Battery weak voltage (in mV).
  *  - Tester warns if BAT_WEAK is reached.
- *  - Voltage drop (BAT_OUT) is considered in calculation.
+ *  - Voltage drop BAT_OFFSET is considered in calculation.
  */
 
 #define BAT_WEAK         7400
@@ -543,7 +553,7 @@
 /*
  *  Battery low voltage (in mV).
  *  - Tester powers off if BAT_LOW is reached.
- *  - Voltage drop (BAT_OFFSET) is considered in calculation.
+ *  - Voltage drop BAT_OFFSET is considered in calculation.
  */
 
 #define BAT_LOW          6400 
@@ -894,6 +904,11 @@
     #undef SW_SERVO
   #endif
 
+  /* IR Sender */
+  #ifdef SW_IR_TRANSMITTER
+    #undef SW_IR_TRANSMITTER
+  #endif
+
 #endif
 
 
@@ -916,6 +931,13 @@
 /* SPI */
 #if defined (SPI_BITBANG) || defined (SPI_HARDWARE)
   #define HW_SPI
+#endif
+
+/* 9-Bit SPI requires bit-bang mode */
+#ifdef SPI_9
+  #ifndef SPI_BITBANG
+    #error <<< 9-Bit SPI requires bit-bang mode! >>>
+  #endif
 #endif
 
 

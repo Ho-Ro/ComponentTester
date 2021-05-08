@@ -8,6 +8,25 @@
 
 ------------------------------------------------------------------------------
 
+v1.36m 2019-05
+- Optionalen 6x8 Zeichensatz im ST7565R-Treiber ergänzt.
+- Optionaler Menüpunkt zum Abschalten des Testers (SW_POWER_OFF).
+- TestKey() und Zener_Tool() um Batterieüberwachung ergänzt.
+- Erkennung von zwei kurzen Betätigungen der Testtaste in TestKey() eingebaut,
+  und doppelte Funktionalität in mehreren Funktionen entfernt, um Größe der
+  Firmware zu verkleinern.
+- Treiber für Displays mit ST7036 (4-bit parallel & 4-wire SPI, ungetestet).
+- Eigene Funktionen für Stromversorgung und Batterieüberwachung zur besseren
+  Integration mit anderen Funktionen.
+- Treiber für Displays mit PCF8814 (3-line SPI; Dank an Mahmoud Laouar
+  fürs Testen).
+- Treiber für Displays mit STE2007/HX1230 (3-line SPI).
+- Fehler in Funktion LCD_Clear() im PCD8544-Treiber beseitigt.
+- Fehlender kyrillischer Font im ST7565R-Treiber eingetragen (gemeldet von
+  Andrey@EEVblog).
+- Aktualisierung von font_8x16_cyrillic_vfp.h (Dank an Andrey@EEVblog).
+- Problem mit falschem Zeichen in font_HD44780_cyr.h gelöst.
+
 v1.35m 2019-02
 - Bei dem Kapazitäts-Offset kann man statt dem bisherigen Durchschnittswert
   für alle Test-Pins nun auch Test-Pin spezifische Offsets nutzen (

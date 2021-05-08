@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2019 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -21,6 +21,13 @@
 
   extern void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C);
   extern void Show_SimplePinout(uint8_t ID_1, uint8_t ID_2, uint8_t ID_3);
+
+  extern void PowerOff(void);
+
+  #ifndef BAT_NONE
+  void ShowBattery(void);
+  void CheckBattery(void);
+  #endif
 
 #endif
 
@@ -350,7 +357,7 @@
   #endif
 
   #ifdef SW_DS18B20
-  extern void DS18B20_Tool(void);
+  extern uint8_t DS18B20_Tool(void);
   #endif
 
   #ifdef SW_CAP_LEAKAGE

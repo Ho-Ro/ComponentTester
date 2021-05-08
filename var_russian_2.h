@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Russian (Windows-1251)
  *
- *   (c) 2017-2018 by Markus Reschke
+ *   (c) 2017-2019 by Markus Reschke
  *   translation by hapless@EEVblog
  *   based on code from Markus Frejek and Karl-Heinz Kьbbeler
  *
@@ -44,8 +44,14 @@
   const unsigned char Bye_str[] EEMEM = "До свидания!";
 
   #ifndef BAT_NONE
+    const unsigned char Battery_str[] EEMEM = "Bat";
+    const unsigned char OK_str[] EEMEM = "ok";
     const unsigned char Weak_str[] EEMEM = "слабая";
     const unsigned char Low_str[] EEMEM = "разр.";
+  #endif
+
+  #ifdef BAT_EXT_UNMONITORED
+    const unsigned char External_str[] EEMEM = "ext";
   #endif
 
   #ifdef SW_SQUAREWAVE
@@ -114,6 +120,10 @@
 
   #ifdef HW_TOUCH
     const unsigned char TouchSetup_str[] EEMEM = "Touch Setup";
+  #endif
+
+  #ifdef SW_POWER_OFF
+    const unsigned char PowerOff_str[] EEMEM = "Off";
   #endif
 
 #endif

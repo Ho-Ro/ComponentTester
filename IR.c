@@ -2,7 +2,7 @@
  *
  *   IR remote control functions
  *
- *   (c) 2015-2018 by Markus Reschke
+ *   (c) 2015-2019 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1868,7 +1868,10 @@ void IR_Detector(void)
     }
     else                           /* check test key */
     {
-      Flag = TestKey(100, CURSOR_NONE); /* wait 100ms for key press */
+      /* wait 100ms for key press */
+      Flag = TestKey(100, CURSOR_NONE | CHECK_BAT);
+      /* also delay for next loop run */
+
       if (Flag)                         /* key pressed */
       {
         Run = 0;                        /* skip decoder loop */
@@ -3130,7 +3133,7 @@ void IR_RemoteControl(void)
   /* display pinout (1: Gnd / 2: LED / 3: Gnd) */
   Display_NextLine();
   Show_SimplePinout('-', 's', '-');
-  TestKey(3000, CURSOR_NONE);        /* wait 3s / for key press */
+  TestKey(3000, CURSOR_NONE | CHECK_BAT);    /* wait 3s or for key press */
   #endif
 
   #ifndef HW_FIXED_SIGNAL_OUTPUT
@@ -3404,7 +3407,8 @@ void IR_RemoteControl(void)
      *  user feedback
      */
 
-    Test = TestKey(0, CURSOR_NONE);     /* wait for user feedback */
+    /* wait for user feedback */
+    Test = TestKey(0, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
 
     if (Mode >= MODE_DATA)              /* code data mode */
     {
@@ -3436,21 +3440,16 @@ void IR_RemoteControl(void)
     /* process user input */
     if (Test == KEY_SHORT)              /* short key press */
     {
-      MilliSleep(50);                   /* debounce button a little bit longer */
-      Test = TestKey(200, CURSOR_NONE); /* check for second key press */
+      /* switch parameter */
+      Mode++;                           /* next one */
+      n = (MODE_DATA - 1) + Fields;     /* number of current modes */
+      if (Mode > n) Mode = MODE_PROTO;  /* overflow */
 
-      if (Test > KEY_TIMEOUT)           /* second key press */
-      {
-        Flag = 0;                       /* end loop */
-      }
-      else                              /* single key press */
-      {
-        /* switch parameter */
-        Mode++;                              /* next one */
-        n = (MODE_DATA - 1) + Fields;        /* number of current modes */
-        if (Mode > n) Mode = MODE_PROTO;     /* overflow */
-        Flag |= DISPLAY_PROTO | UPDATE_FREQ | DISPLAY_DATA; /* update display */
-      }
+      Flag |= DISPLAY_PROTO | UPDATE_FREQ | DISPLAY_DATA;   /* update display */
+    }
+    else if (Test == KEY_TWICE)         /* two short key presses */
+    {
+      Flag = 0;                         /* end loop */
     }
     else if (Test == KEY_LONG)          /* long key press */
     {
@@ -3576,8 +3575,8 @@ void IR_RemoteControl(void)
         IR_Toggle ^= 0b00000001;        /* toggle flag */
 
         /* check if we should repeat sending */
-        Test = TestKey(100, CURSOR_NONE);    /* get user feedback */
-        if (Test == KEY_LONG)                /* long key press */
+        Test = TestKey(100, CURSOR_NONE | CHECK_BAT);  /* get user feedback */
+        if (Test == KEY_LONG)           /* long key press */
         {
           n = 2;                        /* repeat code */
         }

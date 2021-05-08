@@ -44,7 +44,9 @@
 #define CURSOR_NONE           0b00000000     /* no cursor */
 #define CURSOR_STEADY         0b00000001     /* steady cursor */
 #define CURSOR_BLINK          0b00000010     /* blinking cursor */
-#define UI_OP_MODE            0b00000100     /* consider operation mode */
+#define CHECK_OP_MODE         0b00000100     /* consider operation mode */
+#define CHECK_KEY_TWICE       0b00001000     /* check for two short presses of the test key */
+#define CHECK_BAT             0b00010000     /* check battery */
 
 
 /* keys (test push button etc.) */
@@ -52,11 +54,12 @@
 #define KEY_TIMEOUT           0    /* timeout */
 #define KEY_SHORT             1    /* test push button: short key press */
 #define KEY_LONG              2    /* test push button: long key press */
-#define KEY_RIGHT             3    /* rotary encoder: right turn */
+#define KEY_TWICE             3    /* test push button: two short key presses */
+#define KEY_RIGHT             4    /* rotary encoder: right turn */
                                    /* push buttons: increase */
-#define KEY_LEFT              4    /* rotary encoder: left turn */
+#define KEY_LEFT              5    /* rotary encoder: left turn */
                                    /* push buttons: decrease */
-#define KEY_INCDEC            5    /* push buttons: increase and decrease */
+#define KEY_INCDEC            6    /* push buttons: increase and decrease */
 
 /* virtual keys */
 #define KEY_COMMAND           100  /* remote command (from serial interface) */
@@ -72,6 +75,7 @@
 #define OP_EXT_REF            0b00000100     /* external voltage reference used */
 #define OP_SPI                0b00001000     /* SPI is set up */
 #define OP_I2C                0b00010000     /* I2C is set up */
+
 
 /* operation control/signaling flags (bitmask) */
 #define OP_BREAK_KEY          0b00000001     /* exit key processing */
@@ -369,6 +373,10 @@ typedef struct
   uint8_t           RefFlag;       /* internal control flag for ADC */
   uint16_t          Bandgap;       /* voltage of internal bandgap reference (mV) */
   uint16_t          Vcc;           /* voltage of Vcc (mV) */
+  #ifndef BAT_NONE
+  uint16_t          Vbat;          /* battery voltage (mV) */
+  uint8_t           BatTimer;      /* timer for battery check (100ms) */
+  #endif
 } Config_Type;
 
 

@@ -463,7 +463,7 @@ void LCD_Clear(void)
 
   /* we have to clear all dots manually :-( */
 
-  LCD_CharPos(0, 0);          /* set start address */
+  LCD_DotPos(0, 0);           /* set start address */
 
   while (Bank < LCD_BANKS)         /* loop through all banks */
   {

@@ -2,7 +2,7 @@
  *
  *   SSD1306 OLED graphic display controller
  *
- *   (c) 2017 by Markus Reschke
+ *   (c) 2017-2019 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -13,12 +13,20 @@
 
 
 /*
+ *  I2C slave addresses
+ */
+
+#define SSD1306_I2C_ADDR_0    0b00111100     /* SA0=0 0x3c */
+#define SSD1306_I2C_ADDR_1    0b00111101     /* SA0=1 0x3d */
+
+
+/*
  *  I2C control byte
  */
 
 #define LCD_CONTROL_BYTE      0b00000000     /* 0x00 */
 /* continuation flag */
-#define FLAG_CTRL_MULTI       0b00000000     /* stream bytes follows */
+#define FLAG_CTRL_MULTI       0b00000000     /* stream of bytes follows */
 #define FLAG_CTRL_SINGLE      0b10000000     /* only 1 byte follows */
 /* D/C */
 #define FLAG_CTRL_CMD         0b00000000     /* command follows */

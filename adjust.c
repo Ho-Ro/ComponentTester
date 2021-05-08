@@ -703,7 +703,8 @@ uint8_t SelfAdjustment(void)
       /* wait and check test push button */
       if (Flag < 100)                   /* when we don't skip this test */
       {
-        DisplayFlag = TestKey(1000, CURSOR_NONE); /* catch key press or timeout */
+        /* catch key press or timeout */
+        DisplayFlag = TestKey(1000, CURSOR_NONE | CHECK_BAT);
 
         /* short press -> next test / long press -> end selftest */
         if (DisplayFlag > KEY_TIMEOUT)
@@ -997,7 +998,8 @@ uint8_t SelfTest(void)
       /* wait and check test push button */
       if (Flag < 100)                   /* when we don't skip this test */
       {
-        DisplayFlag = TestKey(1000, CURSOR_NONE); /* catch key press or timeout */
+        /* catch key press or timeout */
+        DisplayFlag = TestKey(1000, CURSOR_NONE | CHECK_BAT);
 
         /* short press -> next test / long press -> end selftest */
         if (DisplayFlag > KEY_TIMEOUT)

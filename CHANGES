@@ -8,6 +8,23 @@
 
 ------------------------------------------------------------------------------
 
+v1.36m 2019-05
+- Added optional 6x8 font to ST7565R driver.
+- Added optional mainmenu item to power off tester (SW_POWER_OFF).
+- Integrated battery monitoring into TestKey() and Zener_Tool().
+- Added detection of two short presses of the test key to TestKey() and removed
+  redundant functionality in multiple functions to reduce firmware size.
+- Driver for ST7036 based displays (4-bit parallel & 4-wire SPI, untested).
+- Moved power control and battery monitoring to dedicated functions for
+  better integration with other functions.
+- Driver for PCF8814 based displays (3-line SPI, thanks to Mahmoud Laouar
+  for testing).
+- Driver for STE2007/HX1230 based displays (3-line SPI).
+- Fixed bug in LCD_Clear() of PCD8544 driver.
+- Added missing cyrillic font to ST7565R driver (reported by Andrey@EEVblog).
+- Updated font_8x16_cyrillic_vfp.h (thanks to Andrey@EEVblog).
+- Fixed issue with bad character in font_HD44780_cyr.h.
+
 v1.35m 2019-02
 - Added option to use probe pair specific capacitance offsets instead of
   an average offset for all probes (CAP_MULTIOFFSET).

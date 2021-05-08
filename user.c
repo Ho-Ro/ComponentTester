@@ -2,7 +2,7 @@
  *
  *   user interface functions
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2019 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -194,8 +194,6 @@ uint8_t ReadEncoder(void)
 
   /* set encoder's A & B pins to input */
   Old_AB = ENCODER_DDR;                 /* save current settings */
-//  ENCODER_DDR &= ~(1 << ENCODER_A);     /* A signal pin */
-//  ENCODER_DDR &= ~(1 << ENCODER_B);     /* B signal pin */
   ENCODER_DDR &= ~((1 << ENCODER_A) | (1 << ENCODER_B));
   wait500us();                          /* settle time */
 
@@ -534,18 +532,22 @@ uint8_t ReadTouchScreen(void)
  *  - Timeout in ms 
  *    0 = no timeout, wait for key press or any other feedback
  *  - Mode (bitmask):
- *    CURSOR_NONE     no cursor
- *    CURSOR_STEADY   steady cursor
- *    CURSOR_BLINK    blinking cursor
- *    UI_OP_MODE      consider tester operation mode (Cfg.OP_Mode)
+ *    CURSOR_NONE      no cursor
+ *    CURSOR_STEADY    steady cursor
+ *    CURSOR_BLINK     blinking cursor
+ *    CHECK_OP_MODE    consider tester operation mode (Cfg.OP_Mode)
+ *    CHECK_KEY_TWICE  check for two short test key presses
+ *    CHECK_BAT        check battery (and power off on low battery)
  *
  *  returns:
- *  - KEY_TIMEOUT     reached timeout
+ *  - KEY_TIMEOUT     reached timeout (no key press)
  *  - KEY_SHORT       short press of test key
  *  - KEY_LONG        long press of test key
+ *  - KEY_TWICE       two short presses of test key 
  *  - KEY_RIGHT       right key (e.g. rotary encoder turned right)
  *  - KEY_LEFT        left key (e.g. rotary encoder turned left)
  *  - KEY_INCDEC      increase and decrease keys both pressed
+ *  - KEY_POWER_OFF   power off requested
  *  The turning velocity (speed-up) is returned via UI.KeyStep (1-7).
  */
 
@@ -573,10 +575,12 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
     /* rotary encoder: sample each 2.5ms (1ms would be ideal) */
     #define DELAY_TICK   2         /* 2ms + 0.5ms for ReadEncoder() */
     #define DELAY_500    200       /* ticks for 500ms */
+    #define DELAY_100    40        /* ticks for 100ms */
   #else
     /* just the test key */
     #define DELAY_TICK   5         /* 5ms */
     #define DELAY_500    100       /* ticks for 500ms */
+    #define DELAY_100    20        /* ticks for 100ms */
   #endif
 
   #ifdef HW_ENCODER
@@ -599,7 +603,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   }
   #endif
 
-  if (Mode & UI_OP_MODE)           /* consider operation mode */
+  if (Mode & CHECK_OP_MODE)        /* consider operation mode */
   {
     if (Cfg.OP_Mode & OP_AUTOHOLD)      /* in auto-hold mode */
     {
@@ -608,7 +612,8 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
     }
     else                                /* in continuous mode */
     {
-      Mode = CURSOR_NONE;          /* disable cursor */
+      Mode &= ~(CURSOR_STEADY | CURSOR_BLINK);    /* clear other cursor flags */
+      Mode |= CURSOR_NONE;         /* disable cursor */
                                    /* and keep timeout */
     }
   }
@@ -625,7 +630,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
  
   while (Run)
   {
-    /* take care about timeout */
+    /* take care about feedback timeout */
     if (Timeout > 0)               /* timeout enabled */
     {
       if (Timeout > DELAY_TICK)    /* some time left */
@@ -638,13 +643,15 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
       }
     }
 
+
     /*
      *  check for test push button
      *  - push button is low active
      */
 
     Test = BUTTON_PIN & (1 << TEST_BUTTON);  /* get button status */
-    if (Test == 0)            /* if test button is pressed */
+
+    if (Test == 0)            /* test button pressed */
     {
       Ticks = 0;              /* reset counter */
       MilliSleep(30);         /* time to debounce */
@@ -652,6 +659,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
       while (Run)             /* detect how long key is pressed */
       {
         Test = BUTTON_PIN & (1 << TEST_BUTTON);   /* get button status */
+
         if (Test == 0)        /* key still pressed */
         {
           Ticks++;                      /* increase counter */
@@ -665,8 +673,42 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
       }
 
       /* determine key press type */
-      if (Ticks > 26) Key = KEY_LONG;   /* long (>= 300ms) */
-      else Key = KEY_SHORT;             /* short (< 300ms) */
+      if (Ticks > 26)                   /* long (>= 300ms) */
+      {
+        Key = KEY_LONG;                 /* signal long key press */
+      }
+      else                              /* short (< 300ms) */
+      {
+        Key = KEY_SHORT;                /* signal short key press */
+
+        /* check for second key press if requested */
+        if (Mode & CHECK_KEY_TWICE)
+        {
+          MilliSleep(50);               /* delay for checking key again */
+          Ticks = 20;                   /* timeout of 200ms */
+ 
+          while (Ticks > 0)             /* timeout loop */
+          {
+            Test = BUTTON_PIN & (1 << TEST_BUTTON);    /* get button status */         
+
+            if (Test == 0)                             /* test button pressed */
+            {
+              MilliSleep(30);                          /* time to debounce */
+              Test = BUTTON_PIN & (1 << TEST_BUTTON);  /* get button status */
+
+              if (Test == 0)                           /* test button still pressed */
+              {
+                Ticks = 1;                             /* end loop */
+                Key = KEY_TWICE;                       /* signal two key presses */
+                MilliSleep(200);                       /* smooth UI */
+              }
+            }
+
+            Ticks--;                                   /* decrease timeout */
+            MilliSleep(10);                            /* wait 10ms */
+          }
+        }
+      }
     }
     else                      /* no key press */
     {
@@ -767,17 +809,45 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
       }
       #endif
 
+      /*
+       *  timing
+       */
+
       /* delay for next loop run */
       MilliSleep(DELAY_TICK);           /* wait a little bit */
 
+      Ticks++;                          /* increase counter */
+
+      #ifndef BAT_NONE
       /*
-       *  500ms ticks
-       *  - for blinking cursor
-       *    HD44780's built-in blinking cursor is ugly anyway :)
-       *  - for optional auto power-off
+       *  100ms timer
+       *  - for battery monitoring
        */
 
-      Ticks++;                          /* increase counter */
+      if (Ticks % DELAY_100 == 0)       /* every 100ms */
+      {
+        if (Cfg.BatTimer > 1)           /* timeout not zero yet */
+        {
+          Cfg.BatTimer--;               /* decrease timeout counter */
+        }
+        else                            /* timeout triggered */
+        {
+          if (Mode & CHECK_BAT)         /* battery check requested */
+          {
+            CheckBattery();             /* check battery */
+                                        /* also powers off on low battery */
+          }
+        }
+      } 
+      #endif
+
+      /*
+       *  500ms timer
+       *  - for blinking cursor
+       *    HD44780's built-in blinking cursor is ugly anyway :)
+       *  - also for optional auto power-off
+       */
+
       if (Ticks == DELAY_500)           /* every 500ms */
       {
         Ticks = 0;                      /* reset counter */
@@ -840,11 +910,9 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 
   #ifdef POWER_OFF_TIMEOUT
   /* automatic power-off */
-  if (Key == KEY_POWER_OFF)   /* power off */
+  if (Key == KEY_POWER_OFF)   /* power-off triggered */
   {
-    cli();                              /* disable interrupts */
-    wdt_disable();                      /* disable watchdog */
-    POWER_PORT &= ~(1 << POWER_CTRL);   /* power off myself */
+    PowerOff();               /* power off */
   }
   #endif
 
@@ -863,8 +931,8 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 
 void WaitKey(void)
 {
-  /* wait for key press or 3000ms timeout */
-  TestKey(3000, CURSOR_STEADY | UI_OP_MODE);
+  /* wait for key press or 3s timeout */
+  TestKey(3000, CURSOR_STEADY | CHECK_OP_MODE | CHECK_BAT);
 }
 
 
@@ -899,17 +967,18 @@ uint8_t ShortCircuit(uint8_t Mode)
   /* init */
   if (Mode == 0)         /* remove short */
   {
-    String = (unsigned char *)Remove_str;
-    Comp = 0;
+    String = (unsigned char *)Remove_str;    /* "remove" */
+    Comp = 0;                                /* no shorted probe pairs */
   }
   else                   /* create short */
   {
-    String = (unsigned char *)Create_str;
-    Comp = 3;
+    String = (unsigned char *)Create_str;    /* "create" */
+    Comp = 3;                                /* 3 shorted probe pairs */
   } 
 
   /* check if already done */
   Test = ShortedProbes();               /* get current status */
+
   if (Test == Comp)                     /* already done */
   {
     Flag = 1;                           /* skip loop */
@@ -935,7 +1004,8 @@ uint8_t ShortCircuit(uint8_t Mode)
     }
     else                           /* job not done yet */
     {
-      Test = TestKey(100, CURSOR_NONE);      /* wait 100ms or for any key press */
+      /* wait 100ms or for any key press */
+      Test = TestKey(100, CURSOR_NONE | CHECK_BAT);
       if (Mode == 1)                         /* short circuit expected */
       {
         if (Test > KEY_TIMEOUT) Flag = 0;    /* abort on key press */
@@ -958,7 +1028,6 @@ uint8_t ShortCircuit(uint8_t Mode)
 void ChangeContrast(void)
 {
   uint8_t          Flag = 1;            /* loop control */
-  uint8_t          Test = 1;            /* loop control */
   uint8_t          Contrast;            /* contrast value */
   uint8_t          Max;                 /* contrast maximum */
   
@@ -985,19 +1054,16 @@ void ChangeContrast(void)
     #endif
     MilliSleep(300);                    /* smooth UI */
 
-    Flag = TestKey(0, CURSOR_NONE);     /* wait for user feedback */
+    /* wait for user feedback */
+    Flag = TestKey(0, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
+
     if (Flag == KEY_SHORT)              /* short key press */
     {
-      MilliSleep(50);                   /* debounce button a little bit longer */
-      Test = TestKey(200, CURSOR_NONE); /* check for second key press */
-      if (Test > KEY_TIMEOUT)           /* second key press */
-      {
-        Flag = 0;                         /* end loop */
-      }
-      else                              /* single key press */
-      {
-        if (Contrast < Max) Contrast++;   /* increase value */
-      }
+      if (Contrast < Max) Contrast++;   /* increase value */
+    }
+    else if (Flag == KEY_TWICE)         /* two short key presses */
+    {
+      Flag = 0;                         /* end loop */
     }
     #ifdef HW_KEYS
     else if (Flag == KEY_RIGHT)         /* rotary encoder: right turn */
@@ -1156,7 +1222,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
      *  process user feedback
      */
  
-    n = TestKey(0, CURSOR_NONE);        /* wait for testkey */
+    n = TestKey(0, CURSOR_NONE | CHECK_BAT);      /* wait for key */
 
     #ifdef HW_KEYS
     /* processing for rotary encoder etc. */
@@ -1196,7 +1262,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
     }
     #endif
 
-    /* processing for testkey */
+    /* processing for test key */
     if (n == KEY_SHORT)            /* short key press: move to next item */
     {
       if (Selected == Items)       /* last item */
@@ -1378,8 +1444,14 @@ uint8_t PresentMainMenu(void)
     #define ITEM_19      0
   #endif
 
-  #define MENU_ITEMS (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19)
-//  #define MENU_ITEMS     19             /* worst case */
+  #ifdef SW_POWER_OFF
+    #define ITEM_20      1
+  #else
+    #define ITEM_20      0
+  #endif
+
+  #define MENU_ITEMS (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20)
+//  #define MENU_ITEMS     21             /* worst case */
 
   uint8_t           Item = 0;           /* item number */
   uint8_t           ID;                 /* ID of selected item */
@@ -1479,8 +1551,14 @@ uint8_t PresentMainMenu(void)
   MenuItem[Item] = (void *)Show_str;         /* show self-adjustment values */
   MenuID[Item] = 5;
   Item++;
+  #ifdef SW_POWER_OFF
+  MenuItem[Item] = (void *)PowerOff_str;     /* power off tester */
+  MenuID[Item] = 20;
+  Item++;
+  #endif
   MenuItem[Item] = (void *)Exit_str;         /* exit menu */
   MenuID[Item] = 0;
+  Item++;                                    /* add 1 for item #0 */
 
 
   /*
@@ -1489,7 +1567,6 @@ uint8_t PresentMainMenu(void)
 
   LCD_Clear();
   Display_EEString(Select_str);              /* display "Select" */
-  Item++;                                    /* add 1 for item #0 */
   ID = MenuTool(Item, 1, MenuItem, NULL);    /* menu dialog */
   ID = MenuID[ID];                           /* get item ID */
 
@@ -1624,7 +1701,7 @@ void MainMenu(void)
 
     #ifdef SW_DS18B20
     case 18:             /* temperature sensor DS18B20 */
-      DS18B20_Tool();
+      Flag = DS18B20_Tool();
       break;
     #endif
 
@@ -1633,10 +1710,16 @@ void MainMenu(void)
       Cap_Leakage();
       break;
     #endif
+
+    #ifdef SW_POWER_OFF
+    case 20:             /* power off */
+      PowerOff();
+      break;
+    #endif
   }
 
   /* display result */
-  LCD_Clear();
+  LCD_Clear();                     /* clear display */
   if (Flag == 0)
     Display_EEString(Error_str);   /* display: error! */
   else

@@ -8,15 +8,15 @@
  *   - SPI interface (2-4 line)
  *   - 4 bit parallel interface
  *
- *   (c) 2017-2018 by Markus Reschke
+ *   (c) 2017-2019 by Markus Reschke
  *
  * ************************************************************************ */
 
 /*
  *  hints:
  *  - pin assignment for SPI
- *    /XRESET    LCD_RESET (optional)
- *    CS (RS)    LCD_CS (optional)
+ *    /XRESET    Vcc or LCD_RESET (optional)
+ *    CS (RS)    Gnd or LCD_CS (optional)
  *    SCLK (E)   LCD_SCLK
  *    SID (RW)   LCD_SID
  *    PSB        Gnd (enable serial mode)
@@ -26,7 +26,7 @@
  *  - write only when using SPI
  *  - doesn't allow other SPI chips on same bus (says the datasheet)
  *  - pin assignment for 4 bit parallel
- *    /XRESET    LCD_RESET (optional)
+ *    /XRESET    Vcc or LCD_RESET (optional)
  *    E          LCD_EN
  *    RS         LCD_RS
  *    RW         Gnd or LCD_RW (optional)

@@ -1,9 +1,12 @@
 /* ************************************************************************
  *
  *   driver functions for HD44780 compatible character displays
+ *   - 1 to 4 lines, 16 to 20 characters
  *   - 4 bit parallel interface
+ *   - 8 bit parallel interface (not supported)
+ *   - I2C via PCF8574 based backpack
  *
- *   (c) 2015-2018 by Markus Reschke
+ *   (c) 2015-2019 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -18,7 +21,7 @@
  *    R/W    Gnd
  *    E      LCD_EN1
  *  - write only since R/W is hardwired to Gnd
- *  - max. clock for interface: 2 MHz
+ *  - max. clock for parallel interface: 2 MHz
  *  - pin assignment for PCF8574 backpack
  *    DB4    LCD_DB4 (default: P4)
  *    DB5    LCD_DB5 (default: P5)
@@ -28,6 +31,7 @@
  *    R/W    LCD_RW  (default: P1)
  *    E      LCD_EN1 (default: P2)
  *    LED    LCD_LED (default: P3)
+ *  - max. clock for PCF8574 I2C: 100kHz (standard mode)
  */
 
 
@@ -55,7 +59,7 @@
 #include "functions.h"        /* external functions */
 #include "HD44780.h"          /* HD44780 specifics */
 
-/* fonts */
+/* fonts (5x8) */
 #include "font_HD44780_int.h"      /* international font version */
 #include "font_HD44780_cyr.h"      /* Cyrillic font version */
 
@@ -231,10 +235,11 @@ void LCD_Char(unsigned char Char)
 
 void LCD_DisplaySetup(void)
 {
-  uint8_t           Bits;            /* port bits */  
+  uint8_t           Bits;            /* port bits */
 
   /*
-   *  first we have to send three times:
+   *  first we have to send the "function set" command three times
+   *  - CMD_FUNCTION_SET | FLAG_INTERFACE_8BIT -> 0b0011xxxx
    *  - RS and R/W unset
    *  - DB4 and DB5 set
    */
@@ -247,30 +252,30 @@ void LCD_DisplaySetup(void)
   /* set LCD_DB4 & LCD_DB5 */
   Bits |= (1 << LCD_DB5) | (1 << LCD_DB4);
   LCD_PORT = Bits;                      /* set new bits */
-  LCD_EnablePulse();
+  LCD_EnablePulse();                    /* enable pulse */
 
   /* round #2 */
   MilliSleep(5);                        /* wait 5ms */
-  LCD_EnablePulse();
+  LCD_EnablePulse();                    /* enable pulse */
 
   /* round #3 */
   MilliSleep(1);                        /* wait 1ms */
-  LCD_EnablePulse();
+  LCD_EnablePulse();                    /* enable pulse */
 
 
   /*
    *  init 4 bit mode
+   *  - CMD_FUNCTION_SET | FLAG_INTERFACE_4BIT -> 0b0010xxxx
+   *  - same as above besides DB4 -> clear LCD_DB4
    */
 
-  MilliSleep(1);
-  /* function set: DB5 set (to switch from 8 to 4 bit mode) */
+  MilliSleep(1);                        /* wait 1ms */
   Bits = LCD_PORT;                      /* get current bits */
-  /* same as above besides DB4, so only clear LCD_DB4 */
-  Bits &= ~(1 << LCD_DB4);
+  Bits &= ~(1 << LCD_DB4);              /* clear LCD_DB4 */
   LCD_PORT = Bits;                      /* set new bits */
-  MilliSleep(1);
-  LCD_EnablePulse();
-  MilliSleep(1);
+  MilliSleep(1);                        /* wait 1ms */
+  LCD_EnablePulse();                    /* enable pulse */
+  MilliSleep(1);                        /* wait 1ms */
 }
 
 
@@ -328,6 +333,32 @@ void LCD_CustomChar(uint8_t ID)
 
 
 #ifdef LCD_PCF8574
+
+
+/*
+ *  local constants
+ */
+
+/* PCF8574 I2C slave addreses */
+#define PCF8574_I2C_ADDR_0    0b00100000     /* A2=0 A1=0 A0=0 0x20 */
+#define PCF8574_I2C_ADDR_1    0b00100001     /* A2=0 A1=0 A0=1 0x21 */
+#define PCF8574_I2C_ADDR_2    0b00100010     /* A2=0 A1=1 A0=0 0x22 */
+#define PCF8574_I2C_ADDR_3    0b00100011     /* A2=0 A1=1 A0=1 0x23 */
+#define PCF8574_I2C_ADDR_4    0b00100100     /* A2=1 A1=0 A0=0 0x24 */
+#define PCF8574_I2C_ADDR_5    0b00100101     /* A2=1 A1=0 A0=1 0x25 */
+#define PCF8574_I2C_ADDR_6    0b00100110     /* A2=1 A1=1 A0=0 0x26 */
+#define PCF8574_I2C_ADDR_7    0b00100111     /* A2=1 A1=1 A0=1 0x27 */
+
+/* PCF8574A I2C slave addreses */
+#define PCF8574A_I2C_ADDR_0   0b00111000     /* A2=0 A1=0 A0=0 0x38 */
+#define PCF8574A_I2C_ADDR_1   0b00111001     /* A2=0 A1=0 A0=1 0x39 */
+#define PCF8574A_I2C_ADDR_2   0b00111010     /* A2=0 A1=1 A0=0 0x3a */
+#define PCF8574A_I2C_ADDR_3   0b00111011     /* A2=0 A1=1 A0=1 0x3b */
+#define PCF8574A_I2C_ADDR_4   0b00111100     /* A2=1 A1=0 A0=0 0x3c */
+#define PCF8574A_I2C_ADDR_5   0b00111101     /* A2=1 A1=0 A0=1 0x3d */
+#define PCF8574A_I2C_ADDR_6   0b00111110     /* A2=1 A1=1 A0=0 0x3e */
+#define PCF8574A_I2C_ADDR_7   0b00111111     /* A2=1 A1=1 A0=1 0x3f */
+
 
 /*
  *  local variables
@@ -539,7 +570,8 @@ void LCD_DisplaySetup(void)
   uint8_t           Bits;            /* port bits */  
 
   /*
-   *  first we have to send three times:
+   *  first we have to send the "function set" command three times
+   *  - CMD_FUNCTION_SET | FLAG_INTERFACE_8BIT -> 0b0011xxxx
    *  - RW, RS and R/W unset
    *  - DB4 and DB5 set
    */
@@ -560,13 +592,14 @@ void LCD_DisplaySetup(void)
 
   /*
    *  init 4 bit mode
+   *  - CMD_FUNCTION_SET | FLAG_INTERFACE_4BIT -> 0b0010xxxx
+   *  - same as above besides DB4
    */
 
-  MilliSleep(1);
-  /* function set: DB5 set (to switch from 8 to 4 bit mode) */
+  MilliSleep(1);                        /* wait 1ms */
   Bits = (1 << LCD_LED) | (1 << LCD_DB5);
   LCD_Write(Bits);
-  MilliSleep(1);
+  MilliSleep(1);                        /* wait 1ms */
 }
 
 
@@ -641,7 +674,6 @@ void LCD_Clear(void)
 
 /*
  *  initialize LCD
- *  - for 4bit mode
  */
  
 void LCD_Init(void)
@@ -685,8 +717,8 @@ void LCD_Init(void)
   LCD_Clear();
 
   /* update character maximums */
-  UI.CharMax_X = LCD_CHAR_X;
-  UI.CharMax_Y = LCD_CHAR_Y;
+  UI.CharMax_X = LCD_CHAR_X;       /* characters per line */
+  UI.CharMax_Y = LCD_CHAR_Y;       /* lines */
 }
 
 
@@ -695,11 +727,11 @@ void LCD_Init(void)
  *  set LCD character position
  *  - since we can't read the LCD and don't use a RAM buffer
  *    we have to move page-wise in y direction
- *  - top left: 0/0
+ *  - top left: 1/1
  *
  *  requires:
- *  - x:  horizontal position 
- *  - y:  vertical position
+ *  - x:  horizontal position (1-)
+ *  - y:  vertical position (1-)
  */
 
 void LCD_CharPos(uint8_t x, uint8_t y)
@@ -711,8 +743,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   UI.CharPos_Y = y;
 
   /*
-   *  vertical position
-   *
+   *  vertical start address
    *  Line 1: 0x00
    *  Line 2: 0x40
    *  Line 3: 0x14
@@ -730,7 +761,6 @@ void LCD_CharPos(uint8_t x, uint8_t y)
 
   /*
    *  horizontal position
-   *
    *  line address + horizontal position
    */
 
@@ -760,7 +790,7 @@ void LCD_ClearLine(uint8_t Line)
     n = UI.CharPos_X;         /* current character position */
     n--;                      /* starts at 0 */
   }
-  else                   /* standard case: some line */
+  else                   /* standard case: specified line */
   {
     LCD_CharPos(1, Line);     /* go to beginning of line */
   }
