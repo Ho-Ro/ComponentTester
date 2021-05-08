@@ -695,7 +695,7 @@ void ShowResistor(void)
     lcd_space();
     DisplayValue(R2->Value, R2->Scale, LCD_CHAR_OMEGA);
   }
-  #ifdef FLASH_32K
+  #ifdef EXTRA
   else             /* single resistor */
   {
     /* get inductance and display if relevant */
@@ -772,6 +772,12 @@ int main(void)
   MCUCR = (1 << PUD);                        /* disable pull-up resistors globally */
   ADCSRA = (1 << ADEN) | ADC_CLOCK_DIV;      /* enable ADC and set clock divider */
 
+  #ifdef HW_RELAY
+  /* init relay (safe mode) */
+                                      /* ADC_PORT should be 0 */
+  ADC_DDR = (1 << TP_REF);            /* short circuit probes */
+  #endif
+
   /* catch watchdog */  
   Test = (MCUSR & (1 << WDRF));         /* save watchdog flag */
   MCUSR &= ~(1 << WDRF);                /* reset watchdog flag */
@@ -811,10 +817,10 @@ int main(void)
   lcd_fixed_customchar(ResIcon1, LCD_CHAR_RESIS1);     /* resistor symbol '[' */
   lcd_fixed_customchar(ResIcon2, LCD_CHAR_RESIS2);     /* resistor symbol ']' */
 
-  /* kyrillish LCD character set lacks omega and µ */ 
   #ifdef LCD_CYRILLIC
-    lcd_fixed_customchar(OmegaIcon, LCD_CHAR_OMEGA);   /* Omega */
-    lcd_fixed_customchar(MicroIcon, LCD_CHAR_MICRO);   /* µ / micro */
+  /* kyrillish LCD character set lacks omega and µ */
+  lcd_fixed_customchar(OmegaIcon, LCD_CHAR_OMEGA);     /* Omega */
+  lcd_fixed_customchar(MicroIcon, LCD_CHAR_MICRO);     /* µ / micro */
   #endif
 
   /* return to normal output */
@@ -836,14 +842,15 @@ int main(void)
       Config.TesterMode = MODE_AUTOHOLD;     /* set auto-hold mode */
   }
 
-  /* output operation mode */
-  lcd_fixed_string(Mode_str);                /* display: tester mode */
-  lcd_line(2);                               /* move to line #2 */
-  if (Config.TesterMode == MODE_CONTINOUS)   /* if continous mode */
-    lcd_fixed_string(Continous_str);           /* display: continous */
-  else                                       /* if auto-hold mode */
-    lcd_fixed_string(AutoHold_str);            /* display: auto-hold */
-  MilliSleep(2000);                          /* give user some time to read */
+
+  /*
+   *  welcome user
+   */
+
+  lcd_fixed_string(Tester_str);         /* display: Component Tester */
+  lcd_line(2);                          /* move to line #2 */
+  lcd_fixed_string(Version_str);        /* display firmware version */
+  MilliSleep(1000);                     /* let the user read the display */
 
 
   /*
@@ -858,6 +865,7 @@ int main(void)
   Config.Samples = ADC_SAMPLES;         /* number of ADC samples */
   Config.AutoScale = 1;                 /* enable ADC auto scaling */
   Config.RefFlag = 1;                   /* no ADC reference set yet */
+  Config.Vcc = UREF_VCC;                /* voltage of Vcc */
   LoadAdjust();                         /* load adjustment values */
 
   wdt_enable(WDTO_2S);		        /* enable watchdog (timeout 2s) */
@@ -879,23 +887,42 @@ start:
   BJT.I_CE0 = 0;
 
   /* reset hardware */
-  ADC_DDR = 0;                     /* set all pins of ADC port as input */ 
+  ADC_DDR = 0;                     /* set all pins of ADC port as input */
+                                   /* also remove short circuit by relay */
   lcd_clear();                     /* clear LCD */
 
+
+  /*
+   *  voltage reference
+   */
+
+  #ifdef HW_REF25
+  /* external 2.5V reference */
+  Config.Samples = 200;            /* do a lot of samples for high accuracy */
+  U_Bat = ReadU(TP_REF);           /* read voltage of reference (mV) */
+  Config.Samples = ADC_SAMPLES;    /* set samples back to default */
+
+  if ((U_Bat > 2250) && (U_Bat < 2750))   /* check for valid reference */
+  {
+    uint32_t        Temp;
+
+    /* adjust Vcc (assuming 2.495V typically) */
+    Temp = ((uint32_t)Config.Vcc * UREF_25) / U_Bat;
+    Config.Vcc = (unsigned int)Temp;
+  }
+  #endif
+
   /* internal bandgap reference */
-  Config.U_Bandgap = ReadU(0x0e);       /* dummy read for bandgap stabilization */
+  Config.Bandgap = ReadU(0x0e);         /* dummy read for bandgap stabilization */
   Config.Samples = 200;                 /* do a lot of samples for high accuracy */
-  Config.U_Bandgap = ReadU(0x0e);       /* get voltage of bandgap reference */
+  Config.Bandgap = ReadU(0x0e);         /* get voltage of bandgap reference (mV) */
   Config.Samples = ADC_SAMPLES;         /* set samples back to default */
-  Config.U_Bandgap += Config.RefOffset; /* add voltage offset */ 
+  Config.Bandgap += Config.RefOffset;   /* add voltage offset */ 
 
 
   /*
    *  battery check
    */
-
-  /* get current voltage */
-  U_Bat = ReadU(5);                     /* read voltage of ADC5 in mV */
 
   /*
    *  ADC pin is connected to a voltage divider Rh = 10k and Rl = 3k3.
@@ -903,6 +930,8 @@ start:
    *  Uin = (Ul * (10k + 3k3)) / 3k3 = 4 * Ul  
    */
 
+  /* get current voltage */
+  U_Bat = ReadU(TP_BAT);                /* read voltage (mV) */
   U_Bat *= 4;                           /* calculate U_bat (mV) */
   U_Bat += BAT_OFFSET;                  /* add offset for voltage drop */
 
@@ -1040,6 +1069,10 @@ result:
 
 end:
 
+  #ifdef HW_RELAY
+  ADC_DDR = (1<<TP_REF);              /* short circuit probes */
+  #endif
+
   /* get key press or timeout */
   Test = TestKey((unsigned int)CYCLE_DELAY, 12);
 
@@ -1051,6 +1084,10 @@ end:
 
     if (Test > 0)           /* short or long key press */
     {
+      #ifdef HW_RELAY
+      ADC_DDR = 0;               /* remove short circuit */
+      #endif
+
       MainMenu();                /* enter main menu */
       goto end;                  /* re-run cycle control */
     }
@@ -1073,10 +1110,6 @@ power_off:
 
   /* display feedback (otherwise the user will wait :-) */
   lcd_clear();
-  lcd_fixed_string(Version_str);        /* display firmware version */
-  lcd_line(2);
-  lcd_fixed_string(Done_str);           /* display: done! */
-  MilliSleep(1000);                     /* let the user read the text */
 
   wdt_disable();                        /* disable watchdog */
   CONTROL_PORT &= ~(1 << POWER_CTRL);   /* power off myself */

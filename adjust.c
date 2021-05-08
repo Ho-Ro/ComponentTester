@@ -339,21 +339,21 @@ uint8_t SelfAdjust(void)
           ADC_PORT = 1 << TP1;
           ADC_DDR = 1 << TP1;
           R_DDR = 1 << (TP1 * 2);
-          Val1 = UREF_VCC - ReadU_5ms(TP1);
+          Val1 = Config.Vcc - ReadU_5ms(TP1);
           U_RiH += Val1;
 
           /* TP2: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */
           ADC_PORT = 1 << TP2;
           ADC_DDR = 1 << TP2;
           R_DDR = 1 << (TP2 * 2);
-          Val2 = UREF_VCC - ReadU_5ms(TP2);
+          Val2 = Config.Vcc - ReadU_5ms(TP2);
           U_RiH += Val2;
 
           /* TP3: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */
           ADC_PORT = 1 << TP3;
           ADC_DDR = 1 << TP3;
           R_DDR = 1 << (TP3 * 2);
-          Val3 = UREF_VCC - ReadU_5ms(TP3);
+          Val3 = Config.Vcc - ReadU_5ms(TP3);
           U_RiH += Val3;
 
           RiH_Counter += 3;
@@ -468,7 +468,7 @@ uint8_t SelfAdjust(void)
     /* use values multiplied by 3 to increase accuracy */    
     U_RiL /= 5;                         /* average sum of 3 U_RiL */
     U_RiH /= 5;                         /* average sum of 3 U_RiH */
-    Val1 = (UREF_VCC * 3) - U_RiL - U_RiH;  /* U_Rl * 3 */
+    Val1 = (Config.Vcc * 3) - U_RiL - U_RiH;  /* U_Rl * 3 */
 
     /* RiL */
     Val0 = ((unsigned long)R_LOW * 100 * U_RiL) / Val1; /* Rl * U_Ri / U_Rl in 0.01 Ohm */
@@ -496,6 +496,7 @@ uint8_t SelfAdjust(void)
 
   if (Flag == 4) Flag = 1;         /* all adjustments done -> success */
   else Flag = 0;                   /* signal error */
+
   return Flag;
 }
 
@@ -572,18 +573,18 @@ uint8_t SelfTest(void)
           R_PORT = 1 << (TP1 * 2);
           R_DDR = (1 << (TP1 * 2)) | (1 << (TP2 * 2));
           Val1 = ReadU_20ms(TP3);
-          Val1 -= ((long)UREF_VCC * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          Val1 -= ((long)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
 
           /* TP1: Gnd -- Rl -- probe-3 -- probe-1 -- Rl -- Vcc */
           R_DDR = (1 << (TP1 * 2)) | (1 << (TP3 * 2));
           Val2 = ReadU_20ms(TP2);
-          Val2 -= ((long)UREF_VCC * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          Val2 -= ((long)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
 
           /* TP1: Gnd -- Rl -- probe-3 -- probe-2 -- Rl -- Vcc */
           R_PORT = 1 << (TP2 * 2);
           R_DDR = (1 << (TP2 * 2)) | (1 << (TP3 * 2));
           Val3 = ReadU_20ms(TP2);
-          Val3 -= ((long)UREF_VCC * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          Val3 -= ((long)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
 
           break;
 
@@ -598,18 +599,18 @@ uint8_t SelfTest(void)
           R_PORT = 2 << (TP1 * 2);
           R_DDR = (2 << (TP1 * 2)) | (2 << (TP2 * 2));
           Val1 = ReadU_20ms(TP3);
-          Val1 -= (UREF_VCC / 2);
+          Val1 -= (Config.Vcc / 2);
 
           /* TP1: Gnd -- Rh -- probe-3 -- probe-1 -- Rh -- Vcc */
           R_DDR = (2 << (TP1 * 2)) | (2 << (TP3 * 2));
           Val2 = ReadU_20ms(TP2);
-          Val2 -= (UREF_VCC / 2);
+          Val2 -= (Config.Vcc / 2);
 
           /* TP1: Gnd -- Rh -- probe-3 -- probe-2 -- Rh -- Vcc */
           R_PORT = 2 << (TP2 * 2);
           R_DDR = (2 << (TP2 * 2)) | (2 << (TP3 * 2));
           Val3 = ReadU_20ms(TP1);
-          Val3 -= (UREF_VCC / 2);
+          Val3 -= (Config.Vcc / 2);
 
           break;
 

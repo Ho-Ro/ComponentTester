@@ -135,7 +135,7 @@ unsigned int SmallResistor(uint8_t ZeroFlag)
     }
 
     /* convert ADC reading to voltage */
-    Value *= Config.U_Bandgap;
+    Value *= Config.Bandgap;
     Value /= 1024;                 /* / 1024 for 10bit ADC */
     Value /= 10;                   /* de-sample to 0.1mV */
 
@@ -160,7 +160,7 @@ unsigned int SmallResistor(uint8_t ZeroFlag)
   if (Value1 > Value2)             /* sanity check */
   {
     /* I = U/R = (5V - U_Rl)/(Rl + R_i_H) */
-    Value = 10UL * UREF_VCC;                 /* in 0.1 mV */
+    Value = 10UL * Config.Vcc;               /* in 0.1 mV */
     Value -= Value1;
     Value *= 1000;                           /* scale to µA */
     Value /= ((R_LOW * 10) + Config.RiH);    /* in 0.1 Ohms */
@@ -204,21 +204,21 @@ void CheckResistor(void)
   unsigned long     Value;              /* resistance value */
   unsigned long     Temp;               /* temp. value */
   int8_t            Scale;              /* resistance scale */
-  int8_t            Scale2;             /* resistance scale */ 
   uint8_t           n;                  /* counter */
 
   /* voltages */
-  unsigned int      U_Rl_H;             /* voltage #1 */
-  unsigned int      U_Ri_L;             /* voltage #2 */
-  unsigned int      U_Rl_L;             /* voltage #3 */
-  unsigned int      U_Ri_H;             /* voltage #4 */
-  unsigned int      U_Rh_H;             /* voltage #5 */
-  unsigned int      U_Rh_L;             /* voltage #6 */
+  unsigned int      U_Rl_H;             /* voltage at Rl pulled up */
+  unsigned int      U_Rl_L;             /* voltage at Rl pulled down */
+  unsigned int      U_Ri_H;             /* voltage at Ri oulled up */
+  unsigned int      U_Ri_L;             /* voltage at Ri pulled down */
+  unsigned int      U_Rh_H;             /* voltage at Rh pulled up */
+  unsigned int      U_Rh_L;             /* voltage ar Rh pulled down */
 
   wdt_reset();                     /* reset watchdog */
 
   /*
    *  resistor measurement
+   *  - We assume: resistor between probe-1 and probe-2
    *  - Set up a voltage divider with well known probe resistors and
    *    measure the voltage at the DUT.
    *  - For low resistance consider the internal resistors of the µC
@@ -227,30 +227,34 @@ void CheckResistor(void)
    *    at the DUT.
    *  - We could also use the voltage divider rule:
    *    (Ra / Rb) = (Ua / Ub) -> Ra = Rb * (Ua / Ub)
-   */
-
-
-  /*
-   *  check if we got a resistor
    *  - A resistor has the same resistance in both directions.
    *  - We measure both directions with both probe resistors.
    */
 
-  /* we assume: resistor between probe-1 and probe-2 */
-  /* set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc */
-  ADC_PORT = 0;                         /* set ADC port low low */
+
+  /*
+   *  check for a capacitor
+   *  - Apply current to charge a possible capacitor.
+   *  - Then discharge possible capacitor by Rh and measure voltage.
+   *  - A capacitor would need some time to discharge but for
+   *    a resistor the voltage would drop immediately.
+   */
+
+  /* 
+   *  Charge possible capacitor and get voltages for Rl pulled up.
+   */
+
+  /*  set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc */
+  ADC_PORT = 0;                         /* set ADC port to low */
   ADC_DDR = Probes.ADC_2;               /* pull down probe-2 directly */
   R_DDR = Probes.Rl_1;                  /* enable Rl for probe-1 */
   R_PORT = Probes.Rl_1;                 /* pull up probe-1 via Rl */
-  U_Ri_L = ReadU_5ms(Probes.Pin_2);     /* get voltage at internal R of µC */
+  U_Ri_L = ReadU_5ms(Probes.Pin_2);     /* get voltage at internal R of MCU */
   U_Rl_H = ReadU(Probes.Pin_1);         /* get voltage at Rl pulled up */
 
 
   /*
-   *  check for a capacitor
-   *  - A capacitor would need some time to discharge.
-   *  - So we pull down probe-1 via Rh and measure the voltage.
-   *  - The voltage will drop immediately for a resistor.
+   *  discharge possible capacitor
    */
 
   /* set probes: Gnd -- probe-2 / Gnd -- Rh -- probe-1 */
@@ -261,9 +265,18 @@ void CheckResistor(void)
   /* we got a resistor if the voltage is near Gnd */
   if (U_Rh_L <= 20)
   {
+    /*
+     *  get voltage at Rh pulled up
+     */
+
     /* set probes: Gnd -- probe-2 / probe-1 -- Rh -- Vcc */
     R_PORT = Probes.Rh_1;                    /* pull up probe-1 via Rh */
     U_Rh_H = ReadU_5ms(Probes.Pin_1);        /* get voltage at Rh pulled up */
+
+
+    /*
+     *  get voltage at Rl pulled down and Rh pulled down
+     */
 
     /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
     ADC_DDR = Probes.ADC_1;                  /* set probe-1 to output */
@@ -278,7 +291,7 @@ void CheckResistor(void)
     U_Rh_L = ReadU_5ms(Probes.Pin_2);   /* get voltage at Rh pulled down */
 
     /* if voltage breakdown is sufficient */
-    if ((U_Rl_H >= 4400) || (U_Rh_H <= 97))   /* R >= 5.1k / R < 9.3k */
+    if ((U_Rl_H >= 4400) || (U_Rh_H <= 97))   /* R >= 5.1k or R < 9.3k */
     {
       if (U_Rh_H < 4972)            /* R < 83.4M & prevent division by zero */
       {
@@ -308,7 +321,7 @@ void CheckResistor(void)
              */
 
             Value1 = R_HIGH * U_Rh_H;
-            Value1 /= (UREF_VCC - U_Rh_H);
+            Value1 /= (Config.Vcc - U_Rh_H);
 
             /*
              *  Rh pulled down (below DUT):
@@ -321,7 +334,7 @@ void CheckResistor(void)
              *    = Rh * ((Vcc - U_Rh_L) / U_Rh_L)
              */
 
-            Value2 = R_HIGH * (UREF_VCC - U_Rh_L);
+            Value2 = R_HIGH * (Config.Vcc - U_Rh_L);
             Value2 /= U_Rh_L;
 
             /*
@@ -377,10 +390,10 @@ void CheckResistor(void)
              *    = (Rl + RiH) * (U_R_RiL / (Vcc - U_dut_RiL)) - RiL
              */
 
-            if (U_Rl_H == UREF_VCC) U_Rl_H = UREF_VCC - 1;   /* prevent division by zero */
+            if (U_Rl_H == Config.Vcc) U_Rl_H = Config.Vcc - 1;   /* prevent division by zero */
             Value1 = (R_LOW * 10) + Config.RiH;        /* Rl + RiH in 0.1 Ohm */
             Value1 *= (U_Rl_H - U_Ri_L);
-            Value1 /= (UREF_VCC - U_Rl_H);
+            Value1 /= (Config.Vcc - U_Rl_H);
 
             /*
              *  Rl pulled down (below DUT):
@@ -447,9 +460,8 @@ void CheckResistor(void)
 
           if (Value < 100UL)
           {
-            /* run low resistance measurement */
+            /* run low resistance measurement (in 0.01 Ohms) */
             Value2 = (unsigned long)SmallResistor(1);
-            Scale2 = -2;                     /* 0.01 Ohm */
 
             /* check for valid result */
             Value1 = Value * 2;         /* allow 100% tolerance */       
@@ -458,7 +470,7 @@ void CheckResistor(void)
             if (Value1 > Value2)        /* got expected value */
             {
               Value = Value2;           /* update data */
-              Scale = Scale2;
+              Scale = -2;               /* 0.01 Ohm */
             }
           }
 

@@ -102,7 +102,8 @@ typedef struct
   uint8_t           Samples;       /* number of ADC samples */
   uint8_t           AutoScale;     /* flag to disable/enable ADC auto scaling */
   uint8_t           RefFlag;       /* internal control flag for ADC */
-  uint16_t          U_Bandgap;     /* voltage of internal bandgap reference (mV) */
+  uint16_t          Bandgap;       /* voltage of internal bandgap reference (mV) */
+  uint16_t          Vcc;           /* voltage of Vcc (mV) */
   uint16_t          RiL;           /* internal pin resistance of µC in low mode (0.1 Ohms) */
   uint16_t          RiH;           /* internal pin resistance of µC in high mode (0.1 Ohms) */
   uint16_t          RZero;         /* resistance of probe leads (2 in series) (0.01 Ohms) */

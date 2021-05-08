@@ -74,6 +74,8 @@ uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
   uint8_t           Flag = 0;      /* return value */
   unsigned int      U1;            /* voltage at probe #1 in mV */
   unsigned int      U2;            /* voltage at probe #2 in mV */
+  unsigned int      Min;           /* lower threshold */
+  unsigned int      Max;           /* upper threshold */
 
   /*
    *  Set up a voltage divider between the two probes:
@@ -94,9 +96,12 @@ uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
    *  to be half of Vcc (allowed difference +/- 30mV).
    */
 
-  if ((U1 > UREF_VCC/2 - 30) && (U1 < UREF_VCC/2 + 30))
+  Min = (Config.Vcc / 2) - 30;     /* lower voltage */
+  Max = (Config.Vcc / 2) + 30;     /* upper voltage */
+
+  if ((U1 > Min) && (U1 < Max))
   { 
-    if ((U2 > UREF_VCC/2 - 30) && (U2 < UREF_VCC/2 + 30))
+    if ((U2 > Min) && (U2 < Max))
     {
       Flag = 1;
     }    
@@ -318,7 +323,7 @@ unsigned int GetFactor(unsigned int U_in, uint8_t ID)
     TabIndex = 42;                 /* entries in table - 2 */
     Table = (uint16_t *)&LargeCap_table[0];    /* pointer to table start */
   }
-  #ifdef FLASH_32K
+  #ifdef EXTRA
   else if (ID == TABLE_INDUCTOR)
   {
     TabStart = 200;                /* table starts at 200 */

@@ -41,7 +41,7 @@
  *
  *  requires:
  *  - Probe: input channel of ADC MUX (lower 4 bits)
- *           may also include setting of voltage reference  
+ *           may also include setting of voltage reference
  *
  */
 
@@ -51,7 +51,8 @@ unsigned int ReadU(uint8_t Probe)
   uint8_t           Counter;       /* loop counter */
   unsigned long     Value;         /* ADC value */
 
-  Probe |= (1 << REFS0);           /* use internal reference anyway */
+  Probe |= (1 << REFS0);           /* use external buffer cap anyway */
+                                   /* and AVcc as default */
 
 sample:
 
@@ -104,8 +105,8 @@ sample:
    */
 
   /* get voltage of reference used */
-  if (Probe & (1 << REFS1)) U = Config.U_Bandgap;   /* bandgap reference */
-  else U = UREF_VCC;                                /* Vcc reference */   
+  if (Probe & (1 << REFS1)) U = Config.Bandgap;   /* bandgap reference */
+  else U = Config.Vcc;                            /* Vcc reference */   
 
   /* convert to voltage; */
   Value *= U;                      /* ADC readings * U_ref */

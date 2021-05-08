@@ -50,7 +50,7 @@
   BJT_Type          BJT;                     /* bipolar junction transistor */
   FET_Type          FET;                     /* FET */
 
-  #ifdef FLASH_32K
+  #ifdef EXTRA
     Inductor_Type   Inductor;                /* inductor */
   #endif
 
@@ -66,6 +66,7 @@
   const uint8_t     NV_CapZero EEMEM = C_ZERO;
   const int8_t      NV_RefOffset EEMEM = UREF_OFFSET;
   const int8_t      NV_CompOffset EEMEM = COMPARATOR_OFFSET;
+//  const int8_t      NV_Flags EEMEM = 0;
   const uint8_t     NV_Checksum EEMEM = (uint8_t)(CHECKSUM);
 
 
@@ -75,9 +76,6 @@
 
   /* language specific: German */
   #if defined (UI_GERMAN)
-    const unsigned char Mode_str[] EEMEM = "Modus:";
-    const unsigned char Continous_str[] EEMEM = "Fortlaufend";
-    const unsigned char AutoHold_str[] EEMEM = "Einzelschritt";
     const unsigned char Running_str[] EEMEM = "Suche...";
     const unsigned char Weak_str[] EEMEM = "schwach";
     const unsigned char Low_str[] EEMEM = "leer";
@@ -97,6 +95,7 @@
     const unsigned char ShortCircuit_str[] EEMEM = "Kurzschluss!";
     const unsigned char DischargeFailed_str[] EEMEM = "Batterie?";
     const unsigned char Error_str[] EEMEM = "Fehler!";
+    const unsigned char Exit_str[] EEMEM = "Abbrechen";
 
   /* language specific: another language */
   #elif defined (UI_WHATEVER)
@@ -104,9 +103,6 @@
 
   /* language specific: English (default) */
   #else
-    const unsigned char Mode_str[] EEMEM = "Mode:";
-    const unsigned char Continous_str[] EEMEM = "Continous";
-    const unsigned char AutoHold_str[] EEMEM = "Auto Hold";
     const unsigned char Running_str[] EEMEM = "Probing...";
     const unsigned char Weak_str[] EEMEM = "weak";
     const unsigned char Low_str[] EEMEM = "low";
@@ -126,9 +122,11 @@
     const unsigned char ShortCircuit_str[] EEMEM = "Short Circuit!";
     const unsigned char DischargeFailed_str[] EEMEM = "Battery?";
     const unsigned char Error_str[] EEMEM = "Error!";
+    const unsigned char Exit_str[] EEMEM = "Exit";
   #endif
 
   /* language independent */
+  const unsigned char Tester_str[] EEMEM = "Component Tester";
   const unsigned char Battery_str[] EEMEM = "Bat.";
   const unsigned char OK_str[] EEMEM = "ok";
   const unsigned char MOS_str[] EEMEM = "MOS";
@@ -166,13 +164,20 @@
   const unsigned char PWM_str[] EEMEM = "PWM";
   const unsigned char Hertz_str[] EEMEM = "Hz";
 
+  #ifdef EXTRA
+    #ifdef HW_ZENER
+      const unsigned char Zener_str[] EEMEM = "Zener";
+      const unsigned char Min_str[] EEMEM = "Min";
+    #endif
+  #endif
+
   const unsigned char Cap_str[] EEMEM = {'-',LCD_CHAR_CAP, '-',0};
   const unsigned char Diode_AC_str[] EEMEM = {'-', LCD_CHAR_DIODE1, '-', 0};
   const unsigned char Diode_CA_str[] EEMEM = {'-', LCD_CHAR_DIODE2, '-', 0};
   const unsigned char Diodes_str[] EEMEM = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
 
-  const unsigned char Version_str[] EEMEM = "v1.09m";
+  const unsigned char Version_str[] EEMEM = "v1.10m";
 
 
   /*
@@ -224,7 +229,7 @@
 //const uint16_t SmallCap_table[] MEM_TEXT = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
 
   /* ratio based factors for inductors */
-  #ifdef FLASH_32K
+  #ifdef EXTRA
     /* ratio:                                    200   225   250   275   300   325   350   375   400   425   450   475   500   525   550   575   600   625  650  675  700  725  750  775  800  825  850  875  900  925  950  975 */
     const uint16_t Inductor_table[] MEM_TEXT = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
   #endif
@@ -278,7 +283,7 @@
   extern BJT_Type        BJT;                     /* bipolar junction transistor */
   extern FET_Type        FET;                     /* FET */
 
-  #ifdef FLASH_32K
+  #ifdef EXTRA
     extern Inductor_Type Inductor;                /* inductor */
   #endif
 
@@ -310,6 +315,7 @@
   extern const unsigned char ShortCircuit_str[];
   extern const unsigned char DischargeFailed_str[];
   extern const unsigned char Error_str[];
+  extern const unsigned char Exit_str[];
 
   extern const unsigned char URef_str[];
   extern const unsigned char RhLow_str[];
@@ -325,6 +331,13 @@
   extern const unsigned char Checksum_str[];
   extern const unsigned char PWM_str[];
   extern const unsigned char Hertz_str[];
+
+  #ifdef EXTRA
+    #ifdef HW_ZENER
+      extern const unsigned char Zener_str[];
+      extern const unsigned char Min_str[];
+    #endif
+  #endif
 
 
   /*
@@ -344,7 +357,7 @@
   extern const uint16_t SmallCap_table[];
 
   /* voltage based factors for inductors */
-  #ifdef FLASH_32K
+  #ifdef EXTRA
     extern const uint16_t Inductor_table[];
   #endif
 

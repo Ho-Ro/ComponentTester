@@ -85,7 +85,7 @@
   extern int8_t CmpValue(unsigned long Value1, int8_t Scale1,
     unsigned long Value2, int8_t Scale2);
 
-  #ifdef FLASH_32K
+  #ifdef EXTRA
     extern unsigned long RescaleValue(unsigned long Value, int8_t Scale, int8_t NewScale);
   #endif
 
@@ -95,6 +95,23 @@
   extern void ShortCircuit(uint8_t Mode);
   extern uint8_t TestKey(uint16_t Timeout, uint8_t Mode);
   extern void MainMenu(void);
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from extras.c
+ * ************************************************************************ */
+
+#ifndef EXTRAS_C
+
+  extern void PWM_Tool(uint16_t Frequency);
+
+  #ifdef EXTRA
+    #ifdef HW_ZENER
+      extern void Zener_Tool(void);
+    #endif
+  #endif
 
 #endif
 
@@ -138,7 +155,7 @@
 
 #ifndef INDUCTOR_C
 
-  #ifdef FLASH_32K
+  #ifdef EXTRA
     extern uint8_t MeasureInductor(Resistor_Type *Resistor);
   #endif
 

@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2013-07-16
+Last edit:  2013-10-17
 
 
 * About
@@ -24,6 +24,7 @@ just English and German, but can be changed or extended easily.
 Since the firmware's size exceeds 16kB Flash some features are only enabled
 for the ATmega328/P:
 - inductance measurement
+- Zener voltage measurement (hardware option)
 
 
 * Safety Advice
@@ -47,11 +48,19 @@ official release.
 * Building the firmware
 
 First edit the Makefile to specify your MCU model, frequency, oscilator
-type and programmer settings. All other settings moved to config.h.
+type and programmer settings. All other settings are moved to config.h.
 
 In config.h please choose the language for the UI and change any defaults
 if required. All defaults are explained in the file, so I won't discuss
-them here.
+them here. Hardware options are also enabled in configh.h:
+- 2.5V voltage reference
+- relay based cap discharger
+- Zener voltage measurement
+
+The external 2.5V voltage reference should be only enabled if it's at least
+10 times more precise than the voltage regulator. Otherwise it would make
+the results worse. If you're using a MCP1702 with a typical tolerance of
+0.4% as voltage regulator you really don't need a 2.5V voltage reference.
 
 
 * Source Code
@@ -72,7 +81,7 @@ If the tester expects you to press a key it will tell you that by displaying
 a cursor at the last position in the second row of the LCD (bottom right).
 A steady cursor signals that another information will be displayed and a
 blinking cursor informs you that the tester will resume the probing loop. The
-cursor is supressed for menus and the PWM tool, because it's obvious that
+cursor is supressed for menus and some tools, because it's obvious that
 a key press is neccessary.  
 
 
@@ -80,34 +89,46 @@ a key press is neccessary.
 
 A long key press while starting the tester selects the auto-hold mode. In that
 mode the tester waits for a short key press after displaying a result before
-it continues. Otherwise the tester chooses the continous (looping) mode by
-default. After powering on the tester displays the mode selected.
+it will continue. Otherwise the tester chooses the continous (looping) mode by
+default. After powering on the firmware version is shown briefly.
 
-After that the tester may display a checksum error, when it loads the saved
-adjustment values from the EEPROM and detects an error. That error indicates
+After that the tester may display a checksum error, if it detects an error
+while loading the saved adjustment values from the EEPROM. That error indicates
 a corrupted EEPROM, i.e. caused by too much write operations. In that case
 the default adjustment values from config.h will be used.
 
 
-* Probing Loop 
+* Probing
+
+After the startup the testers enters the probing mode and looks for a
+connected component. In continous mode it will automatically repeat the
+probing after a short pause. If no component is found for several times the
+tester will power itself off. In auto-hold mode (signaled by cursor) the
+tester runs one round and waits for a key press.
+
+In both modes you can enter a menu with additional functions or power off
+the tester. For details please see below.
+
+
+* Power Off 
 
 While displaying the result of the last test a long key press powers the
-tester off. The tester will display a short goodbye message and then power
-off. As long as you press the key the tester stays powered on and displays the
-message. That is caused by the implementaion of the power control circuit.
+tester off. The tester will clear the display and then power off. As long
+as you press the key the tester stays powered on. This is caused by the
+implementaion of the power control circuit.
 
 
 * Menu
 
 By short-circuiting all three probes you'll trigger a menu which allows you
-to select some special functions (see below). A short key press shows the
-the next item in the menu and a long key press selects the shown item. At the 
-right side you'll see a '>' if another items follows or a '<' if the last
-item is reached (will roll over to the first menu item). 
-
-You can also enter the menu by two short key presses after the display of the
-last component found (also signaled by a blinking cursor in auto-hold mode).
+to select some special functions  You can also enter the menu by two short key
+presses after the display of the last component found or function performed.
 Simply press the test key twice quickly (might need some practice :-).
+
+While in the menu a short key press shows the the next item in the menu and a
+long key press selects the shown item. At the right side you'll see a '>' if
+another items follows or a '<' if the last item is reached (will roll over to
+the first menu item). 
 
 
 + PWM Tool
@@ -121,9 +142,23 @@ increases the ratio by 5%, a long key press decreases the ratio by 5%. To exit
 the PWM tool press the test key twice quickly.
 
 Configuration of the probes:
-
   Probe #2:         PWM output (with 680 Ohms resistor to limit current)
   Probe #1 and #3:  Ground
+
+
++ Zener Tool (hardware option)
+
+An onboard DC-DC boost converter creates a high test voltage for measuring the
+breakdown voltage of a Zener diode connected to dedicated probe pins. While
+the test button is pressed the boost converter runs and the tester displays
+the current voltage. After releasing the test button the minimum voltage
+measured is shown if the test button was pressed long enough for a stable test
+voltage. You may repeat this as long as you like :-) To exit the Zener tool
+press the test button twice quickly.
+
+Connect the Zener diode:
+   Probe +: cathode
+   Probe -: anode
 
 
 + Selftest
@@ -185,6 +220,11 @@ the old values are still stored. Just powercycle the tester.
 + Show Values
 
 This displays the current adjustments values and offsets used. 
+
+
++ Exit
+
+If you entered the menu by mistake you can exit it by this command.
 
 
 * Resistors

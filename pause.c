@@ -74,31 +74,33 @@ void MilliSleep(uint16_t Time)
       We don't compensate the binary to decimal offset and also not the time
       required for the processing loop, because it would make things much more
       complicated and we don't need exact timing here.
-   */
-
-  /* calculate required timer cycles (prescaler 1024) */
-  Cycles = Time * (CPU_FREQ / 1000000);      /* timer cycles based on MCU frequency */
-
-
-  /*
-      After returning from the power down or power save sleep modes the
-      main oscillator needs following start-up times to stabilize:
-      - crystal oscillator:  16k cycles
-      - ceramic resonator:   1k or 256 cycles
-      - internal RC osc.:    6 cycles
-
-      In power save mode the external oscillator should be turned off. But if
-      timer2 is running in synchronous mode the oscillator keeps running. Even
-      though we have to consider the start-up time, Weird, isn't it?
-   */
+  */
 
   Mode = Config.SleepMode;              /* get requested sleep mode */
 
-  /* compensate oscillator start-up */
-  if (Mode == SLEEP_MODE_PWR_SAVE)
+  /* calculate required timer cycles (prescaler 1024) */
+  Cycles = Time * (CPU_FREQ / 1000000);    /* timer cycles based on MCU frequency */
+
+  if (Mode == SLEEP_MODE_PWR_SAVE)      /* power save mode */
   {
     uint32_t        Value;
 
+    /*
+     *  Based on the datasheet the main clock source is disabled in power save
+     *  mode and timer2 needs a watch crystal as clock source (asychronous
+     *  clock). Fortunately the main clock keeps running in power save mode and
+     *  will clock timer2 (synchronous clock). Undocumented feature?
+     */
+
+    /*
+     *  After returning from the power down or power save sleep modes the
+     *  main oscillator needs following start-up times to stabilize:
+     *  - crystal oscillator:  16k cycles
+     *  - ceramic resonator:   1k or 256 cycles
+     *  - internal RC osc.:    6 cycles
+     */
+
+    /* compensate oscillator start-up */
     Value = Cycles / 256;               /* calculate loop runs */
     Value++;                            /* fix offset by division */
     /* multiply with startup cycles equivalent to timer cycles */

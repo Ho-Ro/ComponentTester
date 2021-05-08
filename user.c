@@ -27,13 +27,6 @@
 #include "functions.h"        /* external functions */
 
 
-/*
- *  local functions
- */
-
-void PWM_Tool(uint16_t Frequency);
-
-
 
 /* ************************************************************************
  *   values and scales
@@ -128,7 +121,7 @@ int8_t CmpValue(unsigned long Value1, int8_t Scale1, unsigned long Value2, int8_
 
 
 
-#ifdef FLASH_32K
+#ifdef EXTRA
 
 /*
  *  rescale value
@@ -416,7 +409,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
     }
 
     /* check for key press */
-    /* test push button is low active */
+    /* push button is low active */
     if (!(CONTROL_PIN & (1 << TEST_BUTTON)))      /* if key is pressed */
     {
       Counter = 0;            /* reset counter */
@@ -588,28 +581,74 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
 void MainMenu(void)
 {
+  #ifdef EXTRA
+    #define MENU_ITEMS  7
+  #else
+    #define MENU_ITEMS  6  
+  #endif
+
+  uint8_t           Item = 0;           /* item number */
   uint8_t           Flag = 1;           /* control flag */
-  uint8_t           Selected;           /* ID of selected item */
   uint8_t           ID;                 /* ID of selected item */
   uint16_t          Frequency;          /* PWM frequency */  
-  void              *Menu[5];
+  void              *MenuItem[MENU_ITEMS];   /* menu item strings */
+  uint8_t           MenuID[MENU_ITEMS];      /* menu item IDs */
 
   /* setup menu */
-  Menu[0] = (void *)PWM_str;
-  Menu[1] = (void *)Selftest_str;
-  Menu[2] = (void *)Adjustment_str;
-  Menu[3] = (void *)Save_str;
-  Menu[4] = (void *)Show_str;
+  MenuItem[Item] = (void *)PWM_str;
+  MenuID[Item] = 5;
+  #ifdef EXTRA
+    #ifdef HW_ZENER
+  Item++;
+  MenuItem[Item] = (void *)Zener_str;
+  MenuID[Item] = 6;
+    #endif
+  #endif
+  Item++;
+  MenuItem[Item] = (void *)Selftest_str;
+  MenuID[Item] = 1;
+  Item++;
+  MenuItem[Item] = (void *)Show_str;
+  MenuID[Item] = 4;
+  Item++;
+  MenuItem[Item] = (void *)Adjustment_str;
+  MenuID[Item] = 2;
+  Item++;  
+  MenuItem[Item] = (void *)Save_str;
+  MenuID[Item] = 3;
+  Item++;
+  MenuItem[Item] = (void *)Exit_str;
+  MenuID[Item] = 0;
 
   /* run menu */
   lcd_clear();
-  lcd_fixed_string(Select_str);
-  Selected = MenuTool(5, 1, Menu, NULL);
+  lcd_fixed_string(Select_str);              /* display "Select" */
+  Item++;                                    /* add 1 for item #0 */
+  ID = MenuTool(Item, 1, MenuItem, NULL);
+  ID = MenuID[ID];
 
   /* run selected item */
-  switch (Selected)
+  switch (ID)
   {
-    case 0:              /* PWM tool */
+    /* case 0:              exit menu */
+
+    case 1:              /* self-test */
+      Flag = SelfTest();
+      break;
+
+    case 2:              /* self-adjustment */
+      Flag = SelfAdjust();
+      break;
+
+    case 3:              /* safe self-adjustment values */
+      SafeAdjust();
+      break;
+
+    case 4:              /* show self-adjustment values */
+      ShowAdjust();
+      break;
+
+    case 5:              /* PWM tool */
       /* run PWM menu */
       lcd_clear();
       lcd_fixed_string(PWM_str);
@@ -618,174 +657,23 @@ void MainMenu(void)
       PWM_Tool(Frequency);                             /* and run PWM tool */
       break;
 
-    case 1:              /* self test */
-      Flag = SelfTest();
+    #ifdef EXTRA
+      #ifdef HW_ZENER
+    case 6:              /* Zener tool */
+      Zener_Tool();
       break;
-
-    case 2:              /* self adjustment */
-      Flag = SelfAdjust();
-      break;
-
-    case 3:              /* safe self adjument values */
-      SafeAdjust();
-      break;
-
-    case 4:              /* show self adjument values */
-      ShowAdjust();
-      break;
+      #endif
+    #endif
   }
 
   /* display end of item */
   lcd_clear();
-  if (Flag == 1)
-    lcd_fixed_string(Done_str);           /* display: done! */
-  else
+  if (Flag == 0)
     lcd_fixed_string(Error_str);          /* display: error! */
-}
+  else
+    lcd_fixed_string(Done_str);           /* display: done! */
 
-
-
-/* ************************************************************************
- *   extras
- * ************************************************************************ */
-
-
-/*
- *  PWM tool
- *  - use probe #2 (PB2, OC1B) as PWM output
- *    and probe #1 + probe #3 as ground
- *
- *  requires:
- *  - Freqency in Hz
- */
-
-void PWM_Tool(uint16_t Frequency)
-{
-  uint8_t           Test = 1;           /* loop control and user feedback */
-  uint8_t           Ratio;              /* PWM ratio */
-  uint8_t           Prescaler;          /* timer prescaler */
-  uint16_t          Top;                /* top value */
-  uint16_t          Toggle;             /* counter value to toggle output */
-  uint32_t          Value;              /* temporary value */
-
-  /*
-      fast PWM:             f = f_MCU / (prescaler * depth)
-      phase correct PWM:    f = f_MCU / (2 * prescaler * depth)
-      available prescalers: 1, 8, 64, 256, 1024
-      depth:                2^x (x is the bit depth)
-  */
-
-  ShortCircuit(0);                    /* make sure probes are not shorted */
-  lcd_clear();
-  lcd_fixed_string(PWM_str);          /* display: PWM */
-  lcd_data(' ');
-  DisplayValue(Frequency, 0, 'H');    /* display frequency */
-  lcd_data('z');                      /* make it Hz :-) */
-
-  R_PORT = 0;                         /* make probe #1 and #3 ground */
-  /* set all probes to output mode */
-  R_DDR = (1 << (TP1 * 2)) | (1 << (TP2 * 2)) | (1 << (TP3 * 2));
-
-
-  /*
-   *  calculate required prescaler and top value based on MCU clock
-   *
-   *    depth = f_MCU / (2 * prescaler * f_PWM)
-   */
-
-  Value = CPU_FREQ / 2;
-  Value /= Frequency;
-
-  if (Value > 2000000)        /* low frequency */
-  {
-    Value /= 256;
-    Prescaler = (1 << CS12);                 /* 256 */
-  }
-  else if (Value > 16000)     /* mid-range frequency */
-  {
-    Value /= 64;
-    Prescaler = (1 << CS11) | (1 << CS10);   /* 64 */    
-  }
-  else                        /* high frequency */
-  {
-    Prescaler = (1 << CS10);                 /* 1 */    
-  }
-
-  Top = (uint16_t)Value;
-
-
-  /*
-   *  setup timer1 for PWM
-   *  - PWM, phase correct, top value by OCR1A
-   */
-
-  Ratio = 50;                                /* default ratio is 50% */
-  Toggle = (Top / 2) - 1;                    /* compare value for 50% */
-  /* power save mode would disable timer1 */
-  Config.SleepMode = SLEEP_MODE_IDLE;        /* change sleep mode to Idle */
-
-  TCCR1B = 0;                                /* disable timer */
-  /* enable OC1B pin and set timer mode */
-  TCCR1A = (1 << WGM11) | (1 << WGM10) | (1 << COM1B1);
-  TCCR1B = (1 << WGM13);
-  TCNT1 = 0;                                 /* set counter to 0 */
-  OCR1A = Top - 1;                           /* set top value (-1) */
-  OCR1B = Toggle;                            /* set value to compare with */
-
-  /* enable counter by setting clock prescaler */
-  TCCR1B = (1 << WGM13) | Prescaler;
-
-
-  /*
-   *  ratio control
-   */
-
-  while (Test > 0)
-  {
-    /* show current ratio */
-    lcd_clear_line(2);
-    DisplayValue(Ratio, 0, '%');        /* show ratio in % */
-    MilliSleep(500);                    /* smooth UI */
-
-    /*
-        short key press -> increase ratio
-        long key press -> decrease ratio
-        two short key presses -> exit PWM
-     */
-
-    Test = TestKey(0, 0);               /* wait for user feedback */
-    if (Test == 1)                      /* short key press */
-    {
-      MilliSleep(50);                   /* debounce button a little bit longer */
-      Prescaler = TestKey(200, 0);      /* check for second key press */
-      if (Prescaler > 0)                /* second key press */
-      {
-        Test = 0;                         /* end loop */
-      }
-      else                              /* single key press */
-      {
-        if (Ratio <= 95) Ratio += 5;      /* +5% and limit to 100% */
-      }
-    }
-    else                                /* long key press */
-    {
-      if (Ratio >= 5) Ratio -= 5;         /* -5% and limit to 0% */
-    }
-
-    /* calculate toggle value: (depth * (ratio / 100)) - 1 */
-    Value = (uint32_t)Top * Ratio;
-    Value /= 100;
-    Toggle = (uint16_t)Value;
-    Toggle--;
-
-    OCR1B = Toggle;                     /* update compare value */
-  }
-
-  /* clean up */
-  TCCR1B = 0;                 /* disable timer */
-  TCCR1A = 0;                 /* reset flags (also frees PB2) */
-  R_DDR = 0;                  /* set HiZ mode */
-  Config.SleepMode = SLEEP_MODE_PWR_SAVE;    /* reset sleep mode to default */
+#undef MENU_ITEMS
 }
 
 

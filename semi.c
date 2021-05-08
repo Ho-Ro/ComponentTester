@@ -73,8 +73,8 @@ unsigned long Get_hFE_C(uint8_t Type)
     R_DDR = Probes.Rl_2 | Probes.Rl_3;  /* select Rl for probe-2 & Rl for probe-3 */
     R_PORT = Probes.Rl_3;               /* pull up base via Rl */
 
-    U_R_e = ReadU_5ms(Probes.Pin_2);         /* U_R_e = U_e */
-    U_R_b = UREF_VCC - ReadU(Probes.Pin_3);  /* U_R_b = Vcc - U_b */
+    U_R_e = ReadU_5ms(Probes.Pin_2);              /* U_R_e = U_e */
+    U_R_b = Config.Vcc - ReadU(Probes.Pin_3);     /* U_R_b = Vcc - U_b */
   }
   else                             /* PNP */
   {
@@ -85,7 +85,7 @@ unsigned long Get_hFE_C(uint8_t Type)
     R_PORT = Probes.Rl_1;               /* pull up emitter via Rl */
     R_DDR = Probes.Rl_1 | Probes.Rl_3;  /* pull down base via Rl */
 
-    U_R_e = UREF_VCC - ReadU_5ms(Probes.Pin_1);   /* U_R_e = Vcc - U_e */
+    U_R_e = Config.Vcc - ReadU_5ms(Probes.Pin_1); /* U_R_e = Vcc - U_e */
     U_R_b = ReadU(Probes.Pin_3);                  /* U_R_b = U_b */
   }
 
@@ -98,7 +98,7 @@ unsigned long Get_hFE_C(uint8_t Type)
       R_PORT = Probes.Rh_3;                  /* pull up base via Rh */
 
       U_R_e = ReadU_5ms(Probes.Pin_2);            /* U_R_e = U_e */
-      U_R_b = UREF_VCC - ReadU(Probes.Pin_3);     /* U_R_b = Vcc - U_b */
+      U_R_b = Config.Vcc - ReadU(Probes.Pin_3);   /* U_R_b = Vcc - U_b */
 
       Ri = Config.RiL;                       /* get internal resistor */
     }
@@ -106,7 +106,7 @@ unsigned long Get_hFE_C(uint8_t Type)
     {
       R_DDR = Probes.Rl_1 | Probes.Rh_3;     /* pull down base via Rh */
 
-      U_R_e = UREF_VCC - ReadU_5ms(Probes.Pin_1);      /* U_R_e = Vcc - U_e */
+      U_R_e = Config.Vcc - ReadU_5ms(Probes.Pin_1);    /* U_R_e = Vcc - U_e */
       U_R_b = ReadU(Probes.Pin_3);                     /* U_R_b = U_b */
 
       Ri = Config.RiH;                       /* get internal resistor */
@@ -232,7 +232,7 @@ void GetGateThreshold(uint8_t Type)
 
   /* calculate V_th */
   Uth /= 10;                     /* average of 10 samples */
-  Uth *= UREF_VCC;               /* convert to voltage */
+  Uth *= Config.Vcc;             /* convert to voltage */
   Uth /= 1024;                   /* using 10 bit resolution */
 
   /* save data */
@@ -453,7 +453,7 @@ void CheckDiode(void)
    *  Allow a tolerance of 3%.
    *  For U_Rh > 40mV we don't need to check for a resistor.
    *
-   *  Hint: Actually we could change the thresshold above from 10 t0 40 and
+   *  Hint: Actually we could change the threshold above from 10 t0 40 and
    *  remove this test completely. The lowest U_Rh measured for a diode was
    *  56mV for a AA118.
    */
@@ -606,8 +606,8 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
     R_DDR = Probes.Rl_1 | Probes.Rh_3;  /* enable Rl for probe-1 & Rh for probe-3 */
     R_PORT = Probes.Rl_1 | Probes.Rh_3; /* pull up collector via Rl and base via Rh */
     wait50ms();                         /* wait to skip gate charging of a FET */
-    U_R_c = UREF_VCC - ReadU(Probes.Pin_1);       /* U_R_c = Vcc - U_c */ 
-    U_R_b = UREF_VCC - ReadU(Probes.Pin_3);       /* U_R_b = Vcc - U_b */
+    U_R_c = Config.Vcc - ReadU(Probes.Pin_1);     /* U_R_c = Vcc - U_c */ 
+    U_R_b = Config.Vcc - ReadU(Probes.Pin_3);     /* U_R_b = Vcc - U_b */
   }
   else                        /* PNP / p-channel */
   {
@@ -725,7 +725,7 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
       ADC_DDR = Probes.ADC_1;                     /* pull-down emitter directly */
       R_PORT = Probes.Rl_2 | Probes.Rh_3;         /* pull-up base via Rh */
       R_DDR = Probes.Rl_2 | Probes.Rh_3;          /* enable probe resistors */
-      U_R_b = UREF_VCC - ReadU_5ms(Probes.Pin_2); /* U_R_c = Vcc - U_c */        
+      U_R_b = Config.Vcc - ReadU_5ms(Probes.Pin_2);    /* U_R_c = Vcc - U_c */        
     }
     else                        /* PNP */
     { 

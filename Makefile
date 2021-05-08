@@ -18,8 +18,9 @@ MCU = atmega328
 #MCU = atmega168
 
 # MCU freqency:
-# - 1MHz : 1
-# - 8MHz : 8
+# - 1MHz  : 1
+# - 8MHz  : 8
+# - 16MHz : 16
 FREQ = 8
 
 # oscillator type
@@ -90,7 +91,7 @@ HEADERS = config.h common.h variables.h LCD.h functions.h
 
 # objects
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o LCD.o
-OBJECTS_C += resistor.o cap.o semi.o inductor.o
+OBJECTS_C += resistor.o cap.o semi.o inductor.o extras.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 
@@ -172,56 +173,86 @@ clean:
 
 # ATmega168 / ATmega168P 
 ifeq (${MCU},atmega168)
+  HFUSE = -U hfuse:w:0xdc:m
   ifeq (${FREQ},1)
-    # internal RC oscillator and /8 clock divider
-    FUSES_RC = -U lfuse:w:0x62:m -U hfuse:w:0xdc:m
+    # internal RC oscillator (8MHz) and /8 clock divider
+    LFUSE_RC = -U lfuse:w:0x62:m
     # external 8MHz full swing crystal and /8 clock divider
-    FUSES_CRYSTAL = -U lfuse:w:0x77:m -U hfuse:w:0xdc:m
+    LFUSE_CRYSTAL = -U lfuse:w:0x77:m
     # external 8MHz low power crystal and /8 clock divider
-    FUSES_LOWPOWER = -U lfuse:w:0x7f:m -U hfuse:w:0xdc:m
+    LFUSE_LOWPOWER = -U lfuse:w:0x7f:m
   endif
   ifeq (${FREQ},8)
-    # internal RC oscillator and /1 clock divider
-    FUSES_RC = -U lfuse:w:0xe2:m -U hfuse:w:0xdc:m
+    # internal RC oscillator (8MHz) and /1 clock divider
+    LFUSE_RC = -U lfuse:w:0xe2:m 
     # external 8MHz full swing crystal and /1 clock divider
-    FUSES_CRYSTAL = -U lfuse:w:0xf7:m -U hfuse:w:0xdc:m
+    LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
     # external 8MHz low power crystal and /1 clock divider
-    FUSES_LOWPOWER = -U lfuse:w:0xff:m -U hfuse:w:0xdc:m
+    LFUSE_LOWPOWER = -U lfuse:w:0xff:m
+  endif
+  ifeq (${FREQ},16)
+    # internal RC oscillator (8MHz) not possible
+    LFUSE_RC =
+    # external 16MHz full swing crystal and /1 clock divider
+    LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
+    # external 16MHz low power crystal and /1 clock divider
+    LFUSE_LOWPOWER = -U lfuse:w:0xff:m
   endif
 endif
 
 # ATmega328 / ATmega328P
 ifeq (${MCU},atmega328)
+  HFUSE = -U hfuse:w:0xd9:m
+  EFUSE = -U efuse:w:0xfc:m
   ifeq (${FREQ},1)
-    # internal RC oscillator and /1 clock divider
-    FUSES_RC = -U lfuse:w:0x62:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
+    # internal RC oscillator (8MHz) and /1 clock divider
+    LFUSE_RC = -U lfuse:w:0x62:m
     # external 8MHz full swing crystal and /8 clock divider
-    FUSES_CRYSTAL = -U lfuse:w:0x77:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
+    LFUSE_CRYSTAL = -U lfuse:w:0x77:m
     # external 8MHz low power crystal and /8 clock divider
-    FUSES_LOWPOWER = -U lfuse:w:0x7f:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
+    LFUSE_LOWPOWER = -U lfuse:w:0x7f:m
   endif
   ifeq (${FREQ},8)
-    # internal RC oscillator and /1 clock divider
-    FUSES_RC = -U lfuse:w:0xe2:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
+    # internal RC oscillator (8MHz) and /1 clock divider
+    LFUSE_RC = -U lfuse:w:0xe2:m
     # external 8MHz full swing crystal and /1 clock divider
-    FUSES_CRYSTAL = -U lfuse:w:0xf7:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
+    LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
     # external 8MHz low power crystal and /1 clock divider
-    FUSES_LOWPOWER = -U lfuse:w:0xff:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
+    LFUSE_LOWPOWER = -U lfuse:w:0xff:m
+  endif
+  ifeq (${FREQ},16)
+    # internal RC oscillator (8MHz) not possible
+    LFUSE_RC =
+    # external 16MHz full swing crystal and /1 clock divider
+    LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
+    # external 16MHz low power crystal and /1 clock divider
+    LFUSE_LOWPOWER = -U lfuse:w:0xff:m
   endif
 endif
 
-# select fuses
+# select LFUSE
 ifeq (${OSCILLATOR},RC)
-  FUSES = ${FUSES_RC}
+  LFUSE = ${LFUSE_RC}
 endif
 ifeq (${OSCILLATOR},Crystal)
-  FUSES = ${FUSES_CRYSTAL}
+  LFUSE = ${LFUSE_CRYSTAL}
 endif
 ifeq (${OSCILLATOR},LowPower)
-  FUSES = ${FUSES_LOWPOWER}
+  LFUSE = ${LFUSE_LOWPOWER}
+endif
+
+# check fuses
+FUSES =
+ifneq ($(strip ${LFUSE}),)
+  ifneq ($(strip ${HFUSE}),)
+    FUSES = ${LFUSE} ${HFUSE} ${EFUSE}
+  endif
 endif
 
 # set fuses
 fuses:
-	echo avrdude -c ${PROGRAMMER} -B 10.0 -p ${PARTNO} -P ${PORT} ${FUSES}
-
+  ifeq ($(strip ${FUSES}),)
+	@echo Invalid fuse settings!
+  else
+	avrdude -c ${PROGRAMMER} -B 10.0 -p ${PARTNO} -P ${PORT} ${FUSES}
+  endif

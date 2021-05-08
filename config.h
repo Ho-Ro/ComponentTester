@@ -9,6 +9,51 @@
 
 
 /* ************************************************************************
+ *   Hardware options
+ * ************************************************************************ */
+
+
+/*
+ *  2.5V voltage reference for Vcc check (PC4)
+ *  - should be at least 10 times more precise than the voltage regulator
+ *  - uncomment to enable
+ */
+
+//#define HW_REF25
+
+
+/*
+ *  Typical voltage of 2.5V voltage reference (in mV)
+ *  - see datasheet of the voltage reference
+ *  - or use >= 5.5 digit DMM to measure voltage
+ */
+
+#define UREF_25           2495
+
+
+/*
+ *  Probe protection relay for discharging caps (PC4):
+ *  - low signal: short circuit probe pins
+ *    high signal via external reference: remove short circuit 
+ *  - uncomment to enable
+ */
+
+//#define HW_RELAY
+
+
+/*
+ *  voltage measurement up to 50V DC (10:1 voltage divider, PC3):
+ *  - for Zener diodes
+ *  - DC-DC boost converter controled by test push button
+ *  - requires MCU with >=32kB Flash ans >=1kB EEPROM
+ *  - uncomment to enable
+ */
+
+//#define HW_ZENER
+
+
+
+/* ************************************************************************
  *   port and pin assignments
  * ************************************************************************ */
 
@@ -26,6 +71,10 @@
 #define TP1              PC0       /* test pin 1 (=0) */
 #define TP2              PC1       /* test pin 2 (=1) */
 #define TP3              PC2       /* test pin 3 (=2) */
+
+#define TP_ZENER         PC3       /* test pin with 10:1 voltage divider */
+#define TP_REF           PC4       /* test pin with 2.5V reference and relay */
+#define TP_BAT           PC5       /* test pin with 4:1 voltage divider */
 
 
 /*
@@ -69,7 +118,7 @@
 
 
 /*
- *  Oscillator startup cycles (after wakeup from power-safe mode)
+ *  Oscillator startup cycles (after wakeup from power-safe mode):
  *  - typical values
  *    - internal RC:              6
  *    - full swing crystal:   16384 (also 256 or 1024 based on fuse settings)
@@ -297,12 +346,12 @@
   #define C_ZERO              CAP_PCB + CAP_WIRES + CAP_PROBELEADS
 
   /* memory layout: put stuff into EEPROM (1kB) */
-  #define MEM_TEXT          EEMEM
-  #define MEM_read_word(a)  eeprom_read_word(a)
-  #define MEM_read_byte(a)  eeprom_read_byte(a)
+  #define MEM_TEXT            EEMEM
+  #define MEM_read_word(a)    eeprom_read_word(a)
+  #define MEM_read_byte(a)    eeprom_read_byte(a)
 
-  /* flash size (required for extra features) */
-  #define FLASH_32K         1
+  /* this MCU has 32kB Flash and 1kB EEPROM (enable extra features) */
+  #define EXTRA               1
 
 
 /*
@@ -328,7 +377,6 @@
 
 /*
  *  selection of ADC clock 
- *  - supports 1MHz, 2MHz, 4MHz, 8MHz and 16MHz MCU clock
  *  - ADC clock can be 125000 or 250000 
  *  - 250kHz is out of the full accuracy specification!
  */
@@ -338,6 +386,7 @@
 
 /*
  *  define clock divider
+ *  - supports 1MHz, 2MHz, 4MHz, 8MHz and 16MHz MCU clock
  *  - 4 for CPU clock of 1MHz and ADC clock of 250kHz
  *  - 128 for CPU clock of 16MHz and ADC clock of 125kHz
  */

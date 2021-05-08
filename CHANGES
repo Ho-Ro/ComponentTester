@@ -6,6 +6,16 @@
 
 ------------------------------------------------------------------------------
 
+v1.10m 2013-10
+- Added support for external 2.5V voltage reference (hardware option).
+- Added support for relay based cap discharging (hardware option).
+- Changed good-bye message into welcome message to help to detect problems
+  with the brown-out voltage of the MCU and to mitigate a voltage drop
+  caused by an optional DC boost converter at startup.
+- Added Zener tool (hardware option).
+- The main menu got an exit function in case the menu was entered by mistake.
+- Support of 16MHz MCU clock.
+
 v1.09m 2013-07
 - Added IGBT detection.
 - Added a sanity check for MOSFETs.
