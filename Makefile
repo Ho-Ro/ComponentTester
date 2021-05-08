@@ -90,6 +90,7 @@ HEADERS = config.h common.h variables.h LCD.h functions.h
 
 # objects
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o LCD.o
+OBJECTS_C += resistor.o cap.o semi.o inductor.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 

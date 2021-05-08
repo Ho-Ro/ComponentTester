@@ -249,7 +249,7 @@
   /* total default capacitance (in pF): max. 255 */
   #define C_ZERO              CAP_PCB + CAP_WIRES + CAP_PROBELEADS
 
-  /* memory layout: put stuff exceeding 512 bytes of the EEPROM into flash */
+  /* memory layout: put stuff exceeding 512 bytes EEPROM into flash */
   #define MEM_TEXT          PROGMEM
   #define MEM_read_word(a)  pgm_read_word(a)
   #define MEM_read_byte(a)  pgm_read_byte(a)
@@ -280,6 +280,9 @@
   #define MEM_TEXT          EEMEM
   #define MEM_read_word(a)  eeprom_read_word(a)
   #define MEM_read_byte(a)  eeprom_read_byte(a)
+
+  /* flash size (required for extra features) */
+  #define FLASH_32K         1
 
 
 /*

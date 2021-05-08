@@ -266,25 +266,30 @@ uint8_t SelfAdjust(void)
           lcd_space();
           lcd_fixed_string(ProbeComb_str);   /* display: 12 13 23 */          
 
+          /*
+           *  The resistance is for two probes in series and we expect it to be
+           *  smaller than 1.00 Ohms, i.e. 0.50 Ohms for a single probe
+           */
+
           UpdateProbes(TP2, TP1, 0);
-          Val1 = SmallResistor();
-          if (Val1 < 100)                    /* < 1.00 Ohms */
+          Val1 = SmallResistor(0);
+          if (Val1 < 100)                    /* within limit */
           {
             RSum += Val1;
             RCounter++;
           }
 
           UpdateProbes(TP3, TP1, 0);
-          Val2 = SmallResistor();
-          if (Val2 < 100)                    /* < 1.00 Ohms */
+          Val2 = SmallResistor(0);
+          if (Val2 < 100)                    /* whithin limit */
           {
             RSum += Val2;
             RCounter++;
           }
 
           UpdateProbes(TP3, TP2, 0);
-          Val3 = SmallResistor();
-          if (Val3 < 100)                    /* < 1.00 Ohms */
+          Val3 = SmallResistor(0);
+          if (Val3 < 100)                    /* within limit */
           {
             RSum += Val3;
             RCounter++;
@@ -359,6 +364,11 @@ uint8_t SelfAdjust(void)
           lcd_space();
           lcd_fixed_string(ProbeComb_str);   /* display: 12 13 23 */
 
+          /*
+           *  The capacitance is for two probes and we expect it to be
+           *  less than 100pF.
+           */
+
           MeasureCap(TP2, TP1, 0);
           Val1 = (unsigned int)Caps[0].Raw;
           /* limit offset to 100pF */
@@ -430,7 +440,7 @@ uint8_t SelfAdjust(void)
    *  calculate values and offsets
    */
 
-  /* capacitance auto-zero */
+  /* capacitance auto-zero: calculate average value for all probe pairs */
   if (CapCounter == 15)
   {
     /* calculate average offset (pF) */
@@ -438,7 +448,7 @@ uint8_t SelfAdjust(void)
     Flag++;
   }
 
-  /* resistance auto-zero */
+  /* resistance auto-zero: calculate average value for all probes pairs */
   if (RCounter == 15)
   { 
     /* calculate average offset (0.01 Ohms) */

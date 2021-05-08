@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2013-06-16
+Last edit:  2013-07-06
 
 
 * About
@@ -20,6 +20,10 @@ official release supporting most ATmega MCUs this is a playground version
 with all features enabled and limited to ATmega168/P and ATmega328/P due to
 memory and flash size contraints. The UI languages currently supported are
 just English and German, but can be changed or extended easily.
+
+Since the firmware's size exceeds 16kB Flash some features are only enabled
+for the ATmega328/P:
+- inductance measurement
 
 
 * Safety Advice
@@ -35,7 +39,7 @@ or a power supply (or even mains).
 
 * Whats different?
 
-Karl-Heinz has done a realy great documentation of the tester. I recommend
+Karl-Heinz has done a really great documentation of the tester. I recommend
 to read it. Therefore I'll tell you just about the differences to the
 official release.
 
@@ -140,15 +144,19 @@ a zero offset. It also measures the internal resistance of the MCU port pins
 in pull-down and pull-up mode. If the tests are skipped or strange values are
 measured the default values defined in config.h are used. If everything went
 fine the tester will display and use the new values gained by the self
-adjustment (they will be not stored, see "Save" below).
+adjustment (they will be not stored in the EEPROM, see "Save" below).
 
-The voltage offset of the analog comparator is automatically adjusted in
-the capacitance measurement if the capacitor is in the range of 100nF up
-to 20µF. Also the offset of the internal bandgap reference is determined
-in the same way. Both offsets are displayed at the end of the self
-adjustment.
+The voltage offset of the analog comparator is automatically adjusted in the
+capacitance measurement (in normal probing mode, outside of the self
+adjustment) if the capacitor is in the range of 100nF up to 20µF. Also the
+offset of the internal bandgap reference is determined in the same way. Both
+offsets are displayed at the end of the self adjustment.
 
-Remember: adjustment is not calibration! Calibration is the procedure to
+Expected limits:
+- probe resistance   < 1.00 Ohms for two probes in series
+- probe capacitance  < 100pF
+
+Remember: Adjustment is not calibration! Calibration is the procedure to
 compare measurement results with a known traceable standard and noting the
 differences. The goal is to monitor the drift over time. Adjustment is the
 procedure to adjust a device to meet specific specs.
@@ -213,6 +221,10 @@ the capacitance is still too large.
 A logic for preventing large caps to be detected as resistors was added.
 Resistors < 10 Ohms are checked for being large caps.
 
+A measured capacitance value more than 5pF (incl. the zero offset) is
+considered valid. Lower values are too uncertain and could be caused by
+placing the probe leads a little bit different and things like that.
+
 
 * Discharging Components
 
@@ -234,16 +246,26 @@ take more time resulting in slower measurements.
 
 * Displaying Results
 
-Several names and abbreviations are changed. The output for an enhancement
-mode MOSFET and for diodes is splitted into two pages to have sufficient space
-to fully display all data. Antiparallel diodes got only a single page (the
-capacitance will not be shown). The display of BJTs may be splitted based on
-the size of hfe.
+Several names and abbreviations are changed. The output for several devices
+is splitted into multiple pages to have sufficient space to fully display all
+data.
 
 For a single diode the low current Vf (measured with 10µA) is shown in braces
-if the voltage is below 250mV. That should give you a hint for Germanium
-diodes. Most datasheets of Germanium diodes specify Vf at 0.1mA which the
-tester doesn't support.
+if the voltage is below 250mV. That should give you a hint for germanium
+diodes. Most datasheets of germanium diodes specify Vf at 0.1mA which the
+tester doesn't support. At a higher current Vf is expected to be around 0.7V
+which makes it hard to distinguish germanium from silicon diodes.
+
+The leakage current I_R for a single diode or I_CEO for a BJT will be displayed
+if it exeeds 1µA. Germanium BJTs got a leakage current of a few µA up to around
+500µA. Germanium diodes are around a few µA usually.
+
+For some devices the capacitance is shown also. In case the capacitance is
+below 5pF or the measurement failed for some reason the value displayed
+will be 0pF.
+
+If a JFET is detected only the gate pin is shown since drain and source
+can't be differentiated.
 
 
 * Vf (V_BE) of BJTs
@@ -263,13 +285,6 @@ be supported, since the tester only provides about 7mA at maximum. Also the
 tester provides just a voltage of 5V, which isn't sufficient for DIACs with
 a V_BO of 20-200V.
 
-In theory the tester could measure inductance by monitoring how the current
-increases over time. Tests showed that this works only in a quite limited way,
-so we won't support inductors. A better way is to add a signal source (sinus
-AC), meassuring frequency, current and voltage, and calculating the inductance
-by the frequency and the complex resistance. But that's something for a new
-hardware version of the tester. 
-
 
 * Issues
 
@@ -280,6 +295,17 @@ Known issues:
 
 
 * Change Log
+
+v1.08m 2013-07
+- Since the SmallResistor() measurement can't give correct DC resistance
+  values for some inductors a problem detection was added to CheckResistor()
+  to keep the original high resistance measurement result.
+- Added inductance measurement (ATmega328/P only)
+- Minor improvements for the display of diodes and BJTs.
+- Added leakage current measurement.
+- Fixed problem with germanium BJTs with a high leakage current. They were
+  detected as p-channel JFETs.
+- Renamed some functions, clarified and added some remarks.
 
 v1.07m 2013-06
 - Optimized diode display function and added display of low current Vf.

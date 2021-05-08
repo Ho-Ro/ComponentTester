@@ -62,6 +62,10 @@ uint8_t NumberOfDigits(unsigned long Value)
 /*
  *  compare two scaled values
  *
+ *  requires:
+ *  - first pair of value and scale
+ *  - second pait of value and scale
+ *
  *  returns:
  *  - -1 if first value is smaller than seconds one
  *  - 0 if equal
@@ -121,6 +125,43 @@ int8_t CmpValue(unsigned long Value1, int8_t Scale1, unsigned long Value2, int8_
 
   return Flag;
 }
+
+
+
+#ifdef FLASH_32K
+
+/*
+ *  rescale value
+ *
+ *  requires:
+ *  - value and scale
+ *  - new scale
+ */
+
+unsigned long RescaleValue(unsigned long Value, int8_t Scale, int8_t NewScale)
+{
+  unsigned long     NewValue;
+
+  NewValue = Value;           /* take old value */
+
+  while (Scale != NewScale)   /* processing loop */
+  {
+    if (NewScale > Scale)     /* upscale */
+    {
+      NewValue /= 10;
+      Scale++;
+    }
+    else                      /* downscale */
+    {
+      NewValue *= 10;
+      Scale--;
+    }
+  }
+
+  return NewValue;
+}
+
+#endif
 
 
 

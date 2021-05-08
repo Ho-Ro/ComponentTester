@@ -85,6 +85,10 @@
   extern int8_t CmpValue(unsigned long Value1, int8_t Scale1,
     unsigned long Value2, int8_t Scale2);
 
+  #ifdef FLASH_32K
+    extern unsigned long RescaleValue(unsigned long Value, int8_t Scale, int8_t NewScale);
+  #endif
+
   extern void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit);
   extern void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit);
 
@@ -96,21 +100,74 @@
 
 
 /* ************************************************************************
+ *   functions from semi.c
+ * ************************************************************************ */
+
+#ifndef SEMI_C
+
+  extern void GetGateThreshold(uint8_t Type);
+  extern unsigned long Get_hfe_c(uint8_t Type);
+  extern uint16_t GetLeakageCurrent(void);
+
+  extern void CheckDiode(void);
+
+  extern void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl);
+  extern void CheckDepletionModeFET(unsigned int U_Rl_L);
+
+  extern uint8_t CheckThyristorTriac(void);
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from resistor.c
+ * ************************************************************************ */
+
+#ifndef RESISTOR_C
+
+  extern unsigned int SmallResistor(uint8_t ZeroFlag);
+  extern void CheckResistor(void);
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from inductor.c
+ * ************************************************************************ */
+
+#ifndef INDUCTOR_C
+
+  #ifdef FLASH_32K
+    extern uint8_t MeasureInductor(Resistor_Type *Resistor);
+  #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from cap.c
+ * ************************************************************************ */
+
+#ifndef CAP_C
+
+  extern void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID);
+
+#endif
+
+
+/* ************************************************************************
  *   functions from probes.c
  * ************************************************************************ */
 
 #ifndef PROBES_C
 
+  extern void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);
   extern uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2);
   extern uint8_t AllProbesShorted(void);
   extern void DischargeProbes(void);
-  extern void PullProbe_10ms(uint8_t Probe, uint8_t Mode);
-  extern void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);
+  extern void PullProbe(uint8_t Probe, uint8_t Mode);
+  extern unsigned int GetFactor(unsigned int U_in, uint8_t ID);
 
-  extern void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID);
-
-  extern unsigned int SmallResistor(void);
- 
   extern void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);
 
 #endif

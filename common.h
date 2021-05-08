@@ -42,6 +42,7 @@
 #define COMP_MENU             2
 #define COMP_RESISTOR        10
 #define COMP_CAPACITOR       11
+#define COMP_INDUCTOR        12
 #define COMP_DIODE           20
 #define COMP_BJT             21
 #define COMP_FET             22
@@ -77,6 +78,14 @@
 /* multiplicator tables */
 #define TABLE_SMALL_CAP       1
 #define TABLE_LARGE_CAP       2
+#define TABLE_INDUCTOR        3
+
+
+/* bit flags for PullProbe() */
+#define FLAG_PULLDOWN         0b00000000
+#define FLAG_PULLUP           0b00000001
+#define FLAG_1MS              0b00001000
+#define FLAG_10MS             0b00010000
 
 
 
@@ -85,7 +94,7 @@
  * ************************************************************************ */
 
 
-/* offsets and values */
+/* tester modes, offsets and values */
 typedef struct
 {
   uint8_t           TesterMode;    /* tester operation mode */
@@ -96,11 +105,44 @@ typedef struct
   uint16_t          U_Bandgap;     /* voltage of internal bandgap reference (mV) */
   uint16_t          RiL;           /* internal pin resistance of µC in low mode (0.1 Ohms) */
   uint16_t          RiH;           /* internal pin resistance of µC in high mode (0.1 Ohms) */
-  uint16_t          RZero;         /* resistance of probe leads (0.01 Ohms) */
+  uint16_t          RZero;         /* resistance of probe leads (2 in series) (0.01 Ohms) */
   uint8_t           CapZero;       /* capacity zero offset (input + leads) (pF) */
   int8_t            RefOffset;     /* voltage offset of bandgap reference (mV) */
   int8_t            CompOffset;    /* voltage offset of analog comparator (mV) */
 } Config_Type;
+
+
+/* probes */
+typedef struct
+{
+  /* probe pins */
+  uint8_t             Pin_1;       /* probe-1 */
+  uint8_t             Pin_2;       /* probe-2 */
+  uint8_t             Pin_3;       /* probe-3 */
+
+  /* bit masks for switching probes and test resistors */
+  uint8_t             Rl_1;        /* Rl mask for probe-1 */
+  uint8_t             Rh_1;        /* Rh mask for probe-1 */
+  uint8_t             Rl_2;        /* Rl mask for probe-2 */
+  uint8_t             Rh_2;        /* Rh mask for probe-2 */
+  uint8_t             Rl_3;        /* Rl mask for probe-3 */
+  uint8_t             Rh_3;        /* Rh mask for probe-3 */
+  uint8_t             ADC_1;       /* ADC mask for probe-1 */
+  uint8_t             ADC_2;       /* ADC mask for probe-2 */
+} Probe_Type;
+
+
+/* checking/probing */
+typedef struct
+{
+  uint8_t           Done;          /* flag for transistor detection done */
+  uint8_t           Found;         /* component type which was found */ 
+  uint8_t           Type;          /* component specific subtype */
+  uint8_t           Resistors;     /* number of resistors found */
+  uint8_t           Diodes;        /* number of diodes found */
+  uint8_t           Probe;         /* error: probe pin */ 
+  uint16_t          U;             /* error: voltage left in mV */
+} Check_Type;
 
 
 /* resistor */
@@ -124,6 +166,14 @@ typedef struct
 } Capacitor_Type;
 
 
+/* inductor */
+typedef struct
+{
+  int8_t            Scale;         /* exponent of factor (value * 10^x) */
+  unsigned long     Value;         /* inductance */  
+} Inductor_Type;
+
+
 /* diode */
 typedef struct
 {
@@ -140,7 +190,7 @@ typedef struct
   uint8_t           B;             /* probe pin connected to base */
   uint8_t           C;             /* probe pin connected to collector */
   uint8_t           E;             /* probe pin connected to emitter */
-  unsigned long     hfe;           /* current amplification factor */
+  unsigned long     hFE;           /* current amplification factor */
   /* BE voltage */
 } BJT_Type;
 
@@ -158,8 +208,7 @@ typedef struct
 /* Error (failed discharge */
 typedef struct
 {
-  uint8_t           Probe;         /* probe pin */ 
-  uint16_t          U;             /* voltage left in mV */
+
 } Error_Type;
 
 
