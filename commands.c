@@ -1442,7 +1442,7 @@ uint8_t RunCommand(uint8_t ID)
   switch (ID)
   {
     case CMD_VER:             /* return firmware version */
-      Display_EEString(Version_str);         /* send firmware version & newline */
+      Display_EEString(Version_str);         /* send firmware version */
       break;
 
     case CMD_PROBE:           /* probe component */

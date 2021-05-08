@@ -3,16 +3,16 @@
  *   driver functions for SSD1306 compatible OLED grafic displays
  *   - 128 x 64 pixels
  *   - 8 bit parallel interface (not supported)
- *   - SPI interface (4 line, 3 line not supported)
+ *   - SPI interface (4 line, 3 line)
  *   - I2C
  *
- *   (c) 2017-2018 by Markus Reschke
+ *   (c) 2017-2019 by Markus Reschke
  *
  * ************************************************************************ */
 
 /*
  *  hints:
- *  - pin assignment for SPI
+ *  - pin assignment for SPI (4 line)
  *    /CS         LCD_CS (optional)
  *    /RES        LCD_RESET (optional)
  *    DC          LCD_DC
@@ -20,6 +20,11 @@
  *    SDIN (D1)   LCD_SDIN / SPI_MOSI
  *    For hardware SPI LCD_SCL and LCD_SI have to be the MCU's SCK and
  *    MOSI pins.
+ *  - pin assignment for SPI (3 line)
+ *    /CS         LCD_CS (optional)
+ *    /RES        LCD_RESET (optional)
+ *    SCLK (D0)   LCD_SCLK / SPI_SCK
+ *    SDIN (D1)   LCD_SDIN / SPI_MOSI
  *  - max. SPI clock rate: 10MHz
  *  - pin assignment for I2C
  *    /RES            LCD_RESET (optional)
@@ -105,15 +110,12 @@ uint8_t             Y_Start;       /* start position Y (page) */
 
 
 /*
- *  We don't support the 3 line SPI interface, which ignores the D/C signal
- *  and uses 9 bits instead (first bit for D/C, followed by D7 to D0).   
+ *  protocol:
+ *  - CS -> D/C -> D7-0 with rising edge of SCLK
+ *  - D/C: high = data / low = command
  */
 
-#ifdef LCD_SPI
-
-// CS -> D/C -> D7-0 with rising edge of SCLK 
-// D/C: high = data / low = command
-
+#if defined (LCD_SPI) && ! defined (SPI_9)
 
 /*
  *  set up interface bus
@@ -219,6 +221,118 @@ void LCD_Data(uint8_t Data)
     LCD_PORT &= ~(1 << LCD_CS);    /* set /CS low */
   #endif
 
+  SPI_Write_Byte(Data);            /* write data byte */
+
+  /* deselect chip, if pin available */
+  #ifdef LCD_CS
+    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
+  #endif
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   low level functions for SPI interface (3 wire)
+ * ************************************************************************ */
+
+
+/*
+ *  The 3 wire SPI interface ignores the D/C line and adds a D/C control
+ *  bit to the SPI data resulting in a 9 bit frame:  
+ *  - first bit for D/C, followed by D7 to D0
+ *  - supported only by bitbang SPI since the MCU's hardware SPI does just bytes
+ */
+
+#if defined (LCD_SPI) && defined (SPI_BITBANG) && defined (SPI_9)
+
+/*
+ *  set up interface bus
+ *  - should be called at firmware startup
+ */
+
+void LCD_BusSetup(void)
+{
+  uint8_t           Bits;          /* bitmask */
+
+
+  /*
+   *  set control signals
+   */
+
+  Bits = LCD_DDR;                  /* get current directions */
+
+  /* optional output pins */
+  #ifdef LCD_RESET
+    Bits |= (1 << LCD_RESET);      /* /RES */
+  #endif
+  #ifdef LCD_CS
+    Bits |= (1 << LCD_CS);         /* /CS */
+  #endif
+
+  LCD_DDR = Bits;                  /* set new directions */
+
+  /* set default levels */
+  #ifdef LCD_CS
+    /* disable chip */
+    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
+  #endif
+
+  #ifdef LCD_RESET
+    /* disable reset */
+    LCD_PORT |= (1 << LCD_RESET);  /* set /RES high */
+  #endif
+
+
+  /*
+   *  init SPI bus
+   */
+
+  SPI_Setup();                     /* set up SPI bus */
+}
+
+
+
+/*
+ *  send a command to the LCD
+ *
+ *  requires:
+ *  - byte value to send
+ */
+ 
+void LCD_Cmd(uint8_t Cmd)
+{
+  /* select chip, if pin available */
+  #ifdef LCD_CS
+    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS low */
+  #endif
+
+  SPI_Write_Bit(0);                /* indicate command (D/C=0) */
+  SPI_Write_Byte(Cmd);             /* write command byte */
+
+  /* deselect chip, if pin available */
+  #ifdef LCD_CS
+    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
+  #endif
+}
+
+
+/*
+ *  send data to the LCD
+ *
+ *  requires:
+ *  - byte value to send
+ */
+
+void LCD_Data(uint8_t Data)
+{
+  /* select chip, if pin available */
+  #ifdef LCD_CS
+    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS low */
+  #endif
+
+  SPI_Write_Bit(1);                /* indicate data (D/C=1) */
   SPI_Write_Byte(Data);            /* write data byte */
 
   /* deselect chip, if pin available */

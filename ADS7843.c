@@ -518,7 +518,7 @@ uint8_t Touch_AdjustPos(uint8_t Char_X, uint8_t Char_Y)
     MilliSleep(30);           /* delay */
 
     /* check test key (to abort adjustment) */
-    if (!(CONTROL_PIN & (1 << TEST_BUTTON)))      /* test button pressed */
+    if (!(BUTTON_PIN & (1 << TEST_BUTTON)))  /* test button pressed */
     {
       break;                  /* abort */
     }
@@ -557,7 +557,7 @@ uint8_t Touch_AdjustPos(uint8_t Char_X, uint8_t Char_Y)
 /*
  *  adjustment for touch screen
  *  - get offsets for left, right, top & bottom
- *  - we ignore rotation (small screen, low resolution)
+ *  - we ignore any rotation (small screen, low resolution)
  *
  *  returns:
  *  - 0 on error/abort

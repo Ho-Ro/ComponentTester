@@ -2,7 +2,7 @@
  *
  *   ATmega 324/644/1284 specific global configuration, setup and settings
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2019 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -110,6 +110,9 @@
 #define LCD_START_Y      0              /* start line (0-63) */
 #define LCD_CONTRAST     22             /* default contrast (0-63) */
 #define FONT_8X8_VF                     /* 8x8 font, vertically aligned & flipped */
+//#define FONT_8X16_VFP                   /* 8x16 font, vertically aligned & flipped */
+//#define FONT_8X8_CYRILLIC_VF            /* 8x8 cyrillic font, vertically aligned & flipped */
+//#define FONT_8X16_CYRILLIC_VFP          /* 8x16 cyrillic font, vertically aligned & flipped */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
 #define SPI_HARDWARE                    /* hardware SPI */
 #endif
@@ -256,7 +259,7 @@
 #define LCD_DB6          PB6            /* port pin used for DB6 */
 #define LCD_DB7          PB7            /* port pin used for DB7 */
 #define LCD_RS           PB2            /* port pin used for RS */
-#define LCD_EN1          PB3            /* port pin used for E */
+#define LCD_EN           PB3            /* port pin used for E */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */
 #define FONT_8X8_H                      /* 8x8 font, horizonally aligned */
@@ -466,13 +469,21 @@
 
 
 /*
- *  test push button and power management
+ *  power control
  */
 
-#define CONTROL_PORT     PORTC     /* port data register */
-#define CONTROL_DDR      DDRC      /* port data direction register */
-#define CONTROL_PIN      PINC      /* port input pins register */
+#define POWER_PORT       PORTC     /* port data register */
+#define POWER_DDR        DDRC      /* port data direction register */
 #define POWER_CTRL       PC6       /* controls power (1: on / 0: off) */
+
+
+/*
+ *  test push button
+ */
+
+#define BUTTON_PORT      PORTC     /* port data register */
+#define BUTTON_DDR       DDRC      /* port data direction register */
+#define BUTTON_PIN       PINC      /* port input pins register */
 #define TEST_BUTTON      PC7       /* test/start push button (low active) */
 
 
@@ -494,8 +505,8 @@
 #define KEY_PORT         PORTC     /* port data register */
 #define KEY_DDR          DDRC      /* port data direction register */
 #define KEY_PIN          PINC      /* port input pins register */
-#define KEY_INC          PC4       /* increase push button */
-#define KEY_DEC          PC3       /* decrease push button */
+#define KEY_INC          PC4       /* increase push button (low active) */
+#define KEY_DEC          PC3       /* decrease push button (low active) */
 
 
 /*
@@ -653,9 +664,6 @@
   /* voltage offset of MCU's analog comparator (in mV): -50 up to 50 */
   #define COMPARATOR_OFFSET   0
 
-  /* capacitance of the probe tracks of the PCB and the MCU (in pF) */
-  #define CAP_PCB             32
-
   /* this MCU has 32kB Flash, 1kB EEPROM and 2kB RAM (enable extra features) */
   #define RES_FLASH           32
   #define RES_EEPROM          1
@@ -677,9 +685,6 @@
   /* voltage offset of MCU's analog comparator (in mV): -50 up to 50 */
   #define COMPARATOR_OFFSET   0
 
-  /* capacitance of the probe tracks of the PCB and the MCU (in pF) */
-  #define CAP_PCB             32
-
   /* this MCU has 64kB Flash, 2kB EEPROM and 4kB RAM (enable extra features) */
   #define RES_FLASH           64
   #define RES_EEPROM          2
@@ -700,9 +705,6 @@
 
   /* voltage offset of MCU's analog comparator (in mV): -50 up to 50 */
   #define COMPARATOR_OFFSET   0
-
-  /* capacitance of the probe tracks of the PCB and the MCU (in pF) */
-  #define CAP_PCB             32
 
   /* this MCU has 128kB Flash, 4kB EEPROM and 16kB RAM (enable extra features) */
   #define RES_FLASH           128

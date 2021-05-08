@@ -2,7 +2,7 @@
  *
  *   ATmega 328 specific global configuration, setup and settings
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2019 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -116,6 +116,8 @@
 #define LCD_CONTRAST     22             /* default contrast (0-63) */
 #define FONT_8X8_VF                     /* 8x8 font, vertically aligned & flipped */
 //#define FONT_8X16_VFP                   /* 8x16 font, vertically aligned & flipped */
+//#define FONT_8X8_CYRILLIC_VF            /* 8x8 cyrillic font, vertically aligned & flipped */
+//#define FONT_8X16_CYRILLIC_VFP          /* 8x16 cyrillic font, vertically aligned & flipped */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -362,6 +364,37 @@
 
 
 /*
+ *  SSD1306, SPI interface (bit-bang, 3 wire)
+ */
+
+#if 0
+#define LCD_SSD1306
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_SPI                         /* SPI interface */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RESET        PD4            /* port pin used for /RES (optional) */
+#define LCD_CS           PD5            /* port pin used for /CS (optional) */
+#define LCD_SCLK         PD2            /* port pin used for SCLK */
+#define LCD_SDIN         PD1            /* port pin used for SDIN (LCD's data input) */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       64             /* number of vertical dots */
+#define LCD_FLIP_X                      /* enable horizontal flip */
+#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_CONTRAST     127            /* default contrast (0-255) */
+#define FONT_8X8_VF                     /* 8x8 font, vertically aligned & flipped */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
+#define SPI_BITBANG                     /* bit-bang SPI */
+#define SPI_9                           /* support 9 bit frames */
+#define SPI_PORT         LCD_PORT       /* SPI port data register */
+#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
+#define SPI_SCK          LCD_SCLK       /* port pin used for SCK */
+#define SPI_MOSI         LCD_SDIN       /* port pin used for MOSI */
+#endif
+
+
+
+/*
  *  SSD1306, I2C interface (bit-bang)
  */
 
@@ -467,13 +500,21 @@
 
 
 /*
- *  test push button and power management
+ *  power control
  */
 
-#define CONTROL_PORT     PORTD     /* port data register */
-#define CONTROL_DDR      DDRD      /* port data direction register */
-#define CONTROL_PIN      PIND      /* port input pins register */
+#define POWER_PORT       PORTD     /* port data register */
+#define POWER_DDR        DDRD      /* port data direction register */
 #define POWER_CTRL       PD6       /* controls power (1: on / 0: off) */
+
+
+/*
+ *  test push button 
+ */
+
+#define BUTTON_PORT      PORTD     /* port data register */
+#define BUTTON_DDR       DDRD      /* port data direction register */
+#define BUTTON_PIN       PIND      /* port input pins register */
 #define TEST_BUTTON      PD7       /* test/start push button (low active) */
 
 
@@ -495,8 +536,8 @@
 #define KEY_PORT         PORTD     /* port data register */
 #define KEY_DDR          DDRD      /* port data direction register */
 #define KEY_PIN          PIND      /* port input pins register */
-#define KEY_INC          PD2       /* increase push button */
-#define KEY_DEC          PD3       /* decrease push button */
+#define KEY_INC          PD2       /* increase push button (low active) */
+#define KEY_DEC          PD3       /* decrease push button (low active) */
 
 
 /*
@@ -619,9 +660,6 @@
 
   /* voltage offset of MCU's analog comparator (in mV): -50 up to 50 */
   #define COMPARATOR_OFFSET   0
-
-  /* capacitance of the probe tracks of the PCB and the MCU (in pF) */
-  #define CAP_PCB             32
 
   /* this MCU has 32kB Flash, 1kB EEPROM and 2kB RAM (enable extra features) */
   #define RES_FLASH           32

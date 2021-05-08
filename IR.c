@@ -52,7 +52,7 @@
 #define IR_PAUSE         0b00000001     /* pause */
 #define IR_PULSE         0b00000010     /* pulse */
 
-/* IR protocols */
+/* IR protocols (TX) */
 /* basic protocols */
 #define IR_JVC                    1     /* JVC C8D8 */
 #define IR_KASEIKYO               2     /* Kaseikyo (Japanese Code) */
@@ -71,7 +71,7 @@
 /* extra protocols */
 #define IR_THOMSON               15     /* Thomson */
 
-#ifndef SW_IR_EXTRA
+#ifndef SW_IR_TX_EXTRA
   #define IR_PROTO_MAX           14     /* number of basic protocols */
 #else
   #define IR_PROTO_MAX           15     /* number of all protocols */  
@@ -373,7 +373,7 @@ uint8_t BiPhase_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t Mode, uint8_t 
 
 
 
-#ifdef SW_IR_EXTRA
+#ifdef SW_IR_RX_EXTRA
 
 /*
  *  PPM demodulation
@@ -889,7 +889,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
         Flag = PACKET_DISPLAY;          /* packet ok & default output */
         goto result;                    /* skip other checks */
       }
-      #ifdef SW_IR_EXTRA
+      #ifdef SW_IR_RX_EXTRA
       else if (Bits == 42)         /* we expect 42 bits for Sanyo */
       {
         Display_NL_EEString_Space(IR_Sanyo_str);  /* display protocol */
@@ -1057,7 +1057,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
         Flag = PACKET_DISPLAY;     /* packet ok & default output */
       }
-      #ifdef SW_IR_EXTRA
+      #ifdef SW_IR_RX_EXTRA
       else if (Bits == 22)         /* we expect 22 bits for C5D6 */
       {
         Temp = '5';                /* char 5 */
@@ -1131,7 +1131,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
    *  - carrier 56kHz or 38.7kHz, duty cycle 1/3
    */
 
-  #ifdef SW_IR_EXTRA
+  #ifdef SW_IR_RX_EXTRA
   if (PulseCheck(Time1, 79, IR_RELAX_LONG))       /* pulse 4ms */
   {
     if (PulseCheck(Time2, 79, IR_RELAX_LONG))     /* pause 4ms */
@@ -1254,7 +1254,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
         goto result;               /* skip other checks */
       }
-      #ifdef SW_IR_EXTRA
+      #ifdef SW_IR_RX_EXTRA
       else if (Bits == 7)               /* we expect 7 bits for IR60 */
       {
         /* todo: check start bit? */
@@ -1310,7 +1310,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
    *    stop: pulse 470탎
    */
 
-  #ifdef SW_IR_EXTRA
+  #ifdef SW_IR_RX_EXTRA
   if (PulseCheck(Time1, 10, IR_STD_TOLER))        /* pulse 500탎 */
   {
     if ((PulseCheck(Time2, 40, IR_STD_TOLER)) ||  /* pause 2ms */
@@ -1399,16 +1399,16 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
       /* 12, 15 or 20 bit format */
       Temp = 5;                    /* 5 bit address */
-      if (Bits == 12)
+      if (Bits == 12)              /* SIRC-12 */
       {
         Flag = PACKET_OK;          /* packet ok */
       }
-      else if (Bits == 15)
+      else if (Bits == 15)         /* SIRC-15 */
       {
         Flag = PACKET_OK;          /* packet ok */
         Temp = 8;                  /* 8 bit address */
       }
-      else if (Bits == 20)
+      else if (Bits == 20)         /* SIRC-20 */
       {
         Flag = PACKET_OK;          /* packet ok */
       }
@@ -1429,9 +1429,9 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
       /* display data */
       if (Flag == PACKET_OK)       /* valid packet */
       {
-        Display_HexByte(Address);  /* display address */
-        Display_Char(':');
         Display_HexByte(Command);  /* display command */
+        Display_Char(':');
+        Display_HexByte(Address);  /* display address */
 
         if (Bits == 20)            /* 20 bit format */
         {
@@ -1474,7 +1474,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
    *  - carrier 38kHz (455kHz/12), duty cycle 1/3
    */
 
-  #ifdef SW_IR_EXTRA
+  #ifdef SW_IR_RX_EXTRA
   if (PulseCheck(Time1, 4, IR_STD_TOLER))         /* pulse 141탎 */
   {
     if (PulseCheck(Time2, 149, IR_RELAX_LONG))    /* pause 7.6ms (for 1) */
@@ -1649,7 +1649,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
    *    carrier 26.7kHz (320kHz/12)
    */
 
-  #ifdef SW_IR_EXTRA
+  #ifdef SW_IR_RX_EXTRA
   if (PulseCheck(Time1, 22, IR_STD_TOLER))        /* pulse 1120탎 (for 1) */
   {
     if (PulseCheck(Time2, 22, IR_STD_TOLER))      /* pause 1120탎 (for 0) */
@@ -1702,6 +1702,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
       if (Temp == 2)               /* we expect 1 special bit (= 2 pulses) */
       {
+        /* try to demodulate */
         Bits = BiPhase_Demod(Pulse, PulsesLeft, IR_THOMAS, 8, IR_RELAX_SHORT);
 
         if (Bits == 21)       /* we expect 21 bits */
@@ -2000,7 +2001,7 @@ void IR_Detector(void)
       Run = MODE_WAIT;                     /* switch back to waiting mode */
 
       /* check test button */
-      while (!(CONTROL_PIN & (1 << TEST_BUTTON)))
+      while (!(BUTTON_PIN & (1 << TEST_BUTTON)))
       {
         MilliSleep(50);            /* take a nap */
         Run = 0;                   /* end loop */
@@ -2051,13 +2052,16 @@ void IR_Send_Pulse(uint8_t Type, uint16_t Time)
     TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS10);
   }
 
+
   /*
-   *  wait
+   *  wait (delay loop)
    *  - loop (without NOPs) burns 7 cycles per run and 4 cycles for last run
    *  - total (without NOPs): 7 cycles * Time + 4 cycles
    *  - add NOPs for 1탎
    *  - don't care about missing cycles of last run
    */
+
+  #ifndef SW_IR_TX_ALTDELAY
 
   while (Time > 0)
   {
@@ -2104,6 +2108,37 @@ void IR_Send_Pulse(uint8_t Type, uint16_t Time)
 
     Time--;
   }
+  #endif
+
+
+  /*
+   *  alternative delay loop
+   *  - provided by Vitaliy
+   */
+
+  #ifdef SW_IR_TX_ALTDELAY
+
+  #include <util/delay.h>
+
+  while (Time >= 100)         /* 100탎 chunks */
+  {
+    _delay_us(100);
+    Time -= 100;
+  }
+
+  while (Time >= 10)          /* 10탎 chunks */
+  {
+    _delay_us(10);
+    Time -= 10;
+  }
+
+  while (Time > 0)            /* 1탎 chunks */
+  {
+    _delay_us(1);
+    Time--;
+  }
+  #endif
+
 
   if (Type & IR_PULSE)        /* create pulse */
   {
@@ -2298,7 +2333,7 @@ void IR_Send_PDM(uint8_t *Code, uint8_t Bits, uint16_t tP, uint16_t t0, uint16_t
  *  required:
  *  - Code: pointer to code data
  *  - Bits: number of bits in code data
- *  - tP: time units of pulse/pause in 탎
+ *  - tP: time units of fixed pulse/pause in 탎
  *  - t0: time units of pulse/pause for 0 in 탎
  *  - t1: time units of pulse/pause for 1 in 탎
  *
@@ -2341,7 +2376,7 @@ uint16_t CodeTime(uint8_t *Code, uint8_t Bits, uint16_t tP, uint16_t t0, uint16_
     Bits--;                   /* next bit */
   }
 
-  /* todo: for PDM we should the end pulse */
+  /* todo: for PDM we should add the end pulse */
   return Time; 
 }
 
@@ -2960,7 +2995,7 @@ void IR_Send_Code(uint8_t Proto, uint16_t *Data)
 
     Data++;                             /* next data field */
     Temp = *Data;                       /* Data #2: extended */
-    PutBits(Temp, 5, 13, IR_LSB);       /* extended, 8 bits */
+    PutBits(Temp, 8, 13, IR_LSB);       /* extended, 8 bits */
 
     /* calculate delay between code frames */
     Temp = 45000 - 2400;                /* - time for start pulse */
@@ -2979,7 +3014,7 @@ void IR_Send_Code(uint8_t Proto, uint16_t *Data)
   }
 
 
-  #ifdef SW_IR_EXTRA
+  #ifdef SW_IR_TX_EXTRA
   /*
    *  Thomson
    *  - no start / AGC burst
@@ -3285,7 +3320,7 @@ void IR_RemoteControl(void)
           DutyCycle = 3;           /* 1/3 */
           break;
 
-        #ifdef SW_IR_EXTRA
+        #ifdef SW_IR_TX_EXTRA
         case IR_THOMSON:           /* Thomson */
           ProtoStr = (unsigned char *)IR_Thomson_str;
           Bits[0] = 4;             /* device */

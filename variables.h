@@ -101,11 +101,18 @@
    *  NVRAM values (stored in EEPROM) with their defaults
    */
 
+  /* manage CapZero */
+  #ifdef CAP_MULTIOFFSET
+    #define NV_C_ZERO         {C_ZERO, C_ZERO, C_ZERO}
+  #else
+    #define NV_C_ZERO         C_ZERO
+  #endif
+
   /* basic adjustment values: profile #1 */
-  const Adjust_Type     NV_Adjust_1 EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
+  const Adjust_Type     NV_Adjust_1 EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, NV_C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
 
   /* basic adjustment values: profile #2 */
-  const Adjust_Type     NV_Adjust_2 EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
+  const Adjust_Type     NV_Adjust_2 EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, NV_C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
 
   #ifdef HW_TOUCH
   /* touch screen adjustment offsets */
@@ -129,7 +136,7 @@
 
   /* language independent */
   const unsigned char Tester_str[] EEMEM = "Component Tester";
-  const unsigned char Version_str[] EEMEM = "v1.34m";
+  const unsigned char Version_str[] EEMEM = "v1.35m";
   const unsigned char MOS_str[] EEMEM = "MOS";
   const unsigned char FET_str[] EEMEM = "FET";
   const unsigned char Channel_str[] EEMEM = "-ch";
@@ -187,7 +194,7 @@
   #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     const unsigned char IR_NEC_str[] EEMEM = "NEC";
     const unsigned char IR_SIRC_str[] EEMEM = "SIRC";
-    #ifdef SW_IR_EXTRA
+    #ifdef SW_IR_RX_EXTRA
     const unsigned char IR_IR60_str[] EEMEM = "IR60";
     const unsigned char IR_RCA_str[] EEMEM = "RCA";
     const unsigned char IR_RECS80_str[] EEMEM = "RECS80";
@@ -205,7 +212,7 @@
     const unsigned char IR_RC6_str[] EEMEM = "RC-6";
     const unsigned char IR_Samsung_str[] EEMEM = "Sams";
     const unsigned char IR_Sharp_str[] EEMEM = "Sharp";
-    #ifdef SW_IR_EXTRA
+    #if defined (SW_IR_RX_EXTRA) || defined (SW_IR_TX_EXTRA)
     const unsigned char IR_Thomson_str[] EEMEM = "Thom";
     #endif
   #endif
@@ -553,7 +560,7 @@
     extern const unsigned char IR_Detector_str[];
     extern const unsigned char IR_NEC_str[];
     extern const unsigned char IR_SIRC_str[];
-    #ifdef SW_IR_EXTRA
+    #ifdef SW_IR_RX_EXTRA
     extern const unsigned char IR_IR60_str[];
     extern const unsigned char IR_RCA_str[];
     extern const unsigned char IR_RECS80_str[];
@@ -571,7 +578,7 @@
     extern const unsigned char IR_RC6_str[];
     extern const unsigned char IR_Samsung_str[];
     extern const unsigned char IR_Sharp_str[];
-    #ifdef SW_IR_EXTRA
+    #if defined (SW_IR_RX_EXTRA) || defined (SW_IR_TX_EXTRA)
     extern const unsigned char IR_Thomson_str[];
     #endif
   #endif

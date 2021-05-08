@@ -525,8 +525,10 @@ uint8_t ReadTouchScreen(void)
  *  - optional rotary encoder incl. detection of turning velocity
  *  - optional increase/decrease push buttons
  *  - optional touch screen
- *  - processing can be terminated by signaling OP_BREAK_KEY via Cfg.OP_Mode
+ *  - processing can be terminated by signaling OP_BREAK_KEY via Cfg.OP_Control
  *    (e.g. set by an interrupt handler to deal with an infinite timeout)
+ *  - optional auto-power-off for auto-hold mode (signaled by OP_PWR_TIMEOUT
+ *    via Cfg.OP_Control) 
  *
  *  requires:
  *  - Timeout in ms 
@@ -549,17 +551,19 @@ uint8_t ReadTouchScreen(void)
 
 uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 {
-  uint8_t           Key = 0;       /* return value */
-  uint8_t           Run = 1;       /* loop control */
-  uint8_t           Ticks = 0;     /* time counter */
-  uint8_t           Test;          /* temp. value */
+  uint8_t           Key = KEY_TIMEOUT;  /* return value */
+  uint8_t           Run = 1;            /* loop control */
+  uint8_t           Ticks = 0;          /* time counter */
+  uint8_t           Test;               /* temp. value */
   #ifdef HW_ENCODER
-  uint8_t           Timeout2;      /* step timeout */
-  uint8_t           Steps = 0;     /* step counter */
-  uint8_t           MinSteps = 2;  /* required steps */
-  uint16_t          Temp;          /* temp value */
+  uint8_t           Timeout2;           /* step timeout */
+  uint8_t           Steps = 0;          /* step counter */
+  uint8_t           MinSteps = 2;       /* required steps */
+  uint16_t          Temp;               /* temp value */
   #endif
-
+  #ifdef POWER_OFF_TIMEOUT
+  uint16_t          PwrTimeout = 0;     /* timeout for auto power-off (auto-hold mode) */
+  #endif
 
   /*
    *  init
@@ -587,14 +591,22 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   UI.KeyStep = 1;             /* default level #1 */
   #endif
 
+  #ifdef POWER_OFF_TIMEOUT
+  /* init power-off timeout */
+  if (Cfg.OP_Control & OP_PWR_TIMEOUT)  /* power-off timeout enabled */
+  {
+    PwrTimeout = POWER_OFF_TIMEOUT * 2;      /* in 500ms */
+  }
+  #endif
+
   if (Mode & UI_OP_MODE)           /* consider operation mode */
   {
-    if (Cfg.OP_Mode & OP_AUTOHOLD)      /* auto hold mode */
+    if (Cfg.OP_Mode & OP_AUTOHOLD)      /* in auto-hold mode */
     {
       Timeout = 0;                 /* disable timeout */
                                    /* and keep cursor mode */
     }
-    else                                /* continous mode */
+    else                                /* in continuous mode */
     {
       Mode = CURSOR_NONE;          /* disable cursor */
                                    /* and keep timeout */
@@ -614,10 +626,16 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   while (Run)
   {
     /* take care about timeout */
-    if (Timeout > 0)                    /* timeout enabled */
+    if (Timeout > 0)               /* timeout enabled */
     {
-      if (Timeout > 5) Timeout -= 5;    /* decrease timeout by 5ms */
-      else Run = 0;                     /* end loop on timeout */
+      if (Timeout > DELAY_TICK)    /* some time left */
+      {
+        Timeout -= DELAY_TICK;     /* decrease timeout */
+      }
+      else                         /* timeout */
+      {
+        Run = 0;                   /* end loop */
+      }
     }
 
     /*
@@ -625,7 +643,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
      *  - push button is low active
      */
 
-    Test = CONTROL_PIN & (1 << TEST_BUTTON);   /* get button status */
+    Test = BUTTON_PIN & (1 << TEST_BUTTON);  /* get button status */
     if (Test == 0)            /* if test button is pressed */
     {
       Ticks = 0;              /* reset counter */
@@ -633,7 +651,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 
       while (Run)             /* detect how long key is pressed */
       {
-        Test = CONTROL_PIN & (1 << TEST_BUTTON);   /* get button status */
+        Test = BUTTON_PIN & (1 << TEST_BUTTON);   /* get button status */
         if (Test == 0)        /* key still pressed */
         {
           Ticks++;                      /* increase counter */
@@ -749,21 +767,24 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
       }
       #endif
 
+      /* delay for next loop run */
       MilliSleep(DELAY_TICK);           /* wait a little bit */
 
       /*
-       *  blinking cursor
-       *  - HD44780's built-in blinking cursor is ugly anyway :)
+       *  500ms ticks
+       *  - for blinking cursor
+       *    HD44780's built-in blinking cursor is ugly anyway :)
+       *  - for optional auto power-off
        */
-      
-      if (Mode & CURSOR_BLINK)          /* blinking cursor */
+
+      Ticks++;                          /* increase counter */
+      if (Ticks == DELAY_500)           /* every 500ms */
       {
-        Ticks++;                        /* increase counter */
+        Ticks = 0;                      /* reset counter */
 
-        if (Ticks == DELAY_500)         /* every 500ms (1Hz) */
+        /* blinking cursor */
+        if (Mode & CURSOR_BLINK)        /* blinking cursor enabled */
         {
-          Ticks = 0;                    /* reset counter */
-
           /* we misuse Run as toggle switch */
           if (Run == 1)                 /* turn off */
           {
@@ -776,6 +797,22 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
             Run = 1;                    /* toggle flag */
           }
         }
+
+        #ifdef POWER_OFF_TIMEOUT
+        /* automatic power-off */
+        if (PwrTimeout > 0)             /* power-off timeout enabled */
+        {
+          if (PwrTimeout > 1)           /* some time left */
+          {
+            PwrTimeout--;               /* decrease counter */
+          }
+          else                          /* timeout */
+          {
+            Key = KEY_POWER_OFF;        /* signal power-off */
+            Run = 0;                    /* exit loop */
+          }
+        }
+        #endif
       }
     }
 
@@ -799,6 +836,16 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 
   #ifdef HW_KEYS
   UI.KeyOld = Key;            /* update former key */
+  #endif
+
+  #ifdef POWER_OFF_TIMEOUT
+  /* automatic power-off */
+  if (Key == KEY_POWER_OFF)   /* power off */
+  {
+    cli();                              /* disable interrupts */
+    wdt_disable();                      /* disable watchdog */
+    POWER_PORT &= ~(1 << POWER_CTRL);   /* power off myself */
+  }
   #endif
 
   #undef DELAY_500

@@ -363,7 +363,10 @@ void CheckDiode(void)
     U_Diff = U2_Zero - U2_Rh;      /* calculate difference */
   }
 
-  if ((U2_Zero > 2) && (U_Diff < 100)) return;    /* capacitor */
+  if ((U2_Zero > 2) && (U_Diff < 100))  /* capacitor */
+  {
+    return;
+  }
 
 
   /*

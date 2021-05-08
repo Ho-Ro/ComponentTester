@@ -101,7 +101,7 @@ void Display_NextLine(void)
    *  TTL serial
    */
 
-  #ifdef UI_SERIAL_COPY
+  #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
   if (Cfg.OP_Control & OP_OUT_SER)      /* copy to serial enabled */
   {
     Serial_NewLine();                   /* serial: new line */

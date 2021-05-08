@@ -1236,12 +1236,12 @@ int main(void)
    */
 
   /* switch on power to keep me alive */
-  CONTROL_DDR = (1 << POWER_CTRL);      /* set pin as output */
-  CONTROL_PORT = (1 << POWER_CTRL);     /* set pin to drive power management transistor */
+  POWER_DDR = (1 << POWER_CTRL);        /* set pin as output */
+  POWER_PORT = (1 << POWER_CTRL);       /* set pin to drive power management transistor */
 
   /* set up MCU */
-  MCUCR = (1 << PUD);                        /* disable pull-up resistors globally */
-  ADCSRA = (1 << ADEN) | ADC_CLOCK_DIV;      /* enable ADC and set clock divider */
+  MCUCR = (1 << PUD);                   /* disable pull-up resistors globally */
+  ADCSRA = (1 << ADEN) | ADC_CLOCK_DIV; /* enable ADC and set clock divider */
 
   #ifdef HW_DISCHARGE_RELAY
   /* init discharge relay (safe mode) */
@@ -1263,8 +1263,8 @@ int main(void)
     /* reset mode/state flags and set auto-hold mode */
     Cfg.OP_Mode = OP_AUTOHOLD;          /* set auto-hold */
   #else
-    /* reset mode/state flags and set continous mode */
-    Cfg.OP_Mode = OP_NONE;              /* none = continous */
+    /* reset mode/state flags and set continuous mode */
+    Cfg.OP_Mode = OP_NONE;              /* none = continuous */
   #endif
   Cfg.OP_Control = OP_OUT_LCD;          /* reset control/signal flags */
                                         /* enable output to display */
@@ -1276,6 +1276,9 @@ int main(void)
   /*
    *  set up busses and interfaces
    */
+
+  /* test push button */
+  /* set to input by default */
 
   #ifdef HW_SERIAL
   Serial_Setup();                       /* set up TTL serial interface */
@@ -1310,14 +1313,14 @@ int main(void)
     Display_EEString(Timeout_str);      /* display: timeout */
     Display_NL_EEString(Error_str);     /* display: error */
     MilliSleep(2000);                   /* give user some time to read */
-    CONTROL_PORT = 0;                   /* power off myself */
+    POWER_PORT &= ~(1 << POWER_CTRL);   /* power off myself */
     return 0;                           /* exit program */
   }
 
 
   /*
    *  operation mode selection
-   *  - short key press -> continous mode
+   *  - short key press -> continuous mode
    *  - long key press -> auto-hold mode
    *  - very long key press -> reset to defaults
    */
@@ -1325,7 +1328,7 @@ int main(void)
   Key = 0;                              /* reset key press type */
 
   /* catch key press */
-  if (!(CONTROL_PIN & (1 << TEST_BUTTON)))   /* test button pressed */
+  if (!(BUTTON_PIN & (1 << TEST_BUTTON)))    /* test button pressed */
   {
     Test = 0;                      /* ticks counter */
 
@@ -1333,7 +1336,7 @@ int main(void)
     {
       MilliSleep(20);                   /* wait 20ms */
 
-      if (!(CONTROL_PIN & (1 << TEST_BUTTON)))    /* button still pressed */
+      if (!(BUTTON_PIN & (1 << TEST_BUTTON)))     /* button still pressed */
       {
         Test++;                         /* increase counter */
         if (Test > 100) Key = 3;        /* >2000ms */
@@ -1346,18 +1349,26 @@ int main(void)
     }
   }
 
-
   #ifndef UI_SERIAL_COMMANDS
   /* key press >300ms selects alternative operation mode */
+// todo: (Key == 2) ?
   if (Key > 1)
   {
     #ifdef UI_AUTOHOLD
-      /* change mode to continous */
+      /* change mode to continuous */
       Cfg.OP_Mode &= ~OP_AUTOHOLD;      /* clear auto-hold */
     #else
       /* change mode to auto-hold */
       Cfg.OP_Mode |= OP_AUTOHOLD;       /* set auto-hold */
     #endif
+  }
+  #endif
+
+  #ifdef POWER_OFF_TIMEOUT
+  /* automatic power-off for auto-hold mode */
+  if (Cfg.OP_Mode & OP_AUTOHOLD)        /* in auto-hold mode */
+  {
+    Cfg.OP_Control |= OP_PWR_TIMEOUT;   /* enable power-off timeout */
   }
   #endif
 
@@ -1618,8 +1629,8 @@ cycle_start:
   /* enter main menu if requested by short-circuiting all probes */
   if (ShortedProbes() == 3)        /* all probes short-circuited */
   {
-    MainMenu();                    /* enter mainmenu */
-    goto cycle_control;            /* skip probing */
+    Key = KEY_MAINMENU;            /* trigger main menu */
+    goto cycle_action;             /* perform action */
   }
   #endif
 
@@ -1785,7 +1796,7 @@ cycle_control:
 
   if (Key == KEY_TIMEOUT)          /* timeout (no key press) */
   {
-    /* implies continious mode */
+    /* implies continuous mode */
     /* check if we reached the maximum number of missed parts in a row */
     if (MissedParts >= CYCLE_MAX)
     {
@@ -1826,7 +1837,7 @@ cycle_control:
     }
     Display_Serial2LCD();          /* switch output back to LCD */
 
-    /* if we get a virtual key perform requested action */
+    /* if we got a virtual key perform requested action */
     if (Key != KEY_NONE) goto cycle_action;
     #endif
 
@@ -1855,7 +1866,23 @@ cycle_action:
     /* todo: move this to MainMenu()? (after selecting item) */
     #endif
 
+    #ifdef POWER_OFF_TIMEOUT
+    /* automatic power-off for auto-hold mode */
+    if (Cfg.OP_Mode & OP_AUTOHOLD)        /* in auto-hold mode */
+    {
+      Cfg.OP_Control &= ~OP_PWR_TIMEOUT;  /* disable power-off timeout */
+    }
+    #endif
+
     MainMenu();                    /* enter main menu */
+
+    #ifdef POWER_OFF_TIMEOUT
+    /* automatic power-off for auto-hold mode */
+    if (Cfg.OP_Mode & OP_AUTOHOLD)        /* in auto-hold mode */
+    {
+      Cfg.OP_Control |= OP_PWR_TIMEOUT;   /* enable power-off timeout */
+    }
+    #endif
 
     #ifdef SAVE_POWER
     /* change sleep mode back */
@@ -1871,11 +1898,11 @@ cycle_action:
     #ifdef LCD_COLOR
     UI.PenColor = COLOR_TITLE;               /* set pen color */
     #endif
-    Display_EEString(Bye_str);
+    Display_EEString(Bye_str);               /* display: Bye! */
 
     cli();                                   /* disable interrupts */
     wdt_disable();                           /* disable watchdog */
-    CONTROL_PORT &= ~(1 << POWER_CTRL);      /* power off myself */
+    POWER_PORT &= ~(1 << POWER_CTRL);        /* power off myself */
   }
   else                             /* default action */
   {

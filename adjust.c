@@ -2,7 +2,7 @@
  *
  *   self-adjustment functions
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2019 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -34,6 +34,43 @@
  * ************************************************************************ */
 
 
+#ifdef CAP_MULTIOFFSET
+
+/*
+ *  determine index number for a probe-pair specific offset stored in an array
+ *  - offset array format:
+ *    Offset[3] = {Offset_12, Offset_13, Offset_23}
+ *
+ *  requires:
+ *  - Probe1: ID of first probe (0-2)
+ *  - Probe2: ID of second probe (0-2)
+ *
+ *  returns:
+ *  - array index number for probe-pair specific offset (0-2)
+ */
+
+uint8_t GetOffsetIndex(uint8_t Probe1, uint8_t Probe2)
+{
+  uint8_t           Index;
+
+  /*
+   *  - use sum of probe IDs (order doesn't matter):
+   *    probes #1 & #2: 0 + 1 = 1  -> index: 0
+   *    probes #1 & #3: 0 + 2 = 2  -> index: 1
+   *    probes #2 & #3: 1 + 2 = 3  -> index: 2
+   *  - index = (sum of probe IDs) - 1
+   */
+
+  Index = Probe1 + Probe2;
+  Index--;
+
+  return Index;
+}
+
+#endif
+
+
+
 /*
  *  set default adjustment values
  */
@@ -44,7 +81,13 @@ void SetAdjustmentDefaults(void)
   NV.RiL = R_MCU_LOW;
   NV.RiH = R_MCU_HIGH;
   NV.RZero = R_ZERO;
+  #ifdef CAP_MULTIOFFSET
+  NV.CapZero[0] = C_ZERO;
+  NV.CapZero[1] = C_ZERO;
+  NV.CapZero[2] = C_ZERO;
+  #else
   NV.CapZero = C_ZERO;
+  #endif
   NV.RefOffset = UREF_OFFSET;
   NV.CompOffset = COMPARATOR_OFFSET;
   NV.Contrast = LCD_CONTRAST;
@@ -361,7 +404,16 @@ void ShowAdjustmentValues(void)
 
   /* display C-Zero */
   Display_NL_EEString_Space(CapOffset_str);       /* display: C0 */
+  #ifdef CAP_MULTIOFFSET
+  /* show just the values for the first two (assuming pF) */
+  Display_Value(NV.CapZero[0], 0, 0);        /* display C0 offset for probes 12 */
+  Display_Space();                           /* display space */
+  Display_Value(NV.CapZero[1], 0, 0);        /* display C0 offset for probes 13 */
+  Display_Space();                           /* display space */
+  Display_Value(NV.CapZero[2], -12, 'F');    /* display C0 offset for probes 23 */
+  #else
   Display_Value(NV.CapZero, -12, 'F');            /* display C0 offset */
+  #endif
 
   /* display R-Zero */
   Display_NL_EEString_Space(ROffset_str);         /* display: R0 */
@@ -375,11 +427,13 @@ void ShowAdjustmentValues(void)
   Display_NL_EEString_Space(Vcc_str);        /* display: Vcc */
   Display_Value(Cfg.Vcc, -3, 'V');           /* display Vcc */
 
+  #ifdef HW_REF25
   if (Cfg.OP_Mode & OP_EXT_REF)         /* external 2.5V reference used */
   {
     Display_Space();                    /* display space */
     Display_Char('*');                  /* display: * */
   }
+  #endif
 
   /* display offset of analog comparator */
   Display_NL_EEString_Space(CompOffset_str);      /* display: AComp */
@@ -403,9 +457,17 @@ uint8_t SelfAdjustment(void)
   uint8_t           Flag = 0;           /* return value & loop couner */
   uint8_t           Step;               /* step counter */
   uint8_t           DisplayFlag;        /* display flag */
-  uint16_t          Val1 = 0, Val2 = 0, Val3 = 0;   /* voltages */
+  uint16_t          Val1 = 0;           /* voltage/value #1 */
+  uint16_t          Val2 = 0;           /* voltage/value #2 */
+  uint16_t          Val3 = 0;           /* voltage/value #3 */
   uint8_t           CapCounter = 0;     /* number of C_Zero measurements */
+  #ifdef CAP_MULTIOFFSET
+  uint16_t          CapSum1 = 0;        /* sum of C_Zero values for probes 12 */
+  uint16_t          CapSum2 = 0;        /* sum of C_Zero values for probes 13 */
+  uint16_t          CapSum3 = 0;        /* sum of C_Zero values for probes 23 */
+  #else
   uint16_t          CapSum = 0;         /* sum of C_Zero values */
+  #endif
   uint8_t           RCounter = 0;       /* number of R_Zero measurements */
   uint16_t          RSum = 0;           /* sum of R_Zero values */
   uint8_t           RiL_Counter = 0;    /* number of U_RiL measurements */
@@ -572,34 +634,49 @@ uint8_t SelfAdjustment(void)
           Display_EEString(ProbeComb_str);        /* display: 12 13 23 */
 
           /*
-           *  The capacitance is for two probes and we expect it to be
-           *  less than 100pF.
+           *  measure the probe pair capacitance
+           *  - we expect a value less than 100pF
            */
 
+          /* probe pair 1-2 */
           MeasureCap(PROBE_2, PROBE_1, 0);
           Val1 = (uint16_t)Caps[0].Raw;
           /* limit offset to 100pF */
           if ((Caps[0].Scale == -12) && (Caps[0].Raw <= 100))
           {
+            #ifdef CAP_MULTIOFFSET
+            CapSum1 += Val1;
+            #else
             CapSum += Val1;
+            #endif
             CapCounter++;            
           }
 
+          /* probe pair 1-3 */
           MeasureCap(PROBE_3, PROBE_1, 1);
           Val2 = (uint16_t)Caps[1].Raw;
           /* limit offset to 100pF */
           if ((Caps[1].Scale == -12) && (Caps[1].Raw <= 100))
           {
+            #ifdef CAP_MULTIOFFSET
+            CapSum2 += Val2;
+            #else
             CapSum += Val2;
+            #endif
             CapCounter++;            
           }
 
+          /* probe pair 2-3 */
           MeasureCap(PROBE_3, PROBE_2, 2);
           Val3 = (uint16_t)Caps[2].Raw;
           /* limit offset to 100pF */
           if ((Caps[2].Scale == -12) && (Caps[2].Raw <= 100))
           {
+            #ifdef CAP_MULTIOFFSET
+            CapSum3 += Val3;
+            #else
             CapSum += Val3;
+            #endif
             CapCounter++;            
           }
 
@@ -652,8 +729,16 @@ uint8_t SelfAdjustment(void)
   /* capacitance auto-zero: calculate average value for all probe pairs */
   if (CapCounter == 15)
   {
+    #ifdef CAP_MULTIOFFSET
+    /* calculate average offset (pF) for each probe pair */
+    NV.CapZero[0] = CapSum1 / 5;        /* probes 1-2 */
+    NV.CapZero[1] = CapSum2 / 5;        /* probes 1-3 */
+    NV.CapZero[2] = CapSum3 / 5;        /* probes 2-3 */
+    #else
     /* calculate average offset (pF) */
     NV.CapZero = CapSum / CapCounter;
+    #endif
+
     Flag++;                   /* adjustment done */
   }
 

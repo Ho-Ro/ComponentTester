@@ -6,7 +6,10 @@
 
 DIY Kit "AY-AT"
 - ATmega328
-- with ST7735 color LCD module (bit-bang SPI)
+- ST7735 color LCD module (bit-bang SPI)
+- rotary encoder (PD1/3)
+- basic frequency counter with dedicated input (PD4)
+- measurement of external voltage up to 45V (PC3)
 - settings provided by flywheelz@EEVBlog
 
 Hardware Options:
@@ -81,7 +84,7 @@ Inductance compensation offsets for 20MHz model
 M12864 DIY Transistor Tester
 - ATmega328
 - ST7565 display (bit-bang SPI)
-- rotary encoder at PD1/3
+- rotary encoder (PD1/3)
 
 Hardware Options:
 #define HW_ENCODER
@@ -249,8 +252,8 @@ Hardware Options:
 Misc settings:
 #define BAT_DIRECT
 #define BAT_OFFSET       0
-#define BAT_WEAK         3700
-#define BAT_LOW          3500
+#define BAT_WEAK         3600
+#define BAT_LOW          3400
 
 LCD module:
 #define LCD_ST7735
@@ -296,11 +299,15 @@ Pinout for probe resistors:
 #define R_RL_3           PC4       /* Rl (680R) for test pin #3 */
 #define R_RH_3           PC5       /* Rh (470k) for test pin #3 */
 
-Pinout for test button and power management:
-#define CONTROL_PORT     PORTD     /* port data register */
-#define CONTROL_DDR      DDRD      /* port data direction register */
-#define CONTROL_PIN      PIND      /* port input pins register */
+Pinout for power control:
+#define POWER_PORT       PORTD     /* port data register */
+#define POWER_DDR        DDRD      /* port data direction register */
 #define POWER_CTRL       PD2       /* controls power (1: on / 0: off) */
+
+Pinout for test button:
+#define BUTTON_PORT      PORTD     /* port data register */
+#define BUTTON_DDR       DDRD      /* port data direction register */
+#define BUTTON_PIN       PIND      /* port input pins register */
 #define TEST_BUTTON      PD1       /* test/start push button (low active) */
 
 Pinout for fixed IR detector/decoder:

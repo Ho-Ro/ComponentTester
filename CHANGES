@@ -4,9 +4,33 @@
 
          for ATmega 328/324/644/1284 with character or graphic display
 
-                        (c) 2012-2018 by Markus Reschke
+                        (c) 2012-2019 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.35m 2019-02
+- Added option to use probe pair specific capacitance offsets instead of
+  an average offset for all probes (CAP_MULTIOFFSET).
+- Corrected pin definition for ST7920 4-bit parallel mode in config_644.h
+  (reported by jakeisprobably@EEVblog).
+- Added support for 3-wire SPI to SSD1306 driver.
+- Extended SPI driver to support sending 9 bit frames (bitbang only).
+- Fixed issue with increasing deviation of resistors between 7k5 and 19k5 Ohms
+  in CheckResistor() (reported by Vitaliy).
+- Added alternative delay loop in IR_Send_Pulse() which is enabled by
+  SW_IR_TX_ALTDELAY (thanks to Vitaliy).
+- The configuration switch for additional IR protocols SW_IR_EXTRA was
+  replaced by SW_IR_RX_EXTRA for the receiver/decoder and SW_IR_TX_EXTRA
+  for the sender.
+- Fixed issue with missing newline in Display_NextLine() for remote commands.
+- Changed output for SIRC in IR_Decode() to reflect native protocol
+  (suggested by Vitaliy).
+- Fixed bug in IR_Send_Code() for SIRC-20 (reported by Vitaliy).
+- Updated var_russian.h (thanks to indman@EEVblog).
+- Added automatic power-off for auto-hold mode (POWER_OFF_TIMEOUT).
+- Separated pin configuration for test push button and power control
+  (CONTROL_PORT -> POWER_PORT and BUTTON_PORT).
+- Several minor improvements.
 
 v1.34m 2018-10
 - Added leakage check for capacitors.

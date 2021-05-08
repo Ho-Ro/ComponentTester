@@ -520,7 +520,7 @@ void PWM_Tool(void)
     if (Test == KEY_LONG)          /* long key press */
     {
       /* wait until button is released to prevent further actions */
-      while (!(CONTROL_PIN & (1 << TEST_BUTTON))) /* as long as key is pressed */
+      while (!(BUTTON_PIN & (1 << TEST_BUTTON)))  /* as long as key is pressed */
       {
         wait10ms();           /* simply wait */
       }
@@ -956,7 +956,7 @@ void Servo_Check(void)
     if (Test == KEY_LONG)          /* long key press */
     {
       /* wait until button is released to prevent further actions */
-      while (!(CONTROL_PIN & (1 << TEST_BUTTON))) /* as long as key is pressed */
+      while (!(BUTTON_PIN & (1 << TEST_BUTTON)))  /* as long as key is pressed */
       {
         wait10ms();           /* simply wait */
       }
@@ -1663,7 +1663,7 @@ void Zener_Tool(void)
      *  two short key presses exit tool
      */
 
-    while (!(CONTROL_PIN & (1 << TEST_BUTTON)))   /* as long as key is pressed */
+    while (!(BUTTON_PIN & (1 << TEST_BUTTON)))    /* as long as key is pressed */
     {
       /* get voltage (10:1 voltage divider) */
       Value = ReadU(TP_ZENER);     /* special probe pin */
@@ -1861,7 +1861,7 @@ void FrequencyCounter(void)
       else                              /* Timer1 still running */
       {
         /* check for key press */
-        while (!(CONTROL_PIN & (1 << TEST_BUTTON)))    /* pressed */
+        while (!(BUTTON_PIN & (1 << TEST_BUTTON)))     /* pressed */
         {
           MilliSleep(50);          /* take a nap */
           Flag = EXIT_ALL;         /* end all loops */
@@ -2652,7 +2652,7 @@ void Encoder_Tool(void)
     }
     else                      /* nothing found yet */
     {
-      if (!(CONTROL_PIN & (1 << TEST_BUTTON)))   /* if key is pressed */
+      if (!(BUTTON_PIN & (1 << TEST_BUTTON)))     /* if key is pressed */
       {
         MilliSleep(100);           /* smooth UI */
         Flag = 10;                 /* end loop */
@@ -3153,7 +3153,7 @@ void Cap_Leakage(void)
   uint8_t           Flag;               /* loop control flag */
   uint8_t           Test = 0;           /* user feedback */
   uint8_t           Mode;               /* mode */
-  uint16_t          U1;                 /* voltage #1 */
+  uint16_t          U1 = 0;             /* voltage #1 */
   uint32_t          Value;              /* temp. value */
 
   /* control flags */

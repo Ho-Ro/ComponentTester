@@ -2,7 +2,7 @@
  *
  *   resistor measurements
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -305,7 +305,7 @@ void CheckResistor(void)
           if (U_Rh_L >= 38)        /* R < 61.4M & prevent division by zero */
           {
             /*
-             *  Rh pulled up (above DUT):
+             *  Rh pulled up (Gnd -- DUT/R -- Rh -- Vcc):
              *  I = U_Rh / Rh = (Vcc - U_Rh_H) / Rh
              *  R = U_R / I = U_Rh_H / ((Vcc - U_Rh_H) / Rh)
              *    = Rh * U_Rh_H / (Vcc - U_Rh_H)
@@ -319,7 +319,7 @@ void CheckResistor(void)
             Value1 /= (Cfg.Vcc - U_Rh_H);
 
             /*
-             *  Rh pulled down (below DUT):
+             *  Rh pulled down (Gnd -- Rh -- DUT/R -- Vcc):
              *  I = U_Rh_L / Rh
              *  R = U_R / I = (Vcc - U_Rh_L) / (U_Rh_L / Rh)
              *    = Rh * (Vcc - U_Rh_L) / U_Rh_L
@@ -338,52 +338,50 @@ void CheckResistor(void)
              *    (1.1mV instead of 4.9mV).
              */
 
-            if (U_Rh_H < 990)           /* below bandgap reference */
+            if (U_Rh_H < 990)           /* below bandgap reference / R < 117k5 */
             {
-              /* weighted average for U_Rh_H */
-              Value = (Value1 * 4);
+              /* weighted average: (4*V1 + V2) / 5 */
+              Value = Value1 * 4;
               Value += Value2;
               Value /= 5;
             }
-            else if (U_Rh_L < 990)      /* below bandgap reference */
+            else if (U_Rh_L < 990)      /* below bandgap reference / R > 1M88 */
             {
-              /* weighted average for U_Rh_L */
-              Value = (Value2 * 4);
+              /* weighted average: (4*V2 + V1) / 5 */
+              Value = Value2 * 4;
               Value += Value1;
               Value /= 5;
             }
-            else                        /* higher than bandgap reference */
+            else                        /* above bandgap reference */
             {
-              /* classic average */
+              /* classic average: (V1 + V2) / 2 */
               Value = (Value1 + Value2) / 2;
             }
 
-            Value += RH_OFFSET;         /* add offset value for Rh */
+            Value += RH_OFFSET;         /* add offset value for measurement with Rh */
             Value *= 10;                /* upscale to 0.1 Ohms */
             Compare = 1;                /* signal valid measurement */
           }
         }
-        else                       /* U_Rl_L: R <= 19.5k */
+        else                       /* R <= 19.5k */
         {
           /*
            *  use measurements done with Rl
            */
 
-          /* voltages below and above DUT match voltage divider */
           /* voltage below DUT can't be higher than above DUT */
           if ((U_Rl_H >= U_Ri_L) && (U_Ri_H >= U_Rl_L))
           {
-
             /*
-             *  Rl pulled up (above DUT):
+             *  Rl pulled up (Gnd -- DUT/R -- Rl -- Vcc):
              *  I = U_Rl_RiH / (Rl + RiH) = (Vcc - U_Rl_H) / (Rl + RiH)
-             *  R = U_Dut / I
+             *  R = U_R / I
              *    = (U_Rl_H - U_Ri_L) / ((Vcc - U_Rl_H) / (Rl + RiH))
              *    = (Rl + RiH) * (U_Rl_H - U_Ri_L) / (Vcc - U_Rl_H)
              *
              *  Or via voltage divider:
              *  R = (Rl + RiH) * (U_R_RiL / U_Rl_RiH) - RiL
-             *    = (Rl + RiH) * (U_R_RiL / (Vcc - U_dut_RiL)) - RiL
+             *    = (Rl + RiH) * (U_R_RiL / (Vcc - U_R_RiL)) - RiL
              */
 
             if (U_Rl_H == Cfg.Vcc)      /* prevent division by zero */
@@ -395,12 +393,13 @@ void CheckResistor(void)
             Value1 *= (U_Rl_H - U_Ri_L);
             Value1 /= (Cfg.Vcc - U_Rl_H);
 
+
             /*
-             *  Rl pulled down (below DUT):
-             *  I = U_Rl_RiL / (Rl + RiL)
+             *  Rl pulled down (Gnd -- Rl -- DUT/R -- Vcc):
+             *  I = U_Rl_RiL / (Rl + RiL) = U_Rl_L / (Rl + RiL)
              *  R = U_R / I
-             *    = (U_Ri_H - U_Rl_L) / (U_Rl_RiL / (Rl + RiL))
-             *    = (Rl + RiL) * (U_Ri_H - U_Rl_L) / U_Rl_RiL
+             *    = (U_Ri_H - U_Rl_L) / (U_Rl_L / (Rl + RiL))
+             *    = (Rl + RiL) * (U_Ri_H - U_Rl_L) / U_Rl_L
              *
              *  Or via voltage divider:
              *  R = (Rl + RiL) * (U_R_RiH / U_Rl_RiL) - RiH
@@ -411,29 +410,42 @@ void CheckResistor(void)
             Value2 *= (U_Ri_H - U_Rl_L);
             Value2 /= U_Rl_L;
 
+
             /*
              *  calculate weighted average of both measurements
              *  - Voltages below the bandgap reference got a higher resolution
              *    (1.1mV instead of 4.9mV).
              */
 
-            if (U_Rl_H < 990)           /* below bandgap reference */
+            if (U_Rl_H < 990)           /* below bandgap reference / R < 170 */
             {
-              /* weighted average for U_Rh_H */
-              Value = (Value1 * 4);
+              /* weighted average: (4*V1 + V2) / 5 */
+              Value = Value1 * 4;
               Value += Value2;
               Value /= 5;
             }
-            else if (U_Rl_L < 990)      /* below bandgap reference */
+            else if (U_Rl_L < 990)      /* below bandgap reference / R > 2k7 */
             {
-              /* weighted average for U_Rh_L */
-              Value = (Value2 * 4);
-              Value += Value1;
-              Value /= 5;
+              /* weighted average */
+              if (Value2 < 75000)       /* R < 7k5 */
+              {
+                /* weighted average: (4*V1 + V2) / 5 */
+                Value = Value2 * 4;
+                Value += Value1;
+                Value /= 5;
+              }
+              else                      /* R >= 7k5 */
+              {
+                /* weighted average: (9*V2 + V1) / 10 */
+                Value = Value2 * 8;
+                Value += Value2;
+                Value += Value1;
+                Value /= 10;
+              }
             }
-            else                        /* higher than bandgap reference */
+            else                        /* above bandgap reference */
             {
-              /* classic average */
+              /* classic average: (V1 + V2) / 2 */
               Value = (Value1 + Value2) / 2;
             }
           }

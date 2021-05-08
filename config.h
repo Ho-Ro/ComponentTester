@@ -159,6 +159,7 @@
  *  - module is connected to fixed I/O pin
  *  - see IR_PORT for port pin (config-<MCU>.h)
  *  - uncomment to enable
+ *  - for additional protocols also enable SW_IR_RX_EXTRA
  */
 
 //#define HW_IR_RECEIVER
@@ -261,6 +262,15 @@
 
 
 /*
+ *  additional protocols for IR remote control detection/decoder
+ *  - uncommon protocols which will increase flash memory usage ;)
+ *  - uncomment to enable
+ */
+
+//#define SW_IR_RX_EXTRA
+
+
+/*
  *  IR remote control sender
  *  - requires additional keys and display with more than 4 text lines
  *  - also requires an IR LED with a simple driver
@@ -271,13 +281,22 @@
 
 
 /*
- *  additional protocols for IR remote control detection/decoder
- *  and sender
- *  - uncommon protocols which increase flash memory usage ;)
+ *  Alternative delay loop for IR remote control sender
+ *  - in case the the C compiler screws up the default delay loop
+ *    and causes incorrect pulse/pause timings
  *  - uncomment to enable
  */
 
-//#define SW_IR_EXTRA
+//#define SW_IR_TX_ALTDELAY
+
+
+/*
+ *  additional protocols for IR remote control sender
+ *  - uncommon protocols which will increase flash memory usage ;)
+ *  - uncomment to enable
+ */
+
+//#define SW_IR_TX_EXTRA
 
 
 /*
@@ -293,7 +312,7 @@
  *  - uncomment to enable
  */
 
-//#define SW_UJT
+#define SW_UJT
 
 
 /*
@@ -355,7 +374,7 @@
 
 
 /* ************************************************************************
- *   misc settings
+ *   user interface
  * ************************************************************************ */
 
 
@@ -434,7 +453,8 @@
 
 
 /*
- *  Maximum time to wait after probing in continous mode (in ms).
+ *  Maximum time to wait after probing (in ms).
+ *  - applies to continuous mode only
  *  - Time between printing the result and starting a new probing cycle.
  */
 
@@ -442,15 +462,31 @@
 
 
 /*
- *  Maximum number of tests without any component found in a row.
- *  - If this number is reached the tester powers off.
+ *  Maximum number of check runs without any component found in a row.
+ *  - applies to continuous mode only
+ *  - If this number is reached the tester will power off.
  */
 
 #define CYCLE_MAX        5
 
 
 /*
- *  Battery monitoring mode
+ *  Automatic power-off when no button is pressed for a while (in s).
+ *  - applies to auto-hold mode only
+ *  - uncomment to enable, also adjust timeout (in s)
+ */
+
+//#define POWER_OFF_TIMEOUT     60
+
+
+
+/* ************************************************************************
+ *   power management
+ * ************************************************************************ */
+
+
+/*
+ *  Battery monitoring mode:
  *  - BAT_NONE     disable battery monitoring completely
  *  - BAT_DIRECT   direct measurement of battary voltage (< 5V)
  *  - BAT_DIVIDER  measurement via voltage divider
@@ -568,42 +604,45 @@
 #define RH_OFFSET        350
 
 
-
 /*
- *  Resistance of probe leads (in 0.01 Ohms).
- *  - Resistance of two probe leads in series.
- *  - Assuming all probe leads got same/similar resistance.
+ *  Resistance of probes (in 0.01 Ohms).
+ *  - default offset for PCB tracks and probe leads
+ *  - resistance of two probes in series
+ *  - assuming all probes have same/similar resistance
+ *  - will be updated by self-adjustment
  */
 
 #define R_ZERO           20
 
 
-
 /* 
- *  Capacitance of the wires between PCB and terminals (in pF).
- *  Examples:
- *  - 2pF for wires 10cm long
+ *  Capacitance of probes (in pF).
+ *  - default offset for MCU, PCB tracks and probe leads
+ *  - Examples:
+ *    capacitance  length
+ *    -------------------------
+ *     3pF         about 10cm
+ *     9pF         about 30cm
+ *    15pF         about 50cm
+ *  - maximum value: 100
+ *  - will be updated by self-adjustment
  */
 
-#define CAP_WIRES        2
+#define C_ZERO           43
 
 
-/* 
- *  Capacitance of the probe leads connected to the tester (in pF).
- *  Examples:
- *    capacity  length of probe leads
- *    -------------------------------
- *     3pF      about 10cm
- *     9pF      about 30cm
- *    15pF      about 50cm
+/*
+ *  Use probe pair specific capacitance offsets instead of an
+ *  average value for all probes.
+ *  - uncomment to enable
  */
 
-#define CAP_PROBELEADS   9
+//#define CAP_MULTIOFFSET
 
 
 /*
  *  Maximum voltage at which we consider a capacitor being
- *  discharged (in mV)
+ *  discharged (in mV).
  */
 
 #define CAP_DISCHARGED   2
@@ -677,7 +716,7 @@
 /*
  *  I2C bus
  *  - might be required by some hardware
- *  - could already be enabled in display section (config_<MCU>.h)
+ *  - could be enabled already in display section (config_<MCU>.h)
  *  - for bit-bang I2C port and pins see I2C_PORT (config_<MCU>.h)
  *  - hardware I2C (TWI) uses automatically the proper MCU pins
  *  - uncomment either I2C_BITBANG or I2C_HARDWARE to enable
@@ -694,7 +733,7 @@
 /*
  *  SPI bus
  *  - might be required by some hardware
- *  - could already be enabled in display section (config_<MCU>.h)
+ *  - could be enabled already in display section (config_<MCU>.h)
  *  - for bit-bang SPI port and pins see SPI_PORT (config_<MCU>.h)
  *  - hardware SPI uses automatically the proper MCU pins
  *  - uncomment either SPI_BITBANG or SPI_HARDWARE to enable
@@ -707,7 +746,7 @@
 
 /*
  *  TTL serial interface
- *  - could already be enabled in display section (config_<MCU>.h)
+ *  - could be enabled already in display section (config_<MCU>.h)
  *  - for bit-bang serial port and pins see SERIAL_PORT (config_<MCU>.h)
  *  - hardware serial uses automatically the proper MCU pins
  *  - uncomment either SERIAL_BITBANG or SERIAL_HARDWARE to enable
@@ -792,14 +831,6 @@
 /* ************************************************************************
  *   derived values
  * ************************************************************************ */
-
-
-/*
- *  total default capacitance (in pF)
- *  - max. 255
- */
-
-#define C_ZERO           CAP_PCB + CAP_WIRES + CAP_PROBELEADS
 
 
 /*

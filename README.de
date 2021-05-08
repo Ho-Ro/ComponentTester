@@ -5,11 +5,11 @@
 
            für ATmega328/324/644/1284 mit Text- oder Grafikdisplay
 
-        (c) 2012-2018 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2019 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2018-10-05
+Letzte Änderung: 2019-02-04
 
 Inhaltsübersicht:
   - Über den Tester
@@ -356,6 +356,10 @@ Beachte die Versorgungsspannung und die Logikpegel des LCD-Moduls! Benutze
 Pegelumsetzer, sofern notwendig. Wenn das Display trotz korrekter Beschaltung
 nichts anzeigt, versuche den Kontrast zu ändern (config_<MCU>.h).
 
+Bei den meisten LCD-Modulen kannst Du die /CS und /RES Signale per Pullup/down-
+Widerstände fest verdrahten und die entsprechenden IO-Pins auskommentieren,
+sofern nur das LCD-Modul am Bus hängt. 
+
 Hinweis zu ATmega 328:
 Wenn Du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom LCD-Modul
 mit PD5 und setze LCD_CS in config_328.h (nur für grafische LCD-Module).
@@ -457,7 +461,9 @@ verschluckt. Wenn das stört, kannst Du in variables.h die Texte etwas kürzen.
 
 + SSD1306
 
-Der SSD1306 wird mittels 4-Line SPI oder I2C gesteuert. Die Pins für SPI sind:
+Der SSD1306 wird mittels 3-Line SPI, 4-Line SPI oder I2C gesteuert. 3-Line SPI
+benötigt den Bit-Bang-Modus, und SPI_9 muss aktiviert sein. Die Pins für 4-Line
+SPI sind:
 
   Modul       config-<MCU>.h   Standard   Hinweis
                                328
@@ -465,6 +471,16 @@ Der SSD1306 wird mittels 4-Line SPI oder I2C gesteuert. Die Pins für SPI sind:
   /RES        LCD_RESET        PD4        optional
   /CS         LCD_CS           PD5        optional
   DC          LCD_DC           PD3
+  SCLK (D0)   LCD_SCLK         PD2
+  SDIN (D1)   LCD_SDIN         PD1
+
+Für 3-Line SPI (nur Bit-Bang):
+
+  Modul       config-<MCU>.h   Standard   Hinweis
+                               328
+
+  /RES        LCD_RESET        PD4        optional
+  /CS         LCD_CS           PD5        optional
   SCLK (D0)   LCD_SCLK         PD2
   SDIN (D1)   LCD_SDIN         PD1
 
@@ -721,8 +737,13 @@ Nach dem Einschalten sucht Tester automatisch nach Bauteilen. Im
 kontinuierlichen Modus wiederholt der Tester die Suche nach einer kurzen
 Wartepause. Wenn mehrfach hintereinander kein Bauteil gefunden wurde, schaltet
 sich der Tester von selbst aus. Im Auto-Hold-Modus (durch Cursor signalisiert)
-führt der Tester einen Suchvorgang aus und wartet dann auf Tastendruck bzw.
-Rechtsdrehung vom Drehencoder. 
+führt der Tester einen Suchvorgang aus und wartet dann auf einen Tastendruck
+bzw. Rechtsdrehung vom Drehencoder bevor er die nächste Suche startet.
+
+Die Wartepause und das automatische Abschalten im kontinuierlichen Modus kann
+mittels CYCLE_DELAY und CYCLE_MAX in config.h geändert werden. Für den Auto-
+Hold-Modus gibt es eine optionale automatische Abschaltung (POWER_OFF_TIMEOUT),
+welche nur während der Bauteilesuche und Ausgabe aktiv ist.
 
 In beiden Modi kannst Du das Hauptmenü aufrufen (siehe weiter unten).
 
@@ -940,41 +961,82 @@ Variante wird das Moduls mit den normalen Testpins verbunden. Die zweite
 Variante ist ein festes Modul, welches mit einem bestimmten MCU-Pin verbunden
 ist.
 
-Wenn ein bekanntes Protokoll erkannt wird , gibt der Tester das Protokoll,
+Wenn ein bekanntes Protokoll erkannt wird, gibt der Tester das Protokoll,
 Adresse (sofern verfügbar), Kommando und ggf. zusätzliche Informationen
 hexadezimal aus. Das Ausgabeformat ist:
-  <Protokoll> [<Adresse>:]<Kommando>[:<Extras>]
-Bei einem defekten Datenpaket wird hinter dem Protokoll ein "?" ausgegeben.
+  <Protokoll> <Datenfeld(er)>
+
+Bei einem defekten Datenpaket wird "?" als Datenfeld ausgegeben.
 
 Ist das Protokoll unbekannt, zeigt der Tester die Anzahl der Pausen & Pulse
 und die Dauer des ersten Puls und der ersten Pause in Einheiten von 50µs an:
   ? <Pulse>:<erster Pulse>-<erste Pause>
+
 Wenn die Anzahl der Pulse bei verschiedenen Tasten der Fernbedienung gleich
 bleit, ist die Modulation sehr wahrscheinlich PDM oder PWM. Eine sich
 ändernde Anzahl von Pulsen weist auf Bi-Phase-Modulation hin. 
 
 Zum Beenden die Test-Taste einmal kurz drücken.
 
-Unterstützte Protokolle:
-  - JVC
-  - Kaseikyo (Japancode, 48 Bit)
-  - Matsushita (Panasonic MN6014, C6D6 / 12 bits)
-  - Motorola
-  - NEC (Standard & Erweitert)
-  - Proton / Mitsubishi (M50560)
-  - RC-5 (Standard)
-  - RC-6 (Standard)
-  - Samsung / Toshiba (32 Bit)
-  - Sharp
-  - Sony SIRC (12, 15 & 20 Bit)
+Unterstützte Protokolle und ihre Datenfelder:
 
-Optionale Protokolle:
+  - JVC
+    <Addresse>:<Kommando>
+
+  - Kaseikyo (Japancode, 48 Bit)
+    <Herstellercode>:<System>-<Produkt>:<Funktion>
+
+  - Matsushita (Panasonic MN6014, C6D6 / 12 bits)
+    <Gerätecode>:<Datencode>
+
+  - Motorola
+    <Kommando>
+
+  - NEC (Standard & Erweitert)
+    <Addresse>:<Kommando>
+    R für Wiederholsequenz
+
+  - Proton / Mitsubishi (M50560)
+    <Addresse>:<Kommando>
+
+  - RC-5 (Standard)
+    <Addresse>:<Kommando>
+
+  - RC-6 (Standard)
+    <Addresse>:<Kommando>
+
+  - Samsung / Toshiba (32 Bit)
+    <Gerätecode>:<Datencode>
+
+  - Sharp
+    <Addresse>:<Kommando>
+
+  - Sony SIRC (12, 15 & 20 Bit)
+    12 & 15: <Kommando>:<Addresse>
+    20:      <Kommando>:<Addresse>:<Erweitert>
+
+Optionale Protokolle (SW_IR_RX_EXTRA):
+
   - IR60 (SDA2008/MC14497)
+    <Kommando>
+
   - Matsushita (Panasonic MN6014, C5D6 / 11 bits)
+    <Gerätecode>:<Datencode>
+
   - NEC µPD1986C
+    <Datencode>
+
   - RECS80 (Standard & Erweitert)
+    <Addresse>:<Kommando>
+
+  - RCA
+    <Addresse>:<Kommando>
+
   - Sanyo (LC7461)
+    <Gerätecode>:<Taste>
+
   - Thomson
+    <Gerät>:<Funktion>
 
 Die Trägerfrequenz vom TSOP IR-Empfängermodul muß nicht genau zur Fernsteuerung
 passen. Es verringert sich eigentlich nur die Reichweite, was für unseren Zweck
@@ -1069,7 +1131,7 @@ Unterstützte Protokolle und ihre Datenfelder:
   - Sony SIRC-20
     <Kommando:7> <Adresse:5> <Erweitert:8>
 
-Optionale Protokolle:
+Optionale Protokolle (SW_IR_RX_EXTRA):
 
   - Thomson
     <Gerät:4> <Funktion:7>
@@ -1112,6 +1174,12 @@ Beispielschaltung für einen Treiber, welcher die IR-LED (Vf 1.5V, If 100mA) mit
                     BC548  |
                            |
                            - Gnd
+
+Hinweis:
+  Falls das Timing der Pulse/Pausen nicht passen sollte, bitte die alternative
+  Warteschleifenmethode SW_IR_TX_ALTDELAY aktivieren. Dies ist notwendig, wenn
+  der C-Compiler die Standardwarteschleife trotz Anweisung, den Inline-
+  Assembler-Code beizubehalten, optimiert.
 
 
 + Opto-Koppler-Test
@@ -1249,6 +1317,10 @@ Mit einem festen Kondensator zum Selbstabgleich wird der automatische Abgleich
 in der Kapazitätsmessung durch eine eigene Funktion ersetzt, welche während
 des Selbstabgleichs ausgeführt wird. Somit brauchst Du nicht mehr vorher
 einen Folienkondensator zu messen.
+
+Falls der Kapazitätsoffset zwischen den Test-Pin-Paaren zu sehr variiert,
+kannst Du in config.h auf Test-Pin spezifische Offsets umschalten (
+CAP_MULTIOFFSET).
 
 Der Selbstabgleich ist dem Selbsttest vom Ablauf und der Bedienung her sehr
 ähnlich.

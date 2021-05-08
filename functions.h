@@ -66,6 +66,9 @@
     extern void SPI_Clock(void);
     #endif
   extern void SPI_Setup(void);
+    #if defined (SPI_BITBANG) && defined (SPI_9)
+    extern void SPI_Write_Bit(uint8_t Bit);
+    #endif
   extern void SPI_Write_Byte(uint8_t Byte);
     #ifdef SPI_RW
     extern uint8_t SPI_WriteRead_Byte(uint8_t Byte);
@@ -236,6 +239,10 @@
  * ************************************************************************ */
 
 #ifndef ADJUST_C
+
+  #ifdef CAP_MULTIOFFSET
+  extern uint8_t GetOffsetIndex(uint8_t Probe1, uint8_t Probe2);
+  #endif
 
   extern void SetAdjustmentDefaults(void);
   extern void ManageAdjustmentStorage(uint8_t Mode, uint8_t ID);

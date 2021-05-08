@@ -1250,10 +1250,20 @@ uint8_t SmallCap(Capacitor_Type *Cap)
     /* take care about zero offset if feasable */
     if (Scale == -12)                     /* pF scale */
     {
+      #ifdef CAP_MULTIOFFSET
+      /* get index number for probe pair */
+      TempByte = GetOffsetIndex(Probes.ID_1, Probes.ID_2);
+
+      if (Value >= NV.CapZero[TempByte])  /* if value is larger than offset */
+      {
+        Value -= NV.CapZero[TempByte];    /* substract offset */
+      }
+      #else
       if (Value >= NV.CapZero)            /* if value is larger than offset */
       {
         Value -= NV.CapZero;              /* substract offset */
       }
+      #endif
       else                                /* if value is smaller than offset */
       {
         /* we have to prevent a negative value */

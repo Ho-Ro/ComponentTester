@@ -2,7 +2,7 @@
  *
  *   common header file
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2019 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -68,7 +68,7 @@
 
 /* operation mode/state flags (bitmask) */
 #define OP_NONE               0b00000000     /* no flags */
-#define OP_AUTOHOLD           0b00000001     /* auto hold mode (instead of continous) */
+#define OP_AUTOHOLD           0b00000001     /* auto-hold mode (instead of continuous) */
 #define OP_EXT_REF            0b00000100     /* external voltage reference used */
 #define OP_SPI                0b00001000     /* SPI is set up */
 #define OP_I2C                0b00010000     /* I2C is set up */
@@ -79,6 +79,7 @@
 #define OP_OUT_SER            0b00000100     /* output to TTL serial */
 #define OP_RX_LOCKED          0b00001000     /* RX buffer locked */
 #define OP_RX_OVERFLOW        0b00010000     /* RX buffer overflow */
+#define OP_PWR_TIMEOUT        0b00100000     /* auto-power-off for auto-hold mode */
 
 
 /* UI line modes (bitmask) */
@@ -377,10 +378,14 @@ typedef struct
   uint16_t          RiL;           /* internal pin resistance of MCU in low mode (0.1 Ohms) */
   uint16_t          RiH;           /* internal pin resistance of MCU in high mode (0.1 Ohms) */
   uint16_t          RZero;         /* resistance of probe leads (2 in series) (0.01 Ohms) */
-  uint8_t           CapZero;       /* capacity zero offset (input + leads) (pF) */
+  #ifdef CAP_MULTIOFFSET
+  uint8_t           CapZero[3];    /* capacitance zero offsets (PCB+leads) (pF) */
+  #else
+  uint8_t           CapZero;       /* capacitance zero offset (PCP+leads) (pF) */
+  #endif
   int8_t            RefOffset;     /* voltage offset of bandgap reference (mV) */
   int8_t            CompOffset;    /* voltage offset of analog comparator (mV) */
-  uint8_t           Contrast;      /* current contrast value */
+  uint8_t           Contrast;      /* contrast value of display */
   uint8_t           CheckSum;      /* checksum for stored values */
 } Adjust_Type;
 

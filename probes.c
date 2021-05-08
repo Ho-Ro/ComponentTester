@@ -2,7 +2,7 @@
  *
  *   probing testpins
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2019 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -107,13 +107,13 @@ void BackupProbes(void)
 
 uint8_t GetThirdProbe(uint8_t Probe1, uint8_t Probe2)
 {
-  uint16_t          Probe3;             /* ID of third probe */
+  uint8_t           Probe3;             /* ID of third probe */
 
   /*
-   *  we know IDs #1 and #2, so get ID of third probe
-   *  - 0+1=1 -> 2
-   *    0+2=2 -> 1
-   *    1+2=3 -> 0
+   *  - use sum of probe IDs (order doesn't matter)
+   *    probes #1 & #2: 0 + 1 = 1  -> probe #3: 2
+   *    probes #1 & #3: 0 + 2 = 2  -> probe #2: 1
+   *    probes #2 & #3: 1 + 2 = 3  -> probe #1: 0
    *  - third probe = 3 - (probe ID #1 + probe ID #2)
    */
 

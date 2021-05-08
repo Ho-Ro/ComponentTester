@@ -17,7 +17,7 @@
 
 /* symbol size */
 #define SYMBOL_SIZE_X       32     /* width:  32 dots */
-#define SYMBOL_SIZE_Y       32     /* heigth: 32 dots */
+#define SYMBOL_SIZE_Y       32     /* height: 32 dots */
 
 /* symbol data format */
 #define SYMBOL_BYTES_N     128     /* 128 bytes per symbol */

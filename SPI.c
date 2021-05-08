@@ -2,7 +2,7 @@
  *
  *   SPI (bit-bang & hardware)
  *
- *   (c) 2017-2018 by Markus Reschke
+ *   (c) 2017-2019 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -87,8 +87,50 @@ void SPI_Setup(void)
 
 
 
+#ifdef SPI_9
+
+/*
+ *  write a single bit
+ *  - for displays supporting D/C control via SPI
+ *
+ *  requires:
+ *  - Bit: bit to write
+ */
+
+void SPI_Write_Bit(uint8_t Bit)
+{
+  /* expected state: SCK low / MOSI undefined */
+
+  /* set MOSI based on bit */
+  if (Bit)                    /* 1 */
+  {
+    /* set MOSI high */
+    SPI_PORT |= (1 << SPI_MOSI);
+  }
+  else                        /* 0 */
+  {
+    /* set MOSI low */
+    SPI_PORT &= ~(1 << SPI_MOSI);
+  }
+
+  /* end clock cycle (rising edge takes bit) */
+  SPI_PORT |= (1 << SPI_SCK);
+
+  /* start next clock cycle (falling edge) */
+  SPI_PORT &= ~(1 << SPI_SCK);
+
+  /* current state: SCK low / MOSI undefined */
+}
+
+#endif
+
+
+
 /*
  *  write a single byte
+ *
+ *  requires:
+ *  - Byte: byte to write
  */
 
 void SPI_Write_Byte(uint8_t Byte)
@@ -137,6 +179,12 @@ void SPI_Write_Byte(uint8_t Byte)
 
 /*
  *  write and read a single byte
+ *
+ *  requires:
+ *  - Byte: byte to write
+ *
+ *  returns:
+ *  - byte read
  */
 
 uint8_t SPI_WriteRead_Byte(uint8_t Byte)
@@ -194,6 +242,7 @@ uint8_t SPI_WriteRead_Byte(uint8_t Byte)
 }
 
 #endif
+
 
 #endif
 
@@ -284,6 +333,9 @@ void SPI_Setup(void)
 
 /*
  *  write a single byte
+ *
+ *  requires:
+ *  - Byte: byte to write
  */
 
 void SPI_Write_Byte(uint8_t Byte)
@@ -300,6 +352,12 @@ void SPI_Write_Byte(uint8_t Byte)
 
 /*
  *  write and read a single byte
+ *
+ *  requires:
+ *  - Byte: byte to write
+ *
+ *  returns:
+ *  - byte read
  */
 
 uint8_t SPI_WriteRead_Byte(uint8_t Byte)

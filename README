@@ -5,11 +5,11 @@
 
         for ATmega 328/324/644/1284 with character or graphic display
 
-        (c) 2012-2018 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2019 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit:  2018-10-05
+Last edit:  2019-02-04
 
 Content
   - About
@@ -269,6 +269,7 @@ following additional targets:
 
 * Busses & Interfaces
 
+
 + I2C/SPI
 
 Some displays and other hardware might need I2C or SPI for connecting to the
@@ -346,6 +347,10 @@ At the moment following LCD controllers are supported:
 Take care about the LCD's supply voltage and logic levels! Use a level shifter
 if required. If the display doesn't show anything after double checking the
 wiring, please try different contrast settings (config_<MCU>.h).
+
+For most displays you can hardwire the /CS and /RES lines via pull-up/down
+resistors and comment out the corresponding IO pins when the display is the
+only device on a bus.
 
 Hint for ATmega 328:
 If you connect a rotary encoder to PD2/PD3, please connect the module's /CS to
@@ -447,13 +452,23 @@ that you could shorten some texts in variables.h.
 
 + SSD1306
 
-The SSD1306 is driven by 4-wire SPI or I2C. The pin assignment for SPI is:
+The SSD1306 is driven by 3-wire SPI, 4-wire SPI or I2C. 3-wire SPI requires
+bit-bang mode and SPI_9 to be enabled. The pin assignment for 4-wire SPI is:
 
   display     config-<MCU>.h   default   remark
                                328
   /RES        LCD_RESET        PD4       optional
   /CS         LCD_CS           PD5       optional
   DC          LCD_DC           PD3
+  SCLK (D0)   LCD_SCLK         PD2
+  SDIN (D1)   LCD_SDIN         PD1
+
+For 3-wire SPI (bit-bang only):
+
+  display     config-<MCU>.h   default   remark
+                               328
+  /RES        LCD_RESET        PD4       optional
+  /CS         LCD_CS           PD5       optional
   SCLK (D0)   LCD_SCLK         PD2
   SDIN (D1)   LCD_SDIN         PD1
 
@@ -685,7 +700,7 @@ all other options for the serial interface are disabled.
 
 A long key press while starting the tester selects the auto-hold mode. In that
 mode the tester waits for a short key press after displaying a result before
-it will continue. Otherwise the tester chooses the continous (looping) mode by
+it will continue. Otherwise the tester chooses the continuous (looping) mode by
 default. You can reverse the operation mode selection in config.h (UI_AUTOHOLD).
 After powering on, the firmware version is shown briefly.
 
@@ -700,12 +715,17 @@ tester will use the firmware defaults instead.
 
 * Probing
 
-After the startup the testers enters the probing mode and looks for a
-connected component. In continous mode it will automatically repeat the
-probing after a short pause. If no component is found for several times the
-tester will power itself off. In auto-hold mode (signaled by cursor) the
-tester runs one round and waits for a key press or a right turn of the
-rotary encoder.
+After the startup the tester looks for a connected component to check. In
+continuous mode it will automatically repeat the probing after a short pause.
+If no component is found for several times the tester will power itself off.
+In auto-hold mode (signaled by the cursor) the tester runs one probing cycle
+and waits for a key press or a right turn of the rotary encoder before it will
+proceed with the next cycle.
+
+The cycle delay and automatic power-off for the continuous mode can be adjusted
+by changing CYCLE_DELAY and CYCLE_MAX in config.h. There's an optional
+automatic power-off for the auto-hold mode (POWER_OFF_TIMEOUT) which is only
+active during probing cycles.
 
 In both modes you can enter a menu with additional functions or power off
 the tester. For details please see below.
@@ -791,7 +811,7 @@ is 1000Hz and you can change it by turning the rotary encoder, The turning
 velocity determines the frequency change, i.e. slow turning results in small
 changes und fast turning in large changes. Since the signal generation is
 based on the MCU's internal PWM mode you can't select the frequency
-continously, but in steps. For low frequencies the steps are quite small,
+continuously, but in steps. For low frequencies the steps are quite small,
 but for high frequencies they become larger and larger. A long button press
 sets the frequency back to 1kHz, and two brief button presses exit the
 signal generator, as usual.
@@ -868,7 +888,7 @@ Karl-Heinz' documentation.
 With the basic frequency counter hardware option installed you can measure
 frequencies from about 10Hz up to 1/4 of the MCU clock with a resolution
 of 1Hz for frequencies below 10kHz. The frequency is measured and displayed
-continously until you end the measurement by a key press. The autoranging
+continuously until you end the measurement by a key press. The autoranging
 algorithm selects a gate time between 1ms and 1000ms based on the frequency.
 
 
@@ -895,7 +915,7 @@ the proper function and pin-out. The turning direction is important to
 distinguish the A nd B pins, because reversed pins cause a reversed direction.
 
 When a rotary encoder is detected the tester will display the pin-out and
-wait for a key press (or a moment for continous mode) before resuming testing.
+wait for a key press (or a moment for continuous mode) before resuming testing.
 To exit the rotary encoder test please press the test push button once while
 testing.
 
@@ -919,39 +939,80 @@ dedicated MCU pin.
 
 If a known protocol is detected the tester displays the protocol, address
 (when available), command, and in some cases optional data in hexadecimal.
-The usual format is:
-  <protocol> [<addr>:]<command>[:<extra data>]
-For a malformend packet the protocol and a "?" are shown.
+The format is:
+  <protocol> <data field(s)>
+
+For a malformend packet a "?" is shown as data field.
 
 For a unknown protocol the tester displays the number of pauses and pulses,
 the duration of the first pulse and the first pause in units of 50µs:
   ? <pulses>:<first pulse>-<first pause>
+
 When the number of pulses stay the same for different buttons of the RC, the
 modulation is most likely PDM or PWM. A changing number of pulses indicates
 bi-phase modulation.  
 
 To exit the tool please press the test key. 
 
-Supported protocols:
-  - JVC
-  - Kaseikyo (aka Japanese Code, 48 bit)
-  - Matsushita (Panasonic MN6014, C6D6 / 12 bits)
-  - Motorola
-  - NEC (standard & extended)
-  - Proton / Mitsubishi (M50560)
-  - RC-5 (standard)
-  - RC-6 (standard)
-  - Samsung / Toshiba (32 bits)
-  - Sharp / Denon
-  - Sony SIRC (12, 15 & 20 bits)
+Supported protocols and their data fields:
 
-Optional protocols:
+  - JVC
+    <address>:<command>
+
+  - Kaseikyo (aka Japanese Code, 48 bit)
+    <manufacturer code>:<system>-<product>:<function>
+
+  - Matsushita (Panasonic MN6014, C6D6 / 12 bits)
+    <custom code>:<data code>
+
+  - Motorola
+    <command>
+
+  - NEC (standard & extended)
+    <address>:<command>
+    R for repeat sequence
+
+  - Proton / Mitsubishi (M50560)
+    <address>:<command>
+
+  - RC-5 (standard)
+    <address>:<command>
+
+  - RC-6 (standard)
+    <address>:<command>
+
+  - Samsung / Toshiba (32 bits)
+    <custom code>:<data code>
+
+  - Sharp / Denon
+    <address>:<command>
+
+  - Sony SIRC (12, 15 & 20 bits)
+    12 & 15: <command>:<address>
+    20:      <command>:<address>:<extended>
+
+Optional protocols (SW_IR_RX_EXTRA):
+
   - IR60 (SDA2008/MC14497)
+    <command>
+
   - Matsushita (Panasonic MN6014, C5D6 / 11 bits)
+    <custom code>:<data code>
+
   - NEC µPD1986C
+    <data code>
+
   - RECS80 (standard & extended)
+    <address>:<command>
+
+  - RCA
+    <address>:<command>
+
   - Sanyo (LC7461)
+    <custom code>:<key>
+
   - Thomson
+    <device>:<function>
 
 The carrier frequency of the TSOP receiver module doesn't have to match the RC
 exactly. A mismatch reduces the possible range, but that doesn't matter much
@@ -1044,7 +1105,7 @@ Supported protocols and their data fields:
   - Sony SIRC-20
     <command:7> <address:5> <extended:8>
 
-Optional protocols:
+Optional protocols (SW_IR_TX_EXTRA):
 
   - Thomson
     <device:4> <function:7>
@@ -1085,6 +1146,12 @@ Example for driving an IR LED (Vf 1.5V, If 100mA) with about 50mA:
                     BC548  |
                            |
                            - Gnd
+
+Hint:
+  If the pulse/pause timing is incorrect please activate the alternative delay
+  loop method SW_IR_TX_ALTDELAY. This may be required when the C compiler
+  optimizes the standard delay loop despite specific statements to keep the
+  inline Assembler code.
 
 
 + Opto Coupler Tool
@@ -1204,7 +1271,7 @@ measured the default values defined in config.h are used. If everything went
 fine the tester will display and use the new values gained by the self
 adjustment (they will be not stored in the EEPROM, see "Save" below).
 
-The voltage offset of the analog comparator is automatically adjusted in the
+The voltage offset of the analog comparator is automatically adjusted by the
 capacitance measurement (in normal probing mode, outside of the self
 adjustment) if the capacitor is in the range of 100nF up to 3.3µF. Also the
 offset of the internal bandgap reference is determined in the same way.
@@ -1213,13 +1280,16 @@ Before running the self-adjustment the first time, please measure a film
 capacitor with a value between 100nF and 3.3µF three times at least to let the
 tester self-adjust the offsets mentioned above. Typically the first
 measurement will result in a slightly low value, the second in a high one
-and the third will be fine. That is caused by the self adjusting offsets.
+and the third will be fine. This is caused by the self adjusting offsets.
 Both offsets are displayed at the end of the self-adjustment.
 
 With a fixed cap for self-adjustment the automatic offset handling in the
 capacitance measurement is replaced by a dedicated function run during the
 self-adjustment procedure. So you don't have to measure a film cap before
 that. 
+
+In case the capacitance offsets vary across the probe pairs you can enable
+probe pair specific offsets in config.h (CAP_MULTIOFFSET).
 
 The self-adjustment is very similar to the self-test regarding the procedure
 and user interface.

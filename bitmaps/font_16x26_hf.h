@@ -17,7 +17,7 @@
 
 /* font size */
 #define FONT_SIZE_X         16     /* width:  16 dots */
-#define FONT_SIZE_Y         26     /* heigth: 26 dots */
+#define FONT_SIZE_Y         26     /* height: 26 dots */
 
 /* font data format */
 #define FONT_BYTES_N        52     /* 52 bytes per character */

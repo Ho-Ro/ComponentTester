@@ -20,7 +20,7 @@
    */
 
   const unsigned char Probing_str[] EEMEM = "Тестирование...";
-  const unsigned char Timeout_str[] EEMEM = "Тайм-аут";
+  const unsigned char Timeout_str[] EEMEM = "Время истекло";
   const unsigned char Failed1_str[] EEMEM = "Компонент не";
   const unsigned char Failed2_str[] EEMEM = "найден!";
   const unsigned char Done_str[] EEMEM = "Готово!";
@@ -93,6 +93,7 @@
 
   #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20)
     const unsigned char Start_str[] EEMEM = "Начать проверку";
+	
   #endif
 
   #ifdef SW_UJT
@@ -105,11 +106,11 @@
   #endif
 
   #ifdef SW_CAP_LEAKAGE
-    const unsigned char CapLeak_str[] EEMEM = "Cap Leakage";
-    const unsigned char CapCharge_str[] EEMEM = "Charging";
+    const unsigned char CapLeak_str[] EEMEM = "Ток утечки С";
+    const unsigned char CapCharge_str[] EEMEM = "Заряд";
     const unsigned char CapHigh_str[] EEMEM = "Rl";
     const unsigned char CapLow_str[] EEMEM = "Rh";
-    const unsigned char CapDischarge_str[] EEMEM = "Discharging";
+    const unsigned char CapDischarge_str[] EEMEM = "Разряд";
   #endif
 
   #ifdef HW_TOUCH

@@ -17,7 +17,7 @@
 
 /* font size */
 #define FONT_SIZE_X          8     /* width:  8 dots */
-#define FONT_SIZE_Y          8     /* heigth: 8 dots */
+#define FONT_SIZE_Y          8     /* height: 8 dots */
 
 /* font data format */
 #define FONT_BYTES_N         8     /* 8 bytes per character */

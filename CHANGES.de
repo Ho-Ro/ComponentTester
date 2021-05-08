@@ -4,9 +4,35 @@
 
            für ATmega 328/324/644/1284 mit Text- oder Grafikdisplay
 
-                        (c) 2012-2018 by Markus Reschke
+                        (c) 2012-2019 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.35m 2019-02
+- Bei dem Kapazitäts-Offset kann man statt dem bisherigen Durchschnittswert
+  für alle Test-Pins nun auch Test-Pin spezifische Offsets nutzen (
+  CAP_MULTIOFFSET).
+- Pin-Definition für ST7920 im 4-Bit Parallel-Modus in config_644.h
+  korrigiert (gemeldet von jakeisprobably@EEVblog).
+- Unterstützung von 3-Line SPI in SSD1306-Treiber eingebaut.
+- Der SPI-Treiber kann nun auch 9-Bit-Worte senden (nur Bitbang).
+- Problem mit steigender Abweichung bei Widerständen zwischen 7k5 und 19k5 Ohm
+  in CheckResistor() gelöst (gemeldet von Vitaliy).
+- Alternative Verzögerungsschleife in IR_Send_Pulse() eingebaut, welche per
+  SW_IR_TX_ALTDELAY aktiviert wird (Dank an Vitaliy).
+- Der Konfigurationschalter für zusätzliche IR-Protokolle SW_IR_EXTRA wurde
+  durch SW_IR_RX_EXTRA für den Empfänger/Decoder und SW_IR_TX_EXTRA für den
+  IR-Sender ersetzt
+- Problem mit fehlendem Newline für Fernsteuerkommandos in Display_NextLine()
+  beseitigt.
+- Ausgabe für SIRC in IR_Decode() geändert, um näher am Protokoll zu sein
+  (Vorschlag von Vitaliy).
+- Fehler in IR_Send_Code() für SIRC-20 beseitigt (gemeldet von Vitaliy).
+- Aktualisierung von var_russian.h (Dank an indman@EEVblog).
+- Automatische Abschaltung für Auto-Hold-Modus (POWER_OFF_TIMEOUT).
+- Pin-Konfiguration für Test-Taste und Stromversorgungskontrolle getrennt
+  (CONTROL_PORT -> POWER_PORT und BUTTON_PORT).
+- Mehrere kleine Verbesserungen.
 
 v1.34m 2018-10
 - Leckstromtest für Kondensatoren.
