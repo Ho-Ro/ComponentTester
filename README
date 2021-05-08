@@ -1,0 +1,168 @@
+
+
+
+------------------------------------------------------------------------------
+
+                          ReadMe for the Component Tester
+
+                            (c) 2012 by Markus Reschke
+
+------------------------------------------------------------------------------
+
+Last edit:  2012-08-29
+
+
+* About
+
+The Component Tester is based on the project of Markus Frejek [1&2] and the
+successor of Karl-Heinz Kübbeler [3&4]. It's an alternative software for the
+current circuit by Karl-Heinz and offers some changes in the user interface
+and the methods used for probing and measuring. While Karl-Heinz provides an
+official release supporting most ATmega MCUs this is a playground version
+with all features enabled and limited to ATmega168/P and ATmega328/P due to
+memory and flash size contraints. The UI languages currently supported are
+just English and German, but can be changed or extended easily.
+
+
+* Safety Advice
+
+The Component Tester is no DMM! It's a simple tester for components capable
+of measuring several things. The probes aren't protected in any way and
+won't survive higher voltages than 5V. Don't use the tester for live circuits!
+Just use it for unsoldered electronic components! This isn't just the Safety
+Sally, your life may be at risk if you connect the probes to a live circuit
+or a power supply (or even mains). 
+
+
+* Whats different?
+
+Karl-Heinz has done a realy great documentation of the tester. I recommend
+to read it. Therefore I'll tell you just about the differences to the
+official release.
+
+
+* Building the firmware
+
+First edit the Makefile to specify your MCU model, frequency, oscilator
+type and programmer settings. All other settings moved to config.h.
+
+In config.h please choose the language for the UI and change any defaults
+if required. All defaults are explained in the file, so I won't discuss
+them here.
+
+
+* Source Code
+
+A lot of cleaning up was done, like more remarks, renamed variables,
+re-strctured functions, large functions splitted up into several smaller
+ones and what have you. I hope the code is easy to read and maintain now.
+
+
+* Startup
+
+A long key press (0.3s) while starting the tester selects the auto-hold mode.
+In that mode the tester waits for a short key press after displaying a result
+before it continues. After powering on the tester displays the mode selected.
+
+
+* Probing Loop 
+
+While displaying the result of the last test a long key press (0.3s) powers
+the tester off. The tester will display a short goodbye message. As long as
+you press the key the tester stays powered on and displays the message. That
+is caused by the implementaion of the power control circuit.
+
+
+* Selftest
+
+The selftest function runs each test just 5 times. You can skip a test by a
+short key press or skip the entire selfttest by a long key press (0.3s).
+After running the tests the self calibration is performed.
+
+In test #4 you have to remove the short circuit of the probes which triggered
+the selftest mode. The tester will wait until you realy removed the short
+circuit.
+
+The self calibration measures the zero offset for capacitance meaurements,
+e.g. the capacitance of the PCB, internal wiring and probe leads as a sum.
+It also measures the internal resistance of the MCU port pins in pull-down
+and pull-up mode. If the tests before are skipped or strange values are
+measured the default values defined in config.h are displayed and used. If
+everything went fine the tester will display and use the new values gained
+by the self calibration.
+
+The self calibration doesn't store its results in the EEPROM.
+
+
+* Measuring Capacitance
+
+The measurement of capacitance is split into three methods. Large caps >47µF
+are still measured by the charging cycle method with 10ms impulses. Mid-sized
+caps between 4.7µF and 47µF are processed the same way but with 1ms charging
+impulses. And small caps are still done by the analog comparator method. That
+way the accuracy of the measurement of caps between 4.7µF and 47µF is
+increased.
+
+Also I found a simple correction solution for large caps. Without correction
+the measured values are too large. IMHO that is caused by the measurement
+method, since the ADC conversion after the charging impuls needs some time
+during which the cap looses some charge due to internal resistive losses. So
+it takes longer to charge the cap and it seems to have a larger capacitance.
+A discharge measurement later on tries to compensate that, but the capacitance
+is still too large. 
+
+A logic for preventing large caps to be detected as resistors was added.
+Resistors < 10 Ohms are checked for being large caps.
+
+
+* Discharging Components
+
+The discharge function isn't based on a fixed timeout, it adapts itself
+to the discharging rate. That way a battery will be identified faster (about
+2s) and large caps got more time to discharge. If a large cap is identified
+as a battery please repeat the check. In a noisy environment you might need
+to adjust CAP_DISCHARGED to about 3mV.
+
+
+* ADC Oversampling
+
+The ADC function is modified to support a variable oversampling (1-255 times).
+The default value is 25 samples. Yuo can try to improve the accuracy of the
+measurements by increasing the number of samples. Note that more samples will
+take more time resulting in slower measurements.
+
+
+* Displaying Results
+
+Several names and abbreviations are changed. The output for an enhancement
+mode MOSFET and diodes is splitted into two pages to have enough space to
+fully display all data. The display of BJTs may be splitted based on the
+size of hfe.
+
+
+* Unsupported Components
+
+Any semiconducter which requires a high current to trigger conduction can't
+be supported, since the tester is able to provide about 7mA at maximum.
+DIACs got a V_BO of 20-200V, a voltage the tester can't provide.
+Inductors aren't supported also.
+
+
+* References
+
+[1] AVR-Transistortester, Markus Frejek,
+    Embedded Projects Journal, 2011-11
+
+[2] http://www.mikrocontroller.net/topic/131804
+    thread of Markus Frejek, Forum, 2009
+
+[3] http://www.mikrocontroller.net/articles/AVR-Transistortester
+    Online documentation of the Transistortester, Online Article, 2009-2011
+
+[4] http://www.mikrocontroller.net/articles/AVR_Transistortester
+    Short description of the TransistorTester, Karl-Heinz Kübbeler,
+    Online Article, 2012
+
+
+
+------------------------------------ EOF -------------------------------------
