@@ -324,7 +324,7 @@ unsigned int GetFactor(unsigned int U_in, uint8_t ID)
     TabIndex = 42;                 /* entries in table - 2 */
     Table = (uint16_t *)&LargeCap_table[0];    /* pointer to table start */
   }
-  #ifdef EXTRA
+  #ifdef SW_INDUCTOR
   else if (ID == TABLE_INDUCTOR)
   {
     TabStart = 200;                /* table starts at 200 */

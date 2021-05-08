@@ -82,19 +82,6 @@
 #define LCD_CHAR_DEGREE	  0xdf     /* use built-in degree */
 
 
-/*
- *  pin assignments
- *  - change if required
- */
- 
-#define LCD_PORT      PORTD   /* port used: */
-                              /* - lower 4 bits for data interface */
-                              /* - upper 4 bits for control lines (see below) */
-#define LCD_DDR       DDRD    /* data direction register for used port */
-#define LCD_RS        PD4     /* port pin used for RS */
-#define LCD_EN1       PD5     /* port pin used for E */
-
-
 
 /* ************************************************************************
  *   EOF

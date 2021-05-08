@@ -89,7 +89,7 @@
   extern int8_t CmpValue(unsigned long Value1, int8_t Scale1,
     unsigned long Value2, int8_t Scale2);
 
-  #ifdef EXTRA
+  #ifdef SW_INDUCTOR
     extern unsigned long RescaleValue(unsigned long Value, int8_t Scale, int8_t NewScale);
   #endif
 
@@ -109,13 +109,14 @@
 
 #ifndef EXTRAS_C
 
-  #ifdef EXTRA
+  #ifdef SW_PWM
     extern void PWM_Tool(uint16_t Frequency);
+  #endif
+  #ifdef SW_ESR
     extern void ESR_Tool(void);
-
-    #ifdef HW_ZENER
-      extern void Zener_Tool(void);
-    #endif
+  #endif
+  #ifdef HW_ZENER
+    extern void Zener_Tool(void);
   #endif
 
 #endif
@@ -161,7 +162,7 @@
 
 #ifndef INDUCTOR_C
 
-  #ifdef EXTRA
+  #ifdef SW_INDUCTOR
     extern uint8_t MeasureInductor(Resistor_Type *Resistor);
   #endif
 
@@ -174,7 +175,7 @@
 
 #ifndef CAP_C
 
-  #ifdef EXTRA
+  #ifdef SW_ESR
     extern unsigned int MeasureESR(Capacitor_Type *Cap);
   #endif
 

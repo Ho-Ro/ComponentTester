@@ -114,7 +114,7 @@ Since the range overlaps with the low test current we may use a single table.
 
 
 
-#ifdef EXTRA
+#ifdef SW_INDUCTOR
 
 
 /*

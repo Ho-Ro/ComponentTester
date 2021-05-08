@@ -6,6 +6,12 @@
 
 ------------------------------------------------------------------------------
 
+v1.13m 2014-07
+- Added Czech texts, thanks to Kapax.
+- ESR and PWM tools display the probes pins used.
+- Improved handling of pre-compiler directives for extra features.
+- Added support for rotary encoders for the user interface.
+
 v1.12m 2014-03
 - Fixed umlaut problem for German UI (thanks to Andreas Hoebel).
 - Added ESR measurement for capacitors >0.18µF.

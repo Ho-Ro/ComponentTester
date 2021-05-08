@@ -36,7 +36,7 @@
  *  ISR for a match of TCNT2 (Timer2) and OCR2A (Output Compare Register A)
  */
 
-ISR (TIMER2_COMPA_vect)
+ISR (TIMER2_COMPA_vect, ISR_BLOCK)
 {
   /* this automatically clears the OCF2A flag in the Interrupt Flag Register */
 

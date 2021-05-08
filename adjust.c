@@ -66,10 +66,10 @@ void SafeAdjust(void)
    *  update values stored in EEPROM
    */
 
-  /* Ri of µC in low mode */
+  /* Ri of MCU in low mode */
   eeprom_write_word((uint16_t *)&NV_RiL, Config.RiL);
 
-  /* Ri of µC in low mode */
+  /* Ri of MCU in low mode */
   eeprom_write_word((uint16_t *)&NV_RiH, Config.RiH);
 
   /* resistance of probe leads */
@@ -104,10 +104,10 @@ void LoadAdjust(void)
    *  read stored values from EEPROM
    */
 
-  /* Ri of µC in low mode */ 
+  /* Ri of MCU in low mode */ 
   Config.RiL = eeprom_read_word(&NV_RiL);
 
-  /* Ri of µC in low mode */
+  /* Ri of MCU in low mode */
   Config.RiH = eeprom_read_word(&NV_RiH);
 
   /* resitance of probe leads */
@@ -295,7 +295,7 @@ uint8_t SelfAdjust(void)
           DisplayFlag = 0;              /* reset display flag */
           break;
 
-        case 3:     /* internal resistance of µC in pull-down mode */
+        case 3:     /* internal resistance of MCU in pull-down mode */
           LCD_EEString(RiLow_str);      /* display: Ri- */
 
           /* TP1:  Gnd -- Ri -- probe -- Rl -- Ri -- Vcc */
@@ -323,7 +323,7 @@ uint8_t SelfAdjust(void)
           RiL_Counter += 3;
           break;
 
-        case 4:     /* internal resistance of µC in pull-up mode */
+        case 4:     /* internal resistance of MCU in pull-up mode */
           LCD_EEString(RiHigh_str);     /* display: Ri+ */
 
           /* TP1: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */

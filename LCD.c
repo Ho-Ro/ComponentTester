@@ -46,7 +46,7 @@ void LCD_Enable(void)
    LCD_PORT |= (1 << LCD_EN1);     /* set enable bit */
 
    /* the LCD needs some time */
-   /* if required adjust time according LCDs datasheet */
+   /* if required adjust time according to LCD's datasheet */
    wait10us();
 
    LCD_PORT &= ~(1 << LCD_EN1);    /* unset enable bit */
@@ -409,8 +409,8 @@ void LCD_EEString(const unsigned char *String)
 
 void LCD_EEString2(const unsigned char *String)
 {
-  LCD_EEString(String);       /*  */
-  LCD_Space();
+  LCD_EEString(String);       /* display string */
+  LCD_Space();                /* print space */
 }
 
 

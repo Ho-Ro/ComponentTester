@@ -32,8 +32,7 @@
  * ************************************************************************ */
 
 
-#ifdef EXTRA
-
+#ifdef SW_ESR
 
 /*
  *  setup timer0 as MCU cycle timer
@@ -416,7 +415,7 @@ values of -1/(R * ln(1 - U_c/U_in) for a specific range of U_c, so we just
 have to multiply the time with that stored factor to get C.
 
 Large caps:
-- R = 680 + 22 (22 is the internal resistance of the µC for pull-up)
+- R = 680 + 22 (22 is the internal resistance of the MCU for pull-up)
 - U_in = 5V
 - values are: (-1 / (R * ln(1 - U_c/U_in))) * 10^9n * 10^-2s * 10^-1
   - 10^9n for nF scale
@@ -510,7 +509,12 @@ large_cap:
     Pulses++;
     PullProbe(Probes.Rl_1, Mode);       /* charging pulse */
     U_Cap = ReadU(Probes.Pin_1);        /* get voltage */
-    U_Cap -= U_Zero;                    /* zero offset */
+
+    /* zero offset */
+    if (U_Cap > U_Zero)            /* voltage higher than zero offset */
+      U_Cap -= U_Zero;                  /* subtract zero offset */
+    else                           /* shouldn't happen but you never know */
+      U_Cap = 0;                        /* assume 0V */
 
     /* end loop if charging is too slow */
     if ((Pulses == 126) && (U_Cap < 75)) TempByte = 0;
@@ -534,14 +538,14 @@ large_cap:
   /* if 1300mV are reached with one pulse we got a small cap */
   if ((Pulses == 1) && (U_Cap > 1300))
   {
-    if (Mode & FLAG_10MS)                    /* <47µF */
+    if (Mode & FLAG_10MS)                    /* 10ms pulses (>47µF) */
     {
-      Mode = FLAG_1MS | FLAG_PULLUP;         /* set mode (1ms charging pulses) */
+      Mode = FLAG_1MS | FLAG_PULLUP;         /* set mode to 1ms charging pulses (<47µF) */
       goto large_cap;                        /* and re-run */
     }
-    else                                     /* <4.7µF */
+    else                                     /* 1ms pulses (<47µF) */
     {
-      Flag = 2;
+      Flag = 2;                              /* signal low capacitance (<4.7µF) */
     }
   }
 
@@ -587,7 +591,7 @@ large_cap:
     Raw *= Pulses;                        /* C = pulses * factor */
     if (Mode & FLAG_10MS) Raw *= 10;      /* *10 for 10ms charging pulses */
 
-    if (Raw > UINT32_MAX / 1000)          /* scale down if C >4.3mF */
+    if (Raw > (UINT32_MAX / 1000))        /* scale down if C >4.3mF */
     {
       Raw /= 1000;                        /* scale down by 10^3 */
       Scale += 3;                         /* add 3 to the exponent */
@@ -641,7 +645,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   /*
    *  Measurement method used for small caps < 50uF:
    *  We need a much better resolution for the time measurement. Therefore we
-   *  use the µCs internal 16-bit counter and analog comparator. The counter
+   *  use the MCUs internal 16-bit counter and analog comparator. The counter
    *  inceases until the comparator detects that the voltage of the DUT is as
    *  high as the internal bandgap reference. To support the higher time
    *  resolution we use the Rh probe resistor for charging.
@@ -860,9 +864,9 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
       /*
        *  In the cap measurement above the analog comparator compared
-       *  the voltages of the cap and the bandgap reference. Since the µC
+       *  the voltages of the cap and the bandgap reference. Since the MCU
        *  has an internal voltage drop for the bandgap reference the
-       *  µC used actually U_bandgap - U_offset. We get that offset by
+       *  MCU used actually U_bandgap - U_offset. We get that offset by
        *  comparing the bandgap reference with the voltage of the cap:
        *  U_c = U_bandgap - U_offset -> U_offset = U_c - U_bandgap
        */
@@ -912,8 +916,8 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
 
 
   /*
-   *  Skip resistors
-   *  - But check for a resistor < 10 Ohm. Might be a large cap.
+   *  Normaly we would skip resistors, but a resistor < 10 Ohms could be
+   *  also a large cap.
    */
 
   if (Check.Found == COMP_RESISTOR)
@@ -921,13 +925,13 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
     Resistor = &Resistors[0];         /* pointer to first resistor */
     TempByte = 0;
 
-    while (TempByte < Check.Resistors)
+    while (TempByte < Check.Resistors)       /* loop through all resistors */
     {
       /* got matching pins */
       if (((Resistor->A == Probe1) && (Resistor->B == Probe2)) ||
           ((Resistor->A == Probe2) && (Resistor->B == Probe1)))
       {
-        /* check for low value */
+        /* check for low value < 10 Ohms */
         if (CmpValue(Resistor->Value, Resistor->Scale, 10UL, 0) == -1)
           TempByte = 99;                /* signal low resistance and end loop */
       }
@@ -989,7 +993,7 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
     /* low resistance might be a large cap */
     if (Check.Found == COMP_RESISTOR)
     {
-      /* report capacitor for large C (> 4.3µF) */
+      /* report capacitor only for a large C (> 4.3µF) */
       if (Cap->Scale >= -6) Check.Found = COMP_CAPACITOR;
     }
 

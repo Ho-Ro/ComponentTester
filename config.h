@@ -14,9 +14,30 @@
 
 
 /*
+ *  rotary encoder for user interface (PD2 & PD3)
+ *  - in parallel with LCD module
+ *  - requires MCU with >=32kB Flash
+ *  - uncomment to enable and also set ENCODER_PULSES below to match your
+ *    rotary encoder
+ */
+
+//#define HW_ENCODER
+
+
+/*
+ *  Number of pulses per step or detent for the rotary encoder
+ *  - typical values: 1, 2 or 4
+ *  - adjust value to match your rotary encoder
+ */
+
+#define ENCODER_PULSES   2
+
+
+/*
  *  2.5V voltage reference for Vcc check (PC4)
  *  - should be at least 10 times more precise than the voltage regulator
- *  - uncomment to enable
+ *  - uncomment to enable and also adjust UREF_25 below for your voltage
+ *    reference
  */
 
 //#define HW_REF25
@@ -45,7 +66,7 @@
  *  voltage measurement up to 50V DC (10:1 voltage divider, PC3):
  *  - for Zener diodes
  *  - DC-DC boost converter controled by test push button
- *  - requires MCU with >=32kB Flash ans >=1kB EEPROM
+ *  - requires MCU with >=32kB Flash and >=1kB EEPROM
  *  - uncomment to enable
  */
 
@@ -103,12 +124,20 @@
 #define CONTROL_PIN      PIND      /* port input pins register */
 #define POWER_CTRL       PD6       /* controls power (1: on / 0: off) */
 #define TEST_BUTTON      PD7       /* test/start push button (low active) */
+#define ENCODER_A        PD2       /* rotary encoder A signal */
+#define ENCODER_B        PD3       /* rotary encoder B signal */
 
 
 /*
  *  LCD module
- *  - Please see LCD.h!
  */
+
+#define LCD_PORT         PORTD     /* port data register */
+                                   /* - lower 4 bits for LCD data interface */
+                                   /* - upper 4 bits for control lines */
+#define LCD_DDR          DDRD      /* port data direction register */
+#define LCD_RS           PD4       /* port pin used for RS */
+#define LCD_EN1          PD5       /* port pin used for E */
 
 
 
@@ -288,7 +317,7 @@
 
 
 /* ************************************************************************
- *   µC specific setup to support different AVRs
+ *   MCU specific setup to support different AVRs
  * ************************************************************************ */
 
 
@@ -304,11 +333,11 @@
   /* estimated internal resistance of port to VCC (in 0.1 Ohms) */
   #define R_MCU_HIGH          225
 
-  /* voltage offset of µCs analog comparator (in mV): -50 up to 50 */
+  /* voltage offset of MCUs analog comparator (in mV): -50 up to 50 */
   #define COMPARATOR_OFFSET   15
 
   /*
-   *  capacitance of the probe tracks of the PCB and the µC (in pF)
+   *  capacitance of the probe tracks of the PCB and the MCU (in pF)
    *  - 35 for ATmega168A
    *  - 36 for ATmega168
    */
@@ -319,9 +348,14 @@
   #define C_ZERO              CAP_PCB + CAP_WIRES + CAP_PROBELEADS
 
   /* memory layout: put stuff exceeding 512 bytes EEPROM into flash */
-  #define MEM_TEXT          PROGMEM
-  #define MEM_read_word(a)  pgm_read_word(a)
-  #define MEM_read_byte(a)  pgm_read_byte(a)
+  #define MEM_TEXT            PROGMEM
+  #define MEM_read_word(a)    pgm_read_word(a)
+  #define MEM_read_byte(a)    pgm_read_byte(a)
+
+  /* this MCU has 16kB Flash, 0.5kB EEPROM and 1kB RAM (enable extra features) */
+  #define RES_FLASH           16
+  #define RES_EEPROM          0.5
+  #define RES_RAM             1
 
 
 /*
@@ -336,10 +370,10 @@
   /* estimated internal resistance of port to VCC (in 0.1 Ohms) */
   #define R_MCU_HIGH          220  /* 235 */
 
-  /* voltage offset of µCs analog comparator (in mV): -50 up to 50 */
+  /* voltage offset of MCUs analog comparator (in mV): -50 up to 50 */
   #define COMPARATOR_OFFSET   15
 
-  /* capacitance of the probe tracks of the PCB and the µC (in pF) */
+  /* capacitance of the probe tracks of the PCB and the MCU (in pF) */
   #define CAP_PCB             32
 
   /* total default capacitance (in pF): max. 255 */
@@ -350,21 +384,23 @@
   #define MEM_read_word(a)    eeprom_read_word(a)
   #define MEM_read_byte(a)    eeprom_read_byte(a)
 
-  /* this MCU has 32kB Flash and 1kB EEPROM (enable extra features) */
-  #define EXTRA               1
+  /* this MCU has 32kB Flash, 1kB EEPROM and 2kB RAM (enable extra features) */
+  #define RES_FLASH           32
+  #define RES_EEPROM          1
+  #define RES_RAM             2
 
 
 /*
- *  missing or unsupported µC
+ *  missing or unsupported MCU
  */
 
 #else
 
- #error "***********************************"
- #error "*                                 *"
- #error "*  No or wrong µC type selected!  *" 
- #error "*                                 *"
- #error "***********************************"
+ #error "************************************"
+ #error "*                                  *"
+ #error "*  No or wrong MCU type selected!  *" 
+ #error "*                                  *"
+ #error "************************************"
 
 #endif
 
@@ -417,6 +453,35 @@
   #define ADC_CLOCK_DIV (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0)
 #endif
 
+
+
+/* ************************************************************************
+ *   ressource management
+ * ************************************************************************ */
+
+
+/* check hardware options that require >=32kB Flash */
+#if RES_FLASH < 32
+  /* rotary encoder */
+  #ifdef HW_ENCODER
+    #undef HW_ENCODER
+    #warning "Disabled HW_ZENER!"
+  #endif
+
+  /* high voltage measurement / zener */
+  #ifdef HW_ZENER
+    #undef HW_ZENER
+    #warning "Disabled HW_ENCODER!"
+  #endif
+#endif
+
+
+/* auto-enable extra features for >=32kB Flash */
+#if RES_FLASH >= 32
+  #define SW_PWM
+  #define SW_INDUCTOR
+  #define SW_ESR
+#endif
 
 
 /* ************************************************************************

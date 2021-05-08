@@ -27,6 +27,24 @@
 #include "functions.h"        /* external functions */
 
 
+/*
+ *  local constants
+ */
+
+#define DIR_NONE         0b00000000     /* no turn or error */
+#define DIR_RIGHT        0b00000001     /* turned to the right */
+#define DIR_LEFT         0b00000010     /* turned to the left */
+
+
+/*
+ *  local variables
+ */
+
+#ifdef HW_ENCODER
+RotaryEncoder_Type       Enc;           /* rotary encoder */
+#endif
+
+
 
 /* ************************************************************************
  *   values and scales
@@ -121,7 +139,7 @@ int8_t CmpValue(unsigned long Value1, int8_t Scale1, unsigned long Value2, int8_
 
 
 
-#ifdef EXTRA
+#ifdef SW_INDUCTOR
 
 /*
  *  rescale value
@@ -278,7 +296,7 @@ void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit)
 
 
 /* ************************************************************************
- *   user interface for push buttons
+ *   user interface
  * ************************************************************************ */
 
 
@@ -342,6 +360,95 @@ void ShortCircuit(uint8_t Mode)
 
 
 
+#ifdef HW_ENCODER 
+
+/*
+ *  read rotary encoder
+ *
+ *  returns user action:
+ *  - DIR_NONE for no turn or invalid signal
+ *  - DIR_RIGHT for right/clockwise turn
+ *  - DIR_LEFT for left/counter-clockwise turn
+ */
+
+uint8_t ReadEncoder(void)
+{
+  uint8_t           Action = DIR_NONE;       /* return value */
+  uint8_t           Temp;                    /* temporary value */
+  uint8_t           AB = 0;                  /* new AB state */
+  uint8_t           Old_AB;                  /* old AB state */
+
+  /* set encoder's A & B pins to input */
+  Old_AB = CONTROL_DDR;                 /* save current settings */
+  CONTROL_DDR &= ~(1 << ENCODER_A);     /* A signal pin */
+  CONTROL_DDR &= ~(1 << ENCODER_B);     /* B signal pin */
+  wait500us();                          /* settle time */
+
+  /* get A & B signals */
+  Temp = CONTROL_PIN;
+  if (Temp & (1 << ENCODER_A)) AB = 0b00000010;
+  if (Temp & (1 << ENCODER_B)) AB |= 0b00000001;
+
+  /* restore port/pin settings */
+  CONTROL_DDR = Old_AB;                 /* restore old settings */
+
+  /* update state history */
+  if (Enc.Dir == (DIR_RIGHT | DIR_LEFT))     /* first scan */
+  {
+    Enc.History = AB;                        /* set as last state */
+    Enc.Dir = DIR_NONE;                      /* reset direction */
+  }
+
+  Old_AB = Enc.History & 0b00000011;    /* save last state */
+  Enc.History <<= 2;                    /* last state becomes old state */
+  Enc.History |= AB;                    /* and save new state */
+  Enc.History &= 0x0F;                  /* keep lower nibble */
+
+  /* process signals */
+  if (Old_AB != AB)        /* signals changed */
+  {
+    /* check if only one bit has changed (greycode) */
+    Temp = AB ^ Old_AB;                 /* get bit difference */
+    if (!(Temp & 0b00000001)) Temp >>= 1;
+    if (Temp == 1)                      /* valid change */
+    {
+      /* determine direction */
+      /* greycode: 00 01 11 10 */
+      Temp = 0b10001101;                /* expected values for a right turn */
+      Temp >>= (Old_AB * 2);            /* get expected value by shifting */
+      Temp &= 0b00000011;               /* select value */
+      if (Temp == AB)                   /* value matches */
+        Temp = DIR_RIGHT;               /* turn to the right */
+      else                              /* value mismatches */
+        Temp = DIR_LEFT;                /* turn to the left */
+
+      /* step/detent logic */
+      Enc.Pulses++;                     /* got a new pulse */
+      if (Temp != Enc.Dir)              /* direction has changed */
+      {     
+        Enc.Pulses = 1;                 /* first pulse for new direction */
+      }
+      if (Enc.Pulses >= ENCODER_PULSES) /* reached step */
+      {
+        Enc.Pulses = 0;                 /* reset pulses */
+        Action = Temp;                  /* signal valid step */
+      }
+
+      Enc.Dir = Temp;         /* update direction */
+    }
+    else                                /* invalid change */
+    {
+      Enc.Dir = DIR_RIGHT | DIR_LEFT;   /* trigger reset of history */
+    }
+  }
+
+  return Action;
+}
+
+#endif
+
+
+
 /*
  *  detect keypress of test push button
  *
@@ -359,6 +466,8 @@ void ShortCircuit(uint8_t Mode)
  *  - 0 if timeout was reached
  *  - 1 if key was pressed short
  *  - 2 if key was pressed long
+ *  - 3 if rotary encoder was turned right
+ *  - 4 if rotary encoder was turned left
  */
 
 uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
@@ -372,7 +481,13 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
    *  init
    */
 
-  if (Mode > 10)                   /* consider operation mode */
+  #ifdef HW_ENCODER
+  Enc.History = 0;                 /* init control for rotary encoder */
+  Enc.Dir = DIR_RIGHT | DIR_LEFT;
+  Enc.Pulses = 0;
+  #endif
+
+  if (Mode > 10)              /* consider operation mode */
   {
     if (Config.TesterMode == MODE_AUTOHOLD)  /* auto hold mode */
     {
@@ -435,7 +550,17 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
     }
     else                                          /* no key press */
     {
-      MilliSleep(5);                    /* wait a little bit more (5ms) */
+      #ifdef HW_ENCODER
+      /* rotary encoder */
+      Flag = ReadEncoder();        /* read rotary encoder */
+      if (Flag)                    /* got user input */
+      {
+        Flag += 2;                 /* adjust feedback */
+        break;                     /* leave loop */
+      }
+      #endif
+
+      MilliSleep(5);               /* wait a little bit more (5ms) */
 
       /* simulate blinking cursor
          The LCDs built in cursor blinking is ugly and slow */
@@ -553,6 +678,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
      */
 
     n = TestKey(0, 0);             /* wait for testkey */
+
     if (n == 1)                    /* short key press: moves to next item */
     {
       Selected++;                       /* move to next item */
@@ -565,6 +691,27 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
     {
       Run = 0;                          /* end loop */
     }
+    #ifdef HW_ENCODER
+    else if (n == 3)               /* rotary encoder: right turn */
+    {
+      Selected++;                       /* move to next item */
+      if (Selected > Items)             /* max. number of items exceeded */
+      {
+        Selected = 0;                   /* roll over to first one */
+      }
+    }
+    else if (n == 4)               /* rotary encoder: left turn */
+    {
+      if (Selected == 0)                /* first item */
+      {
+        Selected = Items;               /* roll over to last item */
+      }
+      else                              /* not first item */
+      {
+        Selected--;                     /* move to previous item */
+      }
+    }
+    #endif
   }
 
   LCD_Clear();                 /* feedback for user */
@@ -581,7 +728,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
 void MainMenu(void)
 {
-  #ifdef EXTRA
+  #if RES_FLASH >= 32
     #define MENU_ITEMS  8
   #else
     #define MENU_ITEMS  5  
@@ -590,7 +737,7 @@ void MainMenu(void)
   uint8_t           Item = 0;           /* item number */
   uint8_t           Flag = 1;           /* control flag */
   uint8_t           ID;                 /* ID of selected item */
-  #ifdef EXTRA
+  #ifdef SW_PWM
   uint16_t          Frequency;          /* PWM frequency */  
   #endif
   void              *MenuItem[MENU_ITEMS];   /* menu item strings */
@@ -601,19 +748,20 @@ void MainMenu(void)
    */
 
   /* extra items */
-  #ifdef EXTRA
+  #ifdef SW_PWM
   MenuItem[Item] = (void *)PWM_str;
   MenuID[Item] = 5;
-    #ifdef HW_ZENER
-    Item++;
-    MenuItem[Item] = (void *)Zener_str;
-    MenuID[Item] = 6;
-    #endif
   Item++;
+  #endif
+  #ifdef HW_ZENER
+  MenuItem[Item] = (void *)Zener_str;
+  MenuID[Item] = 6;  
+  Item++;
+  #endif
+  #ifdef SW_ESR
   MenuItem[Item] = (void *)ESR_str;
-  MenuID[Item] = 7;  
-
-  Item++;           /* for first standard item */
+  MenuID[Item] = 7;
+  Item++;
   #endif
 
   /* standard items */
@@ -664,7 +812,7 @@ void MainMenu(void)
       ShowAdjust();
       break;
 
-    #ifdef EXTRA
+    #ifdef SW_PWM
     case 5:              /* PWM tool */
       /* run PWM menu */
       LCD_Clear();
@@ -673,13 +821,15 @@ void MainMenu(void)
       Frequency = MEM_read_word(&PWM_Freq_table[ID]);  /* get selected frequency */
       PWM_Tool(Frequency);                             /* and run PWM tool */
       break;
+    #endif
 
-      #ifdef HW_ZENER
+    #ifdef HW_ZENER
     case 6:              /* Zener tool */
       Zener_Tool();
       break;
-      #endif
+    #endif
 
+    #ifdef SW_ESR
     case 7:              /* ESR tool */
       ESR_Tool();
       break;

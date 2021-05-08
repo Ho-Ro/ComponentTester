@@ -7,33 +7,38 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2014-03-27
+Last edit:  2014-07-12
 
 Content
-- About
-- Safety Advice
-- Whats different?
-- Building the firmware
-- Source Code
-- Test Key
-- Startup
-- Probing
-- Power Off
-- Menu
-  - PWM Tool
-  - Zener Tool
-  - Selftest
-  - Self Adjustment
-  - Save
-  - Show Values
-  - Exit
-- Resistors
-- Measuring Capacitance
-- Discharging Components
-- ADC Oversampling
-- Vf (V_BE) of BJTs
-- Displaying Results
-  - Special Components
+  - About
+  - Safety Advice
+  - Whats different?
+  - Building the firmware
+  - Source Code
+  - Test Key
+    - Rotary Encoder
+  - Startup
+  - Probing
+  - Power Off
+  - Menu
+    - PWM Tool
+    - Zener Tool
+    - Selftest
+    - Self Adjustment
+    - Save
+    - Show Values
+    - Exit
+  - Resistors
+  - Measuring Capacitance
+  - Discharging Components
+  - ADC Oversampling
+  - Vf (V_BE) of BJTs
+  - Displaying Results
+    - Special Components
+  - Unsupported Components
+  - Known Issues
+  - Change Log
+  - References
 
 
 * About
@@ -49,6 +54,7 @@ just English and German, but can be changed or extended easily.
 
 Since the firmware's size exceeds 16kB Flash some features are only enabled
 for the ATmega328/P:
+- rotary encoder for user interface (hardware option)
 - inductance measurement
 - Zener voltage measurement (hardware option)
 - PWM tool
@@ -84,6 +90,7 @@ type and programmer settings. All other settings are moved to config.h.
 In config.h please choose the language for the UI and change any defaults
 if required. All defaults are explained in the file, so I won't discuss
 them here. Hardware options are also enabled in configh.h:
+- rotary encoder
 - 2.5V voltage reference
 - relay based cap discharger
 - Zener voltage measurement
@@ -92,6 +99,13 @@ The external 2.5V voltage reference should be only enabled if it's at least
 10 times more precise than the voltage regulator. Otherwise it would make
 the results worse. If you're using a MCP1702 with a typical tolerance of
 0.4% as voltage regulator you really don't need a 2.5V voltage reference.
+
+After editing the Makefile and config.h please run 'make' or whatever
+toolchain you got to compile the firmware. The Makefiles provides following
+additional targets:
+- clean    to remove all object and firmware files
+- fuses    to set the ATmega's fuse bits
+- upload   to upload the firmware to the ATmega
 
 
 * Source Code
@@ -114,6 +128,19 @@ A steady cursor signals that another information will be displayed and a
 blinking cursor informs you that the tester will resume the probing loop. The
 cursor is supressed for menus and some tools, because it's obvious that
 a key press is neccessary.  
+
+
++ Rotary Encoder (hardware option)
+
+With a rotary encoder you'll get some more functionality with the user
+interface, but that's context specific. The basic function is to act as
+an additional button to proceed or display more data. It doesn't matter if
+you turn the encoder to the right or to the left. The additional functionality
+is described in the sections below, if applicable.
+
+The algorithm for reading the encoder is tested only with an ALPS EC11 series
+encoder, since I don't got any other rotary decoders yet. So I would
+appreciate any feedback on other encoders.
 
 
 * Startup
@@ -159,7 +186,12 @@ Simply press the test key twice quickly (might need some practice :-).
 While in the menu a short key press shows the the next item in the menu and a
 long key press selects the shown item. At the right side you'll see a '>' if
 another items follows or a '<' if the last item is reached (will roll over to
-the first menu item). 
+the first menu item). With a rotary encoder you can move the items up or down
+based on the turning direction. 
+
+Some tools show you the probe pins used before doing anything. The output will
+blink up to three times if you don't press the test button to confirm the
+brief information.
 
 
 + PWM Tool
@@ -171,6 +203,9 @@ key press starts the PWM output for the shown frequency.
 The duty ratio of the PWM starts at 50%. A short key press of the test button
 increases the ratio by 5%, a long key press decreases the ratio by 5%. To exit
 the PWM tool press the test key twice quickly.
+
+If you got a rotary encoder you can use it to select the frequency in the menu
+and to change the PWM ratio in 1% steps.
 
 Configuration of the probes:
   Probe #2:         PWM output (with 680 Ohms resistor to limit current)
@@ -397,12 +432,13 @@ Germanium power BJTs with a very high leakage current (> 700µA) can't be
 checked either because the check would collide with depletion mode FETs. 
 
 
-* Issues
+* Known Issues
 
-Known issues:
 - A storage cap (like Panasonic NF series) is detected as a diode or two
   anti-parallel diodes. The capacitance measurement isn't able to determine  
   an acceptable value either.
+- When using a SMPS or DC-DC converter as power supply the tester will
+  sometimes detect a capacitor around 50µF even if no component is connected. 
 
 
 * Change Log

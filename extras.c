@@ -26,13 +26,51 @@
 #include "functions.h"        /* external functions */
 
 
+/* ************************************************************************
+ *   support functions
+ * ************************************************************************ */
+
+
+#if defined (SW_PWM) || defined (SW_ESR)
+
+/*
+ *  display probe pins used
+ */
+
+void ToolInfo(const unsigned char *String)
+{
+  uint8_t           n = 0;
+  uint8_t           Key = 0;
+
+  LCD_ClearLine2();                /* info goes to line #2 */
+
+  /* blink text up to three times */
+  while (n <= 2)
+  {
+    LCD_EEString2(Probes_str);     /* show text */
+    LCD_EEString(String);
+    Key = TestKey(700, 0);         /* wait 700ms */
+
+    LCD_ClearLine2();              /* clear line #2 */
+    if (Key == 0) Key = TestKey(300, 0);      /* wait 300ms */
+
+    if (Key > 0) n = 3;            /* on key press end loop */
+    n++;                           /* next run */
+  }
+
+  MilliSleep(250);                 /* smooth UI */
+}
+
+#endif
+
+
 
 /* ************************************************************************
  *   PWM tool
  * ************************************************************************ */
 
 
-#ifdef EXTRA
+#ifdef SW_PWM
 
 /*
  *  PWM tool
@@ -64,6 +102,7 @@ void PWM_Tool(uint16_t Frequency)
   LCD_EEString2(PWM_str);             /* display: PWM */
   DisplayValue(Frequency, 0, 'H');    /* display frequency */
   LCD_Data('z');                      /* make it Hz :-) */
+  ToolInfo(PWM_Probes_str);           /* show probes used */
 
   /* probes 1 and 3 are signal ground, probe 2 is signal output */
   ADC_PORT = 0;                         /* pull down directly: */
@@ -130,6 +169,9 @@ void PWM_Tool(uint16_t Frequency)
     /* show current ratio */
     LCD_ClearLine2();
     DisplayValue(Ratio, 0, '%');        /* show ratio in % */
+    #ifdef HW_ENCODER
+    if (Test < 3)                       /* just for test button usage */
+    #endif
     MilliSleep(500);                    /* smooth UI */
 
     /*
@@ -152,6 +194,16 @@ void PWM_Tool(uint16_t Frequency)
         if (Ratio <= 95) Ratio += 5;      /* +5% and limit to 100% */
       }
     }
+    #ifdef HW_ENCODER
+    else if (Test == 3)                 /* rotary encoder: right turn */
+    {
+      if (Ratio <= 99) Ratio += 1;      /* +1% and limit to 100% */
+    }
+    else if (Test == 4)                 /* rotary encoder: left turn */
+    {
+      if (Ratio >= 1) Ratio -= 1;         /* -1% and limit to 0% */
+    }
+    #endif
     else                                /* long key press */
     {
       if (Ratio >= 5) Ratio -= 5;         /* -5% and limit to 0% */
@@ -176,12 +228,13 @@ void PWM_Tool(uint16_t Frequency)
 #endif
 
 
+
 /* ************************************************************************
  *   ESR tool
  * ************************************************************************ */
 
 
-#ifdef EXTRA
+#ifdef SW_ESR
 
 /*
  *  ESR tool
@@ -204,7 +257,7 @@ void ESR_Tool(void)
   /* show tool info */
   LCD_Clear();
   LCD_EEString(ESR_str);           /* display: ESR */
-  LCD_Line2();
+  ToolInfo(ESR_Probes_str);        /* show probes used */
   LCD_Data('-');                   /* display "no value" */
 
   while (Run > 0)
@@ -279,8 +332,7 @@ void ESR_Tool(void)
  * ************************************************************************ */
 
 
-#ifdef EXTRA
-  #ifdef HW_ZENER
+#ifdef HW_ZENER
 
 /*
  *  Zener tool:
@@ -316,7 +368,7 @@ void Zener_Tool(void)
     while (!(CONTROL_PIN & (1 << TEST_BUTTON)))   /* as long as key is pressed */
     {
       /* get voltage (10:1 voltage divider) */
-      Value = ReadU(TP_ZENER);
+      Value = ReadU(TP_ZENER);     /* special probe pin */
       Value /= 10;                 /* scale to 0.1V */
 
       /* display voltage */
@@ -388,7 +440,6 @@ void Zener_Tool(void)
   }
 }
 
-  #endif
 #endif
 
 

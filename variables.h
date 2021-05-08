@@ -49,7 +49,7 @@
   Diode_Type        Diodes[6];               /* diodes (3 combinations in 2 directions) */
   Semi_Type         Semi;                    /* semiconductor (BJT, FET, ...) */
 
-  #ifdef EXTRA
+  #ifdef SW_INDUCTOR
     Inductor_Type   Inductor;                /* inductor */
   #endif
 
@@ -101,10 +101,35 @@
     const unsigned char BJT_str[] EEMEM = "Transistor";
     const unsigned char Thyristor_str[] EEMEM = "Thyristor";
     const unsigned char Triac_str[] EEMEM = "Triac";
+    const unsigned char Bye_str[] EEMEM = "Ciao!";
+
+  /* language specific: Czech */
+  #elif defined (UI_CZECH)
+
+    const unsigned char Running_str[] EEMEM = "Probiha mereni..";
+    const unsigned char Weak_str[] EEMEM = "slaba!";
+    const unsigned char Low_str[] EEMEM =  "vybita!";
+    const unsigned char Failed1_str[] EEMEM = "Zadna soucastka";
+    const unsigned char Failed2_str[] EEMEM = "neznama - vadna";
+    const unsigned char Done_str[] EEMEM = "hotovo!";
+    const unsigned char Select_str[] EEMEM = "Vyber:";
+    const unsigned char Selftest_str[] EEMEM = "Autotest";
+    const unsigned char Adjustment_str[] EEMEM = "Kalibrace";
+    const unsigned char Save_str[] EEMEM = "Ulozit";
+    const unsigned char Show_str[] EEMEM = "Zobraz hodnoty";
+    const unsigned char Remove_str[] EEMEM = "Odstranit";
+    const unsigned char Create_str[] EEMEM = "Udelej";
+    const unsigned char ShortCircuit_str[] EEMEM = "zkrat!";
+    const unsigned char DischargeFailed_str[] EEMEM = "Baterie?";
+    const unsigned char Error_str[] EEMEM = "Chyba!";
+    const unsigned char Exit_str[] EEMEM = "Prerusit";
+    const unsigned char BJT_str[] EEMEM = "Tranzistor";
+    const unsigned char Thyristor_str[] EEMEM = "Tyrystor";
+    const unsigned char Triac_str[] EEMEM = "Triak";
+    const unsigned char Bye_str[] EEMEM = "Nashledanou...";
 
   /* language specific: another language */
   #elif defined (UI_WHATEVER)
-
 
   /* language specific: English (default) */
   #else
@@ -128,6 +153,7 @@
     const unsigned char BJT_str[] EEMEM = "BJT";
     const unsigned char Thyristor_str[] EEMEM = "SCR";
     const unsigned char Triac_str[] EEMEM = "Triac";
+    const unsigned char Bye_str[] EEMEM = "Bye!";
   #endif
 
   /* language independent */
@@ -164,17 +190,20 @@
   const unsigned char ROffset_str[] EEMEM = "R0";
   const unsigned char CompOffset_str[] EEMEM = "AComp";
   const unsigned char Checksum_str[] EEMEM = "ChkSum";
-  const unsigned char Bye_str[] EEMEM = "Ciao!";
 
-  #ifdef EXTRA
+  #ifdef SW_ESR
+    const unsigned char Probes_str[] EEMEM = "Pins";
     const unsigned char ESR_str[] EEMEM = "ESR";
+    const unsigned char ESR_Probes_str[] EEMEM = "1-2";
+  #endif
+  #ifdef SW_PWM
     const unsigned char PWM_str[] EEMEM = "PWM";
+    const unsigned char PWM_Probes_str[] EEMEM = "2-13";
     const unsigned char Hertz_str[] EEMEM = "Hz";
-
-    #ifdef HW_ZENER
-      const unsigned char Zener_str[] EEMEM = "Zener";
-      const unsigned char Min_str[] EEMEM = "Min";
-    #endif
+  #endif
+  #ifdef HW_ZENER
+    const unsigned char Zener_str[] EEMEM = "Zener";
+    const unsigned char Min_str[] EEMEM = "Min";
   #endif
 
   const unsigned char Cap_str[] EEMEM = {'-',LCD_CHAR_CAP, '-',0};
@@ -182,7 +211,7 @@
   const unsigned char Diode_CA_str[] EEMEM = {'-', LCD_CHAR_DIODE_CA, '-', 0};
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
-  const unsigned char Version_str[] EEMEM = "v1.12m";
+  const unsigned char Version_str[] EEMEM = "v1.13m";
 
 
   /*
@@ -230,7 +259,7 @@
   const uint16_t SmallCap_table[] MEM_TEXT = {954, 903, 856, 814, 775, 740, 707, 676, 648};
 //const uint16_t SmallCap_table[] MEM_TEXT = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
 
-  #ifdef EXTRA
+  #ifdef SW_PWM
     /* PWM menu: frequencies */    
     const uint16_t PWM_Freq_table[] MEM_TEXT = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
 
@@ -249,7 +278,7 @@
   const unsigned char Rl_table[] EEMEM = {(1 << (TP1 * 2)), (1 << (TP2 * 2)), (1 << (TP3 * 2))};
 
   /* bitmasks for Rh probe resistors based on probe ID */
-//  const unsigned char Rh_table[] EEMEM = {(2 << (TP1 * 2)), (2 << (TP2 * 2)), (2 << (TP3 * 2))};
+  const unsigned char Rh_table[] EEMEM = {(2 << (TP1 * 2)), (2 << (TP2 * 2)), (2 << (TP3 * 2))};
 
   /* bitmasks for ADC pins based on probe ID */
   const unsigned char ADC_table[] EEMEM = {(1 << TP1), (1 << TP2), (1 << TP3)};
@@ -287,7 +316,7 @@
   extern Diode_Type      Diodes[6];               /* diodes (3 combinations in 2 directions) */
   extern Semi_Type       Semi;                    /* semiconductor (BJT, FET, ...) */
 
-  #ifdef EXTRA
+  #ifdef SW_INDUCTOR
     extern Inductor_Type Inductor;                /* inductor */
   #endif
 
@@ -335,15 +364,19 @@
   extern const unsigned char CompOffset_str[];
   extern const unsigned char Checksum_str[];
 
-  #ifdef EXTRA
+  #ifdef SW_ESR
+    extern const unsigned char Probes_str[];
     extern const unsigned char ESR_str[];
+    extern const unsigned char ESR_Probes_str[];
+  #endif
+  #ifdef SW_PWM
     extern const unsigned char PWM_str[];
+    extern const unsigned char PWM_Probes_str[];
     extern const unsigned char Hertz_str[];
-
-    #ifdef HW_ZENER
-      extern const unsigned char Zener_str[];
-      extern const unsigned char Min_str[];
-    #endif
+  #endif
+  #ifdef HW_ZENER
+    extern const unsigned char Zener_str[];
+    extern const unsigned char Min_str[];
   #endif
 
 
@@ -360,7 +393,7 @@
   /* voltage based factors for small caps (using Rh) */
   extern const uint16_t SmallCap_table[];
 
-  #ifdef EXTRA
+  #ifdef SW_PWM
     /* PWM menu: frequencies */
     extern const uint16_t PWM_Freq_table[];
 

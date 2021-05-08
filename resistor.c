@@ -221,7 +221,7 @@ void CheckResistor(void)
    *  - We assume: resistor between probe-1 and probe-2
    *  - Set up a voltage divider with well known probe resistors and
    *    measure the voltage at the DUT.
-   *  - For low resistance consider the internal resistors of the µC
+   *  - For low resistance consider the internal resistors of the MCU
    *    for pulling up/down.
    *  - Calculate resistance via the total current and the voltage
    *    at the DUT.
@@ -283,7 +283,7 @@ void CheckResistor(void)
     ADC_PORT = Probes.ADC_1;                 /* pull up probe-1 directly */
     R_PORT = 0;                              /* set resistor port to low */ 
     R_DDR = Probes.Rl_2;                     /* pull down probe-2 via Rl */
-    U_Ri_H = ReadU_5ms(Probes.Pin_1);        /* get voltage at internal R of µC */
+    U_Ri_H = ReadU_5ms(Probes.Pin_1);        /* get voltage at internal R of MCU */
     U_Rl_L = ReadU(Probes.Pin_2);            /* get voltage at Rl pulled down */
 
     /* set probes: Gnd -- Rh -- probe-2 / probe-1 -- Vcc */

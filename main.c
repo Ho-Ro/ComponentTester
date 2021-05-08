@@ -261,7 +261,7 @@ void Show_Resistor(void)
     LCD_Space();
     DisplayValue(R2->Value, R2->Scale, LCD_CHAR_OMEGA);
   }
-  #ifdef EXTRA
+  #ifdef SW_INDUCTOR
   else                   /* single resistor */
   {
     /* get inductance and display if relevant */
@@ -283,7 +283,7 @@ void Show_Capacitor(void)
 {
   Capacitor_Type    *MaxCap;       /* pointer to largest cap */
   Capacitor_Type    *Cap;          /* pointer to cap */
-  #ifdef EXTRA
+  #ifdef SW_ESR
   uint16_t          ESR;           /* ESR (in 0.01 Ohms) */
   #endif
   uint8_t           Counter;       /* loop counter */
@@ -311,7 +311,7 @@ void Show_Capacitor(void)
   LCD_Line2();                     /* move to line #2 */
   DisplayValue(MaxCap->Value, MaxCap->Scale, 'F');
 
-  #ifdef EXTRA
+  #ifdef SW_ESR
   /* show ESR */
   ESR = MeasureESR(MaxCap);        /* measure ESR */
   if (ESR > 0)                     /* if successfull */
@@ -967,7 +967,7 @@ int main(void)
   CONTROL_DDR = (1 << POWER_CTRL);      /* set pin as output */
   CONTROL_PORT = (1 << POWER_CTRL);     /* set pin to drive power management transistor */
 
-  /* setup µC */
+  /* setup MCU */
   MCUCR = (1 << PUD);                        /* disable pull-up resistors globally */
   ADCSRA = (1 << ADEN) | ADC_CLOCK_DIV;      /* enable ADC and set clock divider */
 
@@ -985,9 +985,9 @@ int main(void)
 
   /*
    *  watchdog was triggered (timeout 2s)
-   *  - This is after the µC done a reset driven by the watchdog.
+   *  - This is after the MCU done a reset driven by the watchdog.
    *  - Does only work if the capacitor at the base of the power management
-   *    transistor is large enough to survive a µC reset. Otherwise the
+   *    transistor is large enough to survive a MCU reset. Otherwise the
    *    tester simply looses power.
    */
 
@@ -1276,7 +1276,15 @@ end:
   /* get key press or timeout */
   Test = TestKey((unsigned int)CYCLE_DELAY, 12);
 
-  if (Test == 1)              /* short key press */
+  if (Test == 0)              /* timeout (no key press) */
+  {
+    /* check if we reached the maximum number of rounds (continious mode only) */
+    if ((RunsMissed >= CYCLE_MAX) || (RunsPassed >= CYCLE_MAX * 2))
+    {
+      goto power_off;              /* -> power off */
+    }
+  }
+  else if (Test == 1)         /* short key press */
   {
     /* a second key press triggers extra functions */
     MilliSleep(50);
@@ -1291,19 +1299,14 @@ end:
       MainMenu();                /* enter main menu */
       goto end;                  /* re-run cycle control */
     }
-
-    goto start;                    /* -> next round */
   }
   else if (Test == 2)         /* long key press */
   {
     goto power_off;                /* -> power off */
   }
 
-  /* check if we should go for another round (continious mode only) */
-  if ((RunsMissed < CYCLE_MAX) && (RunsPassed < CYCLE_MAX * 2))
-  {
-    goto start;               /* another round */
-  }
+  /* default action (also for rotary encoder) */
+  goto start;                 /* -> next round */
 
 
 power_off:

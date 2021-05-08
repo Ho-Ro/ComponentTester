@@ -48,7 +48,7 @@ unsigned long Get_hFE_C(uint8_t Type)
   unsigned long     hFE;           /* return value */
   unsigned int      U_R_e;         /* voltage across emitter resistor */
   unsigned int      U_R_b;         /* voltage across base resistor */
-  unsigned int      Ri;            /* internal resistance of µC */
+  unsigned int      Ri;            /* internal resistance of MCU */
 
 
   /*
@@ -334,7 +334,7 @@ void CheckDiode(void)
    *    is not conducting, to be able to get Vf of the protection diode.
    *    So we discharge the gate and run the measurements twice for assumed
    *    p and n channel FETs.
-   *  - Take care about the internal voltage drop of the µC at the cathode
+   *  - Take care about the internal voltage drop of the MCU at the cathode
    *    for high test currents (Rl).
    *  - Filter out resistors by the used voltage divider:
    *    k = Rl + Ri_H + Ri_L
