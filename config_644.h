@@ -145,7 +145,7 @@
 
 
 /*
- *  ST7735, SPI interface (hardware)
+ *  ST7735, SPI interface (hardware, 4 wire)
  */
 
 #if 0
@@ -175,6 +175,9 @@
 
 /*
  *  PCD8544, SPI interface (hardware)
+ *  - for a 180° rotated display (LCD_ROT180)
+ *    - comment out "_VF" font
+ *    - uncomment "_V_F" font
  */
 
 #if 0
@@ -192,6 +195,8 @@
 #define LCD_DOTS_Y       48             /* number of vertical dots */
 #define LCD_CONTRAST     66             /* default contrast (1-127) */
 #define FONT_6X8_VF                     /* 6x8 font, vertically aligned & flipped */
+//#define LCD_ROT180                      /* rotate output by 180° (not supported yet) */
+//#define FONT_6X8_V_F                    /* 6x8 font, vertically aligned, hor. flipped */
 #define SPI_HARDWARE                    /* hardware SPI */
 #endif
 
@@ -254,6 +259,68 @@
 //#define LCD_ROT180                      /* rotate output by 180° */
 //#define FONT_8X8_HF                     /* 8x8 font, horizonally aligned & flipped */
 //#define SYMBOLS_24X24_HF                /* 24x24 symbols, horizonally aligned & flipped */
+#endif
+
+
+
+/*
+ *  ILI9163, SPI interface (hardware, 4 wire)
+ */
+
+#if 0
+#define LCD_ILI9163
+#define LCD_COLOR                       /* color graphic display */
+#define LCD_SPI                         /* SPI interface */
+#define LCD_PORT         PORTB          /* port data register */
+#define LCD_DDR          DDRB           /* port data direction register */
+#define LCD_RES          PB2            /* port pin used for /RESX (optional) */
+#define LCD_CS           PB4            /* port pin used for /CSX (optional) */
+#define LCD_DC           PB3            /* port pin used for D/CX */
+#define LCD_SCL          PB7            /* port pin used for SCL */
+#define LCD_SDA          PB5            /* port pin used for SDA/SDIO */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       128            /* number of vertical dots */
+#define LCD_OFFSET_X      32            /* x offset of 32 dots (160-128) */
+//#define LCD_FLIP_X                      /* enable horizontal flip */
+#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
+//#define LCD_LATE_ON                     /* turn on LCD after clearing it */
+#define FONT_8X8_HF                     /* 8x8 font, horizonally aligned & flipped */
+//#define FONT_10X16_HF                   /* 10x16 font, horizontally aligned & flipped */
+//#define FONT_8X16_CYRILLIC_HF           /* 8x16 cyrillic font, horizontally aligned & flipped */
+#define SYMBOLS_30X32_HF                /* 30x32 symbols, horizontally aligned */
+#define SPI_HARDWARE                    /* hardware SPI */
+#endif
+
+
+
+/*
+ *  SSD1306, SPI interface (hardware, 4 wire)
+ */
+
+#if 0
+#define LCD_SSD1306
+#define LCD_GRAPHIC                     /* monochrome graphic display */
+#define LCD_SPI                         /* SPI interface */
+#define LCD_PORT         PORTB          /* port data register */
+#define LCD_DDR          DDRB           /* port data direction register */
+#define LCD_RESET        PB2            /* port pin used for /RES (optional) */
+#define LCD_CS           PB4            /* port pin used for /CS (optional) */
+#define LCD_DC           PB2            /* port pin used for D/C */
+#define LCD_SCLK         PB7            /* port pin used for SCLK */
+#define LCD_SDIN         PB5            /* port pin used for SDIN (LCD's data input) */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       64             /* number of vertical dots */
+#define LCD_FLIP_X                      /* enable horizontal flip */
+#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_CONTRAST     127            /* default contrast (0-255) */
+#define FONT_8X8_VF                     /* 8x8 font, vertically aligned & flipped */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
+#define SPI_BITBANG                     /* bit-bang SPI */
+#define SPI_PORT         LCD_PORT       /* SPI port data register */
+#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
+#define SPI_SCK          LCD_SCLK       /* port pin used for SCK */
+#define SPI_MOSI         LCD_SDIN       /* port pin used for MOSI */
 #endif
 
 
@@ -331,7 +398,7 @@
 
 /*
  *  Probe resistors
- *  - For PWM/squarewave output R_RL_2 has to be PD4/OC1B.
+ *  - For PWM/squarewave output via probe #2 R_RL_2 has to be PD4/OC1B.
  */
 
 #define R_PORT           PORTD     /* port data register */
@@ -342,6 +409,16 @@
 #define R_RH_2           PD5       /* Rh (470k) for test pin #2 */
 #define R_RL_3           PD6       /* Rl (680R) for test pin #3 */
 #define R_RH_3           PD7       /* Rh (470k) for test pin #3 */
+
+
+/*
+ *  dedicated signal output via OC1B
+ *  - don't change this!
+ */
+
+#define SIGNAL_PORT      PORTD     /* port data register */
+#define SIGNAL_DDR       DDRD      /* port data direction register */
+#define SIGNAL_OUT       PD4       /* MCU's OC1B pin */
 
 
 /*
@@ -515,7 +592,7 @@
 /*
  *  ATmega 644/644P/644PA
  */
-||
+
 #elif defined(__AVR_ATmega644__)
 
   /* estimated internal resistance of port to GND (in 0.1 Ohms) */

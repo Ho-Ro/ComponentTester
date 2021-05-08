@@ -7,12 +7,6 @@
  * ************************************************************************ */
 
 
-/* local includes */
-#include "config.h"           /* global configuration */
-
-#if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
-
-
 /*
  *  local constants
  */
@@ -26,13 +20,14 @@
  */
 
 /* local includes */
+#include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
 #include "functions.h"        /* external functions */
 
 
 /*
- *  local defines
+ *  local constants
  */
 
 /* important constants */
@@ -52,68 +47,56 @@
 #define IR_RELAX_SHORT   0b00000001     /* relax short pulses */
 #define IR_RELAX_LONG    0b00000010     /* relax long pulses */
 
+/* signal types */
+#define IR_PAUSE         0b00000001     /* pause */
+#define IR_PULSE         0b00000010     /* pulse */
+
+/* IR protocols */
+#define IR_PROTOMAX               6     /* number of protocols */
+#define IR_NEC_STD                1     /* NEC standard */
+#define IR_NEC_EXT                2     /* NEC extended */
+#define IR_SAMSUNG                3     /* Samsung / Toshiba */
+#define IR_SIRC_12                4     /* Sony SIRC-12 */
+#define IR_SIRC_15                5     /* Sony SIRC-15 */
+#define IR_SIRC_20                6     /* Sony SIRC-20 */
+
+#define IR_PROTON                 0     /* Proton (Mitsubishi/X-Sat) */
+#define IR_JVC                    0     /* JVC */
+#define IR_MATSUSHITA             0     /* Matsushita / Emerson */
+#define IR_KASEIKYO               0     /* Kaseikyo (Japanese Code) */
+#define IR_MOTOROLA               0     /* Motorola */
+#define IR_SHARP                  0     /* Sharp */
+#define IR_RC5                    0     /* standard RC-5 */
+#define IR_RC6                    0     /* standard RC-6 */
+
 
 
 /*
  *  local variables
  */
 
-/* demodulated IR code */
+#if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
+/* demodulated/raw IR code */
 uint8_t             IR_Code[IR_CODE_BYTES];  /* raw data */
+#endif
 
+#if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
 /* decoding logic */
 uint8_t             IR_State = 0;            /* multi packet protocol state */
 uint8_t             IR_RelaxTime = 0;        /* timing control flag */
+#endif
+
+#ifdef SW_IR_TRANSMITTER
+#endif
 
 
 
 /* ************************************************************************
- *   IR detection tool
+ *   IR detection/decoder tool (receiver)
  * ************************************************************************ */
 
 
-/*
- *  display singe hex digit
- *
- *  requires:
- *  - value to display (0-15)
- */
-
-void DisplayHexDigit(uint8_t Digit)
-{
-  /*
-   *  0-9: ascii 48-57
-   *  A-F: ascii 65-70
-   */
-
-  if (Digit < 10) Digit += 48;     /* 0-9 */
-  else Digit += (65 - 10);         /* A-F */
-  LCD_Char(Digit);  
-}
-
-
-
-/*
- *  display byte as hex
- *
- *  requires:
- *  - value to display
- */
-
-void DisplayHex(uint8_t Value)
-{
-  uint8_t           Digit;
-
-  /* first digit */
-  Digit = Value / 16;
-  DisplayHexDigit(Digit);
-
-  /* second digit */
-  Digit = Value % 16;
-  DisplayHexDigit(Digit);
-}
-
-
+#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
 
 /*
  *  check if pulse duration matches reference value
@@ -192,7 +175,7 @@ uint8_t BiPhase_Demod(uint8_t *PulseWidth, uint8_t Pulses, uint8_t Mode, uint8_t
   uint8_t           Bits = 0;      /* counter */
   uint8_t           Bytes = 0;     /* counter */
 
-  Code = &IR_Code[0];               /* set start address */
+  Code = &IR_Code[0];              /* set start address */
 
   /*
    *  Bi-Phase Modulation / Manchester encoding
@@ -393,13 +376,14 @@ uint8_t PxM_Demod(uint8_t *PulseWidth, uint8_t Pulses, uint8_t tS, uint8_t t0, u
   /*
    *  PWM / pulse encoding:
    *  - fixed pause time
-   *  - two pulse times to encode 0/1
+   *  - two different pulse times to encode 0/1
    *  - even number of data items
    *
    *  PDM / space encoding
    *  - fixed pulse time
-   *  - two pause times to encode 0/1
-   *  - last item is pulse
+   *  - two different pause times to encode 0/1
+   *  - last item is pulse (stop bit)
+   *    required to indicate end of pause of last data bit
    *  - odd number of data items
    */
 
@@ -556,41 +540,42 @@ uint8_t SpecialBiPhasePulse(uint8_t *PulseWidth, uint8_t Pulses, uint8_t Offset,
  *  get specific number of bits from IR code
  *
  *  requires:
- *  - start bit (1-...)
+ *  - start bit in IR code (1-...)
  *  - number of bits (1-8)
- *  - bit mode (LSB/MSB)
+ *  - bit mode
+ *    IR_LSB - LSB
+ *    IR_MSB - MSB
  *  returns:
  *  - code byte
  */
 
-uint8_t Codebits(uint8_t StartBit, uint8_t Bits, uint8_t Mode)
+uint8_t GetBits(uint8_t StartBit, uint8_t Bits, uint8_t Mode)
 {
   uint8_t           Data = 0;      /* return value */
   uint8_t           *Code;         /* pointer to code data */
-  uint8_t           CodeBit;       /* bit counter */
-  uint8_t           CodeByte;      /* byte counter */
+  uint8_t           Count;         /* bit counter */
   uint8_t           Temp;
   uint8_t           n;             /* counter */
 
 
   /*
-   *  IR_Code: bits stored as received (bit #7 is first)
+   *  IR_Code: bits stored as received (bit #7 is first bit received)
    *           IR_Code[0] is first byte
-   *  LSB: first bit from IR_Code goes to bit #0
-   *       last bit from IR_Code goes to highest bit #
-   *  MSB: first bit from IR_Code goes to highest bit #
-   *       last bit from IR_Code goes to bit #0 
+   *  LSB: bit #7 of IR_Code goes to bit #0 of Data
+   *       bit #0 of IR_Code goes to bit #7 of Data
+   *  MSB: bit #7 of IR_Code goes to bit #7 of Data
+   *       bit #0 of IR_Code goes to bit #0 of Data
    */
 
   /* determine start position in IR_Code */
   StartBit--;                      /* align */
-  CodeByte = StartBit / 8;         /* start byte (0-) */
-  CodeBit = StartBit % 8;          /* start bit in byte (0-) */
-  Code = &IR_Code[CodeByte];       /* set start address */  
+  Temp = StartBit / 8;             /* start byte (0-) */
+  Count = StartBit % 8;            /* start bit in byte (0-) */
+  Code = &IR_Code[Temp];           /* get start address */
   Temp = *Code;                    /* copy code byte */
 
   /* shift start bit to bit #7 */
-  n = CodeBit;                /* number of positions to shift */
+  n = Count;                  /* number of positions to shift */
   while (n > 0)
   {
     Temp <<= 1;               /* shift left */
@@ -598,7 +583,7 @@ uint8_t Codebits(uint8_t StartBit, uint8_t Bits, uint8_t Mode)
   }
 
   /* get bits */
-  CodeBit = 8 - CodeBit;      /* remaining bits in first byte */
+  Count = 8 - Count;          /* remaining bits in first byte */
   n = 1;
   while (n <= Bits)
   {
@@ -611,11 +596,11 @@ uint8_t Codebits(uint8_t StartBit, uint8_t Bits, uint8_t Mode)
 
     Temp <<= 1;               /* shift source left */
 
-    if (n == CodeBit)         /* byte overflow */
+    if (n == Count)           /* byte overflow */
     {
       Code++;                 /* next byte */
       Temp = *Code;           /* copy code byte */
-      /* CodeBit += 8; */
+      /* Count += 8; */
     }
 
     n++;                      /* next bit */
@@ -650,6 +635,7 @@ uint8_t Codebits(uint8_t StartBit, uint8_t Bits, uint8_t Mode)
 
 /*
  *  detect and decode IR protocol
+ *  - uses IR_State to keep track of multi-packet protocols
  *
  *  requires:
  *  - pointer to array of pulse duration data
@@ -658,7 +644,7 @@ uint8_t Codebits(uint8_t StartBit, uint8_t Bits, uint8_t Mode)
 
 void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
 {
-  uint8_t           Flag = 0;
+  uint8_t           Flag = 0;      /* control flag */
   uint8_t           *Pulse;        /* pointer to pause/pulse data */
   uint8_t           Time1;         /* time units #1 */
   uint8_t           Time2;         /* time units #2 */
@@ -667,6 +653,13 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
   uint8_t           Command;       /* RC command */
   uint8_t           Extras = 0;    /* RC extra stuff */
   uint8_t           Data = Pulses; /* temporary value */
+
+  /* local constants for Flag */
+  #define PROTO_UNKNOWN       0    /* unknown protocol */
+  #define PROTO_DETECTED      1    /* protocol detected */
+  #define PACKET_OK           2    /* valid packet */
+  #define PACKET_DISPLAY      3    /* valid packet & display standard values */
+  #define PACKET_MULTI        4    /* multi packet (more to follow) */
 
   if (Pulses < 2) return;     /* not enough pulses */
 
@@ -690,10 +683,13 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
    *  - start: pulse 9ms, pause 4.5ms
    *  - PDM: pulse 560탎, pause 0=560탎 1=1690탎
    *  - bit mode: LSB
-   *  - format: 
-   *    <start><address:8><inverted address:8><command:8><inverted command:8><end pulse>
+   *  - stop: pulse 560탎
+   *  - standard 2format: 
+   *    <start><address:8><inverted address:8><command:8><inverted command:8><stop>
    *  - extended format:
-   *    <start><low address:8><high address:8><command:8><inverted command:8><end pulse>
+   *    <start><low address:8><high address:8><command:8><inverted command:8><stop>
+   *  - repeat sequence:
+   *    <pulse 9ms><pause 2.25ms><stop>
    */
 
   if (PulseCheck(Time1, 180))           /* pulse 9ms */
@@ -701,26 +697,26 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
     if (PulseCheck(Time2, 90))          /* pause 4.5ms */
     {
       LCD_EEString_Space(IR_NEC_str);   /* display protocol */
-      Flag = 1;                         /* detected protocol */
+      Flag = PROTO_DETECTED;            /* detected protocol */
       PulseWidth += 2;                  /* skip start pulse */
       Pulses -= 2;
       Bits = PxM_Demod(PulseWidth, Pulses, 11, 11, 33);
 
       if (Bits == 32)              /* we expect 32 bits */
       {
-        Address = Codebits(1, 8, IR_LSB);    /* address */
-        Extras = Codebits(9, 8, IR_LSB);     /* inverted address */
-        Command = Codebits(17, 8, IR_LSB);   /* command */
+        Address = GetBits(1, 8, IR_LSB);     /* address */
+        Extras = GetBits(9, 8, IR_LSB);      /* inverted address */
+        Command = GetBits(17, 8, IR_LSB);    /* command */
 
         /* determine protocol version */
         Data = ~Extras;                 /* invert */
         if (Address != Data)            /* address is not inverted */
         {
           /* extended format with 16 bit address */
-          DisplayHex(Extras);           /* display high address */
+          DisplayHexByte(Extras);       /* display high address */
         }
 
-        Flag = 3;             /* confirmed + standard ouput */
+        Flag = PACKET_DISPLAY;          /* packet ok & default output */
       }
     }
     else if (PulseCheck(Time2, 45))          /* pause 2.25ms */
@@ -733,7 +729,7 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
         {
           LCD_EEString_Space(IR_NEC_str);    /* display protocol */
           LCD_Char('R');
-          Flag = 2;                          /* confirmed */
+          Flag = PACKET_OK;                  /* packet ok */
         }
       }
     }
@@ -744,10 +740,11 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
    *  Proton
    *  - also Mitsubishi/X-Sat (M50560)
    *  - start: pulse 8ms, pause 4ms
-   *  - sync/separator between address and command: pulse 500탎, pause 4ms
+   *  - sync/separator between address and command: pause 4ms
    *  - PDM: pulse 500탎, pause 0=500탎 1=1500탎
    *  - bit mode: LSB
-   *  - format: <start><address:8><sync><command:8><end pulse>
+   *  - stop: pulse 500탎
+   *  - format: <start><address:8><stop><sync><command:8><stop>
    */
 
   else if (PulseCheck(Time1, 160))      /* pulse 8ms */
@@ -755,7 +752,7 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
     if (PulseCheck(Time2, 80))          /* pause 4ms */
     {
       LCD_EEString_Space(IR_Proton_str);     /* display protocol */
-      Flag = 1;                         /* detected protocol */
+      Flag = PROTO_DETECTED;            /* detected protocol */
       PulseWidth += 2;                  /* skip start pulse */
       Pulses -= 2;
 
@@ -766,7 +763,7 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
 
         if (Bits == 8)             /* we expect 8 bits */
         {
-          Address = Codebits(1, 8, IR_LSB);       /* address */
+          Address = GetBits(1, 8, IR_LSB);        /* address */
           PulseWidth += 17;        /* 16 pulses + terminating pulse */
           Pulses -= 17;
 
@@ -779,11 +776,11 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
             /* second part */
             Bits = PxM_Demod(PulseWidth, Pulses, 11, 11, 30);
 
-            if (Bits == 8)             /* we expect 8 bits */
+            if (Bits == 8)              /* we expect 8 bits */
             {
-              Command = Codebits(1, 8, IR_LSB);   /* command */
+              Command = GetBits(1, 8, IR_LSB);    /* command */
 
-              Flag = 3;            /* confirmed + standard output */
+              Flag = PACKET_DISPLAY;    /* packet ok & default output */
             }
           }
         }
@@ -797,7 +794,8 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
    *  - start: pulse 8.4ms, pause 4.2ms
    *  - PDM: pulse 525탎, pause 0=525탎 1=1575탎
    *  - bit mode: LSB
-   *  - format: <start><address:8><command:8><end pulse>
+   *  - stop: pulse 525탎
+   *  - format: <start><address:8><command:8><stop>
    */
 
   else if (PulseCheck(Time1, 168))      /* pulse 8.4ms */
@@ -805,29 +803,30 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
     if (PulseCheck(Time2, 84))          /* pause 4.2ms */
     {
       LCD_EEString_Space(IR_JVC_str);   /* display protocol */
-      Flag = 1;                         /* detected protocol */
+      Flag = PROTO_DETECTED;            /* detected protocol */
       PulseWidth += 2;                  /* skip start pulse */
       Pulses -= 2;
       Bits = PxM_Demod(PulseWidth, Pulses, 11, 11, 32);
 
       if (Bits == 16)              /* we expect 16 bits */
       {
-        Address = Codebits(1, 8, IR_LSB);    /* address */
-        Command = Codebits(9, 8, IR_LSB);    /* command */
+        Address = GetBits(1, 8, IR_LSB);     /* address */
+        Command = GetBits(9, 8, IR_LSB);     /* command */
 
-        Flag = 3;             /* confirmed + standard ouput */
+        Flag = PACKET_DISPLAY;     /* packet ok & default output */
       }
     }
   }
 
 
   /*
-   *  Matsushita / Emerson
+   *  Matsushita (Panasonic) / Emerson
    *  - start: pulse 3.5ms, pause 3.5ms
    *  - PDM: pulse 872탎, pause 0=872탎 1=2616탎
    *  - bit mode: LSB
+   *  - stop: pulse 872탎
    *  - format:
-   *    <start><custom code:6><data code:6><inverted custom code:6><inverted data code:6><end pulse>
+   *    <start><custom code:6><data code:6><inverted custom code:6><inverted data code:6><stop>
    */
 
   /*
@@ -835,32 +834,38 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
    *  - start: pulse 3456탎, pause 1728탎
    *  - PDM: pulse 432탎, pause 0=432탎 1=1296탎
    *  - bit mode: LSB
+   *  - stop: pulse 432탎
    *  - 48 bit format:
+   *    <start><manufacturer code:16><mc-parity:4><system:4>
+   *      <equipment:8><command:8><parity:8><stop>
+   *  - mc-parity: 0000 (fixed)
+   *  - parity: <mc-parity:4><system:4> ^ <equipment:8> ^ <command:8>
+   *  - other possible format:
    *    <start><OEM-1:8><OEM-2:8><parity:4><system:4>
-   *    <product:8><function:8><x:4><checksum:4><end pulse>
-   *  - parity: (OEM-1 0-3) ^ (OEM-1 4-7) ^ (OEM-2 0-3) ^ (OEM-2 4-7)
-   *  - checksum: (system 0-3) ^ (product 0-3) ^ (product 4-7)
-   *              ^ (function 0-3) ^ (function 4-7) ^ (x 0-3)
+   *      <product:8><function:8><x:4><checksum:4><stop>
+   *    parity: <OEM-1 0-3> ^ <OEM-1 4-7> ^ <OEM-2 0-3> ^ <OEM-2 4-7>
+   *    checksum: <system 0-3> ^ <product 0-3> ^ <product 4-7>
+   *              ^ >function 0-3> ^ <function 4-7> ^ <x 0-3>
    */
 
   else if (PulseCheck(Time1, 70))       /* pulse 3.5ms */
   {
-    /* Matsushita / Emerson */ 
+    /* Matsushita (Panasonic) / Emerson */ 
     if (PulseCheck(Time2, 70))          /* pause 3.5ms */
     {
       LCD_EEString_Space(IR_Matsushita_str); /* display protocol */
-      Flag++;                           /* detected protocol */
+      Flag = PROTO_DETECTED;            /* detected protocol */
       PulseWidth += 2;                  /* skip start pulse */
       Pulses -= 2;
       Bits = PxM_Demod(PulseWidth, Pulses, 17, 17, 52);
 
       if (Bits == 24)              /* we expect 24 bits */
       {
-        Address = Codebits(1, 6, IR_LSB);    /* address */
-        Command = Codebits(7, 6, IR_LSB);    /* command */
+        Address = GetBits(1, 6, IR_LSB);     /* address */
+        Command = GetBits(7, 6, IR_LSB);     /* command */
         /* todo: check inverted address and command */
 
-        Flag = 3;             /* confirmed + standard ouput */
+        Flag = PACKET_DISPLAY;     /* packet ok & default output */
       }
     }
 
@@ -868,7 +873,7 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
     else if (PulseCheck(Time2, 34))     /* pause 1728탎 */
     {
       LCD_EEString_Space(IR_Kaseikyo_str);   /* display protocol */
-      Flag = 1;                         /* detected protocol */
+      Flag = PROTO_DETECTED;            /* detected protocol */
       PulseWidth += 2;                  /* skip start pulse */
       Pulses -= 2;
       IR_RelaxTime = IR_RELAX_SHORT;
@@ -877,23 +882,24 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
 
       if (Bits == 48)              /* we expect 48 bits */
       {
-        Address = Codebits(1, 8, IR_LSB);    /* OEM 1 */
-        Extras = Codebits(9, 8, IR_LSB);     /* OEM 2 */
+        Address = GetBits(1, 8, IR_LSB);     /* manufacturer LSB */
+        Extras = GetBits(9, 8, IR_LSB);      /* manufacturer MSB */
 
-        DisplayHex(Address);       /* display OEM 1 */
-        DisplayHex(Extras);        /* display OEM 2 */
+        DisplayHexByte(Extras);    /* display manufacturer MSB */
+        DisplayHexByte(Address);   /* display manufacturer LSB */
+
         LCD_Char(':');
 
-        Address = Codebits(21, 4, IR_LSB);   /* system */
-        Extras = Codebits(25, 8, IR_LSB);    /* product */
-        Command = Codebits(33, 8, IR_LSB);   /* command */      
+        Extras = GetBits(21, 4, IR_LSB);     /* system */
+        Address = GetBits(25, 8, IR_LSB);    /* equipment */
+        Command = GetBits(33, 8, IR_LSB);    /* command */      
 
-        DisplayHexDigit(Address);  /* display system */
-        DisplayHex(Extras);        /* display product */
+        DisplayHexDigit(Extras);   /* display system */
+        DisplayHexByte(Address);   /* display equipment */
         LCD_Char(':');
-        DisplayHex(Command);       /* display command */
+        DisplayHexByte(Command);   /* display command */
 
-        Flag = 2;                  /* confirmed */
+        Flag = PACKET_OK;          /* packet ok */
       }
     }
   }
@@ -917,7 +923,7 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
   {
     if (PulseCheck(Time2, 52))          /* pause 2560탎 */
     {
-      Flag = 1;                         /* detected protocol */
+      Flag = PROTO_DETECTED;            /* detected protocol */
       PulseWidth += 2;                  /* skip start pulse */
       Pulses -= 2;
 
@@ -926,10 +932,10 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
       if (Bits == 10)              /* we expect 10 bits */
       {
         /* todo: check start bit */
-        Command = Codebits(2, 8, IR_LSB);    /* command LSB */
-        Extras = Codebits(10, 1, IR_LSB);    /* command MSB */
+        Command = GetBits(2, 8, IR_LSB);     /* command LSB */
+        Extras = GetBits(10, 1, IR_LSB);     /* command MSB */
 
-        Flag = 4;             /* confirmed multi packet */
+        Flag = PACKET_MULTI;       /* confirmed multi packet */
 
         /*
          *  multi packet logic
@@ -945,7 +951,7 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
           }
           else if (IR_State == 2)       /* packet #3 */
           {
-            Flag = 2;                   /* confirmed */
+            Flag = PACKET_OK;           /* packet ok */
           }
           /* else: packet missing/broken */
         }
@@ -959,7 +965,7 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
 
           LCD_EEString_Space(IR_Motorola_str);    /* display protocol */
           DisplayHexDigit(Extras);      /* display command MSB */
-          DisplayHex(Command);          /* display command LSB */
+          DisplayHexByte(Command);      /* display command LSB */
 
           IR_State = 2;                 /* got packet #2 */
         }
@@ -981,9 +987,10 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
    *  - start: pulse 4.5ms, pause 4.5ms
    *  - PDM: pulse 560탎, pause 0=560탎 1=1690탎
    *  - bit mode: LSB
-   *  - old format: <start><manufacturer code:12><command:8><end pulse>
+   *  - stop: pulse 560탎
+   *  - old format: <start><manufacturer code:12><command:8><stop>
    *  - 32 bit format (TC9012):
-   *    <start><custom:8><copy of custom:8><data:8><inverted data:8><end pulse>
+   *    <start><custom:8><copy of custom:8><data:8><inverted data:8><stop>
    */
 
   else if (PulseCheck(Time1, 89))       /* pulse 4.5ms */
@@ -991,18 +998,18 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
     if (PulseCheck(Time2, 89))          /* pause 4.5ms */
     {
       LCD_EEString_Space(IR_Samsung_str); /* display protocol */
-      Flag++;                           /* detected protocol */
+      Flag = PROTO_DETECTED;            /* detected protocol */
       PulseWidth += 2;                  /* skip start pulse */
       Pulses -= 2;
       Bits = PxM_Demod(PulseWidth, Pulses, 11, 11, 34);
 
       if (Bits == 32)              /* we expect 32 bits */
       {
-        Address = Codebits(1, 8, IR_LSB);    /* address */
-        Command = Codebits(17, 8, IR_LSB);   /* command */
+        Address = GetBits(1, 8, IR_LSB);     /* address */
+        Command = GetBits(17, 8, IR_LSB);    /* command */
         /* todo: check copy of address and inverted command */
 
-        Flag = 3;                  /* confirmed + standard ouput */
+        Flag = PACKET_DISPLAY;     /* packet ok & default output */
       }
     }
   }
@@ -1016,6 +1023,8 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
    *  - 12 bit format: <start><command:7><address:5>
    *  - 15 bit format: <start><command:7><address:8>
    *  - 20 bit format: <start><command:7><address:5><extended:8>
+   *  - code becomes valid after receiving it 3 times at least
+   *    delay is 45ms between start and start
    */
 
   else if (PulseCheck(Time1, 48))       /* pulse 2.4ms */
@@ -1023,7 +1032,7 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
     if (PulseCheck(Time2, 12))          /* pause 600탎 */
     {
       LCD_EEString(IR_SIRC_str);        /* display protocol */
-      Flag = 1;                         /* detected protocol */
+      Flag = PROTO_DETECTED;            /* detected protocol */
       PulseWidth += 1;                  /* skip start pulse */
       Pulses -= 1;
       Bits = PxM_Demod(PulseWidth, Pulses, 12, 12, 24);
@@ -1032,41 +1041,43 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
       Data = 5;                    /* 5 bit address */
       if (Bits == 12)
       {
-        Flag = 2;                  /* confirmed */
+        Flag = PACKET_OK;          /* packet ok */
       }
       else if (Bits == 15)
       {
         Data = 8;                  /* 8 bit address */
-        Flag = 2;                  /* confirmed */
+        Flag = PACKET_OK;          /* packet ok */
       }
       else if (Bits == 20)
       {
-        Extras = Codebits(13, 8, IR_LSB);    /* extended */
-        Flag = 2;                  /* confirmed */
+        Extras = GetBits(13, 8, IR_LSB);     /* extended */
+        Flag = PACKET_OK;          /* packet ok */
       }
 
-      Command = Codebits(1, 7, IR_LSB);      /* command */
-      Address = Codebits(8, Data, IR_LSB);   /* address */
+      Command = GetBits(1, 7, IR_LSB);       /* command */
+      Address = GetBits(8, Data, IR_LSB);    /* address */
 
       /* display format */
-      if (Flag == 2)          /* valid packet */
+      if (Flag == PACKET_OK)       /* valid packet */
       {
         DisplayValue(Bits, 0, 0);
       }
 
-      LCD_Space();            /* display space */
+      /* we accept the first code and don't wait for another 2 repeats */
+
+      LCD_Space();                 /* display space */
 
       /* display data */
-      if (Flag == 2)          /* valid packet */
+      if (Flag == PACKET_OK)       /* valid packet */
       {
-        DisplayHex(Address);       /* display address */
+        DisplayHexByte(Address);   /* display address */
         LCD_Char(':');
-        DisplayHex(Command);       /* display command */
+        DisplayHexByte(Command);   /* display command */
 
         if (Bits == 20)            /* 20 bit format */
         {
           LCD_Char(':');
-          DisplayHex(Extras);      /* display extended data */
+          DisplayHexByte(Extras);  /* display extended data */
         }
       }
     }
@@ -1078,11 +1089,12 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
    *  - no start / AGC burst
    *  - PDM: pulse 320탎, pause 0=680탎 1=1680탎
    *  - bit mode: LSB
+   *  - stop: pulse 320탎
    *  - second packet with 40ms delay
    *  - format packet #1:
-   *    <address:5><command:8><expansion:1><check:1><end pulse>
+   *    <address:5><command:8><expansion:1><check:1><stop>
    *  - format packet #2:
-   *    <address:5><inverted command:8><inverted expansion:1><inverted check:1><end pulse>
+   *    <address:5><inverted command:8><inverted expansion:1><inverted check:1><stop>
    */
 
   else if (PulseCheck(Time1, 6))        /* pulse 320탎 */
@@ -1090,7 +1102,7 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
     /* pause 680탎 or 1680탎 */
     if ((PulseCheck(Time2, 14)) || (PulseCheck(Time2, 35)))
     {
-      Flag = 1;                         /* detected protocol */
+      Flag = PROTO_DETECTED;       /* detected protocol */
 
       Bits = PxM_Demod(PulseWidth, Pulses, 6, 14, 35);
 
@@ -1098,22 +1110,22 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
       {
         if (IR_State == 0)         /* packet #1 */
         {
-          Address = Codebits(1, 5, IR_LSB);    /* address */
-          Command = Codebits(6, 8, IR_LSB);    /* command */
+          Address = GetBits(1, 5, IR_LSB);     /* address */
+          Command = GetBits(6, 8, IR_LSB);     /* command */
           /* todo: expansion & check bits */
 
           LCD_EEString_Space(IR_Sharp_str);      /* display protocol */
-          DisplayHex(Address);
+          DisplayHexByte(Address);
           LCD_Char(':');
-          DisplayHex(Command);
+          DisplayHexByte(Command);
 
           IR_State = 1;                 /* got packet #1 */
-          Flag = 4;                     /* multi packet  */
+          Flag = PACKET_MULTI;          /* multi packet */
         }
         else                       /* packet #2 */
         {
           /* we don't check the inverted command and extra bits */
-          Flag = 2;                     /* confirmed */
+          Flag = PACKET_OK;             /* packet ok */
         }
       }
     }
@@ -1135,22 +1147,22 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
     if (PulseCheck(Time2, 17))          /* pause 889탎 */
     {
       LCD_EEString_Space(IR_RC5_str);   /* display protocol */
-      Flag = 1;                         /* detected protocol */
+      Flag = PROTO_DETECTED;            /* detected protocol */
       Bits = BiPhase_Demod(PulseWidth, Pulses, IR_IEEE | IR_PRE_PAUSE, 17);
 
       if (Bits == 14)              /* we expect 14 bits */
       {
-        Address = Codebits(4, 5, IR_MSB);    /* address */
-        Command = Codebits(9, 6, IR_MSB);    /* command */
+        Address = GetBits(4, 5, IR_MSB);     /* address */
+        Command = GetBits(9, 6, IR_MSB);     /* command */
 
-        Flag = 3;             /* confirmed + standard ouput */
+        Flag = PACKET_DISPLAY;     /* packet ok & default ouput */
       }
     }
   }
 
 
   /*
-   *  standard RC-6
+   *  standard RC-6 (RC6-0-16)
    *  - start: pulse 2664탎, pause 888탎
    *  - Bi-Phase (Thomas):
    *    normal bit 0: pause 444탎, pulse 444탎
@@ -1168,7 +1180,7 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
     {
       LCD_EEString_Space(IR_RC6_str);   /* display protocol */
 
-      Flag = 1;                         /* detected protocol */
+      Flag = PROTO_DETECTED;            /* detected protocol */
       PulseWidth += 2;                  /* skip start pulse */
       Pulses -= 2;
 
@@ -1183,22 +1195,21 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
 
         if (Bits == 21)       /* we expect 21 bits */
         {
-          Address = Codebits(6, 8, IR_MSB);       /* address */
-          Command = Codebits(14, 8, IR_MSB);      /* command */
+          Address = GetBits(6, 8, IR_MSB);   /* address */
+          Command = GetBits(14, 8, IR_MSB);  /* command */
 
-          Flag = 3;             /* confirmed + standard ouput */
+          Flag = PACKET_DISPLAY;   /* packet ok & default ouput */
         }
       }
     }
   }
 
-
-  if (Flag <= 1)              /* some issue: unknown protocol/broken frame */
+  if (Flag <= PROTO_DETECTED)      /* some issue: unknown protocol/bad packet */
   {
-    LCD_Char('?');    
+    LCD_Char('?');
   }
 
-  if (Flag == 0)              /* unknown protocol */
+  if (Flag == PROTO_UNKNOWN)       /* unknown protocol */
   {
     LCD_Space();
     DisplayValue(Data, 0, 0);      /* display number of pulses */
@@ -1227,26 +1238,34 @@ void IR_Decode(uint8_t *PulseWidth, uint8_t Pulses)
     #endif
   }
 
-  if (Flag == 3)              /* known protocol & standard output */
+  if (Flag == PACKET_DISPLAY) /* known protocol & standard output */
   {
-    DisplayHex(Address);      /* display address */
+    DisplayHexByte(Address);  /* display address */
     LCD_Char(':');
-    DisplayHex(Command);      /* display command */
+    DisplayHexByte(Command);  /* display command */
   }
 
-  if (Flag < 4)               /* protocol done */
+  if (Flag < PACKET_MULTI)    /* no packets to follow (protocol done) */
   {
     IR_State = 0;             /* reset state for multi packet protocols */
 
     /* slow down display updates and try to skip early repeats */
     MilliSleep(200);          /* don't proceed too soon */
   }
+
+  /* clean up local constants */
+  #undef PROTO_UNKNOWN
+  #undef PROTO_DETECTED
+  #undef PACKET_OK
+  #undef PACKET_DISPLAY
+  #undef PACKET_MULTI
 } 
 
 
 
 /*
- *  detect IR remote control using a TSOP IR receiver module
+ *  detect & decode IR remote control signals
+ *  using a TSOP IR receiver module
  *  - pinout:
  *    probe #1  Gnd
  *    probe #2  Vs/+5V (limit current by Rl)
@@ -1449,6 +1468,1241 @@ void IR_Detector(void)
   #undef MAX_PULSES
 }
 
+#endif
+
+
+
+/* ************************************************************************
+ *   IR remote control tool (sender)
+ * ************************************************************************ */
+
+#ifdef SW_IR_TRANSMITTER
+
+/*
+ *  send single pause/pulse
+ *
+ *  requires:
+ *  - type: IR_PAUSE or IR_PULSE
+ *  - time: duration in 탎
+ */
+
+void IR_Send_Pulse(uint8_t Type, uint16_t Time)
+{
+  if (Type & IR_PULSE)        /* create pulse */
+  {
+    /* enable output via OC1B pin */
+    TCCR1A = (1 << WGM11) | (1 << WGM10) | (1 << COM1B1);
+
+    /* start Timer1 for carrier frequency */
+    TCNT1 = 0;                     /* set counter to 0 */
+    /* enable Timer1 by setting prescaler 1:1 */
+    TCCR1B = (1 << WGM13) | (1 << WGM12) | (1 << CS10);
+  }
+
+  /*
+   *  wait
+   *  - loop burns 7 cycles per run and 4 cycles for last run
+   *  - total: 7 cycles * Time + 4 cycles
+   *  - add NOPs for 1탎
+   */
+
+  while (Time > 0)
+  {
+    #if CPU_FREQ == 8000000
+      /* add 1 cycle */
+      asm volatile("nop");
+    #endif
+
+    #if CPU_FREQ == 16000000
+      /* add 9 cycles */
+      asm volatile(
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        ::
+      );
+    #endif
+
+    #if CPU_FREQ == 20000000
+      /* add 13 cycles */
+      asm volatile(
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        "nop\n\t"
+        ::
+      );
+    #endif
+
+    Time--;
+  }
+
+  if (Type & IR_PULSE)        /* create pulse */
+  {
+    /* stop Timer1 */
+    TCCR1B = (1 << WGM13) | (1 << WGM12);    /* clear prescaler */
+
+    /* disable output via OC1B pin */
+    TCCR1A = (1 << WGM11) | (1 << WGM10);
+  }
+}
+
+
+
+#if 0
+/*
+ *  send IR code using Bi-Phase modulation
+ *
+ *  required:
+ *  - Code: pointer to code data
+ *  - Bits: number of bits in code data
+ *  - Mode:
+ *    IR_IEEE   - IEEE
+ *    IR_THOMAS - G.E. Thomas
+ *  - tP: time units of pulse/pause in 탎
+ */
+
+void IR_Send_BiPhase(uint8_t *Code, uint8_t Bits, uint8_t Mode, uint16_t tP)
+{
+  uint8_t           Count;         /* bit counter */
+  uint8_t           Byte;          /* current code byte */
+  uint8_t           One;           /* type of first half for 0 */
+  uint8_t           Zero;          /* type of first half for 1 */
+
+  /*
+   *  Bi-Phase Modulation / Manchester encoding
+   *  - G.E. Thomas
+   *    0: pause - pulse
+   *    1: pulse - pause
+   *  - IEEE 802.3
+   *    0: pulse - pause 
+   *    1: pause - pulse
+   */
+
+  if (Mode & IR_IEEE)         /* IEEE */
+  {
+    Zero = IR_PULSE           /* 0 starts with pulse */
+    One = IR_PAUSE;           /* 1 starts with pause */
+  }
+  else                        /* Thomas */
+  {
+    Zero = IR_PAUSE;          /* 0 starts with pause */
+    One = IR_PULSE;           /* 1 starts with pulse */
+  }
+
+  Count = 0;                  /* reset bit counter */
+  Byte = *Code;               /* get first code byte */
+
+  while (Bits > 0)            /* loop through bits */
+  {
+    if (Byte & 0b10000000)    /* bit is 1 */
+    {
+      Mode = One;             /* set type of first half for 1 */
+    }
+    else                      /* bit is 0 */
+    {
+      Mode = Zero;            /* set type of first half for 0 */
+    }
+
+    IR_Send_Pulse(Mode, tP);       /* send first half */
+    Mode = ~Mode;                  /* reverse type */
+    IR_Send_Pulse(Mode, tP);       /* send second half */
+
+    Byte <<= 1;               /* shift byte one step left */
+    Count++;                  /* another bit done */
+
+    if (Count == 8)           /* complete byte done */
+    {
+      Code++;                 /* next code byte */
+      Byte = *Code;           /* get new code byte */
+      Count = 0;              /* reset bit counter */
+    }
+
+    Bits--;                   /* next bit */
+  }
+}
+#endif
+
+
+
+/*
+ *  send IR code using PWM
+ *
+ *  required:
+ *  - Code: pointer to code data
+ *  - Bits: number of bits in code data
+ *  - tP: time units of pause in 탎
+ *  - t0: time units of pulse for 0 in 탎
+ *  - t1: time units of pulse for 1 in 탎
+ */
+
+void IR_Send_PWM(uint8_t *Code, uint8_t Bits, uint16_t tP, uint16_t t0, uint16_t t1)
+{
+  uint8_t           Count;         /* bit counter */
+  uint8_t           Byte;          /* current code byte */
+
+  Count = 0;                  /* reset bit counter */
+  Byte = *Code;               /* get first code byte */
+
+  while (Bits > 0)            /* loop through bits */
+  {
+    IR_Send_Pulse(IR_PAUSE, tP);        /* send pause */
+
+    if (Byte & 0b10000000)    /* bit is 1 */
+    {
+      IR_Send_Pulse(IR_PULSE, t1);      /* send pulse for 1 */
+    }
+    else                      /* bit is 0 */
+    {
+      IR_Send_Pulse(IR_PULSE, t0);      /* send pulse for 0 */
+    }
+
+    Byte <<= 1;               /* shift byte one step left */
+    Count++;                  /* another bit done */
+
+    if (Count == 8)           /* complete byte done */
+    {
+      Code++;                 /* next code byte */
+      Byte = *Code;           /* get new code byte */
+      Count = 0;              /* reset bit counter */
+    }
+
+    Bits--;                   /* next bit */
+  }
+}
+
+
+
+/*
+ *  send IR code using PDM
+ *
+ *  required:
+ *  - Code: pointer to code data
+ *  - Bits: number of bits in code data
+ *  - tP: time units of pulse in 탎
+ *  - t0: time units of pause for 0 in 탎
+ *  - t1: time units of pause for 1 in 탎
+ */
+
+void IR_Send_PDM(uint8_t *Code, uint8_t Bits, uint16_t tP, uint16_t t0, uint16_t t1)
+{
+  uint8_t           Count;         /* bit counter */
+  uint8_t           Byte;          /* current code byte */
+
+  Count = 0;                  /* reset bit counter */
+  Byte = *Code;               /* get first code byte */
+
+  while (Bits > 0)            /* loop through bits */
+  {
+    IR_Send_Pulse(IR_PULSE, tP);        /* send pulse */
+
+    if (Byte & 0b10000000)    /* bit is 1 */
+    {
+      IR_Send_Pulse(IR_PAUSE, t1);      /* send pause for 1 */
+    }
+    else                      /* bit is 0 */
+    {
+      IR_Send_Pulse(IR_PAUSE, t0);      /* send pause for 0 */
+    }
+
+    Byte <<= 1;               /* shift byte one step left */
+    Count++;                  /* another bit done */
+
+    if (Count == 8)           /* complete byte done */
+    {
+      Code++;                 /* next code byte */
+      Byte = *Code;           /* get new code byte */
+      Count = 0;              /* reset bit counter */
+    }
+
+    Bits--;                   /* next bit */
+  }
+
+  /* send a stop pulse (to signal end of last pause) */
+  IR_Send_Pulse(IR_PULSE, tP);
+}
+
+
+
+
+/*
+ *  get code timing for PDM/PWM
+ *  - max. time is 65ms
+ *
+ *  required:
+ *  - Code: pointer to code data
+ *  - Bits: number of bits in code data
+ *  - tP: time units of pulse/pause in 탎
+ *  - t0: time units of pulse/pause for 0 in 탎
+ *  - t1: time units of pulse/pause for 1 in 탎
+ *
+ *  returns:
+ *  - time in ms
+ */
+
+uint16_t CodeTime(uint8_t *Code, uint8_t Bits, uint16_t tP, uint16_t t0, uint16_t t1)
+{
+  uint16_t          Time = 0;      /* time */
+  uint8_t           Count;         /* bit counter */
+  uint8_t           Byte;          /* current code byte */
+
+  Count = 0;                  /* reset bit counter */
+  Byte = *Code;               /* get first code byte */
+
+  while (Bits > 0)            /* loop through bits */
+  {
+    Time += tP;               /* add time for fixed pulse/pause */
+
+    if (Byte & 0b10000000)    /* bit is 1 */
+    {
+      Time += t1;             /* add time for 1 */
+    }
+    else                      /* bit is 0 */
+    {
+      Time += t0;             /* add time for 0 */
+    }
+
+    Byte <<= 1;               /* shift byte one step left */
+    Count++;                  /* another bit done */
+
+    if (Count == 8)           /* complete byte done */
+    {
+      Code++;                 /* next code byte */
+      Byte = *Code;           /* get new code byte */
+      Count = 0;              /* reset bit counter */
+    }
+
+    Bits--;                   /* next bit */
+  }
+
+  /* todo: for PDM we should the end pulse */
+  return Time; 
+}
+
+
+
+/*
+ *  put bits into IR Code
+ *
+ *  required:
+ *  - Data: source data
+ *  - Bits: number of bits to copy (1-16)
+ *  - StartBit: start bit position in IR Code (1-?)
+ *  - Mode: bit mode
+ *    IR_LSB - LSB
+ *    IR_MSB - MSB
+ */
+
+void PutBits(uint16_t Data, uint8_t Bits, uint8_t StartBit, uint8_t Mode)
+{
+  uint8_t           *Code;         /* pointer to code data */
+  uint8_t           Count;         /* bit position in code byte */
+  uint8_t           Byte;          /* current code byte */
+  uint8_t           Mask;          /* bitmask */
+  uint8_t           n;             /* counter */
+
+  /*
+   *  IR_Code: bits stored in sending order (bit #7 is first bit to be sent)
+   *           IR_Code[0] is first byte 
+   *  LSB: bit #0 of Data goes to bit #7 of IR_Code
+   *       bit #7 of Data goes to bit #0 of IR_Code
+   *  MSB: bit #7 of Data goes to bit #7 of IR_Code
+   *       bit #0 of Data goes to bit #0 of IR_Code
+   */
+
+  /* determine start position in IR_Code */
+  StartBit--;                      /* align */
+  n = StartBit / 8;                /* start byte (0-) */
+  Count = StartBit % 8;            /* start bit in byte (0-7) */
+  Code = &IR_Code[n];              /* get start address */
+  Byte = *Code;                    /* get current code byte */
+
+  /* prepare Data for MSB */
+  if (Mode == IR_MSB)              /* MSB mode */
+  {
+    n = 16 - Bits;                 /* unused bits */
+    Data <<= n;                    /* shift to left */
+  }
+
+  /* prepare mask */
+  Mask = 0b10000000;               /* reset bitmask */
+  Mask >>= Count;                  /* shift 1 to position of start bit */
+
+  /* processing loop */
+  while (Bits > 0)                 /* loop through bits */
+  {
+    if (Mode == IR_LSB)            /* LSB mode */
+    {
+      if (Data & 0b0000000000000001)    /* bit set in data */
+      {
+        Byte |= Mask;                   /* set bit in code byte */
+      }
+      else                              /* bit not set in data */
+      {
+        Byte &= ~Mask;                  /* clear bit in code byte */
+      }
+
+      Data >>= 1;                       /* shift one bit right */
+    }
+    else                           /* MSB mode */
+    {
+      if (Data & 0b1000000000000000)    /* bit set in data */
+      {
+        Byte |= Mask;                   /* set bit in code byte */
+      }
+      else                              /* bit not set in data */
+      {
+        Byte &= ~Mask;                  /* clear bit in code byte */
+      }
+
+      Data <<= 1;                       /* shift one bit left */
+    }
+
+    Mask >>= 1;               /* shift one bit right */
+    Count++;                  /* next bit position */
+    Bits--;                   /* next bit */
+
+    if ((Count == 8) || (Bits == 0))    /* byte done or last bit */
+    {
+      *Code = Byte;           /* save current code byte */
+      Code++;                 /* next byte in IR_Code[] */
+      Byte = *Code;           /* get new code byte */
+      Count = 0;              /* start at first bit again */
+      Mask = 0b10000000;      /* reset bitmask */
+    }
+  }
+}
+
+
+
+/*
+ *  send IR code
+ *
+ *  required:
+ *  - Proto: protocol ID
+ *  - Data:  pointer to array of data fields 
+ */
+
+void IR_Send_Code(uint8_t Proto, uint16_t *Data)
+{
+  uint16_t          Temp;          /* temporary value */
+  uint8_t           n;             /* counter */
+
+
+  /*
+   *  NEC Standard
+   *  - start: pulse 9ms, pause 4.5ms
+   *  - PDM: pulse 560탎, pause 0=560탎 1=1690탎
+   *  - bit mode: LSB
+   *  - format:
+   *    <start><address:8><inverted address:8><command:8><inverted command:8><stop>
+   */
+
+  if (Proto == IR_NEC_STD)              /* NEC Standard */
+  {
+    /* build code */
+    Temp = *Data;                       /* Data #0: address */
+    PutBits(Temp, 8, 1, IR_LSB);        /* address, 8 bits */
+    Temp = ~Temp;                       /* invert address */
+    PutBits(Temp, 8, 9, IR_LSB);        /* inverted address, 8 bits */
+
+    Data++;                             /* next data field */
+    Temp = *Data;                       /* Data #1: command */
+    PutBits(Temp, 8, 17, IR_LSB);       /* command, 8 bits */
+    Temp = ~Temp;                       /* invert command */
+    PutBits(Temp, 8, 25, IR_LSB);       /* inverted command, 8 bits */
+
+    /* send code */
+    IR_Send_Pulse(IR_PULSE, 9000);
+    IR_Send_Pulse(IR_PAUSE, 4500);
+    IR_Send_PDM(&IR_Code[0], 32, 560, 560, 1690);
+  }
+
+
+  /*
+   *  NEC Extended
+   *  - start: pulse 9ms, pause 4.5ms
+   *  - PDM: pulse 560탎, pause 0=560탎 1=1690탎
+   *  - bit mode: LSB
+   *  - format:
+   *    <start><low address:8><high address:8><command:8><inverted command:8><stop>
+   */
+
+  else if (Proto == IR_NEC_EXT)         /* NEC Extended */
+  {
+    /* build code */
+    Temp = *Data;                       /* Data #0: address */
+    PutBits(Temp, 16, 1, IR_LSB);       /* address, 16 bits */
+
+    Data++;                             /* next data field */
+    Temp = *Data;                       /* Data #1: command */
+    PutBits(Temp, 8, 17, IR_LSB);       /* command, 8 bits */
+    Temp = ~Temp;                       /* invert command */
+    PutBits(Temp, 8, 25, IR_LSB);       /* inverted command, 8 bits */
+
+    /* send code */
+    IR_Send_Pulse(IR_PULSE, 9000);
+    IR_Send_Pulse(IR_PAUSE, 4500);
+    IR_Send_PDM(&IR_Code[0], 32, 560, 560, 1690);
+  }
+
+
+  /*
+   *  Proton
+   *  - also Mitsubishi/X-Sat (M50560)
+   *  - start: pulse 8ms, pause 4ms
+   *  - sync/separator between address and command: pause 4ms
+   *  - PDM: pulse 500탎, pause 0=500탎 1=1500탎
+   *  - bit mode: LSB
+   *  - stop: pulse 500탎
+   *  - format: <start><address:8><stop><sync><command:8><stop>
+   */
+
+
+  /*
+   *  JVC
+   *  - start: pulse 8.4ms, pause 4.2ms
+   *  - PDM: pulse 525탎, pause 0=525탎 1=1575탎
+   *  - bit mode: LSB
+   *  - stop: pulse 525탎
+   *  - format: <start><address:8><command:8><stop>
+   */
+
+
+  /*
+   *  Matsushita (Panasonic) / Emerson
+   *  - start: pulse 3.5ms, pause 3.5ms
+   *  - PDM: pulse 872탎, pause 0=872탎 1=2616탎
+   *  - bit mode: LSB
+   *  - stop: pulse 872탎
+   *  - format:
+   *    <start><custom code:6><data code:6><inverted custom code:6><inverted data code:6><stop>
+   */
+
+
+  /*
+   *  Kaseikyo (Japanese Code)
+   *  - start: pulse 3456탎, pause 1728탎
+   *  - PDM: pulse 432탎, pause 0=432탎 1=1296탎
+   *  - bit mode: LSB
+   *  - stop: pulse 432탎
+   *  - 48 bit format:
+   *    <start><manufacturer code:16><mc-parity:4><system:4>
+   *      <equipment:8><command:8><parity:8><stop>
+   *  - mc-parity: 0000 (fixed)
+   *  - parity: <mc-parity:4><system:4> ^ <equipment:8> ^ <command:8>
+   *  - other possible format:
+   *    <start><OEM-1:8><OEM-2:8><parity:4><system:4>
+   *      <product:8><function:8><x:4><checksum:4><stop>
+   *    parity: <OEM-1 0-3> ^ <OEM-1 4-7> ^ <OEM-2 0-3> ^ <OEM-2 4-7>
+   *    checksum: <system 0-3> ^ <product 0-3> ^ <product 4-7>
+   *              ^ >function 0-3> ^ <function 4-7> ^ <x 0-3>
+   */
+
+
+  /*
+   *  Motorola
+   *  - start: pulse 512탎, pause 2560탎
+   *  - Bi-Phase:
+   *    0: pause 512탎, pulse 512탎
+   *    1: pulse 512탎, pause 512탎 
+   *  - bit mode: LSB
+   *  - second packet with 34ms - 12.8ms delay
+   *  - third packet with 135.6ms - 12.8ms delay
+   *  - format packet #1: <start><start "1":1><all 1s:9>
+   *  - format packet #2: <start><start "1":1><command:9>
+   *  - format packet #3: <start><start "1":1><all 1s:9>
+   */
+
+
+  /*
+   *  Samsung / Toshiba
+   *  - start: pulse 4.5ms, pause 4.5ms
+   *  - PDM: pulse 560탎, pause 0=560탎 1=1690탎
+   *  - bit mode: LSB
+   *  - stop: pulse 560탎
+   *  - 32 bit format (TC9012):
+   *    <start><custom:8><copy of custom:8><data:8><inverted data:8><stop>
+   */
+
+  else if (Proto == IR_SAMSUNG)         /* Samsung */
+  {
+    /* build code */
+    Temp = *Data;                       /* Data #0: custom */
+    PutBits(Temp, 8, 1, IR_LSB);        /* custom, 8 bits */
+    PutBits(Temp, 8, 9, IR_LSB);        /* copy of custom, 8 bits */
+
+    Data++;                             /* next data field */
+    Temp = *Data;                       /* Data #1: data */
+    PutBits(Temp, 8, 17, IR_LSB);       /* data, 8 bits */
+    Temp = ~Temp;                       /* invert data */
+    PutBits(Temp, 8, 25, IR_LSB);       /* inverted data, 8 bits */
+
+    /* send code */
+    IR_Send_Pulse(IR_PULSE, 4500);
+    IR_Send_Pulse(IR_PAUSE, 4500);
+    IR_Send_PDM(&IR_Code[0], 32, 560, 560, 1690);
+    /* todo: check if we have to send the code twice */
+  }
+
+
+  /*
+   *  Sony SIRC-12
+   *  - start: pulse 2.4ms (pause 600탎)
+   *  - PWM: pause 600탎, pulse 0=600탎 1=1200탎
+   *  - bit mode: LSB
+   *  - format: <start><command:7><address:5>
+   *  - code becomes valid after sending it 3 times
+   *    delay is 45ms between start and start
+   */
+
+  else if (Proto == IR_SIRC_12)         /* Sony SIRC 12 bits */
+  {
+    /* build code */
+    Temp = *Data;                       /* Data #0: command */
+    PutBits(Temp, 7, 1, IR_LSB);        /* command, 7 bits */
+
+    Data++;                             /* next data field */
+    Temp = *Data;                       /* Data #1: address */
+    PutBits(Temp, 5, 8, IR_LSB);        /* address, 5 bits */
+
+    /* calculate delay between code frames */
+    Temp = 45000 - 2400;                /* time for start pulse */
+    Temp -= CodeTime(&IR_Code[0], 12, 600, 600, 1200);
+
+    /* send code three times */
+    n = 3;
+    while (n > 0)
+    {
+      IR_Send_Pulse(IR_PULSE, 2400);
+      IR_Send_PWM(&IR_Code[0], 12, 600, 600, 1200);
+      IR_Send_Pulse(IR_PAUSE, Temp);
+
+      n--;               /* next run */
+    }
+  }
+
+
+  /*
+   *  Sony SIRC-15
+   *  - start: pulse 2.4ms (pause 600탎)
+   *  - PWM: pause 600탎, pulse 0=600탎 1=1200탎
+   *  - bit mode: LSB
+   *  - format: <start><command:7><address:8>
+   *  - code becomes valid after sending it 3 times
+   *    delay is 45ms between start and start
+   */
+
+  else if (Proto == IR_SIRC_15)         /* Sony SIRC 15 bits */
+  {
+    /* build code */
+    Temp = *Data;                       /* Data #0: command */
+    PutBits(Temp, 7, 1, IR_LSB);        /* command, 7 bits */
+
+    Data++;                             /* next data field */
+    Temp = *Data;                       /* Data #1: address */
+    PutBits(Temp, 8, 8, IR_LSB);        /* address, 8 bits */
+
+    /* calculate delay between code frames */
+    Temp = 45000 - 2400;                /* time for start pulse */
+    Temp -= CodeTime(&IR_Code[0], 15, 600, 600, 1200);
+
+    /* send code three times */
+    n = 3;
+    while (n > 0)
+    {
+      IR_Send_Pulse(IR_PULSE, 2400);
+      IR_Send_PWM(&IR_Code[0], 15, 600, 600, 1200);
+      IR_Send_Pulse(IR_PAUSE, Temp);
+
+      n--;               /* next run */
+    }
+  }
+
+
+  /*
+   *  Sony SIRC-20
+   *  - start: pulse 2.4ms (pause 600탎)
+   *  - PWM: pause 600탎, pulse 0=600탎 1=1200탎
+   *  - bit mode: LSB
+   *  - format: <start><command:7><address:5><extended:8>
+   *  - code becomes valid after sending it 3 times
+   *    delay is 45ms between start and start
+   */
+
+  else if (Proto == IR_SIRC_20)         /* Sony SIRC 20 bits */
+  {
+    /* build code */
+    Temp = *Data;                       /* Data #0: command */
+    PutBits(Temp, 7, 1, IR_LSB);        /* command, 7 bits */
+
+    Data++;                             /* next data field */
+    Temp = *Data;                       /* Data #1: address */
+    PutBits(Temp, 5, 8, IR_LSB);        /* address, 5 bits */
+
+    Data++;                             /* next data field */
+    Temp = *Data;                       /* Data #2: extended */
+    PutBits(Temp, 5, 13, IR_LSB);       /* extended, 8 bits */
+
+    /* calculate delay between code frames */
+    Temp = 45000 - 2400;                /* time for start pulse */
+    Temp -= CodeTime(&IR_Code[0], 20, 600, 600, 1200);
+
+    /* send code three times */
+    n = 3;
+    while (n > 0)
+    {
+      IR_Send_Pulse(IR_PULSE, 2400);
+      IR_Send_PWM(&IR_Code[0], 20, 600, 600, 1200);
+      IR_Send_Pulse(IR_PAUSE, Temp);
+
+      n--;               /* next run */
+    }
+  }
+
+
+  /*
+   *  Sharp
+   *  - no start / AGC burst
+   *  - PDM: pulse 320탎, pause 0=680탎 1=1680탎
+   *  - bit mode: LSB
+   *  - stop: pulse 320탎
+   *  - second packet with 40ms delay
+   *  - format packet #1:
+   *    <address:5><command:8><expansion:1><check:1><stop>
+   *  - format packet #2:
+   *    <address:5><inverted command:8><inverted expansion:1><inverted check:1><stop>
+   */
+
+
+  /*
+   *  standard RC-5
+   *  - 2 start bits: (889탎 L) 889탎 H, 889탎 L (889탎 H)
+   *  - Bi-Phase (IEEE 802.3):
+   *    0: pulse 889탎, pause 889탎
+   *    1: pause 889탎, pulse 889탎
+   *  - bit mode: MSB
+   *  - format: <s1 "1":1><s2 "1":1><toggle:1><address:5><command:6>
+   */
+
+
+  /*
+   *  standard RC-6 (RC6-0-16)
+   *  - start: pulse 2664탎, pause 888탎
+   *  - Bi-Phase (Thomas):
+   *    normal bit 0: pause 444탎, pulse 444탎
+   *    normal bit 1: pulse 444탎, pause 444탎
+   *    toggle bit 0: pause 888탎, pulse 888탎
+   *    toggle bit 1: pulse 888탎, pause 888탎
+   *  - bit mode: MSB
+   *  - format (Mode 0, 16 bit):
+   *    <start><start bit "1":1><mode:3><toggle:1><address:8><command:8>
+   */
+
+
+  #if 0
+  /* debugging */
+  LCD_ClearLine(6);
+  LCD_CharPos(1, 6);
+  DisplayHexByte(IR_Code[0]);
+  LCD_Space();
+  DisplayHexByte(IR_Code[1]);
+  LCD_Space();
+  DisplayHexByte(IR_Code[2]);
+  LCD_Space();
+  DisplayHexByte(IR_Code[3]);
+  LCD_Space();
+  #endif
+}
+
+
+
+/*
+ *  send IR remote control codes/signals
+ *  - uses probe #2 (OC1B) as output for IR LED
+ *    and probe #1 & probe #3 as ground
+ *  - alternative: dedicated signal output via OC1B
+ *  - requires additional keys (e.g. rotary encoder)
+ *    and display with more than ? lines
+ *  - 
+ */
+
+void IR_RemoteControl(void)
+{
+  uint8_t           Flag;               /* loop control */
+  uint8_t           Mode;               /* UI */
+  uint8_t           n;                  /* counter */
+  uint8_t           Test = 0;           /* user feedback */
+  uint8_t           Proto_ID;           /* protocol ID */
+  /* carrier frequency */
+  uint8_t           FreqTable[6] = {30, 33, 36, 38, 40, 56};
+  uint8_t           FreqIndex;          /* index for FreqTable */
+  uint8_t           DutyCycle;          /* carrier duty cycle */
+  unsigned char     *ProtoStr = NULL;   /* string pointer (EEPROM) */
+  uint16_t          Step = 0;           /* step size */
+  uint16_t          Temp;               /* temporary value */
+  /* data fields for IR code */
+  #define FIELDS         3              /* number of data fields */
+  uint16_t          Data[FIELDS];       /* data fields */
+  uint8_t           Bits[FIELDS];       /* bit depth of data fields */
+  uint8_t           Fields = 0;         /* number of fields used */
+  uint16_t          Max = 0;            /* upper limit of field value */
+  uint8_t           Field_ID = 0;       /* data index */
+
+  /* local constants for Flag */
+  #define RUN_FLAG       0b00000001     /* keep running */
+  #define CHANGE_PROTO   0b00000010     /* change protocol */
+  #define DISPLAY_PROTO  0b00000100     /* display protocol */
+  #define UPDATE_FREQ    0b00001000     /* update carrier frequency */
+  #define DISPLAY_DATA   0b00010000     /* display IR data */
+  #define SEND_CODE      0b10000000     /* send IR command/code */
+
+  /* local constants for Mode */
+  #define MODE_PROTO              1     /* protocol */
+  #define MODE_FREQ               2     /* carrier frequency */
+  #define MODE_DUTYCYCLE          3     /* carrier duty cycle */
+  #define MODE_DATA               4     /* code data */
+
+  ShortCircuit(0);                      /* make sure probes are not shorted */
+  LCD_Clear();
+  LCD_EEString_Space(IR_Transmitter_str);    /* display: IR sender */
+
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
+  /* display pinout (1: Gnd / 2: LED / 3: Gnd) */
+  LCD_NextLine();
+  Show_SimplePinout('-', 's', '-');
+  TestKey(3000, CURSOR_NONE);        /* wait 3s / for key press */
+  #endif
+
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
+  /* probes 1 and 3 are signal ground, probe 2 is signal output */
+  ADC_PORT = 0;                         /* pull down directly: */
+  ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
+  R_PORT = 0;                           /* pull down probe 2 initially */
+  R_DDR = (1 << R_RL_2);                /* enable Rl for probe 2 */
+  #endif
+
+  #ifdef HW_FIXED_SIGNAL_OUTPUT
+  /* dedicated output via OC1B */
+  SIGNAL_PORT &= ~(1 << SIGNAL_OUT);    /* low by default */
+  SIGNAL_DDR |= (1 << SIGNAL_OUT);      /* enable output */
+  #endif
+
+
+  /*
+   *  set up Timer1 for PWM with variable duty cycle (carrier)
+   *  - fast PWM mode 
+   *  - top value by OCR1A
+   *  - OC1B non-inverted output
+   *  - f_PWM = f_MCU / (prescaler * (1 + top))
+   *  - fixed prescaler: 1:1
+   *  - top = (f_MCU / (prescaler * f_PWM)) - 1
+   *    range: (2^2 - 1) up to (2^16 - 1)
+   */
+
+
+  /* power save mode would disable timer1 */
+  Cfg.SleepMode = SLEEP_MODE_IDLE;      /* change sleep mode to Idle */
+
+  /* enable OC1B pin and set timer mode */
+  /* TCCR1A is set by IR_Send_Pulse() */
+  /* TCCR1A = (1 << WGM11) | (1 << WGM10) | (1 << COM1B1); */
+  TCCR1B = (1 << WGM13) | (1 << WGM12);
+
+
+  /* set start values */
+  Proto_ID = IR_NEC_STD;                /* NEC Standard */
+  FreqIndex = 3;                        /* 38 kHz */
+  DutyCycle = 3;                        /* 1/3 */
+  Mode = MODE_PROTO;                    /* */
+  Flag = RUN_FLAG | CHANGE_PROTO | DISPLAY_PROTO | UPDATE_FREQ | DISPLAY_DATA;
+
+
+  /*
+   *  processing loop
+   */
+
+  while (Flag & RUN_FLAG)          /* loop */
+  {
+    wdt_reset();                   /* reset watchdog */
+
+    /*
+     *  update display and settings
+     */
+
+    if (Flag & CHANGE_PROTO)       /* change protocol */
+    {
+      /* init variables based on protocol */
+      switch (Proto_ID)
+      {
+        case IR_NEC_STD:           /* NEC Standard */
+          ProtoStr = (unsigned char *)IR_NEC_Std_str;
+          Bits[0] = 8;             /* address */
+          Bits[1] = 8;             /* command */
+          Fields = 2;              /* 2 data fields */
+          FreqIndex = 3;           /* 38kHz */
+          DutyCycle = 3;           /* 1/3 */
+          break;
+
+        case IR_NEC_EXT:           /* NEC Extended */
+          ProtoStr = (unsigned char *)IR_NEC_Ext_str;
+          Bits[0] = 16;            /* address */
+          Bits[1] = 8;             /* command */
+          Fields = 2;              /* 2 data fields */
+          FreqIndex = 3;           /* 38kHz */
+          DutyCycle = 3;           /* 1/3 */
+          break;
+
+        case IR_SAMSUNG:           /* Samsung / Toshiba */
+          ProtoStr = (unsigned char *)IR_Samsung_str;
+          Bits[0] = 8;             /* custom (address) */
+          Bits[1] = 8;             /* data (command) */
+          Fields = 2;              /* 2 data fields */
+          FreqIndex = 3;           /* 38kHz */
+          DutyCycle = 3;           /* 1/3 */
+          break;
+
+        case IR_SIRC_12:           /* Sony SIRC 12 Bits */
+          ProtoStr = (unsigned char *)IR_SIRC_12_str;
+          Bits[0] = 7;             /* command */
+          Bits[1] = 5;             /* address */
+          Fields = 2;              /* 2 data fields */
+          FreqIndex = 4;           /* 40kHz */
+          DutyCycle = 3;           /* 1/3 */
+          break;
+
+        case IR_SIRC_15:           /* Sony SIRC 15 Bits */
+          ProtoStr = (unsigned char *)IR_SIRC_15_str;
+          Bits[0] = 7;             /* command */
+          Bits[1] = 8;             /* address */
+          Fields = 2;              /* 2 data fields */
+          FreqIndex = 4;           /* 40kHz */
+          DutyCycle = 3;           /* 1/3 */
+          break;
+
+        case IR_SIRC_20:           /* Sony SIRC 20 Bits */
+          ProtoStr = (unsigned char *)IR_SIRC_20_str;
+          Bits[0] = 7;             /* command */
+          Bits[1] = 5;             /* address */
+          Bits[2] = 8;             /* extended */
+          Fields = 3;              /* 3 data fields */
+          FreqIndex = 4;           /* 40kHz */
+          DutyCycle = 3;           /* 1/3 */
+          break;
+
+// JVC 38kHz 1/3
+// Kaseikyo 36kHz 1/3 (36.7)
+// Matsushita 36kHz (36.7)
+// Motorola 32kHz
+// Proton 40kHz 1/3
+// Sharp 38kHz 1/3
+// RC-5 36kHz 1/3
+// RC-6 36kHz 1/3
+      }
+
+      /* reset data fields */
+      for (n = 0; n < FIELDS; n++) Data[n] = 0;   
+
+      Flag |= UPDATE_FREQ;              /* update carrier & duty cycle */
+      Flag &= ~CHANGE_PROTO;            /* clear flag */
+    }
+
+    if (Flag & DISPLAY_PROTO)      /* display protocol */
+    {
+      LCD_ClearLine2();                 /* line #2 */
+      MarkItem(MODE_PROTO, Mode);       /* mark mode if selected */
+      LCD_EEString(ProtoStr);
+
+      Flag &= ~DISPLAY_PROTO;           /* clear flag */
+    }
+
+    if (Flag & UPDATE_FREQ)        /* update carrier frequency */
+    {
+      Test = FreqTable[FreqIndex];      /* get frequency (in kHz) */
+
+      /* display frequency */
+      LCD_ClearLine(3);                 /* line #3 */
+      LCD_CharPos(1, 3);
+      MarkItem(MODE_FREQ, Mode);        /* mark mode if selected */
+      DisplayValue(Test, 3, 'H');
+      LCD_Char('z');
+
+      /* display duty cycle */
+      MarkItem(MODE_DUTYCYCLE, Mode);   /* mark mode if selected */
+      LCD_Char('1');
+      LCD_Char('/');
+      LCD_Char('0' + DutyCycle);
+
+      /* calculate top value for Timer1 (carrier) */
+      /* top = (f_MCU / (prescaler * f_PWM)) - 1 */
+      Temp = CPU_FREQ / 1000;           /* MCU clock in kHz */
+      Temp /= Test;                     /* / f_PWM (in kHz) */
+      Temp--;                           /* -1 */
+
+      /* update Timer1 */
+      OCR1A = Temp;                     /* top value for frequency */
+      Temp /= DutyCycle;                /* apply duty cycle */
+      OCR1B = Temp;                     /* top value for duty cycle */
+
+      Flag &= ~UPDATE_FREQ;             /* clear flag */
+    }
+
+    if (Flag & DISPLAY_DATA)       /* display IR data */
+    {
+      LCD_ClearLine(4);                 /* line #4 */
+      LCD_CharPos(1, 4);
+
+      n = 0;
+      while (n < Fields)           /* loop through data fields */
+      {
+        MarkItem(n + MODE_DATA, Mode);  /* mark mode if selected */
+
+        /* display data field */
+        DisplayHexValue(Data[n], Bits[n]);
+
+        n++;             /* next field */
+      }
+
+      Flag &= ~DISPLAY_DATA;            /* clear flag */
+    }
+
+
+    /*
+     *  user feedback
+     */
+
+    Test = TestKey(0, CURSOR_NONE);     /* wait for user feedback */
+
+    if (Mode >= MODE_DATA)              /* code data mode */
+    {
+      /* consider rotary encoder's turning velocity (1-7) */
+      n = UI.KeyStep;                   /* get velocity (1-7) */
+      Step = n;
+      Step *= n;                        /* n^2 */
+
+      /* get details for data field */
+      Field_ID = Mode - MODE_DATA;      /* data index */
+      n = Bits[Field_ID];               /* bit depth */
+
+      /* more speed up for large ranges */
+      if (n >= 12)
+      {
+        Step *= Step;                   /* n^4 */
+      }
+
+      /* calculate max. value for data field (2^n - 1) */
+      Max = 0;
+      while (n > 0)           /* loop through bit depth */ 
+      {
+        Max <<= 1;            /* shift one bit left */
+        Max += 1;             /* set lowest bit */
+        n--;                  /* next bit */
+      }
+    }
+
+    /* process user input */
+    if (Test == KEY_SHORT)              /* short key press */
+    {
+      MilliSleep(50);                   /* debounce button a little bit longer */
+      Test = TestKey(200, CURSOR_NONE); /* check for second key press */
+
+      if (Test > KEY_TIMEOUT)           /* second key press */
+      {
+        Flag = 0;                       /* end loop */
+      }
+      else                              /* single key press */
+      {
+        /* switch parameter */
+        Mode++;                              /* next one */
+        n = (MODE_DATA - 1) + Fields;        /* number of current modes */
+        if (Mode > n) Mode = MODE_PROTO;     /* overflow */
+        Flag |= DISPLAY_PROTO | UPDATE_FREQ | DISPLAY_DATA; /* update display */
+      }
+    }
+    else if (Test == KEY_LONG)          /* long key press */
+    {
+      Flag |= SEND_CODE;                /* set flag to send code */
+    }
+    else if (Test == KEY_RIGHT)         /* right key */
+    {
+      if (Mode == MODE_PROTO)           /* protocol mode */
+      {
+        Proto_ID++;                     /* next one */
+        if (Proto_ID > IR_PROTOMAX)     /* overflow */
+        {
+          Proto_ID = IR_NEC_STD;        /* reset to first one */
+        }
+
+        Flag |= CHANGE_PROTO | DISPLAY_PROTO | DISPLAY_DATA;
+      }
+      else if (Mode == MODE_FREQ)       /* carrier frequency mode */
+      {
+        FreqIndex++;                    /* next one */
+        if (FreqIndex > 5)              /* overflow */
+        {
+          FreqIndex = 0;                /* reset to first one */
+        }
+
+        Flag |= UPDATE_FREQ;
+      }
+      else if (Mode == MODE_DUTYCYCLE)  /* carrier duty cycle mode */
+      {
+        DutyCycle++;                    /* next one */
+        if (DutyCycle > 4)              /* overflow */
+        {
+          DutyCycle = 2;                /* reset to 1/2 (50%) */
+        }
+
+        Flag |= UPDATE_FREQ;
+      }
+      else                              /* code data mode */
+      {
+        Temp = Max - Data[Field_ID];
+        if (Temp > Step)                /* within range */
+        {
+          Data[Field_ID] += Step;       /* add step */
+        }
+        else                            /* overflow */
+        {
+          Data[Field_ID] = Max;         /* set max */
+        }
+
+        Flag |= DISPLAY_DATA;
+      }
+    }
+    else if (Test == KEY_LEFT)          /* left key */
+    {
+      if (Mode == MODE_PROTO)           /* protocol mode */
+      {
+        Proto_ID--;                     /* previous one */
+        if (Proto_ID == 0)              /* underflow */
+        {
+          Proto_ID = IR_PROTOMAX;       /* reset to last one */
+        }
+
+        Flag |= CHANGE_PROTO | DISPLAY_PROTO | DISPLAY_DATA;
+      }
+      else if (Mode == MODE_FREQ)       /* carrier frequency mode */
+      {
+        if (FreqIndex > 0)              /* within range */
+        {
+          FreqIndex--;                  /* previous one */
+        }
+        else                            /* underflow */
+        {
+          FreqIndex = 4;                /* reset to last one */
+        }
+
+        Flag |= UPDATE_FREQ;
+      }
+      else if (Mode == MODE_DUTYCYCLE)  /* carrier duty cycle mode */
+      {
+        DutyCycle--;                    /* previous one */
+        if (DutyCycle < 2)              /* underflow */
+        {
+          DutyCycle = 4;                /* reset to 1/4 (25%) */
+        }
+
+        Flag |= UPDATE_FREQ;
+      }
+      else                              /* code data mode */
+      {
+        if (Data[Field_ID] > Step)      /* within range */
+        {
+          Data[Field_ID] -= Step;       /* substract step */
+        }
+        else                            /* underflow */
+        {
+          Data[Field_ID] = 0;           /* set min */
+        }
+
+        Flag |= DISPLAY_DATA;
+      }
+    }
+
+
+    /*
+     *  send IR Code
+     */
+
+    if (Flag & SEND_CODE)     /* send IR code */
+    {
+      n = 1;
+
+      while (n > 0)                /* send/repeat */
+      {
+        /* send code */
+        LCD_CharPos(1, 5);           /* line #5 */
+        LCD_EEString(IR_Send_str);   /* display: sending... */
+
+        IR_Send_Code(Proto_ID, &Data[0]);
+
+        LCD_ClearLine(5);            /* clear line #5 */
+        n = 0;
+
+        /* check if we should repeat sending */
+        Test = TestKey(100, CURSOR_NONE);    /* get user feedback */
+        if (Test == KEY_LONG)                /* long key press */
+        {
+          n = 2;              /* repeat code */
+        }
+
+        /* smooth UI or delay repeated code */
+        MilliSleep(200);      /* take a short nap */
+      }
+
+      Flag &= ~SEND_CODE;          /* clear flag */
+    }
+  }
+
+
+  /* clean up */
+  TCCR1B = 0;                 /* disable timer */
+  TCCR1A = 0;                 /* reset flags (also frees PB2) */
+
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
+  R_DDR = 0;                            /* set HiZ mode */
+  #endif
+
+  #ifdef HW_FIXED_SIGNAL_OUTPUT
+  SIGNAL_DDR &= ~(1 << SIGNAL_OUT);     /* set HiZ mode */
+  #endif
+
+  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
+
+  /* clean up local constants */
+  #undef FIELDS
+
+  #undef RUN_FLAG
+  #undef CHANGE_PROTO
+  #undef DISPLAY_PROTO
+  #undef UPDATE_FREQ
+  #undef DISPLAY_DATA
+  #undef SEND_CODE
+
+  #undef MODE_PROTO
+  #undef MODE_FREQ
+  #undef MODE_DUTYCYCLE
+  #undef MODE_DATA
+}
+
+#endif
+
 
 
 /* ************************************************************************
@@ -1459,7 +2713,7 @@ void IR_Detector(void)
 /* source management */
 #undef IR_C
 
-#endif
+
 
 /* ************************************************************************
  *   EOF

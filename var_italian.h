@@ -78,6 +78,11 @@
     const unsigned char IR_Detector_str[] EEMEM = "Rivelatore IR";
   #endif
 
+  #ifdef SW_IR_TRANSMITTER
+    const unsigned char IR_Transmitter_str[] EEMEM = "IR RC";
+    const unsigned char IR_Send_str[] EEMEM = "sending...";
+  #endif
+
   #ifdef SW_OPTO_COUPLER
     const unsigned char OptoCoupler_str[] EEMEM = "Accoppiatore opt";
     const unsigned char Start_str[] EEMEM = "Avvio";

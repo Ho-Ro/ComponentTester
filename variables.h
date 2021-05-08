@@ -171,9 +171,18 @@
     const unsigned char IR_Proton_str[] EEMEM = "Prot";
     const unsigned char IR_RC5_str[] EEMEM = "RC-5";
     const unsigned char IR_RC6_str[] EEMEM = "RC-6";
-    const unsigned char IR_Samsung_str[] EEMEM = "Sams";
     const unsigned char IR_Sharp_str[] EEMEM = "Sharp";
     const unsigned char IR_SIRC_str[] EEMEM = "SIRC";
+  #endif
+  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
+    const unsigned char IR_Samsung_str[] EEMEM = "Sams";
+  #endif
+  #ifdef SW_IR_TRANSMITTER
+    const unsigned char IR_NEC_Std_str[] EEMEM = "NEC Std";
+    const unsigned char IR_NEC_Ext_str[] EEMEM = "NEC Ext";
+    const unsigned char IR_SIRC_12_str[] EEMEM = "SIRC-12";
+    const unsigned char IR_SIRC_15_str[] EEMEM = "SIRC-15";
+    const unsigned char IR_SIRC_20_str[] EEMEM = "SIRC-20";
   #endif
   #ifdef SW_OPTO_COUPLER
     const unsigned char CTR_str[] EEMEM = "CTR";
@@ -192,7 +201,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.30m";
+  const unsigned char Version_str[] EEMEM = "v1.31m";
 
 
   /*
@@ -401,9 +410,22 @@
     extern const unsigned char IR_Proton_str[];
     extern const unsigned char IR_RC5_str[];
     extern const unsigned char IR_RC6_str[];
-    extern const unsigned char IR_Samsung_str[];
     extern const unsigned char IR_Sharp_str[];
     extern const unsigned char IR_SIRC_str[];
+  #endif
+  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
+    extern const unsigned char IR_Samsung_str[];
+  #endif
+  #ifdef SW_IR_TRANSMITTER
+    extern const unsigned char IR_NEC_Std_str[];
+    extern const unsigned char IR_NEC_Ext_str[];
+    extern const unsigned char IR_SIRC_12_str[];
+    extern const unsigned char IR_SIRC_15_str[];
+    extern const unsigned char IR_SIRC_20_str[];
+  #endif
+  #ifdef SW_IR_TRANSMITTER
+    extern const unsigned char IR_Transmitter_str[];
+    extern const unsigned char IR_Send_str[];
   #endif
   #ifdef SW_OPTO_COUPLER
     extern const unsigned char OptoCoupler_str[];

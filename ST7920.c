@@ -63,21 +63,21 @@
 #include "ST7920.h"           /* ST7920 specifics */
 
 
+
 /*
- *  fonts and symbols, horizontally aligned
+ *  fonts and symbols
  *  - Because of the horizontal addressing we're stuck with 8 pixels in x
  *    direction for the font. And we don't want to use a pixel screen buffer.
  */
 
-#include "font_8x8_h.h"
-#include "symbols_24x24_h.h"
-
+#ifndef LCD_ROT180
+  /* horizontally aligned */
+  #include "font_8x8_h.h"
+  #include "symbols_24x24_h.h"
+#endif
 
 #ifdef LCD_ROT180
-  /*
-   *  fonts and symbols, horizontally aligned, horizontal bit order flipped
-   */
-
+  /* horizontally aligned, horizontal bit order flipped */
   #include "font_8x8_hf.h"
   #include "symbols_24x24_hf.h"
 #endif
@@ -519,6 +519,8 @@ void LCD_DotPos(uint8_t x, uint8_t y)
 
 
 
+#ifndef LCD_ROT180
+
 /*
  *  set LCD character position
  *  - top left: 1/1
@@ -528,12 +530,16 @@ void LCD_DotPos(uint8_t x, uint8_t y)
  *  - y:  vertical position (1-)
  */
 
-#ifndef LCD_ROT180
 void LCD_CharPos(uint8_t x, uint8_t y)
 {
   /* update UI */
   UI.CharPos_X = x;
   UI.CharPos_Y = y;
+
+  /*
+   *  calculate start dot position
+   *  - start is left top of character
+   */  
 
   /* horizontal position (column in 16 bit steps) */
   x--;                             /* columns start at 0 */
@@ -552,10 +558,23 @@ void LCD_CharPos(uint8_t x, uint8_t y)
    *  - see LCD_DotPos() for explaination
    */
 }
+
 #endif
 
+
+
 #ifdef LCD_ROT180
-/* display rotated by 180° */
+
+/*
+ *  set LCD character position
+ *  - version for display rotated by 180°
+ *  - top left: 1/1
+ *
+ *  requires:
+ *  - x:  horizontal position (1-)
+ *  - y:  vertical position (1-)
+ */
+
 void LCD_CharPos(uint8_t x, uint8_t y)
 {
   /* update UI */
@@ -563,8 +582,9 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   UI.CharPos_Y = y;
 
   /*
-   *  We reverse the dot position, i.e. the start address is the right
-   *  top (180° view) of the character's X step. Or left bottom for 0° view.
+   *  calculate start dot position
+   *  - start is right top of character (180° view)
+   *    or left bottom for 0° view
    */
 
   /* horizontal position (column in 16 bit steps), flipped */
@@ -584,9 +604,12 @@ void LCD_CharPos(uint8_t x, uint8_t y)
    *  - see LCD_DotPos() for explaination
    */
 }
+
 #endif
 
 
+
+#ifndef LCD_ROT180
 
 /*
  *  clear one single character line
@@ -594,9 +617,8 @@ void LCD_CharPos(uint8_t x, uint8_t y)
  *  requires:
  *  - Line: line number (1-)
  *    special case line 0: clear remaining space in current line
- */ 
+ */
 
-#ifndef LCD_ROT180
 void LCD_ClearLine(uint8_t Line)
 {
   uint8_t           n = 1;              /* counter */
@@ -670,10 +692,22 @@ void LCD_ClearLine(uint8_t Line)
     n--;                           /* next row */
   }
 }
+
 #endif
 
+
+
 #ifdef LCD_ROT180
-/* display rotated by 180° */
+
+/*
+ *  clear one single character line
+ *  - version for display rotated by 180°
+ *
+ *  requires:
+ *  - Line: line number (1-)
+ *    special case line 0: clear remaining space in current line
+ */
+
 void LCD_ClearLine(uint8_t Line)
 {
   uint8_t           n = 1;              /* counter */
@@ -752,6 +786,7 @@ void LCD_ClearLine(uint8_t Line)
     n--;                           /* next row */
   }
 }
+
 #endif
 
 
@@ -856,6 +891,7 @@ void LCD_Init(void)
 }
 
 
+#ifndef LCD_ROT180
 
 /*
  *  display a single character
@@ -864,7 +900,6 @@ void LCD_Init(void)
  *  - Char: character to display
  */
 
-#ifndef LCD_ROT180
 void LCD_Char(unsigned char Char)
 {
   uint8_t           *Table1;       /* pointer to table */
@@ -972,10 +1007,21 @@ void LCD_Char(unsigned char Char)
   UI.CharPos_X++;                  /* next character in current line */
   if (StepFlag) X_Start++;         /* also update X dot position */
 }
+
 #endif
 
+
+
 #ifdef LCD_ROT180
-/* display rotated by 180° */
+
+/*
+ *  display a single character
+ *  - version for display rotated by 180°
+ *
+ *  requires:
+ *  - Char: character to display
+ */
+
 void LCD_Char(unsigned char Char)
 {
   uint8_t           *Table1;       /* pointer to table */
@@ -1083,6 +1129,7 @@ void LCD_Char(unsigned char Char)
   UI.CharPos_X++;                  /* next character in current line */
   if (StepFlag) X_Start--;         /* also update X dot position */
 }
+
 #endif
 
 
@@ -1119,6 +1166,9 @@ void LCD_Cursor(uint8_t Mode)
 
 #ifdef SW_SYMBOLS
 
+
+#ifndef LCD_ROT180
+
 /*
  *  display a component symbol
  *
@@ -1126,7 +1176,6 @@ void LCD_Cursor(uint8_t Mode)
  *  - ID: symbol to display
  */
 
-#ifndef LCD_ROT180
 void LCD_Symbol(uint8_t ID)
 {
   #define OFFSET_LEFT   0b00000001
@@ -1201,10 +1250,21 @@ void LCD_Symbol(uint8_t ID)
   #undef OFFSET_RIGHT
   #undef OFFSET_LEFT
 }
+
 #endif
 
+
+
 #ifdef LCD_ROT180
-/* display rotated by 180° */
+
+/*
+ *  display a component symbol
+ *  - version for display rotated by 180°
+ *
+ *  requires:
+ *  - ID: symbol to display
+ */
+
 void LCD_Symbol(uint8_t ID)
 {
   #define OFFSET_LEFT   0b00000001
@@ -1290,7 +1350,9 @@ void LCD_Symbol(uint8_t ID)
   #undef OFFSET_RIGHT
   #undef OFFSET_LEFT
 }
+
 #endif
+
 
 
 /*

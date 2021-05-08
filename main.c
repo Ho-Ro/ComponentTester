@@ -1364,13 +1364,13 @@ start:
   LCD_Space();
 
   /* check limits */
-  if (U_Bat < BAT_POOR)                 /* low level reached */
+  if (U_Bat < BAT_LOW)                  /* low level reached */
   {
     LCD_EEString(Low_str);              /* display: low */
     MilliSleep(2000);                   /* let user read info */
     goto power_off;                     /* power off */
   }
-  else if (U_Bat < BAT_POOR + 1000)     /* warning level reached */
+  else if (U_Bat < BAT_WEAK)            /* warning level reached */
   {
     LCD_EEString(Weak_str);             /* display: weak */
   }

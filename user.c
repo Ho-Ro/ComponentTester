@@ -168,6 +168,98 @@ uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
  * ************************************************************************ */
 
 
+#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
+
+/*
+ *  display single hex digit
+ *
+ *  requires:
+ *  - value to display (0-15)
+ */
+
+void DisplayHexDigit(uint8_t Digit)
+{
+  /*
+   *  0-9: ascii 48-57
+   *  A-F: ascii 65-70
+   */
+
+  if (Digit < 10) Digit += 48;     /* 0-9 */
+  else Digit += (65 - 10);         /* A-F */
+  LCD_Char(Digit);  
+}
+
+#endif
+
+
+
+#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+
+/*
+ *  display byte as hex
+ *
+ *  requires:
+ *  - value to display (0-255)
+ */
+
+void DisplayHexByte(uint8_t Value)
+{
+  uint8_t           Digit;
+
+  /* first digit */
+  Digit = Value / 16;
+  DisplayHexDigit(Digit);
+
+  /* second digit */
+  Digit = Value % 16;
+  DisplayHexDigit(Digit);
+}
+
+#endif
+
+
+
+#ifdef SW_IR_TRANSMITTER
+
+/*
+ *  output hexadecimal value
+ *
+ *  requires:
+ *  - Value: value to display
+ *  - Bits: max. bit depth of value (1-16)
+ */
+
+void DisplayHexValue(uint16_t Value, uint8_t Bits)
+{
+  uint8_t           Nibble[4];     /* nibbles */
+  uint8_t           n;             /* counter */
+
+  /* calculate number of nibbles/digits */
+  Bits += 3;                  /* for a partial nibble */
+  Bits /= 4;                  /* number of nibbles */
+
+  /* get nibbles (from LSB to MSB) */
+  n = 0;
+  while (n < Bits)
+  {
+    Nibble[n] = Value & 0x000F;    /* get LSB nibble */
+    Value >>= 4;                   /* shift one nibble */
+    n++;                           /* next nibble */
+  }
+
+  /* output nibbles (from MSB to LSB) */
+  n = Bits;
+  while (n > 0)
+  {
+    DisplayHexDigit(Nibble[n - 1]);
+    n--;                           /* next nibble */
+  }
+}
+
+#endif
+
+
+
 #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO)
 
 /*
@@ -1163,6 +1255,34 @@ void ChangeContrast(void)
 
 
 /*
+ *  mark selected item
+ *
+ *  requires:
+ *  - item: current item number (0-255)
+ *  - selected: selected item number (0-255)
+ */
+
+void MarkItem(uint8_t Item, uint8_t Selected)
+{
+  if (Selected == Item)       /* current item selected */
+  {
+    #ifdef LCD_COLOR
+    UI.PenColor = COLOR_MARKER;       /* change color */
+    #endif
+    LCD_Char('*');                    /* display asterisk */
+    #ifdef LCD_COLOR
+    UI.PenColor = COLOR_PEN;          /* reset color */
+    #endif
+  }
+  else                        /* current item not selected */
+  {
+    LCD_Space();                      /* display space */
+  }
+}
+
+
+
+/*
  *  menu tool
  *
  *  requires:
@@ -1216,14 +1336,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
       /* display indicator for multiline displays */
       if (Lines > 1)
       {
-        if (Selected == (First + n))    /* selected item */
-        {
-          LCD_Char('*');
-        }
-        else                            /* not selected */
-        {
-          LCD_Space();
-        }
+        MarkItem(First + n, Selected);
       }
 
       if (Run > 1)            /* list changed */
@@ -1478,8 +1591,14 @@ uint8_t PresentMainMenu(void)
     #define ITEM_16      0
   #endif
 
-  #define MENU_ITEMS (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16)
-//  #define MENU_ITEMS     17             /* worst case */
+  #ifdef SW_IR_TRANSMITTER
+    #define ITEM_17      1
+  #else
+    #define ITEM_17      0
+  #endif
+
+  #define MENU_ITEMS (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17)
+//  #define MENU_ITEMS     18             /* worst case */
 
   uint8_t           Item = 0;           /* item number */
   uint8_t           ID;                 /* ID of selected item */
@@ -1525,6 +1644,11 @@ uint8_t PresentMainMenu(void)
   #ifdef SW_IR_RECEIVER
   MenuItem[Item] = (void *)IR_Detector_str;  /* IR RC detection */
   MenuID[Item] = 13;
+  Item++;
+  #endif
+  #ifdef SW_IR_TRANSMITTER
+  MenuItem[Item] = (void *)IR_Transmitter_str;    /* IR RC transmitter */
+  MenuID[Item] = 17;
   Item++;
   #endif
   #ifdef SW_OPTO_COUPLER
@@ -1678,7 +1802,7 @@ void MainMenu(void)
     #endif
 
     #ifdef SW_IR_RECEIVER
-    case 13:             /* IR RC detection */
+    case 13:             /* IR RC detector/decoder */
       IR_Detector();
       break;
     #endif
@@ -1698,6 +1822,12 @@ void MainMenu(void)
     #ifdef HW_TOUCH
     case 16:             /* touch screen adjustment */
       Flag = Touch_Adjust();
+      break;
+    #endif
+
+    #ifdef SW_IR_TRANSMITTER
+    case 17:             /* IR RC transmitter */
+      IR_RemoteControl();
       break;
     #endif
   }

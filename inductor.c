@@ -219,7 +219,7 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
     while (Test > 0)
     {
       Test--;
-      asm volatile("nop\n\t"::);
+      asm volatile("nop");              /* 1 MCU cycle */
     }
 
     TCCR1B |= (1 << CS10);              /* start timer (1/1 clock divider) */

@@ -1,31 +1,32 @@
 /* ************************************************************************
  *
- *   driver functions for ST7735 compatible color graphic displays
+ *   driver functions for ILI9163 compatible color graphic displays
  *   - 128 x 160 (132 x 162) pixels
  *   - SPI interface (4 line)
  *
- *   (c) 2016-2017 by Markus Reschke
+ *   (c) 2017 by Markus Reschke
  *
  * ************************************************************************ */
 
 /*
  *  hints:
  *  - pin assignment for SPI (4 wire)
- *    /RESX    LCD_RES (optional)
- *    /CSX     LCD_CS (optional)
- *    D/CX     LCD_DC
- *    SCL      LCD_SCL / SPI_SCK
- *    SDA      LCD_SDA / SPI_MOSI
+ *    /RESX        LCD_RES (optional)
+ *    /CSX         LCD_CS (optional)
+ *    D/CX (WRX)   LCD_DC
+ *    SCL (D/CX)   LCD_SCL / SPI_SCK
+ *    SDIO (D[0])  LCD_SDA / SPI_MOSI
  *    For hardware SPI LCD_SCL and LCD_SDA have to be the MCU's SCK and
  *    MOSI pins.
  *  - max. SPI clock: 15.1MHz write, 6.6MHz read 
  */
 
 
+
 /* local includes */
 #include "config.h"           /* global configuration */
 
-#ifdef LCD_ST7735
+#ifdef LCD_ILI9163
 
 
 /*
@@ -34,6 +35,7 @@
 
 /* source management */
 #define LCD_DRIVER_C
+
 
 
 /*
@@ -45,7 +47,8 @@
 #include "variables.h"        /* global variables */
 #include "functions.h"        /* external functions */
 #include "colors.h"           /* color definitions */
-#include "ST7735.h"           /* ST7735 specifics */
+#include "ILI9163.h"          /* ILI9163 specifics */
+
 
 /* fonts and symbols */
 /* horizontally aligned, horizontal bit order flipped */
@@ -54,6 +57,7 @@
 #include "font_10x16_hf.h"
 #include "symbols_24x24_hf.h"
 #include "symbols_30x32_hf.h"
+
 
 
 /*
@@ -323,6 +327,9 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   x--;                        /* columns starts at 0 */
   Mask = x;                   /* expand to 16 bit */
   Mask *= FONT_SIZE_X;        /* offset for character */
+  #ifdef LCD_OFFSET_X
+  Mask += LCD_OFFSET_X;       /* additional X offset */
+  #endif
   X_Start = Mask;             /* update start position */
 
   /* vertical position (row) */
@@ -379,7 +386,13 @@ void LCD_ClearLine(uint8_t Line)
     }
   }
 
-  X_End = LCD_PIXELS_X - 1;             /* last column */
+  #ifdef LCD_OFFSET_X
+    /* last column considering x offset */
+    X_End = LCD_PIXELS_X - 1 + LCD_OFFSET_X;
+  #else
+    X_End = LCD_PIXELS_X - 1;           /* last column */
+  #endif
+
   Y_End = Y_Start + FONT_SIZE_Y - 1;    /* last row */
   y = FONT_SIZE_Y;                      /* set default */
 
@@ -399,6 +412,10 @@ void LCD_ClearLine(uint8_t Line)
   while (y > 0)                    /* character height (pages) */
   {
     x = X_Start;                   /* reset start position */
+    #ifdef LCD_OFFSET_X
+    x -= LCD_OFFSET_X;             /* additional X offset */
+    #endif
+
     while (x < LCD_PIXELS_X)       /* all columns */
     {
       /* send background color */
@@ -455,7 +472,8 @@ void LCD_Init(void)
 
   /* memory access control */
   LCD_Cmd(CMD_MEM_CTRL);
-  Bits = FLAG_RGB_RGB;             /* color bit order: RGB */
+  Bits = FLAG_RGB_BGR;             /* color bit order: RGB */
+  /* should be FLAG_RGB_RGB / incorrect datasheet? */
   #ifdef LCD_ROTATE
     Bits |= FLAG_MV_REV;           /* swap x and y */
   #endif
@@ -472,8 +490,13 @@ void LCD_Init(void)
   LCD_Data(FLAG_IFPF_16);          /* 16 Bits per pixel */
 
   /* address window */
-  X_Start = 0;
-  X_End = LCD_PIXELS_X - 1;
+  #ifdef LCD_OFFSET_X
+    X_Start = LCD_OFFSET_X;          /* additional X offset */
+    X_End = LCD_PIXELS_X - 1 + LCD_OFFSET_X;
+  #else
+    X_Start = 0;
+    X_End = LCD_PIXELS_X - 1;
+  #endif
   Y_Start = 0;
   Y_End = LCD_PIXELS_Y - 1;
   LCD_AddressWindow();
@@ -483,8 +506,8 @@ void LCD_Init(void)
   LCD_Cmd(CMD_SLEEP_OUT);          /* leave sleep mode */
   MilliSleep(120);                 /* pause for 120ms (booster & clocks) */
   #ifndef LCD_LATE_ON
-  /* turn on display early as visual feedback */
-  LCD_Cmd(CMD_DISPLAY_ON);         /* enable display output */
+    /* turn on display early as visual feedback */
+    LCD_Cmd(CMD_DISPLAY_ON);         /* enable display output */
   #endif
 
   /* update maximums */
@@ -499,8 +522,8 @@ void LCD_Init(void)
   LineMask = 0xffff;               /* clear all lines by default */
   LCD_Clear();                     /* clear display */
   #ifdef LCD_LATE_ON
-  /* turn on display after clearing it */
-  LCD_Cmd(CMD_DISPLAY_ON);         /* enable display output */  
+    /* turn on display after clearing it */
+    LCD_Cmd(CMD_DISPLAY_ON);         /* enable display output */  
   #endif
 }
 

@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2017-10-18
+Last edit:  2017-12-22
 
 Content
   - About
@@ -22,11 +22,13 @@ Content
   - I2C/SPI
   - Displays
     - HD44780
+    - ILI9163
     - ILI9341/ILI9342
+    - PCD8544
+    - SSD1306
     - ST7565R
     - ST7735
     - ST7920
-    - PCD8544
   - Test push button and other input options
     - Test Key
     - Rotary Encoder
@@ -45,7 +47,8 @@ Content
       - Extended Counter
     - Rotary Encoder
     - Contrast
-    - IR RC detector
+    - IR RC Detector/Decoder
+    - IR RC Transmitter
     - Opto Coupler Tool
     - Servo Check
     - Selftest
@@ -139,7 +142,8 @@ official release:
   + detection of JFETs with very low I_DSS
 - TRIACs
   + detection of MT1 and MT2
-- IR RC detector and decoding
+- IR RC detector and decoder
+- IR RC transmitter
 - opto coupler check
 - RC servo check
 - MCU clock rates up to 20MHz
@@ -154,6 +158,10 @@ There are more details in the sections below.
 A lot of cleaning up was done, like more remarks, renamed variables,
 re-structured functions, large functions splitted up into several smaller
 ones and what have you. I hope the code is easy to read and maintain now.
+
+You can download the firmware from following sites:
+- https://www.mikrocontroller.net/svnbrowser/transistortester/Software/Markus
+- https://github.com/svn2github/transistortester/tree/master/Software/Markus
 
 
 * Building the firmware
@@ -180,6 +188,7 @@ Hardware options:
 - IR detector/decoder for remote controls
   (fixed IR receiver module)
 - fixed cap for self adjustment of voltage offsets
+- SPI bus (bit-bang and hardware)
 - I2C bus (bit-bang and hardware)
 
 The external 2.5V voltage reference should be only enabled if it's at least
@@ -195,6 +204,7 @@ And of course the software options:
 - squarewave signal generator (requires additional keys)
 - IR detector/decoder for remote controls
   (IR receiver module connected to probes)
+- IR RC transmitter (IR LED with driver trabsistor)
 - check for opto couplers
 - servo check (requires additional keys, display with >2 lines)
 - detection of UJTs
@@ -261,10 +271,13 @@ config-<MCU>.h (look for I2C_PORT or SPI_PORT).
 
 At the moment following LCD controllers are supported:
 - HD44780 (character display)
-- ST7565R (graphic display 128x64)
 - ILI9341/ILI9342 (color graphic display 240x320 or 320x240)
-- ST7735 (color graphic display 128x160)
 - PCD8544 (graphic display 84x48)
+- SSD1306 (graphic display 128x64)
+- ST7565R (graphic display 128x64)
+- ST7735 (color graphic display 128x160)
+- ST7920 (graphic display up to 256x64)
+
 
 Take care about the LCD's supply voltage and logic levels! Use a level shifter
 if required. If the display doesn't show anything after double checking the
@@ -306,6 +319,25 @@ assignment defines how the LCD is connected to the PCF8574:
   LED         LCD_LED          PCF8574_P3
 
 
++ ILI9163
+
+The ILI9163 is driven by 4-wire SPI. The pin assignment is:
+
+  display     config-<MCU>.h   default   remark
+                               328
+  /RESX       LCD_RES          PD4       optional
+  /CSX        LCD_CS           PD5       optional
+  D/CX        LCD_DC           PD3
+  SCL         LCD_SCL          PD2
+  SDIO        LCD_SDA          PD1
+
+You might need to play with the x/y flip settings to get the correct
+orientation for your display. If necessary you can also offset the x
+direction. With LCD_LATE_ON enabled the tester starts with a cleared display
+causing a slight delay at power-on. Otherwise you'll see some random pixels
+for a moment.
+
+
 + ILI9341/ILI9342
 
 The ILI9341/ILI9342 is driven by SPI. The pin assignment is:
@@ -332,6 +364,46 @@ slow. A complete screen clear takes about 3 seconds with a 8MHz MCU clock,
 when using the bit-bang SPI.
 
 
++ PCD8544
+
+The PCD8544 is driven by SPI. The pin assignment is:
+
+  display     config-<MCU>.h   default   remark
+                               328
+  /RES        LCD_RES          PD4       optional
+  /SCE        LCD_SCE          PD5       optional
+  D/C         LCD_DC           PD3
+  SCLK        LCD_SCLK         PD2
+  SDIN        LCD_SDIN         PD1
+
+Since the display has just 84 pixels in x direction you'll get 14 chars per
+line with a 6x8 font. So up to two chars might be not displayed. To mitigate
+that you could shorten some texts in variables.h.
+
+
++ SSD1306
+
+The SSD1306 is driven by 4-wire SPI or I2C. The pin assignment for SPI is:
+
+  display     config-<MCU>.h   default   remark
+                               328
+  /RES        LCD_RESET        PD4       optional
+  /CS         LCD_CS           PD5       optional
+  DC          LCD_DC           PD3
+  SCLK (D0)   LCD_SCLK         PD2
+  SDIN (D1)   LCD_SDIN         PD1
+
+And for I2C:
+
+  /RES        LCD_RESET        PD4       optional
+  SCL (D0)    I2C_SCL          PD1
+  SDA (D1&2)  I2C_SDA          PD0
+  SA0 (D/C)                    Gnd (0x3c) / 3.3V (0x3d)
+
+Using the x/y flip settings you can change the output orientation if
+neccessary.
+
+
 + ST7565R
 
 The ST7565R is driven by 4/5 line SPI. The pin assignment is:
@@ -350,7 +422,7 @@ the correct orientation for your display.
 
 + ST7735
 
-The ST7735 is driven by SPI. The pin assignment is:
+The ST7735 is driven by 4-wire SPI. The pin assignment is:
 
   display     config-<MCU>.h   default   remark
                                328
@@ -393,23 +465,6 @@ And for SPI:
 Because of the ST7920's poor design only fonts with a width of 8 pixels can be
 used. To cope with the horizontal 16 bit addressing grid I had to add a screen
 buffer for characters.
-
-
-+ PCD8544
-
-The PCD8544 is driven by SPI. The pin assignment is:
-
-  display     config-<MCU>.h   default   remark
-                               328
-  /RES        LCD_RES          PD4       optional
-  /SCE        LCD_SCE          PD5       optional
-  D/C         LCD_DC           PD3
-  SCLK        LCD_SCLK         PD2
-  SDIN        LCD_SDIN         PD1
-
-Since the display has just 84 pixels in x direction you'll get 14 chars per
-line with a 6x8 font. So up to two chars might be not displayed. To mitigate
-that you could shorten some texts in variables.h.
 
 
 * Test push button and other input options
@@ -547,7 +602,7 @@ While in the menu, a short key press shows the next item in the menu and a
 long key press runs the shown item. On a 2-line display you'll see a
 navigation help at the bottom right. A '>' if another item follows, or
 a '<' for the very last item (will roll over to the first item). On a
-display with more than 2 lines the selected item is marked with a '*' at
+display with more than 2 lines the selected item is marked with an '*' at
 the left side. 
 
 With a rotary encoder you can move the items up or down based on the turning
@@ -558,17 +613,19 @@ Some tools show you the pinout of the probe pins used before doing anything.
 That info will be displayed for a few seconds, but can be skipped by a short
 press of the test button.
 
+For tools which create a signal probe #2 is used as output by default. In that
+case probe #1 and #3 are set to ground. If your tester is configured for a
+dedicated signal output (OC1B) the probes aren't used and no probe pinout will
+be displayed.
+
 
 + PWM Tool
 
-This does what you would expect :-) Before compiling the firmware please
+This does what you would expect :) Before compiling the firmware please
 choose either the PWM generator with the simple user interface or the one with
 the fancy interface for testers with rotary encoder and large displays.
 
-After entering the tool the probe configuration is displayed briefly. A button
-press will skip that info.
-
-Configuration of the probes:
+Pinout for signal output via probes:
   Probe #2:         output (with 680 Ohms resistor to limit current)
   Probe #1 and #3:  Ground
 
@@ -610,11 +667,11 @@ but for high frequencies they become larger and larger. A long button press
 sets the frequency back to 1kHz, and two brief button presses exit the
 signal generator, as usual.
 
-Configuration of the probes:
+Pinout for signal output via probes:
   Probe #2:         output (with 680 Ohms resistor to limit current)
   Probe #1 and #3:  Ground
 
-Hint: Rotary encoder required!
+Hint: Rotary encoder or other input option required!
 
 
 + Zener Tool (hardware option)
@@ -702,7 +759,7 @@ presses will exit the tool. With a rotary encoder installed the value
 can also be adjusted by turning the encoder. 
 
 
-+ IR RC detector
++ IR RC Detector/Decoder
 
 This function detects and decodes signals from IR remote controls, and
 requires an IR receiver module, for example the TSOP series. When compiling
@@ -712,7 +769,7 @@ standard testpins. The second one is a fixed IR module connected to a
 dedicated MCU pin.
 
 If a known protocol is detected the tester displays the protocol, address
-(when available), command and in some cases optional data in hexadecimal.
+(when available), command, and in some cases optional data in hexadecimal.
 The format is:
   <protocol> [<addr>:]<command>[:<extra data>]
 For a malformend packet the protocol and a "?" are shown.
@@ -729,14 +786,15 @@ To exit the tool please press the test key.
 Supported protocols:
   - JVC
   - Kaseikyo (aka Japanese Code, 48 bit)
-  - Matsushita/Emerson
+  - Matsushita (Panasonic) / Emerson
   - Motorola
   - NEC (standard & extended)
+  - Proton / Mitsubishi
   - RC-5 (standard)
   - RC-6 (standard)
-  - Samsung (32 bit Toshiba)
+  - Samsung / Toshiba (32 bits)
   - Sharp
-  - Sony SIRC (12, 15 & 20 bit)
+  - Sony SIRC (12, 15 & 20 bits)
 
 The carrier frequency of the TSOP receiver module doesn't have to match the RC
 exactly. A mismatch reduces the possible range, but that doesn't matter much
@@ -762,6 +820,87 @@ Hint:
 - Fixed IR receiver module
 
 For the fixed IR module please set the port and pin used in config_<MCU>.h
+
+
++ IR RC Transmitter
+
+The IR RC transmitter sends RC codes you've entered, and is meant to check
+IR RC receivers or remote controlled devices. This tool requires additional
+keys, such as a rotary encoder, a display with more than 4 lines, and a simple
+driver circuit for the IR LED.
+
+The display shows you the protocol, the carrier frequency, the duty cycle of
+the carrier and a few data fields. By a short press of the test button you
+switch between the items. The selected item is indicated by an '*'. Use the
+rotary encoder (or other input option) to change the setting/value of an item.
+A long press of the test button and the tester sends the IR code as long as
+you keep the button pressed. And as usual, two short presses exit the tool.
+
+When you change the protocol the carrier frequency and duty cycle are set to
+the protocol's default values. But you can change them if you wish. The carrier
+frequency can be set to 30, 33, 36, 38, 40 or 56 kHz and the duty cycle to
+1/2 (50%), 1/3 (33%) or 1/4 (25%). The data fields are the user settable parts
+of the IR code and are explained later on. In most cases it's just the address
+and the command.
+
+Supported protocols and their data fields:
+
+  - NEC Standard
+    <address:8> <command:8>
+
+  - NEC Extended
+    <address:16)> <command:8>
+
+  - Samsung / Toshiba (32 bits)
+    <custom code:8> <key data:8>
+
+  - Sony SIRC-12
+    <command:7> <address:5>
+
+  - Sony SIRC-15
+    <command:7> <address:8>
+
+  - Sony SIRC-20
+    <command:7> <address:5> <extended:8>
+
+  - more to come...
+
+The data fields are separated by spaces and their syntax is:
+  <field name>:<number of bits>
+
+Pinout for signal output via probes:
+  Probe #2:         signal output (with 680 Ohms resistor to limit current)
+  Probe #1 and #3:  Ground
+
+The signal output (probe #2) has a current limiting resistor and can drive an
+IR LED with only about 5mA directly, which isn't sufficient for the IR LED's
+typical rating of 100mA. Therefore you need a simple driver circuit based on
+a switching transistor, the IR LED and a current limiting resistor for the LED.
+
+Example for driving an IR LED (Vf 1.5V, If 100mA) with about 50mA:
+
+                           + +5V
+                           |
+                           |
+                           -
+                          | |
+                       75 | |
+                          | |
+                           -
+                           |
+                           |
+                          ___ ->
+                   IR LED \ / ->
+                          ---
+                           |
+                           | C
+              -----    B |/
+  Signal ----| 3k9 |-----|  NPN
+              -----      |\
+                           | E
+                    BC548  |
+                           |
+                           - Gnd
 
 
 + Opto Coupler Tool
@@ -808,10 +947,9 @@ while the pulse length can be between 0.5 and 2.5 ms. There is also a sweep
 mode for sweeping between 1 and 2 ms pulse length with an adjustable sweep
 speed.
 
-At first the probe configuration is displayed briefly (skip with button
-press). After that you can adjust the pulse width with the rotary encoder.
-Clockwise for a longer pulse, and counter-clockwise for a shorter pulse. A
-long button press resets the pulse to 1.5 ms.  
+Please adjust the pulse width with the rotary encoder. Clockwise for a longer
+pulse, and counter-clockwise for a shorter pulse. A long button press resets
+the pulse to 1.5 ms.  
 
 You can switch between pulse and frequency selection mode with a short button
 press (mode marked by an asterisk). When in frequency selection mode use the 
@@ -823,7 +961,7 @@ sweep period. The rotary encoder allows you to change the period.
 
 As usual, two short button presses exit the function.
 
-Configuration of the probes:
+Pinout for signal output via probes:
   Probe #2:         PWM output (with 680 Ohms resistor to limit current)
   Probe #1 and #3:  Ground
 

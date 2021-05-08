@@ -106,8 +106,9 @@ void ProbePinout(uint8_t Mode)
 
 /*
  *  PWM generator with simple UI
- *  - use probe #2 (OC1B) as PWM output
- *    and probe #1 + probe #3 as ground
+ *  - uses probe #2 (OC1B) as PWM output
+ *    and probe #1 & probe #3 as ground
+ *  - alternative: dedicated signal output via OC1B
  *  - max. reasonable PWM frequency for 8MHz MCU clock is 40kHz
  *
  *  requires:
@@ -124,9 +125,9 @@ void PWM_Tool(uint16_t Frequency)
   uint32_t          Value;              /* temporary value */
 
   /*
-   *  - phase correct PWM:    f = f_MCU / (2 * prescaler * top)
+   *  - phase correct PWM:    f_PWM = f_MCU / (2 * prescaler * top)
    *  - available prescalers: 1, 8, 64, 256, 1024
-   *  - range of top:  (2^2 - 1) up to (2^16 - 1)
+   *  - range of top:         (2^2 - 1) up to (2^16 - 1)
    *
    *  - ranges for a 8MHz MCU clock:
    *    prescaler  /2pre     top 2^16   top 2^2    top 100
@@ -142,14 +143,23 @@ void PWM_Tool(uint16_t Frequency)
   LCD_EEString_Space(PWM_str);        /* display: PWM */
   DisplayValue(Frequency, 0, 'H');    /* display frequency */
   LCD_Char('z');                      /* make it Hz :-) */
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
   ProbePinout(PROBES_PWM);            /* show probes used */
+  #endif
 
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
   /* probes 1 and 3 are signal ground, probe 2 is signal output */
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
   R_DDR = (1 << R_RL_2);                /* enable Rl for probe 2 */
   R_PORT = 0;                           /* pull down probe 2 initially */
+  #endif
 
+  #ifdef HW_FIXED_SIGNAL_OUTPUT
+  /* dedicated output via OC1B */
+  SIGNAL_PORT &= ~(1 << SIGNAL_OUT);    /* low by default */
+  SIGNAL_DDR |= (1 << SIGNAL_OUT);      /* enable output */
+  #endif
 
   /*
    *  calculate required prescaler and top value based on MCU clock
@@ -262,7 +272,15 @@ void PWM_Tool(uint16_t Frequency)
   /* clean up */
   TCCR1B = 0;                 /* disable timer */
   TCCR1A = 0;                 /* reset flags (also frees PB2) */
-  R_DDR = 0;                  /* set HiZ mode */
+
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
+  R_DDR = 0;                            /* set HiZ mode */
+  #endif
+
+  #ifdef HW_FIXED_SIGNAL_OUTPUT
+  SIGNAL_DDR &= ~(1 << SIGNAL_OUT);     /* set HiZ mode */
+  #endif
+
   Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 }
 
@@ -275,7 +293,8 @@ void PWM_Tool(uint16_t Frequency)
 /*
  *  PWM generator with improved UI
  *  - use probe #2 (OC1B) as PWM output
- *    and probe #1 + probe #3 as ground
+ *    and probe #1 & probe #3 as ground
+ *  - alternative: dedicated signal output via OC1B
  *  - max. reasonable PWM frequency for 8MHz MCU clock is 40kHz
  *  - requires additional keys (e.g. rotary encoder) and
  *    display with more than 2 text lines
@@ -283,14 +302,8 @@ void PWM_Tool(uint16_t Frequency)
 
 void PWM_Tool(void)
 {
-  #define RUN_FLAG       0b00000001     /* run / otherwise end */
-  #define MODE_FREQ      0b00000010     /* frequency mode / otherwise ratio mode */
-  #define CHANGE_FREQ    0b00000100     /* change frequency */
-  #define CHANGE_RATIO   0b00001000     /* change ratio */
-  #define UPDATE_FREQ    0b00010000     /* update display of frequency */
-  #define UPDATE_RATIO   0b00100000     /* update display of ratio */
-
   uint8_t           Flag;               /* loop control */
+  uint8_t           Mode;               /* UI */
   uint8_t           Test = 0;           /* user feedback */
   uint8_t           Step;               /* step size */
   uint8_t           Ratio;              /* PWM ratio (in %) */
@@ -302,10 +315,22 @@ void PWM_Tool(void)
   uint16_t          Temp;               /* temporary value */
   uint32_t          Value;              /* temporary value */
 
+  /* local constants for Flag (bitmask) */
+  #define RUN_FLAG       0b00000001     /* run / otherwise end */
+  #define CHANGE_FREQ    0b00000010     /* change frequency */
+  #define CHANGE_RATIO   0b00000100     /* change ratio */
+  #define DISPLAY_FREQ   0b00001000     /* display frequency */
+  #define DISPLAY_RATIO  0b00010000     /* display ratio */
+
+  /* local constants for Mode */
+  #define MODE_FREQ               1     /* frequency mode */
+  #define MODE_RATIO              2     /* ratio mode */
+
+
   /*
-   *  - phase correct PWM:    f = f_MCU / (2 * prescaler * top)
-   *  - available prescalers: 1, 8, 64, 256, 1024
-   *  - range of top:  (2^2 - 1) up to (2^16 - 1)
+   *  - phase & frequency correct PWM:  f_PWM = f_MCU / (2 * prescaler * top)
+   *  - available prescalers:           1, 8, 64, 256, 1024
+   *  - range of top:                   (2^2 - 1) up to (2^16 - 1)
    *  - ranges for a 8MHz MCU clock:
    *    prescaler  /2pre       top 2^16   top 2^2    top 100
    *    1          4MHz        61Hz       1MHz       40kHz
@@ -319,13 +344,23 @@ void PWM_Tool(void)
   ShortCircuit(0);                    /* make sure probes are not shorted */
   LCD_Clear();
   LCD_EEString_Space(PWM_str);        /* display: PWM */
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
   ProbePinout(PROBES_PWM);            /* show probes used */
+  #endif
 
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
   /* probes 1 and 3 are signal ground, probe 2 is signal output */
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
   R_DDR = (1 << R_RL_2);                /* enable Rl for probe 2 */
   R_PORT = 0;                           /* pull down probe 2 initially */
+  #endif
+
+  #ifdef HW_FIXED_SIGNAL_OUTPUT
+  /* dedicated output via OC1B */
+  SIGNAL_PORT &= ~(1 << SIGNAL_OUT);    /* low by default */
+  SIGNAL_DDR |= (1 << SIGNAL_OUT);      /* enable output */
+  #endif
 
 
   /*
@@ -355,7 +390,8 @@ void PWM_Tool(void)
   Index = 0;
   Bitmask = (1 << CS10);           /* prescaler bitmask for 1 */
   Top = (CPU_FREQ / 2000);         /* 1kHz */
-  Flag = RUN_FLAG | CHANGE_FREQ | CHANGE_RATIO | UPDATE_FREQ | UPDATE_RATIO;
+  Flag = RUN_FLAG | CHANGE_FREQ | CHANGE_RATIO | DISPLAY_FREQ | DISPLAY_RATIO;
+  Mode = MODE_FREQ;                /* frequency mode */
 
   while (Flag > 0)       /* processing loop */
   {
@@ -363,8 +399,7 @@ void PWM_Tool(void)
      *  change timer settings
      */
 
-    /* change frequency */
-    if (Flag & CHANGE_FREQ)
+    if (Flag & CHANGE_FREQ)        /* change frequency */
     {
       /*
        *  auto-ranging
@@ -418,8 +453,8 @@ void PWM_Tool(void)
       /* a frequency change implies a ratio change */
     }
 
-    /* change ratio */
-    if (Flag & CHANGE_RATIO)
+
+    if (Flag & CHANGE_RATIO)       /* change ratio */
     {
       /* toggle = top * (ratio / 100) */
       Value = (uint32_t)Top * Ratio;
@@ -433,14 +468,12 @@ void PWM_Tool(void)
      *  update display
      */
 
-    /* display frequency */
-    if (Flag & UPDATE_FREQ)
+    if (Flag & DISPLAY_FREQ)       /* display frequency */
     {
       LCD_ClearLine2();
-      if (Flag & MODE_FREQ) LCD_Char('*');   /* mode selected */
-      else LCD_Space();
+      MarkItem(MODE_FREQ, Mode);        /* mark mode if selected */
 
-      /* f = f_MCU / (2 * prescaler * top) */
+      /* f_PWM = f_MCU / (2 * prescaler * top) */
       Value = CPU_FREQ * 50;            /* scale to 0.01Hz and /2 */
       Value /= Prescaler;
       Step = 2;                         /* 2 decimal places */
@@ -464,20 +497,19 @@ void PWM_Tool(void)
       DisplayFullValue(Value, Step, 'H');
       LCD_Char('z');                    /* add z for Hz */
 
-      Flag &= ~UPDATE_FREQ;             /* clear flag */
+      Flag &= ~DISPLAY_FREQ;            /* clear flag */
     }
 
-    /* display ratio */
-    if (Flag & UPDATE_RATIO)
+
+    if (Flag & DISPLAY_RATIO)      /* display ratio */
     {
       LCD_ClearLine(3);
       LCD_CharPos(1, 3);
-      if (Flag & MODE_FREQ) LCD_Space();
-      else LCD_Char('*');               /* mode selected */
+      MarkItem(MODE_RATIO, Mode);       /* mark mode if selected */
 
       DisplayValue(Ratio, 0, '%');      /* show ratio in % */
 
-      Flag &= ~UPDATE_RATIO;            /* clear flag */
+      Flag &= ~DISPLAY_RATIO;           /* clear flag */
     }
 
     /* smooth UI after long key press */
@@ -505,7 +537,7 @@ void PWM_Tool(void)
     if (Step > 1)                  /* larger step */
     {
       /* increase step size based on turning velocity */
-      if (Flag & MODE_FREQ)        /* frequency mode */
+      if (Mode == MODE_FREQ)       /* frequency mode */
       {
         /*
          *  value ranges for each prescaler:
@@ -540,39 +572,39 @@ void PWM_Tool(void)
       else                              /* single key press */
       {
         /* toggle frequency/ratio mode */
-        if (Flag & MODE_FREQ)      /* frequency mode */
+        if (Mode == MODE_FREQ)     /* frequency mode */
         {
-          Flag &= ~MODE_FREQ;      /* clear frequency flag */
+          Mode = MODE_RATIO;       /* change to ratio mode */
         }
         else                       /* ratio mode */
         {
-          Flag |= MODE_FREQ;       /* set frequency flag */
+          Mode = MODE_FREQ;        /* change to frequency mode */
         }
 
-        Flag |= UPDATE_FREQ | UPDATE_RATIO;  /* update display */
+        Flag |= DISPLAY_FREQ | DISPLAY_RATIO;  /* update display */
       }
     }
     else if (Test == KEY_LONG)          /* long key press */
     {
-      if (Flag & MODE_FREQ)        /* frequency mode */
+      if (Mode == MODE_FREQ)       /* frequency mode */
       {
         /* set 1kHz */
         Prescaler = 1;
         Index = 0;
         Bitmask = (1 << CS10);     /* prescaler bitmask for 1 */
         Top = (CPU_FREQ / 2000);   /* 1kHz */
-        Flag |= CHANGE_FREQ | UPDATE_FREQ | CHANGE_RATIO;   /* set flags */
+        Flag |= CHANGE_FREQ | DISPLAY_FREQ | CHANGE_RATIO;   /* set flags */
       }
       else                         /* ratio mode */
       {
         /* set 50% */
         Ratio = 50;
-        Flag |= CHANGE_RATIO | UPDATE_RATIO;      /* set flags */
+        Flag |= CHANGE_RATIO | DISPLAY_RATIO;     /* set flags */
       }
     }
     else if (Test == KEY_RIGHT)    /* right key */
     {
-      if (Flag & MODE_FREQ)        /* frequency mode */
+      if (Mode == MODE_FREQ)       /* frequency mode */
       {
         /* increase frequency -> decrease top */
         Temp = Top - Step2;        /* take advantage of underflow */
@@ -582,7 +614,7 @@ void PWM_Tool(void)
         }
         Top = Temp;                /* set new value */
 
-        Flag |= CHANGE_FREQ | UPDATE_FREQ | CHANGE_RATIO;   /* set flags */
+        Flag |= CHANGE_FREQ | DISPLAY_FREQ | CHANGE_RATIO;  /* set flags */
       }
       else                         /* ratio mode */
       {
@@ -593,12 +625,12 @@ void PWM_Tool(void)
           Ratio = 100;             /* max. is 100 */
         }
 
-        Flag |= CHANGE_RATIO | UPDATE_RATIO;      /* set flags */
+        Flag |= CHANGE_RATIO | DISPLAY_RATIO;     /* set flags */
       }
     }
     else if (Test == KEY_LEFT)     /* left key */
     {
-      if (Flag & MODE_FREQ)        /* frequency mode */
+      if (Mode == MODE_FREQ)       /* frequency mode */
       {
         /* decrease frequency -> increase top */
         Temp = Top + Step2;        /* take advantage of overflow */
@@ -608,7 +640,7 @@ void PWM_Tool(void)
         }
         Top = Temp;                /* set new value */
 
-        Flag |= CHANGE_FREQ | UPDATE_FREQ | CHANGE_RATIO;   /* set flags */
+        Flag |= CHANGE_FREQ | DISPLAY_FREQ | CHANGE_RATIO;  /* set flags */
       }
       else                         /* ratio mode */
       {
@@ -622,7 +654,7 @@ void PWM_Tool(void)
           Ratio = 0;               /* lower limit is 0 */
         }
 
-        Flag |= CHANGE_RATIO | UPDATE_RATIO;      /* set flags */
+        Flag |= CHANGE_RATIO | DISPLAY_RATIO;     /* set flags */
       }
     }
   }
@@ -630,14 +662,25 @@ void PWM_Tool(void)
   /* clean up */
   TCCR1B = 0;                 /* disable timer */
   TCCR1A = 0;                 /* reset flags (also frees PB2) */
-  R_DDR = 0;                  /* set HiZ mode */
+
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
+  R_DDR = 0;                            /* set HiZ mode */
+  #endif
+
+  #ifdef HW_FIXED_SIGNAL_OUTPUT
+  SIGNAL_DDR &= ~(1 << SIGNAL_OUT);     /* set HiZ mode */
+  #endif
+
   Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 
-  #undef UPDATE_RATIO
-  #undef UPDATE_FREQ
+  /* clean up local constants */
+  #undef MODE_RATIO
+  #undef MODE_FREQ
+
+  #undef DISPLAY_RATIO
+  #undef DISPLAY_FREQ
   #undef CHANGE_RATIO
   #undef CHANGE_FREQ
-  #undef MODE_FREQ
   #undef RUN_FLAG
 }
 
@@ -648,25 +691,18 @@ void PWM_Tool(void)
 #ifdef SW_SERVO
 
 /*
- *  Server Check, PWM generator for testing servos
+ *  Servo Check, PWM generator for testing servos
  *  - use probe #2 (OC1B) as PWM output
- *    and probe #1 + probe #3 as ground
+ *    and probe #1 & probe #3 as ground
+ *  - alternative: dedicated signal output via OC1B
  *  - requires additional keys (e.g. rotary encoder) and
  *    display with more than 2 lines
  */
 
 void Servo_Check(void)
 {
-  #define FLAG_RUN       0b00000001     /* run / otherwise end */
-  #define MODE_PULSE     0b00000010     /* pulse width mode / otherwise frequency */
-  #define MODE_SWEEP     0b00000100     /* sweep mode */
-  #define CHANGE_PULSE   0b00001000     /* change pulse width */
-  #define CHANGE_FREQ    0b00010000     /* change frequency */
-  #define UPDATE_PULSE   0b00100000     /* update display of pulse width */
-  #define UPDATE_FREQ    0b01000000     /* update display of frequency */
-  #define TOGGLE_SWEEP   0b10000000     /* enter/leave sweep operation */
-
   uint8_t           Flag = 1;           /* loop control */
+  uint8_t           Mode;               /* UI */
   uint8_t           Test = 0;           /* user feedback */
   uint8_t           Index;              /* PWM index */
   uint8_t           Period[4] = {200, 80, 40, 30};  /* in 0.1ms */
@@ -674,6 +710,20 @@ void Servo_Check(void)
   uint16_t          Step;               /* step size */
   uint16_t          Temp;               /* temporary value */
   uint32_t          Value;              /* temporary value */
+
+  /* local constants for Flag (bitmask) */
+  #define RUN_FLAG       0b00000001     /* run / otherwise end */
+  #define SWEEP_MODE     0b00000010     /* sweep mode */
+  #define CHANGE_PULSE   0b00000100     /* change pulse width */
+  #define CHANGE_FREQ    0b00001000     /* change frequency */
+  #define DISPLAY_PULSE  0b00010000     /* display pulse width */
+  #define DISPLAY_FREQ   0b00100000     /* display frequency */
+  #define TOGGLE_SWEEP   0b01000000     /* enter/leave sweep operation */
+
+  /* local constants for Mode */
+  #define MODE_PULSE              1     /* pulse width mode */
+  #define MODE_FREQ               2     /* frequency mode */
+
 
   /*
    *  MCU clock specific value
@@ -707,17 +757,28 @@ void Servo_Check(void)
   ShortCircuit(0);                    /* make sure probes are not shorted */
   LCD_Clear();
   LCD_EEString_Space(Servo_str);      /* display: Servo */
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
   ProbePinout(PROBES_PWM);            /* show probes used */
+  #endif
 
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
   /* probes 1 and 3 are signal ground, probe 2 is signal output */
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
   R_DDR = (1 << R_RL_2);                /* enable Rl for probe 2 */
   R_PORT = 0;                           /* pull down probe 2 initially */
+  #endif
+
+  #ifdef HW_FIXED_SIGNAL_OUTPUT
+  /* dedicated output via OC1B */
+  SIGNAL_PORT &= ~(1 << SIGNAL_OUT);    /* low by default */
+  SIGNAL_DDR |= (1 << SIGNAL_OUT);      /* enable output */
+  #endif
 
 
   /*
    *  calculate required values for PWM based on MCU clock
+   *  - Timer1, phase correct PWM
    *  - top = f_MCU / (2 * prescaler * f_PWM)
    *        = (f_MCU * t_PWM) / (2 * prescaler)
    *  - toggle = (f_MCU * t_pulse) / (2 * prescaler)
@@ -738,6 +799,7 @@ void Servo_Check(void)
 
   /*
    *  calculate required values for sweep timer
+   *  - Timer0, CTC mode
    *  - t_step = 3ms -> f_step = 333Hz
    *  - prescaler = 1024
    *  - top = (f_MCU / (f_step * prescaler)) - 1
@@ -753,7 +815,7 @@ void Servo_Check(void)
   /*
    *  set up Timer0 for sweeping
    *  - CTC mode
-   *  - top value by OCR0A (unbuffered)
+   *  - top value by OCR0A (double buffered)
    *  - fixed prescaler 1:1024
    */
 
@@ -790,13 +852,14 @@ void Servo_Check(void)
   Index = 0;                       /* #0 (20.0ms) */
   SweepStep = 0;
   SweepDir = 0;
-  Flag = RUN_FLAG | MODE_PULSE | CHANGE_PULSE | CHANGE_FREQ | UPDATE_FREQ | UPDATE_PULSE | UPDATE_FREQ;
+  Mode = MODE_PULSE;               /* pulse width mode */
+  Flag = RUN_FLAG | MODE_PULSE | CHANGE_PULSE | CHANGE_FREQ | DISPLAY_FREQ | DISPLAY_PULSE | DISPLAY_FREQ;
 
   /*
    *  todo:
    *  - since the pulse length is displayed with a resolution of 0.01ms
    *    a visible change might need several steps
-   *  - improve UI to give visual response of each step
+   *  - improve UI to give visual response for each step
    */
 
   while (Flag > 0)       /* processing loop */
@@ -832,14 +895,12 @@ void Servo_Check(void)
      */
 
     /* display pulse duration / sweep period */
-    if (Flag & UPDATE_PULSE)
+    if (Flag & DISPLAY_PULSE)
     {
       LCD_ClearLine2();
+      MarkItem(MODE_PULSE, Mode);       /* mark mode if selected */
 
-      if (Flag & MODE_PULSE) LCD_Char('*');  /* mode selected */
-      else LCD_Space();                      /* not selected */
-
-      if (Flag & MODE_SWEEP)            /* sweep mode */
+      if (Flag & SWEEP_MODE)            /* sweep mode */
       {
         /*
          *  calculate sweep time
@@ -866,30 +927,28 @@ void Servo_Check(void)
       DisplayFullValue(Value, 3, 'm');
       LCD_Char('s');
 
-      Flag &= ~UPDATE_PULSE;            /* clear flag */
+      Flag &= ~DISPLAY_PULSE;           /* clear flag */
     }
 
     /* display PWM frequency/period */
-    if (Flag & UPDATE_FREQ)
+    if (Flag & DISPLAY_FREQ)
     {
       LCD_ClearLine(3);
       LCD_CharPos(1, 3);
-
-      if (Flag & MODE_PULSE) LCD_Space();    /* not selected */
-      else LCD_Char('*');                    /* mode selected */
+      MarkItem(MODE_FREQ, Mode);        /* mark mode if selected */
 
       Test = Period[Index];             /* get period */
       Value = 10000 / Test;             /* calculate frequency */
       DisplayValue(Value, 0, 'H');      /* display frequency */
       LCD_Char('z');
 
-      if (Flag & MODE_SWEEP)            /* in sweep mode */
+      if (Flag & SWEEP_MODE)            /* in sweep mode */
       {
         LCD_Space();
         LCD_EEString(Sweep_str);        /* display: sweep */
       }
 
-      Flag &= ~UPDATE_FREQ;             /* clear flag */
+      Flag &= ~DISPLAY_FREQ;            /* clear flag */
     }
 
     /* smooth UI after long key press */
@@ -918,7 +977,7 @@ void Servo_Check(void)
       /* increase step size based on turning velocity */
       Step--;
 
-      if (Flag & MODE_SWEEP)       /* in sweep mode */
+      if (Flag & SWEEP_MODE)       /* in sweep mode */
       {
         /*
          *  MCU clock specific value range
@@ -940,7 +999,7 @@ void Servo_Check(void)
     }
     else                           /* single step */
     {
-      if (! (Flag & MODE_SWEEP))   /* in normal mode */
+      if (! (Flag & SWEEP_MODE))   /* in normal mode */
       {
         /*
          *  MCU clock specific value
@@ -951,6 +1010,7 @@ void Servo_Check(void)
       }
     }
 
+    /* process user input */
     if (Test == KEY_SHORT)              /* short key press */
     {
       MilliSleep(50);                   /* debounce button a little bit longer */
@@ -963,62 +1023,62 @@ void Servo_Check(void)
       else                              /* single key press */
       {
         /* toggle pulse/frequency mode */
-        if (Flag & MODE_PULSE)          /* pulse width mode */
+        if (Mode == MODE_PULSE)         /* pulse width mode */
         {
-          Flag &= ~MODE_PULSE;          /* clear pulse flag */
+          Mode = MODE_FREQ;             /* change to frequency mode */
         }
         else                            /* frequency mode */
         {
-          Flag |= MODE_PULSE;           /* set pulse flag */
+          Mode = MODE_PULSE;            /* change to pulse width mode */
         }
 
-        Flag |= UPDATE_PULSE | UPDATE_FREQ;  /* update display */
+        Flag |= DISPLAY_PULSE | DISPLAY_FREQ;     /* update display */
       }
     }
     else if (Test == KEY_LONG)          /* long key press */
     {
-      if (Flag & MODE_PULSE)            /* pulse width mode */
+      if (Mode == MODE_PULSE)           /* pulse width mode */
       {
-        if (Flag & MODE_SWEEP)          /* in sweep mode */
+        if (Flag & SWEEP_MODE)          /* in sweep mode */
         {
           /* return to slowest sweep speed */
           SweepStep = 1;                /* smallest step */
-          Flag |= UPDATE_PULSE;         /* set flag */
+          Flag |= DISPLAY_PULSE;        /* set flag */
         }
         else                            /* in normal mode */
         {
           /* return to middle position (1.5ms) */
           Toggle = SERVO_MID;           /* set mid */
-          Flag |= CHANGE_PULSE | UPDATE_PULSE;    /* set flags */
+          Flag |= CHANGE_PULSE | DISPLAY_PULSE;   /* set flags */
         }
       }
       else                              /* frequency mode */
       {
-        if (Flag & MODE_SWEEP)          /* in sweep mode */
+        if (Flag & SWEEP_MODE)          /* in sweep mode */
         {
           /* leave sweep mode */
-          Flag &= ~MODE_SWEEP;          /* clear flag */
+          Flag &= ~SWEEP_MODE;          /* clear flag */
         }
         else                            /* in normal mode */
         {
           /* enter sweep mode */
-          Flag |= MODE_SWEEP;           /* set flag */
+          Flag |= SWEEP_MODE;           /* set flag */
         }
 
-        Flag |= UPDATE_PULSE | UPDATE_FREQ | TOGGLE_SWEEP;  /* set flags */
+        Flag |= DISPLAY_PULSE | DISPLAY_FREQ | TOGGLE_SWEEP;  /* set flags */
       }
     }
     else if (Test == KEY_RIGHT)         /* right key */
     {
-      if (Flag & MODE_PULSE)            /* pulse width mode */
+      if (Mode == MODE_PULSE)           /* pulse width mode */
       {
-        if (Flag & MODE_SWEEP)          /* in sweep mode */
+        if (Flag & SWEEP_MODE)          /* in sweep mode */
         {
           /* increase sweep speed -> increase sweep step */
           Temp = SweepStep + Step;
           if (Temp > SERVO_STEP_MAX) Temp = SERVO_STEP_MAX;
           SweepStep = (uint8_t)Temp;
-          Flag |= UPDATE_PULSE;         /* set flag */
+          Flag |= DISPLAY_PULSE;        /* set flag */
         }
         else                            /* in normal mode */
         {
@@ -1029,7 +1089,7 @@ void Servo_Check(void)
             Temp = SERVO_RIGHT_MAX;     /* upper limit */
           }
           Toggle = Temp;                /* set new value */
-          Flag |= CHANGE_PULSE | UPDATE_PULSE;    /* set flags */
+          Flag |= CHANGE_PULSE | DISPLAY_PULSE;   /* set flags */
         }
       }
       else                              /* frequency mode */
@@ -1038,21 +1098,21 @@ void Servo_Check(void)
         if (Index < 3)                  /* upper limit is 3 */
         {
           Index++;                      /* next one */
-          Flag |= UPDATE_FREQ | CHANGE_FREQ;      /* set flags */
+          Flag |= DISPLAY_FREQ | CHANGE_FREQ;     /* set flags */
         }       
       }
     }
     else if (Test == KEY_LEFT)          /* left key */
     {
-      if (Flag & MODE_PULSE)            /* pulse width mode */
+      if (Mode == MODE_PULSE)           /* pulse width mode */
       {
-        if (Flag & MODE_SWEEP)          /* in sweep mode */
+        if (Flag & SWEEP_MODE)          /* in sweep mode */
         {
           /* decrease sweep speed -> decrease sweep step */
           Temp = SweepStep - Step;
           if (Step >= SweepStep) Temp = 1;
           SweepStep = (uint8_t)Temp;
-          Flag |= UPDATE_PULSE;         /* set flag */
+          Flag |= DISPLAY_PULSE;        /* set flag */
         }
         else                            /* in normal mode */
         {
@@ -1063,7 +1123,7 @@ void Servo_Check(void)
             Temp = SERVO_LEFT_MAX;      /* lower limit */
           }
           Toggle = Temp;                /* set new value */
-          Flag |= CHANGE_PULSE | UPDATE_PULSE;    /* set flags */
+          Flag |= CHANGE_PULSE | DISPLAY_PULSE;   /* set flags */
         }
       }
       else                              /* frequency mode */
@@ -1072,7 +1132,7 @@ void Servo_Check(void)
         if (Index > 0)                  /* lower limit is 0 */
         {
           Index--;                      /* previous one */
-          Flag |= UPDATE_FREQ | CHANGE_FREQ;      /* set flags */
+          Flag |= DISPLAY_FREQ | CHANGE_FREQ;     /* set flags */
         }
       }
     }
@@ -1085,7 +1145,7 @@ void Servo_Check(void)
 
     if (Flag & TOGGLE_SWEEP)
     {
-      if (Flag & MODE_SWEEP)            /* enter sweeping */
+      if (Flag & SWEEP_MODE)            /* enter sweeping */
       {
         /* set start values */
         SweepStep = 1;                  /* forward */
@@ -1111,9 +1171,18 @@ void Servo_Check(void)
   TCCR1B = 0;                 /* disable timer #1 */
   TCCR1A = 0;                 /* reset flags (also frees PB2) */
   cli();                      /* disable interrupts */
-  R_DDR = 0;                  /* set HiZ mode */
+
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
+  R_DDR = 0;                            /* set HiZ mode */
+  #endif
+
+  #ifdef HW_FIXED_SIGNAL_OUTPUT
+  SIGNAL_DDR &= ~(1 << SIGNAL_OUT);     /* set HiZ mode */
+  #endif
+
   Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 
+  /* clean up local constants */
   #undef SERVO_STEP_TIME
   #undef SERVO_SWEEP_TOP
   #undef SERVO_STEP_MAX
@@ -1125,13 +1194,15 @@ void Servo_Check(void)
 
   #undef PULSE_STEP
 
+  #undef MODE_FREQ
+  #undef MODE_PULSE
+
   #undef TOGGLE_SWEEP
-  #undef UPDATE_FREQ
-  #undef UPDATE_PULSE
+  #undef DISPLAY_FREQ
+  #undef DISPLAY_PULSE
   #undef CHANGE_FREQ
   #undef CHANGE_PULSE
-  #undef MODE_SWEEP
-  #undef MODE_PULSE
+  #undef SWEEP_MODE
   #undef RUN_FLAG
 }
 
@@ -1148,7 +1219,7 @@ ISR(TIMER0_COMPA_vect, ISR_BLOCK)
 
   /*
    *  hints:
-   *  - the OCF0A interrupt flag is  cleared automatically
+   *  - the OCF0A interrupt flag is cleared automatically
    *  - interrupt processing is disabled while this ISR runs
    */
 
@@ -1204,7 +1275,8 @@ ISR(TIMER0_COMPA_vect, ISR_BLOCK)
 /*
  *  create square wave signal with variable frequency
  *  - use probe #2 (OC1B) as output
- *    and probe #1 + probe #3 as ground
+ *    and probe #1 & probe #3 as ground
+ *  - alternative: dedicated signal output via OC1B
  *  - requires additional keys (e.g. rotary encoder)
  */
 
@@ -1221,7 +1293,7 @@ void SquareWave_SignalGenerator(void)
   uint32_t          Value;              /* temporary value */
 
   /*
-      fast PWM:             f = f_MCU / (prescaler * (1 + top))
+      fast PWM:             f_PWM = f_MCU / (prescaler * (1 + top))
       available prescalers: 1, 8, 64, 256, 1024
       top:                  (2^2 - 1) up to (2^16 - 1)
 
@@ -1237,13 +1309,23 @@ void SquareWave_SignalGenerator(void)
   ShortCircuit(0);                      /* make sure probes are not shorted */
   LCD_Clear();
   LCD_EEString_Space(SquareWave_str);   /* display: Square Wave */
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
   ProbePinout(PROBES_PWM);              /* show probes used */
+  #endif
 
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
   /* probes 1 and 3 are signal ground, probe 2 is signal output */
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
   R_DDR = (1 << R_RL_2);                /* enable Rl for probe 2 */
   R_PORT = 0;                           /* pull down probe 2 initially */
+  #endif
+
+  #ifdef HW_FIXED_SIGNAL_OUTPUT
+  /* dedicated output via OC1B */
+  SIGNAL_PORT &= ~(1 << SIGNAL_OUT);    /* low by default */
+  SIGNAL_DDR |= (1 << SIGNAL_OUT);      /* enable output */
+  #endif
 
 
   /*
@@ -1258,7 +1340,7 @@ void SquareWave_SignalGenerator(void)
 
   /* enable OC1B pin and set timer mode */
   TCCR1A = (1 << WGM11) | (1 << WGM10) | (1 << COM1B1) | (1 << COM1B0);
-  TCCR1B = (1 << WGM13);
+  TCCR1B = (1 << WGM13) | (1 << WGM12);
 
 
   /*
@@ -1269,7 +1351,7 @@ void SquareWave_SignalGenerator(void)
   Index = 0;                       /* prescaler 1/1 */
   Prescaler = 1;                   /* prescaler 1/1 */
   Bitmask = (1 << CS10);           /* bitmask for prescaler 1 */
-  Top = (CPU_FREQ / 1000) - 1;     /* top = f_MCU / (prescaler * f) - 1 */
+  Top = (CPU_FREQ / 1000) - 1;     /* top = f_MCU / (prescaler * f_PWM) - 1 */
 
   while (Flag > 0)
   {
@@ -1334,7 +1416,7 @@ void SquareWave_SignalGenerator(void)
 
     /*
      *  display frequency
-     *  - f = f_MCU / (prescaler * (1 + top))
+     *  - f_PWM = f_MCU / (prescaler * (1 + top))
      */
 
     Value = CPU_FREQ * 100;        /* scale to 0.01Hz */
@@ -1425,7 +1507,15 @@ void SquareWave_SignalGenerator(void)
   /* clean up */
   TCCR1B = 0;                 /* disable timer */
   TCCR1A = 0;                 /* reset flags (also frees PB2) */
+
+  #ifndef HW_FIXED_SIGNAL_OUTPUT
   R_DDR = 0;                  /* set HiZ mode */
+  #endif
+
+  #ifdef HW_FIXED_SIGNAL_OUTPUT
+  SIGNAL_DDR &= ~(1 << SIGNAL_OUT);     /* set HiZ mode */
+  #endif
+
   Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 }
 

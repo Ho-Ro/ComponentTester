@@ -161,6 +161,18 @@
     uint32_t Value2, int8_t Scale2);
   extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
 
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
+    extern void DisplayHexDigit(uint8_t Digit);
+  #endif
+
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+    extern void DisplayHexByte(uint8_t Value);
+  #endif
+
+  #ifdef SW_IR_TRANSMITTER
+    extern void DisplayHexValue(uint16_t Value, uint8_t Bits);
+  #endif
+
   #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO)
     extern void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
@@ -170,7 +182,10 @@
 
   extern uint8_t TestKey(uint16_t Timeout, uint8_t Mode);
   extern void WaitKey(void);
+
   extern int8_t ShortCircuit(uint8_t Mode);
+
+  extern void MarkItem(uint8_t Item, uint8_t Selected);
   extern void MainMenu(void);
 
 #endif
@@ -182,8 +197,12 @@
 
 #ifndef IR_C
 
-  #ifdef SW_IR_RECEIVER
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     extern void IR_Detector(void);
+  #endif
+
+  #ifdef SW_IR_TRANSMITTER
+    extern void IR_RemoteControl(void);
   #endif
 
 #endif

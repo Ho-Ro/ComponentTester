@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2017-10-18
+Letzte Änderung:  2017-12-22
 
 Inhaltsübersicht:
   - Über den Tester
@@ -22,11 +22,13 @@ Inhaltsübersicht:
   - I2C/SPI
   - LCD-Module
     - HD44780
+    - ILI9163
     - ILI9341/ILI9342
+    - PCD8544
+    - SSD1306
     - ST7565R
     - ST7735
     - ST7920
-    - PCD8544
   - Tasten und Eingabeoptionen
     - Test-Taste
     - Drehencoder
@@ -45,7 +47,8 @@ Inhaltsübersicht:
       - Erweiterter Zähler
     - Drehencoder
     - Kontrast
-    - IR-Fernbedienungsdetektor
+    - Detektor/Decoder für IR-Fernbedienungen
+    - IR-Fernbedienung
     - Opto-Koppler-Test
     - Modellbau-Servo-Test
     - Selbsttest
@@ -143,6 +146,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - TRIACs
   + Erkennung von MT1 und MT2
 - Detektor/Dekoder für IR-Fernsteuerungen
+- IR-Fernbedienung
 - Test von Opto-Kopplern
 - Test von Modellbau-Servos
 - MCU-Taktraten bis zu 20MHz
@@ -157,6 +161,10 @@ Mehr Details dazu findest Du in den nachfolgenden Abschnitten.
 Eine Menge wurde aufgeräumt, Kommentare, Variablen umbenannt, Funktionen
 umstrukturiert, große Funktionen in mehrere kleine aufgeteilt und mehr. Ich
 hoffe, daß der Quellcode nun einfach zu lesen und gut verständlich ist.
+
+Du findest die Firmware auf folgenden Webseiten:
+- https://www.mikrocontroller.net/svnbrowser/transistortester/Software/Markus
+- https://github.com/svn2github/transistortester/tree/master/Software/Markus
 
 
 * Firmware übersetzen
@@ -185,6 +193,7 @@ Hardware-Optionen:
 - Frequenzzähler (einfache und erweiterte Version)
 - Test von IR-Fernbedienungen (festes IR-Empfängermodul)
 - fester Kondensator für Selbstabgleich von Spannungsoffsets
+- SPI-Bus (Bit-Bang und Hardware)
 - I2C-Bus (Bit-Bang und Hardware)
 
 Die externe 2,5V Spannungsreferenz sollte nur genutzt werden, wenn sie
@@ -200,6 +209,7 @@ Und natürlich die Software-Optionen:
 - Test von Drehencodern
 - Rechtecksignalgenerator (braucht zusätzliche Tasten)
 - Test von IR-Fernbedienungen (IR-Empfängermodul an Testpins)
+- IR-Fernbedienung (IR-LED mit Treibertransistor)
 - Test von Opto-Kopplern
 - Test von Modellbau-Servos (braucht zusätzliche Tasten, Display >2 Zeilen)
 - Erkennung von UJTs
@@ -277,10 +287,13 @@ festlegen (schaue nach I2C_PORT bzw. SPI_PORT).
 
 Im Augenblick werden folgende LCD-Module bzw. Controller unterstützt:
 - HD44780 (textbasiertes Display)
-- ST7565R (grafisches Display 128x64)
 - ILI9341/ILI9342 (grafisches Farb-Display 240x320 oder 320x240)
-- ST7735 (grafisches Farb-Display 128x160)
 - PCD8544 (grafisches Display 84x48)
+- SSD1306 (grafisches Display 128x64)
+- ST7565R (grafisches Display 128x64)
+- ST7735 (grafisches Farb-Display 128x160)
+- ST7920 (grafisches Display bis zu 256x64)
+
 
 Beachte die Versorgungsspannung und die Logikpegel des LCD-Moduls! Benutze
 Pegelumsetzer, sofern notwendig. Wenn das Display trotz korrekter Beschaltung
@@ -323,6 +336,25 @@ dem PCF8574 verdrahtet ist:
   LED         LCD_LED          PCF8574_P3
 
 
++ ILI9163
+
+Der ILI9163 wird mittels 4-Draht SPI gesteuert. Die Pins sind:
+
+  Modul       config-<MCU>.h   Standard   Hinweis
+                               328
+  /RESX       LCD_RES          PD4        optional
+  /CSX        LCD_CS           PD5        optional
+  D/CX        LCD_DC           PD3
+  SCL         LCD_SCL          PD2
+  SDIO        LCD_SDA          PD1
+
+Für eine korrekte Anzeige mußt Du evtl. mit den Einstellungen X/Y-Flip
+experimentieren. Bei Bedarf kannst Du auch die X-Richtung verschieben. Wenn
+LCD_LATE_ON aktiviert ist, startet der Tester mit einem gelöschten Display,
+was zu einer kurzen Verzögerung beim Einschalten führt. Ansonsten sind beim
+Anschalten kurz zufällige Pixel zu sehen.
+
+
 + ILI9341/ILI9342
 
 Der ILI9341/ILI9342 wird mittels SPI gesteuert. Die Pins sind:
@@ -349,6 +381,47 @@ kompletten Anzeige dauert etwa 3 Sekunden bei 8MHz MCU-Takt, wenn Bit-Bang
 SPI genutzt wird.
 
 
++ PCD8544
+
+Der PCD8544 wird mittels SPI gesteuert. Die Pins sind:
+
+  Modul       config-<MCU>.h   Standard   Hinweis
+                               328
+  /RES        LCD_RES          PD4        optional
+  /SCE        LCD_SCE          PD5        optional
+  D/C         LCD_DC           PD3
+  SCLK        LCD_SCLK         PD2
+  SDIN        LCD_SDIN         PD1
+
+Da das Display nur 84 Punkte in X-Richtung hat, ergeben sich max. 14 Zeichen
+pro Zeile bei einem 6x8-Zeichensatz. Also werden bis zu zwei Zeichen
+verschluckt. Wenn das stört, kannst Du in variables.h die Texte etwas kürzen.
+
+
++ SSD1306
+
+Der SSD1306 wird mittels 4-Line SPI oder I2C gesteuert. Die Pins für SPI sind:
+
+  Modul       config-<MCU>.h   Standard   Hinweis
+                               328
+
+  /RES        LCD_RESET        PD4        optional
+  /CS         LCD_CS           PD5        optional
+  DC          LCD_DC           PD3
+  SCLK (D0)   LCD_SCLK         PD2
+  SDIN (D1)   LCD_SDIN         PD1
+
+Und für I2C:
+
+  /RES        LCD_RESET        PD4        optional
+  SCL (D0)    I2C_SCL          PD1
+  SDA (D1&2)  I2C_SDA          PD0
+  SA0 (D/C)                    Gnd (0x3c) / 3.3V (0x3d)
+
+Mit den X/Y-Flip Einstellungen kannst Du die Orientierung der Anzeige
+anpassen, wenn notwenig.
+
+
 + ST7565R
 
 Der ST7565R wird mittels 4/5-Line SPI gesteuert. Die Pins sind:
@@ -367,7 +440,7 @@ X-Offset experimentieren.
 
 + ST7735
 
-Der ST7735 wird mittels SPI gesteuert. Die Pins sind:
+Der ST7735 wird mittels 4-Draht SPI gesteuert. Die Pins sind:
 
   Modul       config-<MCU>.h   Standard   Hinweis
                                328
@@ -410,22 +483,6 @@ Und für SPI:
 Wegen dem schlechten Design des ST7920 können nur Zeichensätze mit einer Breite
 von 8 Pixeln verwendet werden. Zur Handhabung der horizontalen Addressierung in
 16-Bit Schritten mußte ich einen Bildschirmpuffer für Zeichen einrichten.
-
-
-+ PCD8544
-
-Der PCD8544 wird mittels SPI gesteuert. Die Pins sind:
-
-  Modul       config.h           Standard   Hinweis
-  /RES        LCD_RES            PD4        optional
-  /SCE        LCD_SCE            PD5        optional
-  D/C         LCD_DC             PD3
-  SCLK        LCD_SCLK           PD2
-  SDIN        LCD_SDIN           PD1
-
-Da das Display nur 84 Punkte in X-Richtung hat, ergeben sich max. 14 Zeichen
-pro Zeile bei einem 6x8-Zeichensatz. Also werden bis zu zwei Zeichen
-verschluckt. Wenn das stört, kannst Du in variables.h die Texte etwas kürzen.
 
 
 * Tasten und Eingabeoptionen
@@ -577,6 +634,12 @@ Manche Punkte/Extras zeigen beim Start das Pinout der benutzten Testpins kurz
 an. Die Info wird für ein paar Sekunden gezeigt, kann aber mit einem kurzen
 Tastendruck übersprungen werden.
 
+Funktionen, welche Signale erzeugen, geben ihr Signal standardmäßig auf
+Testpin #2 aus. Dabei werden die Pins #1 und #3 auf Masse gesetzt. Ist Dein
+Tester für die Signalausgabe auf einem eigenen Ausgang (OC1B) konfiguriert, 
+werden die Testpins nicht genutzt und es erfolgt auch keine Ausgabe des
+Pinout.
+
 
 + PWM-Generator
 
@@ -585,10 +648,7 @@ entweder den PWN-Generator mit einfacher Bedienung oder den mit erweiterter
 Bedienung auswählen. Letzterer benötigt einen Drehencoder und ein größeres
 Display.
 
-Nach dem Starten des Generatore wird kurz die Beschaltung der Testpins
-angezeigt. Durch einen kurzen Tastendruck kannst Du die Info überspringen. 
-
-Beschaltung der Testpins:
+Beschaltung bei Signalsusgabe über die Testpins: 
   Pin #2:          Ausgang (680 Ohm Widerstand zur Strombegrenzung)
   Pin #1 und #3:   Masse
 
@@ -630,11 +690,11 @@ Schrittweite recht klein, erst bei hohen Frequenzen wird sie signifikant.
 Ein langer Tastendruck stellt die Frequenz zurück auf 1kHz und zwei kurze
 Tastendrücke beenden den Signalgenerator.
 
-Beschaltung der Testpins:
+Beschaltung bei Signalsusgabe über die Testpins:
   Pin #2:          Ausgang (680 Ohm Widerstand zur Strombegrenzung)
   Pin #1 und #3:   Masse
 
-Hinweis: Drehencoder notwendig!
+Hinweis: Drehencoder oder andere EIngabeoption notwendig!
 
 
 + Zenertest (Hardware-Option)
@@ -723,7 +783,7 @@ Test-Taste zweimal kurz hintereinander drücken. Ist ein Drehencoder
 vorhanden, kann der Kontrastwert damit ebenfalls geändert werden. 
 
 
-+ IR-Fernbedienungsdetektor
++ Detektor/Decoder für IR-Fernbedienungen
 
 Diese Funktion erkennt und dekodiert Signale von IR-Fernbedienungen und
 benötigt ein IR-Empfängermodul, wie z.B. aus der TSOP-Serie. Beim Übersetzen
@@ -750,12 +810,13 @@ Zum Beenden die Test-Taste einmal kurz drücken.
 Unterstützte Protokolle:
   - JVC
   - Kaseikyo (Japancode, 48 Bit)
-  - Matsushita/Emerson
+  - Matsushita (Panasonic) / Emerson
   - Motorola
   - NEC (Standard & Erweitert)
+  - Proton / Mitsubishi
   - RC-5 (Standard)
   - RC-6 (Standard)
-  - Samsung (32 Bit Toshiba)
+  - Samsung / Toshiba (32 Bit)
   - Sharp
   - Sony SIRC (12, 15 & 20 Bit)
 
@@ -783,6 +844,92 @@ Hinweis:
 - Festes IR-Empfängermodul
 
 Für das feste Modul bitte Port und Daten-Pin in config_<MCU>.h passend setzen.
+
+
++ IR-Fernbedienung
+
+Die IR-Fernbedienung sendet Fernbedienungscodes, welche Du zuvor eingegeben
+hast, und dient zum Testen von IR-Empfängern bzw. von Geräten mit IR-
+Fernbedienung. Diese Funktion benötigt eine zusätzliche Eingabeoption, wie
+z.B. ein Drehencoder, ein Display mit mehr als vier Textzeilen und eine
+einfache Treiberschaltung für die IR-LED.
+
+Der Tester zeigt Dir das Protokoll, die Trägerfrequencz, das Tastverhältnis
+des Trägers und ein paar Datenfelder. Mit einem kurzen Druck der Test-Taste
+schaltest du zwischen den Punkten hin und her. Der ausgewählte Punkt wird
+durch ein "*" gekennzeichnet. Über den Drehencoder (oder andere Eingabeoption)
+änderst Du die Einstellung bzw. den Wert eines Punktes.  Bei einem langen
+Druck der Test-Taste sendet der Tester den IR-Code solange die Test-Taste
+gedrückt bleibt. Und wie üblich beenden zwei kurze Tastendrücke die Funktion.
+
+Wenn Du das Protokoll änderst, werden Trägerfrequenz und Tastverhältnis auf
+die Standardwerte des jeweiligen Protokolls gesetzt. Du kannst diese aber
+nach Belieben ändern. Die Trägerfrequenz kann auf 30, 33, 36, 38, 40 oder
+56 kHz gegstellt werden, und das Tastverhältnis auf  1/2 (50%), 1/3 (33%) oder
+1/4 (25%). Die Datenfelder sind die Teile des Fernbedienungscodes, die Du
+setzen kannst. Sie werden weiter unten erklärt und sind meistens nur die
+Adresse und das Kommando.
+
+Unterstützte Protokolle und ihre Datenfelder:
+
+  - NEC Standard
+    <Adresse:8> <Kommando:8>
+
+  - NEC Extended
+    <Adresse:16)> <Kommando:8>
+
+  - Samsung / Toshiba (32 bits)
+    <custom code:8> <Taste:8>
+
+  - Sony SIRC-12
+    <Kommando:7> <Adresse:5>
+
+  - Sony SIRC-15
+    <Kommando:7> <Adresse:8>
+
+  - Sony SIRC-20
+    <Kommando:7> <Adresse:5> <Erweitert:8>
+
+  - weitere werden folgen
+
+Die Datenfelder sind durch Leerzeichen getrennt und ihre Syntax ist:
+  <Feldname>:<Anzahl Bits>
+
+Beschaltung bei Signalsusgabe über die Testpins:
+  Pin #2:          Signalausgang (680 Ohm Widerstand zur Strombegrenzung)
+  Pin #1 und #3:   Masse
+
+Der Signalausgang (Test-Pin #2) hat einen Widerstand zur Strombegrenzung und
+kann eine IR-LED mit nur etwa 5mA direkt schalten, was für eine typische IR-LED
+mit einem If von 100mA nicht ausreichend ist. Daher wird ein einfacher Treiber
+auf Basis eines Transistors, der IR-LED und einem Widerstand zur Strom-
+begrenzung benötigt.
+
+Beispielschaltung für einen Treiber, welcher die IR-LED (Vf 1.5V, If 100mA) mit
+50mA schaltet:
+
+                           + +5V
+                           |
+                           |
+                           -
+                          | |
+                       75 | |
+                          | |
+                           -
+                           |
+                           |
+                          ___ ->
+                   IR LED \ / ->
+                          ---
+                           |
+                           | C
+              -----    B |/
+  Signal ----| 3k9 |-----|  NPN
+              -----      |\
+                           | E
+                    BC548  |
+                           |
+                           - Gnd
 
 
 + Opto-Koppler-Test
@@ -831,10 +978,9 @@ Diese Funktion erzeugt ein PWM-Signal für Modellbau-Servos, welche mit einem
 bis 2,5 ms einstellbar. Zusätzlich gibt es einen Sweep-Modus für Pulse
 von 1 - 2ms und wählbarer Geschwindigkeit. 
 
-Zunächst wird kurz die Testpin-Belegung angezeigt (mittels Tastendruck
-überspringbar). Danach stellt Du die Pulsbreite mit dem Drehencoder ein.
-Links für kürzere Pulse, und rechts für längere. Mit einem langen Tastendruck
-wird die Pulsweite auf 1,5ms zurück gesetzt (mittlere Position vom Servo).
+Die Pulsbreite stellst Du mit dem Drehencoder ein. Links für kürzere Pulse,
+und rechts für längere. Mit einem langen Tastendruck wird die Pulsweite auf
+1,5ms zurück gesetzt (mittlere Position vom Servo).
 
 Mit einem kurzen Tastendruck wechselst Du zwischen Puls- und Frequenzauswahl (
 durch ein Sternchen markiert). In der Frequenzauswahl schaltest Du mit dem
@@ -846,7 +992,7 @@ Sweep-Zeit ersetzt, welche mittels dem Drehencoder geändert werden kann.
 
 Wie üblich beenden zwei kurze Tastendrücke die Funktion.
 
-Beschaltung der Testpins:
+Beschaltung bei Signalsusgabe über die Testpins:
   Pin #2:          PWM-Ausgang (680 Ohm Widerstand zur Strombegrenzung)
   Pin #1 und #3:   Masse
 

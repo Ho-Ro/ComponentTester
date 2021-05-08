@@ -351,8 +351,7 @@ void PCF8574_Write(uint8_t Byte)
     if (I2C_WriteByte(I2C_ADDRESS) == I2C_ACK)    /* address slave */
     {
       I2C.Byte = Byte;                  /* port pins */
-
-      I2C_WriteByte(I2C_DATA);                    /* send data */
+      I2C_WriteByte(I2C_DATA);          /* send data */
     }
     /* todo: error handling? */
   }

@@ -1,34 +1,39 @@
 /* ************************************************************************
  *
- *   driver functions for ST7565R compatible grafic displays
- *   - 128 x 64 (132 x 64) pixels
- *   - SPI interface (4 and 5 line)
+ *   driver functions for SSD1306 compatible OLED grafic displays
+ *   - 128 x 64 pixels
+ *   - 8 bit parallel interface (not supported)
+ *   - SPI interface (4 line, 3 line not supported)
+ *   - I2C
  *
- *   (c) 2015-2017 by Markus Reschke
+ *   (c) 2017 by Markus Reschke
  *
  * ************************************************************************ */
 
 /*
  *  hints:
  *  - pin assignment for SPI
- *    /CS1        LCD_CS (optional)
+ *    /CS         LCD_CS (optional)
  *    /RES        LCD_RESET (optional)
- *    A0          LCD_A0
- *    SCL (DB6)   LCD_SCL / SPI_SCK
- *    SI (DB7)    LCD_SI / SPI_MOSI
+ *    DC          LCD_DC
+ *    SCLK (D0)   LCD_SCLK / SPI_SCK
+ *    SDIN (D1)   LCD_SDIN / SPI_MOSI
  *    For hardware SPI LCD_SCL and LCD_SI have to be the MCU's SCK and
  *    MOSI pins.
- *  - max. SPI clock rate: 20MHz
- *  - write only
- *  - horizontal flip might require an offset of 4 dots
- *    (132 RAM dots - 128 real dots = 4)
+ *  - max. SPI clock rate: 10MHz
+ *  - pin assignment for I2C
+ *    /RES            LCD_RESET (optional)
+ *    SA0 (D/C)       Gnd for 0x3c / 3.3V for 0x3d
+ *    SCL (D0)        I2C_SCL
+ *    SDA (D1 & D2)   I2C_SDA
+ *  - max. I2C clock rate: 400kHz
  */
 
 
 /* local includes */
 #include "config.h"           /* global configuration */
 
-#ifdef LCD_ST7565R
+#ifdef LCD_SSD1306
 
 
 /*
@@ -47,7 +52,7 @@
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
 #include "functions.h"        /* external functions */
-#include "ST7565R.h"          /* ST7565R specifics */
+#include "SSD1306.h"          /* SSD1306 specifics */
 
 /* fonts and symbols */
 /* vertically aligned, vertical bit order flipped, bank-wise grouping */
@@ -103,11 +108,19 @@ uint8_t             SymbolRight;   /* right of symbol */
 
 
 /* ************************************************************************
- *   low level functions for SPI interface
+ *   low level functions for SPI interface (4 wire)
  * ************************************************************************ */
 
 
+/*
+ *  We don't support the 3 line SPI interface, which ignores the D/C signal
+ *  and uses 9 bits instead (first bit for D/C, followed by D7 to D0).   
+ */
+
 #ifdef LCD_SPI
+
+// CS -> D/C -> D7-0 with rising edge of SCLK 
+// D/C: high = data / low = command
 
 
 /*
@@ -127,14 +140,14 @@ void LCD_BusSetup(void)
   Bits = LCD_DDR;                  /* get current directions */
 
   /* basic output pins */
-  Bits |= (1 << LCD_A0);           /* A0 */
+  Bits |= (1 << LCD_DC);           /* D/C */
 
   /* optional output pins */
   #ifdef LCD_RESET
     Bits |= (1 << LCD_RESET);      /* /RES */
   #endif
   #ifdef LCD_CS
-    Bits |= (1 << LCD_CS);         /* /CS1 */
+    Bits |= (1 << LCD_CS);         /* /CS */
   #endif
 
   LCD_DDR = Bits;                  /* set new directions */
@@ -142,7 +155,7 @@ void LCD_BusSetup(void)
   /* set default levels */
   #ifdef LCD_CS
     /* disable chip */
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS1 high */
+    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
   #endif
 
   #ifdef LCD_RESET
@@ -157,7 +170,7 @@ void LCD_BusSetup(void)
 
   #ifdef SPI_HARDWARE
   /*
-   *  set SPI clock rate (max. 20MHz)
+   *  set SPI clock rate (max. 10MHz)
    *  - max. MCU clock 20MHz / 2 = 10MHz
    *  - f_osc/2 (SPR1 = 0, SPR0 = 0, SPI2X = 1)
    */
@@ -180,18 +193,18 @@ void LCD_BusSetup(void)
 void LCD_Cmd(uint8_t Cmd)
 {
   /* indicate command mode */
-  LCD_PORT &= ~(1 << LCD_A0);      /* set A0 low */
+  LCD_PORT &= ~(1 << LCD_DC);      /* set D/C low */
 
   /* select chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS1 low */
+    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS low */
   #endif
 
   SPI_Write_Byte(Cmd);             /* write command byte */
 
   /* deselect chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS1 high */
+    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
   #endif
 }
 
@@ -207,19 +220,182 @@ void LCD_Cmd(uint8_t Cmd)
 void LCD_Data(uint8_t Data)
 {
   /* indicate data mode */
-  LCD_PORT |= (1 << LCD_A0);       /* set A0 high */
+  LCD_PORT |= (1 << LCD_DC);       /* set D/C high */
 
   /* select chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS1 low */
+    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS low */
   #endif
 
   SPI_Write_Byte(Data);            /* write data byte */
 
   /* deselect chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS1 high */
+    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
   #endif
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   low level functions for I2C interface
+ * ************************************************************************ */
+
+
+#ifdef LCD_I2C
+
+/*
+ *  local constants
+ */
+
+/* transfer mode */
+#define CTRL_CMD         0b00000001     /* command */
+#define CTRL_DATA        0b00000010     /* data */
+#define CTRL_SINGLE      0b00000100     /* single byte */
+#define CTRL_MULTI       0b00001000     /* multiple bytes */
+
+
+
+/*
+ *  local variables
+ */
+
+/* single/multi byte control */
+uint8_t             MultiByte;     /* control flag */
+
+
+
+/*
+ *  set up interface bus
+ *  - should be called at firmware startup
+ */
+
+void LCD_BusSetup(void)
+{
+  /* I2C is set up in main() already */
+  I2C.Timeout = 1;            /* ACK timeout 10탎 */
+
+  /* init control flag */
+  MultiByte = 0;              /* single byte mode */
+}
+
+
+
+/*
+ *  start sending I2C data
+ *  - set up I2C transfer
+ *  - send control byte
+ *  - manage single/multi byte mode
+ *
+ *  requires:
+ *  - Mode:
+ *    CTRL_CMD     command
+ *    CTRL_DATA    data
+ *    CTRL_SINGLE  single byte
+ *    CTRL_MULTI   multiple bytes
+ */
+
+void LCD_StartTransfer(uint8_t Mode)
+{
+  uint8_t           Byte;          /* control byte */
+
+  /* update control flag */
+  if (Mode & CTRL_MULTI)           /* multi byte mode */
+  {
+    MultiByte = 1;                 /* set flag */
+  }
+
+  /* init control byte */
+  Byte = LCD_CONTROL_BYTE;
+  if (Mode & CTRL_SINGLE) Byte |= FLAG_CTRL_SINGLE;    /* single byte mode */
+  if (Mode & CTRL_DATA) Byte |= FLAG_CTRL_DATA;        /* data mode */
+  /* flags for multi byte mode and command mode are 0 */
+
+  if (I2C_Start(I2C_START) == I2C_OK)             /* start */
+  {
+    I2C.Byte = LCD_I2C_ADDR << 1;       /* address (7 bit & write) */
+
+    if (I2C_WriteByte(I2C_ADDRESS) == I2C_ACK)    /* address slave */
+    {
+      I2C.Byte = Byte;                  /* copy control byte */
+      I2C_WriteByte(I2C_DATA);          /* send byte */
+    }
+  }
+
+  /* todo: error handling? */
+}
+
+
+
+/*
+ *  end sending I2C data
+ *  - end I2C transfer
+ *  - manage multi byte mode
+ */
+
+void LCD_EndTransfer(void)
+{
+  /* reset control flag anyway */
+  MultiByte = 0;              /* single byte mode */
+
+  /* end I2C transfer */
+  I2C_Stop();                 /* stop */
+}
+
+
+
+/*
+ *  send a command to the LCD
+ *
+ *  requires:
+ *  - byte value to send
+ */
+ 
+void LCD_Cmd(uint8_t Cmd)
+{
+  if (MultiByte == 0)         /* single byte mode */
+  {
+    /* init transfer */
+    LCD_StartTransfer(CTRL_SINGLE | CTRL_CMD);
+  }
+
+  /* send command */
+  I2C.Byte = Cmd;                  /* copy command */
+  I2C_WriteByte(I2C_DATA);         /* send command */ 
+
+  if (MultiByte == 0)         /* single byte mode */
+  {
+    LCD_EndTransfer();             /* end transfer */
+  }
+}
+
+
+
+/*
+ *  send data to the LCD
+ *
+ *  requires:
+ *  - byte value to send
+ */
+
+void LCD_Data(uint8_t Data)
+{
+  if (MultiByte == 0)         /* single byte mode */
+  {
+    /* init transfer */
+    LCD_StartTransfer(CTRL_SINGLE | CTRL_DATA);
+  }
+
+  /* send command */
+  I2C.Byte = Data;                 /* copy data */
+  I2C_WriteByte(I2C_DATA);         /* send data */ 
+
+  if (MultiByte == 0)         /* single byte mode */
+  {
+    LCD_EndTransfer();             /* end transfer */
+  }
 }
 
 #endif
@@ -246,6 +422,11 @@ void LCD_DotPos(uint8_t x, uint8_t y)
 {
   uint8_t           Temp;     /* temp. value */
 
+  #ifdef LCD_I2C
+  /* init transfer */
+  LCD_StartTransfer(CTRL_MULTI | CTRL_CMD);
+  #endif
+
   /* horizontal position (column) */
   Temp = x;
   Temp &= 0b00001111;              /* filter lower nibble */
@@ -256,7 +437,11 @@ void LCD_DotPos(uint8_t x, uint8_t y)
   LCD_Cmd(CMD_COLUMN_H | Temp);    /* set upper nibble */
 
   /* vertical position (page) */
-  LCD_Cmd(CMD_PAGE | y);           /* set page */
+  LCD_Cmd(CMD_START_PAGE | y);     /* set page */
+
+  #ifdef LCD_I2C
+  LCD_EndTransfer();               /* end transfer */
+  #endif
 }
 
 
@@ -283,9 +468,6 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   /* horizontal position (column) */
   x--;                             /* columns start at 0 */
   x *= FONT_SIZE_X;                /* offset for character */
-  #ifdef LCD_OFFSET_X
-  x += 4;                          /* x offset of 4 dots */
-  #endif
   X_Start = x;                     /* update start position */
 
   /* vertical position (page) */
@@ -304,7 +486,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
  *  requires:
  *  - Line: line number (1-)
  *    special case line 0: clear remaining space in current line
- */ 
+ */
 
 void LCD_ClearLine(uint8_t Line)
 {
@@ -328,13 +510,22 @@ void LCD_ClearLine(uint8_t Line)
   {
     LCD_DotPos(X_Start, Line);     /* set dot position */
 
+    #ifdef LCD_I2C
+    /* init transfer */
+    LCD_StartTransfer(CTRL_MULTI | CTRL_DATA);
+    #endif
+
     /* clear page */
     n = X_Start;              /* reset counter */
-    while (n < 132)           /* up to internal RAM size */
+    while (n < 128)           /* for all columns */
     {
       LCD_Data(0);            /* send empty byte */
       n++;                    /* next byte */
     }
+
+    #ifdef LCD_I2C
+    LCD_EndTransfer();        /* end transfer */
+    #endif
 
     Line++;                   /* next page */
   }
@@ -365,26 +556,22 @@ void LCD_Clear(void)
 /*
  *  set contrast
  *  required:
- *  - value: 0-63
+ *  - value: 0-255
  */
 
 void LCD_Contrast(uint8_t Contrast)
 {
-  if (Contrast <= 63)              /* limit value */
-  {
-    /* set contrast */
-    LCD_Cmd(CMD_V0_MODE);          /* set command */
-    LCD_Cmd(Contrast);             /* contrast value */
+  /* set contrast */
+  LCD_Cmd(CMD_CONTRAST);           /* set command */
+  LCD_Cmd(Contrast);               /* contrast value */
 
-    NV.Contrast = Contrast;        /* update value */
-  }
+  NV.Contrast = Contrast;          /* update value */
 }
 
 
 
 /*
  *  initialize LCD
- *  - for a single 3.3V supply
  */
  
 void LCD_Init(void)
@@ -392,55 +579,37 @@ void LCD_Init(void)
   #ifdef LCD_RESET
   /* reset display */
   LCD_PORT &= ~(1 << LCD_RESET);        /* set /RES low */
-  wait1us();                            /* wait 1탎 */
+  wait3us();                            /* wait 3탎 */
   LCD_PORT |= (1 << LCD_RESET);         /* set /RES high */
-  wait1us();                            /* wait 1탎 */
+  wait3us();                            /* wait 3탎 */
   #endif
 
-  /* set start line: user defined value (default 0) */
-  LCD_Cmd(CMD_START_LINE | LCD_START_Y);
+  /* enable internal charge pump */
+  LCD_Cmd(CMD_CHARGE_PUMP);
+  LCD_Cmd(FLAG_CHARGEPUMP_ON);
 
-  /* set segment driver direction (ADC) */
+  /* segment mapping */
   #ifdef LCD_FLIP_X
-    LCD_Cmd(CMD_SEGMENT_DIR | FLAG_ADC_REVERSE);  /* flip horizontally */
-  #else  
-    LCD_Cmd(CMD_SEGMENT_DIR | FLAG_ADC_NORMAL);   /* normal */
+    LCD_Cmd(CMD_SEGMENT_MAP | FLAG_SEG_127);      /* flip horizontally */
   #endif
 
-  /* set common driver direction */
+  /* COM output scan direction */
   #ifdef LCD_FLIP_Y
-    LCD_Cmd(CMD_COMMON_DIR | FLAG_COM_REVERSE);   /* flip vertically */
-  #else
-    LCD_Cmd(CMD_COMMON_DIR | FLAG_COM_NORMAL);    /* normal */
+    LCD_Cmd(CMD_COM_SCAN_DIR | FLAG_COM_63);      /* flip vertically */
   #endif
-
-  /* set LCD bias to 1/9 (duty 1/65) */
-  LCD_Cmd(CMD_LCD_BIAS | FLAG_BIAS_19);
-
-  /* set power mode: all on */
-  LCD_Cmd(CMD_POWER_MODE | FLAG_FOLOWER_ON | FLAG_REGULATOR_ON | FLAG_BOOSTER_ON);
-
-  /* set booster ratio to 4x */
-  LCD_Cmd(CMD_BOOSTER_MODE);       /* set command */
-  LCD_Cmd(FLAG_BOOSTER_234);       /* ratio */
-
-  /* set contrast: resistor ratio 6.5 */
-  LCD_Cmd(CMD_V0_RATIO | FLAG_RATIO_65);
 
   /* set contrast: default value */
   LCD_Contrast(LCD_CONTRAST);
 
-  /* no indicator */
-  LCD_Cmd(CMD_INDICATOR_MODE);     /* set command */
-  LCD_Cmd(FLAG_INDICATOR_OFF);     /* mode */
-
   /* switch display on */
   LCD_Cmd(CMD_DISPLAY | FLAG_DISPLAY_ON);
+
+  /* dispays needs about 100ms */
 
   /* update maximums */
   UI.CharMax_X = LCD_CHAR_X;       /* characters per line */
   UI.CharMax_Y = LCD_CHAR_Y;       /* lines */
-  UI.MaxContrast = 63;             /* LCD contrast */
+  UI.MaxContrast = 255;            /* LCD contrast */
 
   LCD_Clear();                /* clear display */
 }
@@ -484,6 +653,11 @@ void LCD_Char(unsigned char Char)
   {
     LCD_DotPos(X_Start, Page);          /* set start position */
 
+    #ifdef LCD_I2C
+    /* init transfer */
+    LCD_StartTransfer(CTRL_MULTI | CTRL_DATA);
+    #endif
+
     /* read and send all column bytes for this row */
     x = 1;
     while (x <= FONT_BYTES_X)
@@ -493,6 +667,10 @@ void LCD_Char(unsigned char Char)
       Table++;                          /* address for next byte */
       x++;                              /* next byte */
     }
+
+    #ifdef LCD_I2C
+    LCD_EndTransfer();        /* end transfer */
+    #endif
 
     Page++;                             /* next page */
     y++;                                /* next row */
@@ -568,6 +746,11 @@ void LCD_Symbol(uint8_t ID)
       LCD_DotPos(X_Start, Page);        /* move to new page */
     }
 
+    #ifdef LCD_I2C
+    /* init transfer */
+    LCD_StartTransfer(CTRL_MULTI | CTRL_DATA);
+    #endif
+
     /* read and send all column bytes for this row */
     x = 1;
     while (x <= SYMBOL_BYTES_X)
@@ -577,6 +760,10 @@ void LCD_Symbol(uint8_t ID)
       Table++;                          /* address for next byte */
       x++;                              /* next byte */
     }
+
+    #ifdef LCD_I2C
+    LCD_EndTransfer();        /* end transfer */
+    #endif
 
     Page++;                             /* next page */
     y++;                                /* next row */

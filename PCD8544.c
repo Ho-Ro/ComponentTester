@@ -49,8 +49,15 @@
 #include "PCD8544.h"          /* PCD8544 specifics */
 
 /* fonts and symbols */
-/* vertically aligned, vertical bit order flipped, bank-wise grouping */
-#include "font_6x8_vf.h"
+#ifndef LCD_ROT180
+  /* vertically aligned, vertical bit order flipped, bank-wise grouping */
+  #include "font_6x8_vf.h"
+#endif
+
+#ifdef LCD_ROT180
+  /* vertically aligned, horizontal bit order flipped, bank-wise grouping */
+  #include "font_6x8_v_f.h"
+#endif
 
 
 /*
@@ -59,6 +66,9 @@
 
 /* banks/bytes required for character's height */
 #define CHAR_BANKS       ((FONT_SIZE_Y + 7) / 8)
+
+/* number of banks */
+#define LCD_BANKS        6
 
 /* number of lines and characters per line */
 #define LCD_CHAR_X       (LCD_DOTS_X / FONT_SIZE_X)
@@ -242,6 +252,8 @@ void LCD_DotPos(uint8_t x, uint8_t y)
 
 
 
+#ifndef LCD_ROT180
+
 /*
  *  set LCD character position
  *  - since we can't read the LCD and don't use a RAM buffer
@@ -259,10 +271,13 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   UI.CharPos_X = x;
   UI.CharPos_Y = y;
 
-  /* update display */
+  /*
+   *  set start dot position
+   *  - start is left top of character
+   */
 
   /* horizontal position (column) */
-  x--;                             /* columns starts at 0 */
+  x--;                             /* columns start at 0 */
   x *= FONT_SIZE_X;                /* offset for character */
   X_Start = x;                     /* update start position */
   LCD_Cmd(CMD_ADDR_X | x);         /* set column */
@@ -274,7 +289,53 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   LCD_Cmd(CMD_ADDR_Y | y);         /* set bank */
 }
 
+#endif
 
+
+
+#ifdef LCD_ROT180
+
+/*
+ *  set LCD character position
+ *  - version for display rotated by 180°
+ *  - since we can't read the LCD and don't use a RAM buffer
+ *    we have to move bank-wise in y direction
+ *  - top left: 1/1
+ *
+ *  requires:
+ *  - x:  horizontal position (1-)
+ *  - y:  vertical position (1-)
+ */
+
+void LCD_CharPos(uint8_t x, uint8_t y)
+{
+  /* update UI (virtual position) */
+  UI.CharPos_X = x;
+  UI.CharPos_Y = y;
+
+  /*
+   *  set start dot position
+   *  - start is right bottom of character (180° view)
+   */
+
+  /* horizontal position (column), flipped */
+                                   /* columns start at 0 */
+  x *= FONT_SIZE_X;                /* offset for character */
+  X_Start = LCD_DOTS_X - x;        /* update start position */
+  LCD_Cmd(CMD_ADDR_X | x);         /* set column */
+
+  /* vertical position (bank), flipped */
+                                   /* banks start at 0 */
+  y *= CHAR_BANKS;                 /* offset for character */
+  Y_Start = LCD_BANKS - y;         /* update start position */
+  LCD_Cmd(CMD_ADDR_Y | y);         /* set bank */
+}
+
+#endif
+
+
+
+#ifndef LCD_ROT180
 
 /*
  *  clear one single character line
@@ -282,7 +343,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
  *  requires:
  *  - Line: line number (1-)
  *    special case line 0: clear remaining space in current line
- */ 
+ */
 
 void LCD_ClearLine(uint8_t Line)
 {
@@ -318,10 +379,64 @@ void LCD_ClearLine(uint8_t Line)
   }
 }
 
+#endif
 
+
+
+#ifdef LCD_ROT180
 
 /*
- *  clear the display 
+ *  clear one single character line
+ *  - version for display rotated by 180°
+ *
+ *  requires:
+ *  - Line: line number (1-)
+ *    special case line 0: clear remaining space in current line
+ */
+
+void LCD_ClearLine(uint8_t Line)
+{
+  uint8_t           MaxBank;            /* bank limit */
+  uint8_t           n = 1;              /* counter */  
+
+  if (Line == 0)         /* special case: rest of current line */
+  {
+    Line = UI.CharPos_Y;      /* current line */
+    n = UI.CharPos_X;         /* current character position */
+  }
+
+  LCD_CharPos(n, Line);            /* set char position */
+  X_Start += FONT_SIZE_X;          /* offset for current char + 1 */
+
+  /* calculate banks */
+  Line = Y_Start;                    /* get top bank (end) */
+  MaxBank = Line + CHAR_BANKS;       /* bottom bank + 1 */
+
+  /* clear line */
+  while (Line < MaxBank)      /* loop through banks */
+  {
+    LCD_DotPos(0, Line);      /* set dot position */
+
+    /* clear bank */
+    n = X_Start;              /* last column + 1 */
+    while (n > 0)             /* up to last column */
+    {
+      LCD_Data(0);            /* send empty byte */
+      n--;                    /* next byte */
+    }
+
+    Line++;                   /* next bank */
+  }
+}
+
+#endif
+
+
+
+#ifndef LCD_ROT180
+
+/*
+ *  clear the display
  */ 
 
 void LCD_Clear(void)
@@ -333,9 +448,9 @@ void LCD_Clear(void)
 
   LCD_CharPos(0, 0);          /* set start address */
 
-  while (Bank < 6)            /* loop through all 6 banks */
+  while (Bank < LCD_BANKS)         /* loop through all banks */
   {
-    Pos = 0;
+    Pos = 0;                       /* start at the left */
 
     while (Pos < 84)               /* for all 84 columns */
     {
@@ -348,6 +463,44 @@ void LCD_Clear(void)
 
   LCD_CharPos(1, 1);          /* reset character position */
 }
+
+#endif
+
+
+
+#ifdef LCD_ROT180
+
+/*
+ *  clear the display
+ *  - version for display rotated by 180°
+ */
+
+void LCD_Clear(void)
+{
+  uint8_t           Bank;          /* bank counter */
+  uint8_t           Pos;           /* column counter */
+
+  /* we have to clear all dots manually :-( */
+  /* start with last bank */
+  Bank = LCD_BANKS;                /* number of banks */ 
+
+  while (Bank > 0)                 /* loop through all banks */
+  {
+    Bank--;                        /* next bank */
+    Pos = 0;                       /* start at the line end */
+    LCD_DotPos(Pos, Bank);         /* set start position */
+
+    while (Pos < 84)               /* for all 84 columns */
+    {
+      LCD_Data(0);                 /* send empty byte */
+      Pos++;                       /* next column */
+    }
+  }
+
+  LCD_CharPos(1, 1);          /* reset character position */
+}
+
+#endif
 
 
 
@@ -427,6 +580,8 @@ void LCD_Init(void)
 
 
 
+#ifndef LCD_ROT180
+
 /*
  *  display a single character
  *
@@ -482,6 +637,71 @@ void LCD_Char(unsigned char Char)
   UI.CharPos_X++;                  /* next character in current line */
   X_Start += FONT_SIZE_X;          /* also update X dot position */
 }
+
+#endif
+
+
+
+#ifdef LCD_ROT180
+
+/*
+ *  display a single character
+ *  - version for display rotated by 180°
+ *
+ *  requires:
+ *  - Char: character to display
+ */
+
+void LCD_Char(unsigned char Char)
+{
+  uint8_t           *Table;        /* pointer to table */
+  uint8_t           Index;         /* font index */
+  uint16_t          Offset;        /* address offset */
+  uint8_t           Bank;          /* bank number */
+  uint8_t           x;             /* bitmap x byte counter */
+  uint8_t           y = 1;         /* bitmap y byte counter */
+
+  /* prevent x overflow */
+  if (UI.CharPos_X > LCD_CHAR_X) return;
+
+  /* get font index number from lookup table */
+  Table = (uint8_t *)&FontTable;        /* start address */
+  Table += Char;                        /* add offset for character */
+  Index = pgm_read_byte(Table);         /* get index number */
+  if (Index == 0xff) return;            /* no character bitmap available */
+
+  /* calculate start address of character bitmap */
+  Table = (uint8_t *)&FontData;         /* start address of font data */
+  Offset = FONT_BYTES_N * Index;        /* offset for character */
+  Table += Offset;                      /* address of character data */
+
+  Bank = Y_Start;                  /* get start bank */
+
+  /* read character bitmap and send it to display */
+  while (y <= FONT_BYTES_Y)             /* loop for Y */
+  {
+    LCD_DotPos(X_Start, Bank);          /* set start position */
+
+    /* read and send all column bytes for this bank */
+    x = 1;
+    while (x <= FONT_BYTES_X)           /* loop for X */
+    {
+      Index = pgm_read_byte(Table);     /* read byte */
+      LCD_Data(Index);                  /* send byte */
+      Table++;                          /* address for next byte */
+      x++;                              /* next byte */
+    }
+
+    Bank++;                             /* next bank */
+    y++;                                /* next row */
+  }
+
+  /* update character position */
+  UI.CharPos_X++;                  /* next character in current line */
+  X_Start -= FONT_SIZE_X;          /* also update X dot position */
+}
+
+#endif
 
 
 

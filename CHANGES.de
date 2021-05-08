@@ -8,6 +8,19 @@
 
 ------------------------------------------------------------------------------
 
+v1.31m 2017-12
+- IR-Fernbedienung (Sender).
+- Unterstützung für feste Signalausgabe über OC1B, wenn OC1B nicht für
+  den Testwiderstand von Testpin #2 benutzt wird. 
+- Einstellungen für Batterie-Überwachung geändert, um auch andere Optionen
+  zur Stromversorgung zu unterstützen. 
+- Treiber für SSD1306 basierte OLED-Module.
+- Farbunterstützung für Auswahl von Menüpunkten oder Parametern.
+- Treiber für ILI9163 basierte LCD-Module.
+- Problemchen in Rechteckgenerator beseitigt.
+- LCD-Treiber für PCD8544 um 180° rotierte Ausgabe erweitert.
+- Editierfehler in Servo_Check() berichtigt.
+
 v1.30m 2017-10
 - Option für Komma statt Punkt für Dezimalstellen.
 - Unterstützung für den erweiterten Frequenzzähler mit Eingangspuffer, LF und
@@ -16,8 +29,8 @@ v1.30m 2017-10
 - Problem mit Torzeit in Frequenzzähler für Frequenzen unter 10kHz bei MCU-Takt
   von 20MHz beseitigt. 
 - ESR-Messung für kürzere Lade-Pulse modifiziert, d.h. der ESR kann nun für
-  Kondesatoren ab 10nF gemesssen werden. Wer die alte Messmethode bevorzugt, kann
-  diese alternativ aktivieren. 
+  Kondesatoren ab 10nF gemesssen werden. Wer die alte Messmethode bevorzugt,
+  kann diese alternativ aktivieren. 
 - Fehler in der Kurzschlußerkennung der Testpins beseitigt.
 - LCD-Treiber für ST7920 um 180° rotierte Ausgabe erweitert.
 

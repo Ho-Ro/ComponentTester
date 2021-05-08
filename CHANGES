@@ -8,9 +8,21 @@
 
 ------------------------------------------------------------------------------
 
+v1.31m 2017-12
+- New tool: IR RC transmitter.
+- Added support for dedicated signal output via OC1B, when OC1B isn't used
+  for test pin #2's probe resistor.
+- Changed battery monitoring settings to support also other power options.
+- Driver for SSD1306 based graphic OLED modules.
+- Color support for item selection (menues and tools).
+- Driver for ILI9163 based graphic color LCD modules.
+- Fixed tiny issue in squarewave signal generator.
+- Added support for 180° rotated output to PCD8544 LCD driver.
+- Fixed edit error in Servo_Check().
+
 v1.30m 2017-10
 - Option to use comma instead of dot to indicate a decimal fraction.
-- Support for extented frequency counter (buffered frequency input, LF
+- Support for extended frequency counter (buffered frequency input, LF
   crystal, and HF crystal).
 - Minor improvements for basic frequency counter.
 - Fixed gate time issue in frequency counter for frequencies below 10kHz when

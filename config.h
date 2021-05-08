@@ -116,6 +116,16 @@
 
 
 /*
+ *  fixed signal output
+ *  - in case MCU's OC1B pin is wired as dedicated signal output
+ *    instead of driving Rl probe resistor for test pin #2
+ *  - uncomment to enable
+ */
+
+//#define HW_FIXED_SIGNAL_OUTPUT
+
+
+/*
  *  basic frequency counter
  *  - default pin: T0 (PD4 ATmega 328)
  *  - uses T0 directly as frequency input
@@ -251,6 +261,17 @@
 
 
 /*
+ *  IR remote control sender
+ *  - requires additional keys and display with more than 4 text lines
+ *  - also requires an IR LED with a simple driver
+ *  - uncomment to enable
+ */
+
+//#define SW_IR_TRANSMITTER
+
+
+
+/*
  *  check for opto couplers
  *  - uncomment to enable
  */
@@ -356,17 +377,18 @@
  *  Voltage divider for battery monitoring
  *  - BAT_R1: top resistor in Ohms
  *  - BAT_R2: bottom resistor in Ohms
- *
+ *  - for a direct measurement without a voltage divider set
+ *    BAT_R1 to 0 and BAT_R1 to 1
  */
 
-#define BAT_R1          10000
-#define BAT_R2          3300
+#define BAT_R1           10000
+#define BAT_R2           3300
 
 
 /*
  *  Voltage drop by reverse voltage protection diode and power management
  *  transistor (in mV):
- *  - Schottky diode about 200mV / Transistor about 100mV.
+ *  - Schottky diode about 200mV / PNP BJT about 100mV.
  *  - Get your DMM and measure the voltage drop!
  *  - Could be also used to compensate any offset by the voltage divider
  *    used to measure the battery voltage.
@@ -376,13 +398,21 @@
 
 
 /*
- *  Battery low voltage (in mV).
- *  - Tester warns if BAT_POOR + 1V is reached.
- *  - Tester powers off if BAT_POOR is reached.
+ *  Battery weak voltage (in mV).
+ *  - Tester warns if BAT_WEAK is reached.
  *  - Voltage drop (BAT_OUT) is considered in calculation.
  */
 
-#define BAT_POOR         6400
+#define BAT_WEAK         7400
+
+
+/*
+ *  Battery low voltage (in mV).
+ *  - Tester powers off if BAT_LOW is reached.
+ *  - Voltage drop (BAT_OUT) is considered in calculation.
+ */
+
+#define BAT_LOW          6400 
 
 
 
@@ -689,6 +719,22 @@
 #endif
 
 
+/* options which require a MCU clock >= 8MHz */
+#if CPU_FREQ < 8000000
+
+  /* ESR measurement */
+  #ifdef SW_ESR
+    #undef SW_ESR
+  #endif
+
+  /* old ESR measurement */
+  #ifdef SW_OLD_ESR
+    #undef SW_OLD_ESR
+  #endif
+
+#endif
+
+
 /* SPI */
 #if defined (SPI_BITBANG) || defined (SPI_HARDWARE)
   #define HW_SPI
@@ -748,20 +794,6 @@
 #ifdef HW_IR_RECEIVER
   #undef SW_IR_RECEIVER
 #endif
-
-
-/* ESR requires MCU clock >= 8MHz */
-#ifdef SW_ESR
-  #if CPU_FREQ < 8000000
-    #undef SW_ESR
-  #endif
-#endif
-#ifdef SW_OLD_ESR
-  #if CPU_FREQ < 8000000
-    #undef SW_OLD_ESR
-  #endif
-#endif
-
 
 
 
