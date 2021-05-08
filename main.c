@@ -59,14 +59,10 @@ signed int     TempInt;                 /* temporary value */
 
 void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit)
 {
-  unsigned char     Prefix;             /* prefix character */
-  uint8_t           Offset;             /* exponent of offset to next 10^3 step */
+  unsigned char     Prefix = 0;         /* prefix character */
+  uint8_t           Offset = 0;         /* exponent offset to next 10^3 step */
   uint8_t           Index;              /* index ID */
   uint8_t           Length;             /* string length */
-
-  Prefix = 0;                           /* no prefix yet */
-  Offset = 0;                           /* disable dot */
-
 
   /* scale value down to 4 digits */
   while (Value >= 10000)
@@ -87,7 +83,6 @@ void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit)
     Index = Exponent / 3;               /* number of 10^3 steps */
     Offset = Exponent % 3;              /* offset to lower 10^3 step */
 
-//  if ((Offset > 0) || (Value >= 1000))  /* dot required */
     if (Offset > 0)                     /* dot required */
     {
       Index++;                          /* upscale prefix */ 
@@ -135,6 +130,32 @@ void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit)
   /* display prefix and unit */
   if (Prefix) lcd_data(Prefix);
   if (Unit) lcd_data(Unit);
+}
+
+
+
+/*
+ *  display signed value and unit
+ *  - max. 4 digits excluding sign, "." and unit
+ *
+ *  requires:
+ *  - value
+ *  - exponent of factor related to base unit (value * 10^x)
+ *    e.g: p = 10^-12 -> -12
+ *  - unit character (0 = none)
+ */
+
+void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit)
+{
+  /* take care about sign */
+  if (Value < 0)              /* negative value */
+  {
+    lcd_data('-');            /* display: "-" */
+    Value = -Value;           /* make value positive */
+  }
+
+  /* and call display unsigned value */
+  DisplayValue((signed long)Value, Exponent, Unit);
 }
 
 
@@ -212,31 +233,55 @@ uint8_t TestKey(unsigned int Timeout, uint8_t Mode)
 
 
 /*
- *  selftest
- *  - display several internal values and measurements
+ *  Tell user to remove a short-circuit and wait until 
+ *  the short-circuit is really removed.
  */
 
-void Selftest(void)
+void RemoveShortCircuit(void)
+{
+  /* tell user to remove short circuit */
+  lcd_fix_string(Remove_str);          /* display: Remove */
+  lcd_line(2);
+  lcd_fix_string(ShortCircuit_str);    /* display: short circuit! */
+  
+  /* wait until probes are disconnected */
+  TempByte1 = 1;
+  while (TempByte1 == 1)
+  {
+    /* check for short circuits */
+    TempByte2 = ShortedProbes(TP1, TP2);
+    TempByte2 += ShortedProbes(TP1, TP3);
+    TempByte2 += ShortedProbes(TP2, TP3);
+
+    if (TempByte2 == 0)                 /* if all removed */
+    {
+      TempByte1 = 0;                    /* end loop */
+    }
+    else                                /* otherwise wait */
+    {
+      wdt_reset();                      /* reset watchdog */
+      wait1ms();                        /* wait a little bit */
+    }
+  }
+}
+
+
+
+/*
+ *  selftest
+ *  - display several internal values and measurements
+ *  - self-calibration of RiL, RiH and C-Zero
+ */
+
+void SelfTest(void)
 {
   uint8_t           Test = 1;           /* test counter */
   uint8_t           Counter;            /* loop counter */
-  unsigned int      Val1, Val2, Val3;   /* voltage of probe #1 */
-  uint8_t           CapCounter = 0;     /* number of C_null measurements */
-  unsigned int      CapSum = 0;         /* sum of C_null measurements */
-  uint8_t           RiL_Counter = 0;
-  unsigned int      U_RiL = 0;
-  uint8_t           RiH_Counter = 0;
-  unsigned int      U_RiH = 0;
-  unsigned long     Val0;
-
-
-  /* display start of selftest */
-  lcd_clear();
-  lcd_fix_string(Selftest_str);         /* display: selftest */
-  wait1s();                             /* let user read the text */
+  uint8_t           Flag;               /* control flag */
+  signed int        Val1, Val2, Val3;   /* voltages/values */
 
   /* loop through all tests */
-  while (Test <= 9)
+  while (Test <= 6)
   {
     Counter = 1;
 
@@ -249,35 +294,48 @@ void Selftest(void)
       lcd_data('0' + Test);             /* display test number */
       lcd_space();
 
+      Flag = 1;                         /* display values by default */
+
+      /*
+       *  tests
+       */
+
       switch (Test)
       {
         case 1:     /* reference voltage */
           TempWord = ReadU(0x0e);            /* dummy read for bandgap stabilization */
           TempWord = ReadU(0x0e);            /* read bandgap reference voltage */ 
-          lcd_fix_string(URef_str);          /* display: URef= */
+          lcd_fix_string(URef_str);          /* display: Vref */
+
+          lcd_line(2);
           DisplayValue(TempWord, -3, 'V');   /* display voltage in mV */
 
-          /* todo: display something in line 2 */
+          Flag = 0;                          /* reset flag */
           break;
 
         case 2:     /* compare Rl resistors (probes still connected) */
           lcd_fix_string(Rl_str);            /* display: Rl */
 
           /* set up a voltage divider with the Rl's */
+          /* substract theoretical voltage of voltage divider */
 
           /* TP1: Gnd -- Rl -- probe-2 -- probe-1 -- Rl -- Vcc */
           R_PORT = 1 << (TP1 * 2);
           R_DDR = (1 << (TP1 * 2)) | (1 << (TP2 * 2));
-          Val1 = ReadU(TP1);
+          Val1 = ReadU_20ms(TP3);
+          Val1 -= ((long)UREF_VCC * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
 
           /* TP1: Gnd -- Rl -- probe-3 -- probe-1 -- Rl -- Vcc */
           R_DDR = (1 << (TP1 * 2)) | (1 << (TP3 * 2));
-          Val2 = ReadU(TP1);
+          Val2 = ReadU_20ms(TP2);
+          Val2 -= ((long)UREF_VCC * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
 
           /* TP1: Gnd -- Rl -- probe-3 -- probe-2 -- Rl -- Vcc */
           R_PORT = 1 << (TP2 * 2);
           R_DDR = (1 << (TP2 * 2)) | (1 << (TP3 * 2));
-          Val3 = ReadU(TP2);
+          Val3 = ReadU_20ms(TP2);
+          Val3 -= ((long)UREF_VCC * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+
           break;
 
         case 3:     /* compare Rh resistors (probes still connected) */
@@ -288,43 +346,26 @@ void Selftest(void)
           /* TP1: Gnd -- Rh -- probe-2 -- probe-1 -- Rh -- Vcc */
           R_PORT = 2 << (TP1 * 2);
           R_DDR = (2 << (TP1 * 2)) | (2 << (TP2 * 2));
-          Val1 = ReadU(TP1);
+          Val1 = ReadU_20ms(TP3);
+          Val1 -= (UREF_VCC / 2);
 
           /* TP1: Gnd -- Rh -- probe-3 -- probe-1 -- Rh -- Vcc */
           R_DDR = (2 << (TP1 * 2)) | (2 << (TP3 * 2));
-          Val2 = ReadU(TP1);
+          Val2 = ReadU_20ms(TP2);
+          Val2 -= (UREF_VCC / 2);
 
           /* TP1: Gnd -- Rh -- probe-3 -- probe-2 -- Rh -- Vcc */
           R_PORT = 2 << (TP2 * 2);
           R_DDR = (2 << (TP2 * 2)) | (2 << (TP3 * 2));
-          Val3 = ReadU(TP2);
+          Val3 = ReadU_20ms(TP1);
+          Val3 -= (UREF_VCC / 2);
+
           break;
 
         case 4:     /* disconnect probes */
-          lcd_fix_string(Remove_str);          /* display: Remove */
-          lcd_line(2);
-          lcd_fix_string(ShortCircuit_str);    /* display: short circuit! */
-
-          /* wait until probes are disconnected */
-          TempByte1 = 1;
-          while (TempByte1 == 1)
-          {
-            /* check for short circuits */
-            TempByte2 = ShortedProbes(TP1, TP2);
-            TempByte2 += ShortedProbes(TP1, TP3);
-            TempByte2 += ShortedProbes(TP2, TP3);
-            if (TempByte2 == 0)                 /* if all removed */
-            {
-              TempByte1 = 0;                    /* end loop */
-            }
-            else                                /* otherwise wait */
-            {
-              wdt_reset();                      /* reset watchdog */
-              wait1ms();                        /* wait a little bit */
-            }
-          }
-
+          RemoveShortCircuit();
           Counter = 100;                        /* skip test */
+          Flag = 0;                             /* reset flag */
           break;
 
         case 5:     /* Rh resistors pulled down */
@@ -333,15 +374,15 @@ void Selftest(void)
           /* TP1: Gnd -- Rh -- probe */
           R_PORT = 0;
           R_DDR = 2 << (TP1 * 2);
-          Val1 = ReadU(TP1);
+          Val1 = ReadU_20ms(TP1);
 
           /* TP1: Gnd -- Rh -- probe */
           R_DDR = 2 << (TP2 * 2);
-          Val2 = ReadU(TP2);
+          Val2 = ReadU_20ms(TP2);
 
           /* TP1: Gnd -- Rh -- probe */
           R_DDR = 2 << (TP3 * 2);
-          Val3 = ReadU(TP3);
+          Val3 = ReadU_20ms(TP3);
 
           break;
 
@@ -351,48 +392,174 @@ void Selftest(void)
           /* TP1: probe -- Rh -- Vcc */
           R_DDR = 2 << (TP1 * 2);
           R_PORT = 2 << (TP1 * 2);
-          Val1 = ReadU(TP1);
+          Val1 = ReadU_20ms(TP1);
 
           /* TP1: probe -- Rh -- Vcc */
           R_DDR = 2 << (TP2 * 2);
           R_PORT = 2 << (TP2 * 2);
-          Val2 = ReadU(TP2);
+          Val2 = ReadU_20ms(TP2);
 
           /* TP1: probe -- Rh -- Vcc */
           R_DDR = 2 << (TP3 * 2);
           R_PORT = 2 << (TP3 * 2);
-          Val3 = ReadU(TP3);
+          Val3 = ReadU_20ms(TP3);
 
           break;
+      }
 
-        case 7:     /* internal resistance of µC in pull-down mode */
+      /* reset ports to defaults */
+      R_DDR = 0;                             /* input mode */
+      R_PORT = 0;                            /* all pins low */
+
+      /* display voltages/values of all probes */
+      if (Flag)
+      {
+        lcd_line(2);                         /* move to line #2 */
+        DisplaySignedValue(Val1, 0 , 0);     /* display TP1 */
+        lcd_space();
+        DisplaySignedValue(Val2, 0 , 0);     /* display TP2 */
+        lcd_space();
+        DisplaySignedValue(Val3, 0 , 0);     /* display TP3 */
+      }
+
+      /* wait and check test push button */
+      TempWord = 1000;                            /* timeout in ms */
+      if (Counter > 99) TempWord = 0;             /* disable timeout if skipping test */
+      TempByte1 = TestKey(TempWord, 0);           /* catch key press or timeout */
+
+      /* short press -> next test / long press -> end selftest */
+      if (TempByte1 > 0)
+      {
+        Counter = 100;                            /* skip current test */
+        if (TempByte1 == 2) Test = 100;           /* skip selftest */
+      } 
+ 
+      Counter++;                        /* next run */
+    }
+
+    Test++;                             /* next one */
+  }
+} 
+
+
+
+/*
+ *  show calibration values and offsets
+ */
+
+void ShowCal(void)
+{
+  /* display C-Zero */
+  lcd_clear();  
+  lcd_fix_string(CapOffset_str);             /* display: C0 */
+  lcd_space();
+  DisplayValue(Config.CapZero, -12, 'F');    /* display C0 offset */
+
+  /* display RiL and RiH */
+  lcd_line(2);
+  DisplayValue(Config.RiL, -1, LCD_CHAR_OMEGA);
+  lcd_space();
+  lcd_fix_string(RiLowHigh_str);        /* display: -Ri+ */
+  lcd_space();
+  DisplayValue(Config.RiH, -1, LCD_CHAR_OMEGA);
+
+  TestKey(3000, TesterMode);            /* let the user read */
+
+  /* display offset of bandgap reference */
+  lcd_clear();
+  lcd_fix_string(URef_str);             /* display: Vref */
+  lcd_space();
+  DisplaySignedValue(Config.RefOffset, -3, 'V');
+
+  /* display offset of analog comparator */
+  lcd_line(2);
+  lcd_fix_string(CompOffset_str);
+  lcd_space();
+  DisplaySignedValue(Config.CompOffset, -3, 'V');
+
+  TestKey(3000, TesterMode);            /* let the user read */
+}
+
+
+
+/*
+ *  self calibration
+ */
+
+void SelfCal(void)
+{
+  uint8_t           Test = 1;           /* test counter */
+  uint8_t           Counter;            /* loop counter */
+  uint8_t           Flag;               /* control flag */
+  unsigned int      Val1, Val2, Val3;   /* voltages */
+  uint8_t           CapCounter = 0;     /* number of C_null measurements */
+  unsigned int      CapSum = 0;         /* sum of C_null values */
+  uint8_t           RiL_Counter = 0;    /* number of U_RiL measurements */
+  unsigned int      U_RiL = 0;          /* sum of U_RiL values */
+  uint8_t           RiH_Counter = 0;    /* number of U_RiH measurements */
+  unsigned int      U_RiH = 0;          /* sum of U_RiL values */
+  unsigned long     Val0;               /* temp. value */
+
+  /*
+   *  measurements
+   */
+
+  while (Test <= 4)
+  {
+    Counter = 1;
+
+    /* repeat each measurement 5 times */
+    while (Counter <= 5)
+    {
+      /* display test number */
+      lcd_clear();
+      lcd_data('C');                    /* display: C */
+      lcd_data('0' + Test);             /* display cal number */
+      lcd_space();
+
+      Flag = 1;        /* display values by default */
+
+      /*
+       *  tests
+       */
+
+      switch (Test)
+      {
+        case 1:     /* disconnect probes */
+          RemoveShortCircuit();
+          Counter = 100;                        /* skip test */
+          Flag = 0;                             /* reset display flag */
+          break;
+
+        case 2:     /* internal resistance of µC in pull-down mode */
           lcd_fix_string(RiLow_str);         /* display: Ri- */
 
           /* TP1:  Gnd -- Ri -- probe -- Rl -- Ri -- Vcc */
+          ADC_PORT = 0;
           ADC_DDR = 1 << TP1;
           R_PORT = 1 << (TP1 * 2);
           R_DDR = 1 << (TP1 * 2);
-          Val1 = ReadU(TP1);
+          Val1 = ReadU_5ms(TP1);
           U_RiL += Val1;
 
           /* TP2: Gnd -- Ri -- probe -- Rl -- Ri -- Vcc */
           ADC_DDR = 1 << TP2;
           R_PORT =  1 << (TP2 * 2);
           R_DDR = 1 << (TP2 * 2);
-          Val2 = ReadU(TP2);
+          Val2 = ReadU_5ms(TP2);
           U_RiL += Val2;
 
           /* TP3: Gnd -- Ri -- probe -- Rl -- Ri -- Vcc */
           ADC_DDR = 1 << TP3;
           R_PORT =  1 << (TP3 * 2);
           R_DDR = 1 << (TP3 * 2);
-          Val3 = ReadU(TP3);
+          Val3 = ReadU_5ms(TP3);
           U_RiL += Val3;
 
           RiL_Counter += 3;
           break;
 
-        case 8:     /* internal resistance of µC in pull-up mode */
+        case 3:     /* internal resistance of µC in pull-up mode */
           lcd_fix_string(RiHigh_str);        /* display: Ri+ */
 
           /* TP1: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */
@@ -400,27 +567,27 @@ void Selftest(void)
           ADC_PORT = 1 << TP1;
           ADC_DDR = 1 << TP1;
           R_DDR = 1 << (TP1 * 2);
-          Val1 = UREF_VCC - ReadU(TP1);
+          Val1 = UREF_VCC - ReadU_5ms(TP1);
           U_RiH += Val1;
 
           /* TP2: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */
           ADC_PORT = 1 << TP2;
           ADC_DDR = 1 << TP2;
           R_DDR = 1 << (TP2 * 2);
-          Val2 = UREF_VCC - ReadU(TP2);
+          Val2 = UREF_VCC - ReadU_5ms(TP2);
           U_RiH += Val2;
 
           /* TP3: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */
           ADC_PORT = 1 << TP3;
           ADC_DDR = 1 << TP3;
           R_DDR = 1 << (TP3 * 2);
-          Val3 = UREF_VCC - ReadU(TP3);
+          Val3 = UREF_VCC - ReadU_5ms(TP3);
           U_RiH += Val3;
 
           RiH_Counter += 3;
           break;
 
-        case 9:     /* capacitance offset (PCB and probe leads) */
+        case 4:     /* capacitance offset (PCB and probe leads) */
           lcd_fix_string(CapOffset_str);     /* display: C0 */
           MeasureCap(TP3, TP1, 0);
           Val1 = (unsigned int)Caps[0].Raw;
@@ -452,29 +619,29 @@ void Selftest(void)
           break;
       }
 
-      /* display voltages of all probes in mV */
-      if ((Test > 1) && (Test != 4))
-      {
-        lcd_line(2);                              /* move to line #2 */
-        DisplayValue(Val1, 0 , 0);                /* display TP1 */
-        lcd_space();
-        DisplayValue(Val2, 0 , 0);                /* display TP2 */
-        lcd_space();
-        DisplayValue(Val3, 0 , 0);                /* display TP3 */
-      }
-
       /* reset ports to defaults */
-      ADC_DDR = 0;                                /* input mode */
-      ADC_PORT = 0;                               /* all pins low */
-      R_DDR = 0;                                  /* input mode */
-      R_PORT = 0;                                 /* all pins low */
+      ADC_DDR = 0;                      /* input mode */
+      ADC_PORT = 0;                     /* all pins low */
+      R_DDR = 0;                        /* input mode */
+      R_PORT = 0;                       /* all pins low */
+
+      /* display values */
+      if (Flag)
+      {
+        lcd_line(2);                    /* move to line #2 */
+        DisplayValue(Val1, 0 , 0);      /* display TP1 */
+        lcd_space();
+        DisplayValue(Val2, 0 , 0);      /* display TP2 */
+        lcd_space();
+        DisplayValue(Val3, 0 , 0);      /* display TP3 */
+      }
 
       /* wait and check test push button */
       TempWord = 1000;                            /* timeout in ms */
       if (Counter > 99) TempWord = 0;             /* disable timeout if skipping test */
       TempByte1 = TestKey(TempWord, 0);           /* catch key press or timeout */
 
-      /* short press -> next test / long press -> end selftest */
+      /* short press -> next test / long press -> end calib */
       if (TempByte1 > 0)
       {
         Counter = 100;                            /* skip current test */
@@ -489,24 +656,14 @@ void Selftest(void)
 
 
   /*
-   *  self calibration
+   *  calculate values and offsets
    */
-
-  /* tell user */
-  lcd_clear();
-  lcd_fix_string(Calibration_str);      /* display: selfcal */
-  lcd_space();
 
   /* capacitance auto-zero */
   if (CapCounter == 15)
   {
-    Config.CapZero = CapSum / CapCounter;  /* calculate average offset (pF) */
+    Config.CapZero = CapSum / CapCounter;    /* calculate average offset (pF) */
   }
-
-  /* display C-Zero */
-  lcd_fix_string(CapOffset_str);             /* display: C0 */
-  lcd_space();
-  DisplayValue(Config.CapZero, -12, 'F');    /* display C0 offset */
 
   /* RiL & RiH */
   if ((RiL_Counter == 15) && (RiH_Counter == 15))
@@ -514,7 +671,7 @@ void Selftest(void)
     /*
      *  Calculate RiL and RiH using the voltage divider rule:
      *  Ri = Rl * (U_Ri / U_Rl)
-     *  - scale up by 10, round up/down and scale down by 10
+     *  - scale up by 100, round up/down and scale down by 10
      */
 
     /* use values multiplied by 3 to increase accuracy */    
@@ -535,22 +692,181 @@ void Selftest(void)
     if (Val0 < 280UL) Config.RiH = (unsigned int)Val0;
   }
 
-  /* display RiL and RiH */
-  lcd_line(2);
-  DisplayValue(Config.RiL, -1, LCD_CHAR_OMEGA);
-  lcd_space();
-  lcd_fix_string(RiLowHigh_str);        /* display: -Ri+ */
-  lcd_space();
-  DisplayValue(Config.RiH, -1, LCD_CHAR_OMEGA);
+  /* show values and offsets */
+  ShowCal();
+}
 
-  TestKey(3000, TesterMode);            /* let the user read */
 
-  /* display end of selftest */
+
+/*
+ *  save calibration values
+ */
+
+void SafeCal(void)
+{
+  /*
+   *  update values stored in EEPROM
+   */
+
+  /* Ri of µC in low mode */
+  eeprom_write_word((uint16_t *)&NV_RiL, Config.RiL);
+
+  /* Ri of µC in low mode */
+  eeprom_write_word((uint16_t *)&NV_RiH, Config.RiH);
+
+  /* capacitance offset: PCB + wiring + probe leads */
+  eeprom_write_byte((uint8_t *)&NV_CapZero, Config.CapZero);
+
+  /* voltage offset of bandgap reference */
+  eeprom_write_byte((uint8_t *)&NV_RefOffset, (uint8_t)Config.RefOffset);
+
+  /* voltage offset of analog comparator */
+  eeprom_write_byte((uint8_t *)&NV_CompOffset, (uint8_t)Config.CompOffset);
+
+/* todo: add a checksum (byte) */
+}
+
+
+
+/*
+ *  load calibration values
+ */
+
+void LoadCal(void)
+{
+  /*
+   *  read stored values from EEPROM
+   */
+
+  /* Ri of µC in low mode */ 
+  Config.RiL = eeprom_read_word(&NV_RiL);
+
+  /* Ri of µC in low mode */
+  Config.RiH = eeprom_read_word(&NV_RiH);
+
+  /* capacitance offset: PCB + wiring + probe leads */
+  Config.CapZero = eeprom_read_byte(&NV_CapZero);
+
+  /* voltage offset of bandgap reference */
+  Config.RefOffset = (int8_t)eeprom_read_byte((uint8_t *)&NV_RefOffset);
+
+  /* voltage offset of analog comparator */
+  Config.CompOffset = (int8_t)eeprom_read_byte((uint8_t *)&NV_CompOffset);
+
+/* todo: add a checksum (byte) */
+}
+
+
+
+/*
+ *  main menu
+ *  - entered by short-circuiting all three probes
+ */
+
+void MainMenu(void)
+{
+  uint8_t           Run = 0;
+  uint8_t           Selected = 1;       /* ID of selected item */
+  uint8_t           Top = 1;            /* ID of top item */
+  uint8_t           n;                  /* counter */
+  unsigned char     *String;            /* menu string */
+  unsigned char     *String2;           /* item string */
+
+#define MAX_ITEMS   4         /* number of menu items */
+
+  /* menu item selection */
+  while (Run == 0)
+  {
+    lcd_clear();
+
+    /* display two items */
+    for (n = Top; n < (Top + 2); n++)
+    {
+      /* display marker for selected item, a space otherwise */
+      if (n == Selected) lcd_data('*');
+      else lcd_space();
+
+      lcd_space();                      /* display space */
+
+      /* display item */
+      switch (n)
+      {
+        case 1:
+          String = (unsigned char *)Selftest_str;
+          break;
+
+        case 2:
+          String = (unsigned char *)Calibration_str;
+          break;
+
+        case 3:
+          String = (unsigned char *)Save_str;
+          break;
+
+        case 4:
+          String = (unsigned char *)Show_str;
+          break;
+      }
+
+      if (n == Selected) String2 = String;
+      lcd_fix_string(String);
+      lcd_line(2);
+    }
+
+    /* process user feedback */
+    n = TestKey(0, 1);             /* wait for testkey */
+    if (n == 1)                    /* short key press selects next item */
+    {
+      Selected++;                       /* move to next item */
+      if (Selected > MAX_ITEMS)         /* max. number of items exceeded */
+      {
+        Selected = 1;                   /* roll over to first one */
+        Top = 1;
+      }
+      else if (Selected < MAX_ITEMS)    /* some items are left */
+      {
+        Top = Selected;                 /* make selected item the top one */
+      }
+    }
+    else if (n == 2)               /* long key press runs selected item */
+    {
+      Run = Selected; 
+    }
+  }
+
+  /* display item choosen */
   lcd_clear();
-  lcd_fix_string(Selftest_str);         /* display: selftest */
-  lcd_space();  
+  lcd_fix_string(String2);              /* display: <item> */  
+  wait1s();
+
+  /* run selected item */
+  switch (Run)
+  {
+    case 1:
+      SelfTest();
+      break;
+
+    case 2:
+      SelfCal();
+      break;
+
+    case 3:
+      SafeCal();
+      break;
+
+    case 4:
+      ShowCal();
+      break;
+  }
+
+  /* display end of item */
+  lcd_clear();
+  lcd_fix_string(String2);              /* display: <item> */
+  lcd_line(2);  
   lcd_fix_string(Done_str);             /* display: done */
-} 
+
+#undef MAX_ITEMS
+}
 
 
 
@@ -1174,11 +1490,10 @@ int main(void)
   RunsPassed = 0;
 
   /* default offsets and values */
-  Config.Samples = ADC_SAMPLES;         /* number of ADC samples */                                      /* ADC samples are set below */
-  Config.RefFlag = 1;                   /* no reference set yet */
-  Config.RiH = R_MCU_HIGH;              /* Ri of µC in high mode */
-  Config.RiL = R_MCU_LOW;               /* Ri of µC in low mode */
-  Config.CapZero = C_ZERO;              /* PCB + wiring + probe leads */
+  Config.Samples = ADC_SAMPLES;         /* number of ADC samples */
+  Config.AutoScale = 1;                 /* enable ADC auto scaling */
+  Config.RefFlag = 1;                   /* no ADC reference set yet */
+  LoadCal();                            /* load calibration values */
 
   wdt_enable(WDTO_2S);		        /* enable watchdog (timeout 2s) */
 
@@ -1206,7 +1521,7 @@ start:
   Config.Samples = 200;                 /* do a lot of samples for high accuracy */
   Config.U_Bandgap = ReadU(0x0e);       /* get voltage of bandgap reference */
   Config.Samples = ADC_SAMPLES;         /* set samples back to default */
-  Config.U_Bandgap += UREF_OFFSET;      /* add user defined offset */ 
+  Config.U_Bandgap += Config.RefOffset; /* add voltage offset */ 
 
 
   /*
@@ -1262,23 +1577,23 @@ start:
     goto end;                      /* new cycle */
   }
 
-  /* run selftest if requested by short-circuiting all probes */
+  /* enter main menu if requested by short-circuiting all probes */
   TempByte1 = ShortedProbes(TP1, TP2);
   TempByte1 += ShortedProbes(TP1, TP3);
   TempByte1 += ShortedProbes(TP2, TP3);
   if (TempByte1 == 3)              /* all probes are short-circuited */
   {
-    Selftest();                    /* perform selftest */;
-    goto end;                      /* new cycle after selftest is done */
+    MainMenu();                    /* enter mainmenu */;
+    goto end;                      /* new cycle after job is is done */
   }
 
   /* check all 6 combinations of the 3 probes */ 
   CheckProbes(TP1, TP2, TP3);
-  CheckProbes(TP1, TP3, TP2);
   CheckProbes(TP2, TP1, TP3);
+  CheckProbes(TP1, TP3, TP2);
+  CheckProbes(TP3, TP1, TP2);
   CheckProbes(TP2, TP3, TP1);
   CheckProbes(TP3, TP2, TP1);
-  CheckProbes(TP3, TP1, TP2);
   
   /* if component might be a capacitor */
   if ((CompFound == COMP_NONE) ||

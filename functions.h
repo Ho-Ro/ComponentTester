@@ -6,15 +6,6 @@
 
 
 /*
- *  includes
- */
-
-/* local includes */
-#include "LCD.h"              /* LCD module */
-
-
-
-/*
  *  In each source file we create a local ID definition. If the ID definition
  *  is unset we may import functions of that specific source file.
  */
@@ -26,6 +17,7 @@
 #ifndef MAIN_C
 
   extern void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit);
+  extern void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit);
   extern uint8_t TestKey(unsigned int Timeout, uint8_t Mode);
 
 #endif
@@ -38,36 +30,20 @@
 #ifndef LCD_C
 
   extern void lcd_enable(void);
-  extern void lcd_send(unsigned char data);
-  extern void lcd_command(unsigned char cmd);
-  extern void lcd_data(unsigned char data);
+  extern void lcd_send(unsigned char Data);
+  extern void lcd_command(unsigned char Cmd);
+  extern void lcd_data(unsigned char Data);
 
   extern void lcd_clear(void);
   extern void lcd_line(unsigned char Line);
   extern void lcd_clear_line(unsigned char Line);
   extern void lcd_init(void);
-  extern void lcd_fix_customchar(const unsigned char *chardata, uint8_t ID);
+  extern void lcd_fix_customchar(const unsigned char *CharData, uint8_t ID);
 
   extern void lcd_space(void);
-  extern void lcd_testpin(unsigned char pin);
-  extern void lcd_string(char *data);
-  extern void lcd_fix_string(const unsigned char *data);
-
-  /*
-   *  macros
-   */
-
-  /* move cursor to beginning of line 1 */
-  #define lcd_line1() lcd_command((uint8_t)(CMD_SET_DD_RAM_ADDR))
-
-  /* move cursor to beginning of line 2 */
-  #define lcd_line2() lcd_command((uint8_t)(CMD_SET_DD_RAM_ADDR | 0x40))
-
-  /* move cursor to beginning of line 3 (4x20 LCD) */
-  #define lcd_line3() lcd_command((uint8_t)(CMD_SET_DD_RAM_ADDR | 0x14))
-
-  /* move cursor to beginning of line 4 (4x20 LCD) */
-  #define lcd_line4() lcd_command((uint8_t)(CMD_SET_DD_RAM_ADDR | 0x54))
+  extern void lcd_testpin(unsigned char Probe);
+//  extern void lcd_string(char *String);
+  extern void lcd_fix_string(const unsigned char *String);
 
 #endif
 

@@ -54,7 +54,7 @@ sample:
 
   ADMUX = Probe;                   /* set input channel and U reference */
 
-  /* if voltage reference changed run a dummy conversion */
+  /* if voltage reference has changed run a dummy conversion */
   /* (recommended by datasheet) */
   Counter = Probe & (1 << REFS1);    /* get REFS1 bit flag */
   if (Counter != Config.RefFlag)
@@ -84,7 +84,8 @@ sample:
     /* auto-switch voltage reference for low readings */
     if ((Counter == 4) &&
         ((uint16_t)Value < 1024) &&
-        !(Probe & (1 << REFS1)))
+        !(Probe & (1 << REFS1)) &&
+        (Config.AutoScale == 1))
     {
       Probe |= (1 << REFS1);       /* select internal bandgap reference */
       goto sample;                 /* re-run sampling */

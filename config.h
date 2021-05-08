@@ -143,9 +143,11 @@
 
 
 /*
- * Offset for the internal bandgap voltage reference (in mV).
+ * Offset for the internal bandgap voltage reference (in mV): -100 up to 100
  *  - To compensate any difference between real value and measured value.
- *  - The ADC has a resolution of about 5mV for V_ref = 5 V.
+ *  - The ADC has a resolution of about 4.88mV for V_ref = 5V (Vcc) and
+ *    1.07mV for V_ref = 1.1V (bandgap).
+ *  - Will be added to measured voltage of bandgap reference.
  */
 
 #define UREF_OFFSET      0
@@ -184,11 +186,14 @@
 /* 
  *  Capacitance of the probe leads connected to the tester (in pF).
  *  Examples:
- *  - 3pF for probe leads 12cm long
- *  - 15pF for probe lead 50cm long
+ *    capacity  length of probe leads
+ *    -------------------------------
+ *     3pF      about 10cm
+ *     9pF      about 30cm
+ *    15pF      about 50cm
  */
 
-#define CAP_PROBELEADS   15
+#define CAP_PROBELEADS   9
 
 
 /*
@@ -250,7 +255,7 @@
   /* estimated internal resistance of port to VCC (in 0.1 Ohms) */
   #define R_MCU_HIGH          225
 
-  /* voltage offset of µCs analog comparator (in mV) */
+  /* voltage offset of µCs analog comparator (in mV): -50 up to 50 */
   #define COMPARATOR_OFFSET   15
 
   /*
@@ -259,9 +264,9 @@
    *  - 36 for ATmega168
    */
 
-  #define CAP_PCB             36
+  #define CAP_PCB             32
 
-  /* total default capacitance */
+  /* total default capacitance (in pF): max. 255 */
   #define C_ZERO              CAP_PCB + CAP_WIRES + CAP_PROBELEADS
 
 
@@ -280,13 +285,13 @@
   /* estimated internal resistance of port to VCC (in 0.1 Ohms) */
   #define R_MCU_HIGH          220  /* 235 */
 
-  /* voltage offset of µCs analog comparator (in mV) */
+  /* voltage offset of µCs analog comparator (in mV): -50 up to 50 */
   #define COMPARATOR_OFFSET   15
 
   /* capacitance of the probe tracks of the PCB and the µC (in pF) */
-  #define CAP_PCB             36
+  #define CAP_PCB             32
 
-  /* total default capacitance */
+  /* total default capacitance (in pF): max. 255 */
   #define C_ZERO              CAP_PCB + CAP_WIRES + CAP_PROBELEADS
 
 

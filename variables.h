@@ -52,6 +52,17 @@
 
 
   /*
+   *  NVRAM values (stored in EEPROM)
+   */
+
+  const uint16_t    NV_RiL EEMEM = R_MCU_LOW;
+  const uint16_t    NV_RiH EEMEM = R_MCU_HIGH;
+  const uint8_t     NV_CapZero EEMEM = C_ZERO;
+  const int8_t      NV_RefOffset EEMEM = UREF_OFFSET;
+  const int8_t      NV_CompOffset EEMEM = COMPARATOR_OFFSET;
+
+
+  /*
    *  constant strings (stored in PROGMEM or EEPROM)
    */
 
@@ -70,10 +81,12 @@
     const unsigned char GAK_str[] MEM_TEXT = "GAK=";
     const unsigned char Done_str[] MEM_TEXT = "fertig!";
     const unsigned char Selftest_str[] MEM_TEXT = "Selbsttest";
+    const unsigned char Calibration_str[] MEM_TEXT = "Kalibrierung";
+    const unsigned char Save_str[] MEM_TEXT = "Speichern";
+    const unsigned char Show_str[] MEM_TEXT = "Werte";
     const unsigned char Remove_str[] MEM_TEXT = "Entferne";
     const unsigned char ShortCircuit_str[] MEM_TEXT = "Kurzschluss!";
     const unsigned char DischargeFailed_str[] MEM_TEXT = "Batterie?";
-    const unsigned char Calibration_str[] MEM_TEXT = "Kal.:";
   #endif
 
   /* language specific: English */
@@ -91,10 +104,12 @@
     const unsigned char GAK_str[] MEM_TEXT = "GAC=";
     const unsigned char Done_str[] MEM_TEXT = "done!";
     const unsigned char Selftest_str[] MEM_TEXT = "Selftest";
+    const unsigned char Calibration_str[] MEM_TEXT = "Calibration";
+    const unsigned char Save_str[] MEM_TEXT = "Save";
+    const unsigned char Show_str[] MEM_TEXT = "Values";
     const unsigned char Remove_str[] MEM_TEXT = "Remove";
     const unsigned char ShortCircuit_str[] MEM_TEXT = "Short Circuit!";
     const unsigned char DischargeFailed_str[] MEM_TEXT = "Battery?";
-    const unsigned char Calibration_str[] MEM_TEXT = "Cal:";
   #endif
 
   /* language independent */
@@ -116,8 +131,7 @@
   const unsigned char DiodeCap_str[] MEM_TEXT = "C=";
   const unsigned char Vth_str[] MEM_TEXT = "Vth=";
   const unsigned char Timeout_str[] MEM_TEXT = "Timeout!";
-  const unsigned char Version_str[] MEM_TEXT = "Tester v0.99m";
-  const unsigned char URef_str[] MEM_TEXT = "Ref=";
+  const unsigned char URef_str[] MEM_TEXT = "Vref";
   const unsigned char RhLow_str[] MEM_TEXT = "Rh-";
   const unsigned char RhHigh_str[] MEM_TEXT = "Rh+";
   const unsigned char RiLow_str[] MEM_TEXT = "Ri-";
@@ -126,6 +140,7 @@
   const unsigned char Rh_str[] MEM_TEXT = "+Rh- 12 13 23";
   const unsigned char CapOffset_str[] MEM_TEXT = "C0";
   const unsigned char RiLowHigh_str[] MEM_TEXT = "-Ri+";
+  const unsigned char CompOffset_str[] MEM_TEXT = "AComp";
 
   const unsigned char Cap_str[] MEM_TEXT = {'-',LCD_CHAR_CAP, '-',0};
   const unsigned char Diode_AC_str[] MEM_TEXT = {'-', LCD_CHAR_DIODE1, '-', 0};
@@ -133,6 +148,7 @@
   const unsigned char Diodes_str[] MEM_TEXT = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
   const unsigned char Resistor_str[] MEM_TEXT = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
 
+  const unsigned char Version_str[] MEM_TEXT = "v1.00m";
 
 
   /*
@@ -180,11 +196,11 @@
   /* voltage based factors for small caps (using Rh) */
   /* voltages in mV:                         1000 1050 1100 1150 1200 1250 1300 1350 1400 */
   const uint16_t SmallCap_table[] MEM_TEXT = {954, 903, 856, 814, 775, 740, 707, 676, 648};
-//const uint16_t SmallCap_table[] MEM_TEXT = {9535, 9026, 8563, 8141,7753, 7396, 7066, 6761, 6477}; 
+//const uint16_t SmallCap_table[] MEM_TEXT = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
 
 
   /*
-   *  bitmask tables for probe settings
+   *  bitmask tables for probe settings (stored in PROGMEM or EEPROM)
    *  - they save some bytes in the firmware.
    */
 

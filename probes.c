@@ -111,17 +111,10 @@ uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
 
 
 /*
- *  try to discharge any connected components
- *  - e.g. capacitors
+ *  try to discharge any connected components, e.g. capacitors
  *  - detect batteries
+ *  - sometimes large caps are detected as a battery
  */
-
-/*
-todo:
-- support caps > 4700µF
-  10mF is detected as battery :-(
-*/
-
 
 void DischargeProbes(void)
 {
@@ -282,6 +275,87 @@ void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 
 
 
+/*
+ *  interpolate value from table based on voltage
+ *  - value descreases over index position
+ *
+ *  requires:
+ *  - voltage in mV
+ *  - table ID
+ *
+ *  returns:
+ *  - multiplicator/factor
+ */
+
+unsigned int GetFactor(unsigned int U_in, uint8_t ID)
+{
+  unsigned int      Factor;             /* return value */
+  unsigned int      U_Diff;             /* voltage difference to table start */
+  unsigned int      Fact1, Fact2;       /* table entries */
+  unsigned int      TabStart;           /* table start voltage */
+  unsigned int      TabStep;            /* table step voltage */
+  unsigned int      TabIndex;           /* table entries (-2) */
+  uint16_t          *Table;
+  uint8_t           Index;              /* table index */
+  uint8_t           Diff;               /* difference to next entry */
+
+  /*
+   *  setup table specific stuff
+   */
+
+  if (ID == TABLE_SMALL_CAP)
+  {
+    TabStart = 1000;               /* table starts at 1000mV */
+    TabStep = 50;                  /* 50mV steps between entries */
+    TabIndex = 7;                  /* entries in table - 2 */
+    Table = (uint16_t *)&SmallCap_table[0];    /* pointer to table start */
+  }
+  else if (ID == TABLE_LARGE_CAP)
+  {
+    TabStart = 300;                /* table starts at 1000mV */
+    TabStep = 25;                  /* 50mV steps between entries */
+    TabIndex = 42;                 /* entries in table - 2 */
+    Table = (uint16_t *)&LargeCap_table[0];    /* pointer to table start */
+  }
+  else
+  {
+    return 0;
+  }
+
+  /*
+   *  We interpolate the table values corresponding to the given voltage.
+   */
+
+  /* difference to start of table */
+  if (U_in >= TabStart) U_Diff = U_in - TabStart;  
+  else U_Diff = 0;
+
+  /* calculate table index */
+  Index = U_Diff / TabStep;             /* index (position in table) */
+  Diff = U_Diff % TabStep;              /* difference to index */
+  Diff = TabStep - Diff;                /* difference to next entry */
+
+  /* prevent index overflow */
+  if (Index > TabIndex) Index = TabIndex;
+
+  /* get values for index and next entry */
+  Table += Index;                       /* advance to index */
+  Fact1 = MEM_read_word(Table);
+  Table++;                              /* next entry */
+  Fact2 = MEM_read_word(Table);
+
+  /* interpolate values based on difference */
+  Factor = Fact1 - Fact2;
+  Factor *= Diff;
+  Factor += TabStep / 2;
+  Factor /= TabStep;
+  Factor += Fact2;
+
+  return Factor;
+}
+
+
+
 /* ************************************************************************
  *   measure capacitance
  * ************************************************************************ */
@@ -290,15 +364,11 @@ void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 /*
 
 We measure the capacitance by measuring the time needed to charge up the DUT
-to a specific voltage.
+to a specific voltage using a constant voltage source:
 
-  U_c = U_in * (1 - e^(-t/RC))
+  U_c(t) = U_in * (1 - e^(-t/RC))
 
-With 
-
-  ln(e^x) = x
-
-we get
+With ln(e^x) = x we get
 
   C = -t / (R * ln(1 - U_c/U_in) 
 
@@ -306,7 +376,8 @@ for an ideal capacitor whithout parallel resistive losses by leakage.
 
 Instead of calculating C directly we'll use pre calculated tables to speed
 up things and keep the firmware small. The tables hold the pre-calculated
-values of (R * ln(1 - U_c/U_in) for a specific range of U_c.
+values of -1/(R * ln(1 - U_c/U_in) for a specific range of U_c, so we just
+have to multiply the time with that stored factor to get C.
 
 Large caps:
 - R = 680 + 22 (22 is the internal resistance of the µC for pull-up)
@@ -314,7 +385,7 @@ Large caps:
 - values are: (-1 / (R * ln(1 - U_c/U_in))) * 10^9n * 10^-2s * 10^-1
   - 10^9n for nF scale
   - 10^-2s for charge pulses of 10ms each
-  - 10^-1 internal scale factor (values fit in unsigned int)
+  - 10^-1 internal scale factor (make values fit in unsigned int)
 - bc: define x (u) { return (-1000000 / (702 * l(1 - u/5000))); }
 
 Small caps:
@@ -322,115 +393,10 @@ Small caps:
 - U_in = 5V
 - values are: (-1 / (R * ln(1 - U_c/U_in))) * 10^12p * 10^-4
   - 10^12p for pF scale
-  - 10^-4 internal scale factor (values fit in unsigned int)
+  - 10^-4 internal scale factor (make values fit in unsigned int)
 - bc: define x (u) { return (-100000000 / (470000 * l(1 - u/5000))); }
 
 */
-
-
-/*
- *  calculate the factor for small cap measurements
- *  based on the voltage of the internal bandgap reference
- *  - use pre-calculated values from a table
- */
-
-unsigned int GetSmallCapMult(void)
-{
-  unsigned int      Factor;             /* return value */
-  unsigned int      U_Diff;
-  unsigned int      Fact1, Fact2;       /* table entries */
-  uint8_t           Index;              /* table index */
-  uint8_t           Diff;               /* difference to next entry */
-  
-  U_Diff = Config.U_Bandgap;            /* get voltage of bandgap reference */
-  U_Diff += COMPARATOR_OFFSET;          /* add offset of the analog comparator */
-
-  /*
-   *  We interpolate the SmallCap_table corresponding to the voltage of the 
-   *  bandgap reference. The table starts at 1000mV and ends at 1400mV.
-   */
-
-  #define TAB_START      1000           /* table starts at 1000mV */
-  #define TAB_STEP       50             /* 50mV steps between entries */
-  #define TAB_INDEX      7              /* entries in table - 2 */
-
-  /* difference to start of table */
-  if (U_Diff >= TAB_START) U_Diff -= TAB_START;  
-  else U_Diff = 0;
-
-  /* calculate table index */
-  Index = U_Diff / TAB_STEP;            /* index (position in table) */
-  Diff = U_Diff % TAB_STEP;             /* difference to index */
-  Diff = TAB_STEP - Diff;               /* difference to next entry */
-
-  /* prevent index overflow */
-  if (Index > TAB_INDEX) Index = TAB_INDEX;
-
-  /* get values for index and next entry */
-  Fact1 = MEM_read_word(&SmallCap_table[Index]);
-  Fact2 = MEM_read_word(&SmallCap_table[Index + 1]);
-
-  /* interpolate values based on difference */
-  Factor = ((((Fact1 - Fact2) * Diff) + (TAB_STEP / 2)) / TAB_STEP) + Fact2;
-
-  #undef TAB_INDEX
-  #undef TAB_STEP
-  #undef TAB_START
-
-  return Factor;  
-}
-
-
-
-/*
- *  calculate the factor for large cap measurements
- *  based on the voltage of the cap
- *  - use pre-calculated values from a table
- */
-
-unsigned int GetLargeCapMult(unsigned int U_Cap)
-{
-  unsigned int      Factor;             /* return value */
-  unsigned int      U_Diff;
-  unsigned int      Fact1, Fact2;       /* table entries */
-  uint8_t           Index;              /* table index */
-  uint8_t           Diff;               /* difference to next entry */
-
-  /*
-   *  We interpolate the LargeCap table corresponding to the voltage of
-   *  the DUT. The table starts at 300mV and ends at 1400mV.
-   */
-
-  #define TAB_START      300            /* table starts at 300mV */
-  #define TAB_STEP       25             /* 25mV steps between entries */
-  #define TAB_INDEX      42             /* entries in table - 2 */
-
-  /* difference to start of table */
-  if (U_Cap >= TAB_START) U_Diff = U_Cap - TAB_START;
-  else U_Diff = 0;
-
-  /* calculate table index */
-  Index = U_Diff / TAB_STEP;            /* index (position in table) */
-  Diff = U_Diff % TAB_STEP;             /* difference to index */
-  Diff = TAB_STEP - Diff;               /* difference to next entry */
-
-  /* prevent index overflow */
-  if (Index > TAB_INDEX) Index = TAB_INDEX;
-
-  /* get values for index and next entry */
-  Fact1 = MEM_read_word(&LargeCap_table[Index]);
-  Fact2 = MEM_read_word(&LargeCap_table[Index + 1]);
-
-  /* interpolate values based on difference */
-  Factor = ((((Fact1 - Fact2) * Diff) + (TAB_STEP / 2)) / TAB_STEP) + Fact2;
-
-  #undef TAB_INDEX
-  #undef TAB_STEP
-  #undef TAB_START
-
-  return Factor;  
-}
-
 
 
 /*
@@ -453,7 +419,7 @@ uint8_t LargeCap(Capacitor_Type *Cap)
   uint8_t           Mode;               /* measurement mode */
   int8_t            Scale;              /* capacitance scale */
   unsigned int      TempInt;            /* temp. value */
-  unsigned int      Pulses;             /* number of charging pulse */
+  unsigned int      Pulses;             /* number of charging pulses */
   unsigned int      U_Zero;             /* voltage before charging */
   unsigned int      U_Cap;              /* voltage of DUT */
   unsigned int      U_Drop;             /* voltage drop */
@@ -569,17 +535,18 @@ large_cap:
   /*
    *  calculate capacitance
    *  - use factor from pre-calculated LargeCap_table
+   *  - ignore Config.CapZero since it's in the pF range
    */
 
   if (Flag == 3)
   {
     Scale = -9;                           /* factor is scaled to nF */
-    Raw = GetLargeCapMult(U_Cap + U_Drop);     /* get interpolated factor from table */
+    /* get interpolated factor from table */
+    Raw = GetFactor(U_Cap + U_Drop, TABLE_LARGE_CAP);
     Raw *= Pulses;                        /* C = pulses * factor */
     if (Mode & FLAG_10MS) Raw *= 10;      /* *10 for 10ms charging pulses */
 
-    /* since Config.CapZero is in the pF range don't subtract it from the raw value */
-    if (Raw > UINT32_MAX / 1000)          /* prevent overflow (>4.3µF) */
+    if (Raw > UINT32_MAX / 1000)          /* scale down if C >4.3mF */
     {
       Raw /= 1000;                        /* scale down by 10^3 */
       Scale += 3;                         /* add 3 to the exponent */
@@ -595,9 +562,9 @@ large_cap:
     /* copy data */
     Cap->A = Probe2_Pin;      /* pull-down probe pin */
     Cap->B = Probe1_Pin;      /* pull-up probe pin */
-    Cap->Scale = Scale;
+    Cap->Scale = Scale;       /* -9 or -6 */
     Cap->Raw = Raw;
-    Cap->Value = Value;
+    Cap->Value = Value;       /* max. 4.3*10^6nF or 100*10^3µF */ 
   }
 
   return Flag;
@@ -623,8 +590,9 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   uint8_t           Flag = 3;           /* return value */
   uint8_t           TempByte;           /* temp. value */
   int8_t            Scale;              /* capacitance scale */
-  unsigned int      TempInt;            /* temp. value */
-  unsigned int      Pulses;             /* number of charging pulse */
+  unsigned int      Ticks;              /* timer counter */
+  unsigned int      Ticks2;             /* timer overflow counter */
+  unsigned int      U_c;                /* voltage of capacitor */
   unsigned long     Raw;                /* raw capacitance value */
   unsigned long     Value;              /* corrected capacitance value */
 
@@ -642,7 +610,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
    *  at Vcc/2. The Input Offset is <10mV at Vcc/2.
    */
 
-  Pulses = 0;                           /* use as timer overflow counter */
+  Ticks2 = 0;                           /* reset timer overflow counter */
 
   /*
    *  init hardware
@@ -670,7 +638,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   /* setup timer */
   TCCR1A = 0;                           /* set default mode */
   TCCR1B = 0;                           /* set more timer modes */
-    /* timer stopped, falling edge detection, noise canceler disabled */
+  /* timer stopped, falling edge detection, noise canceler disabled */
   TCNT1 = 0;                            /* set Counter1 to 0 */
   /* clear all flags (input capture, compare A & B, overflow */
   TIFR1 = (1 << ICF1) | (1 << OCF1B) | (1 << OCF1A) | (1 << TOV1);
@@ -710,10 +678,10 @@ uint8_t SmallCap(Capacitor_Type *Cap)
        /* happens at 65.536ms for 1MHz or 8.192ms for 8MHz */
        TIFR1 = (1 << TOV1);             /* reset flag */
        wdt_reset();                     /* reset watchdog */
-       Pulses++;                        /* increase overflow counter */
+       Ticks2++;                        /* increase overflow counter */
 
        /* end loop if charging takes too long (13.1s) */
-       if (Pulses == (CPU_FREQ / 5000)) break;
+       if (Ticks2 == (CPU_FREQ / 5000)) break;
      }
    }
 
@@ -721,24 +689,30 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   TCCR1B = 0;                           /* stop timer */
   TIFR1 = (1 << ICF1);                  /* reset Input Capture flag */
 
-  TempInt = ICR1;                       /* get counter value */
+  Ticks = ICR1;                         /* get counter value */
 
-  /* todo:
-     measure voltage at probe1 and compare with Config.U_Bandgap
-     to get the offset voltage of the analog comparator */
+  /* disable charging */
+  R_DDR = 0;                  /* set resistor port to HiZ mode */
 
-  /* catch missed overflow */
-  if ((TCNT1 > TempInt) && (TempByte & (1 << TOV1)))
+  /* catch missed timer overflow */
+  if ((TCNT1 > Ticks) && (TempByte & (1 << TOV1)))
   {
     TIFR1 = (1 << TOV1);                /* reset overflow flag */
-    Pulses++;                           /* increase overflow counter */
+    Ticks2++;                           /* increase overflow counter */
   }
 
-  R_PORT = 0;                           /* set resistor port to low */
-                                        /* DUT is discharged */
+  /* enable ADC again */
+  ADCSRA = (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
+
+  /* get voltage of DUT */
+  U_c = ReadU(Probe1_Pin);         /* get voltage of cap */
+
+  /* start discharging DUT */
+  R_PORT = 0;                      /* pull down probe-2 via Rh */
+  R_DDR = Probe1_Rh;               /* enable Rh for probe-1 again */
 
   /* skip measurement if charging took too long */
-  if (Pulses >= (CPU_FREQ / 5000)) Flag = 1;
+  if (Ticks2 >= (CPU_FREQ / 5000)) Flag = 1;
 
 
   /*
@@ -748,16 +722,22 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
   if (Flag == 3)
   {
-    Raw = (unsigned long)TempInt;         /* lower 16 bits */
-    Raw |= (unsigned long)Pulses << 16;   /* upper 16 bits */
+    /*  combine both counter values */
+    Raw = (unsigned long)Ticks;           /* set lower 16 bits */
+    Raw |= (unsigned long)Ticks2 << 16;   /* set upper 16 bits */
+
+    /* subtract processing time overhead */
+    if (Raw > 2) Raw -= 2;
 
     Scale = -12;                          /* factor is for pF scale */
-    if (Raw > UINT32_MAX / 1000)          /* prevent overflow */
+    if (Raw > (UINT32_MAX / 1000))        /* prevent overflow (4.3*10^6) */
     {
       Raw /= 1000;                        /* scale down by 10^3 */
       Scale += 3;                         /* add 3 to the exponent */
     }
-    Raw *= GetSmallCapMult();             /* multiply with factor from table */
+
+    /* multiply with factor from table */
+    Raw *= GetFactor(Config.U_Bandgap + Config.CompOffset, TABLE_SMALL_CAP);
 
     /* divide by CPU frequency to get the time and multiply with table scale */
     Raw /= (CPU_FREQ / 10000);
@@ -780,9 +760,79 @@ uint8_t SmallCap(Capacitor_Type *Cap)
     /* copy data */
     Cap->A = Probe2_Pin;      /* pull-down probe pin */
     Cap->B = Probe1_Pin;      /* pull-up probe pin */
-    Cap->Scale = Scale;
+    Cap->Scale = Scale;       /* -12 or -9 */
     Cap->Raw = Raw;
-    Cap->Value = Value;
+    Cap->Value = Value;       /* max. 5.1*10^6pF or 125*10^3nF */
+
+
+    /*
+     *  Self-calibrate voltage offset of the analog comparator and
+     *  internal bandgap reference if C is 100nF - 20µF.
+     *  Changed offsets will we used in next test run.
+     */
+
+/* todo: add global flag to perform this calibration only once? */
+
+    if (((Scale == -12) && (Value >= 100000)) ||
+        ((Scale == -9) && (Value <= 20000)))
+    {
+      signed int         Offset;
+      signed long        TempLong;
+
+      /*
+       *  We can self-calibrate the offset of the internal bandgap reference
+       *  by measuring a voltage lower than the bandgap reference, one time
+       *  with the bandgap as reference and a second time with Vcc as
+       *  reference. The common voltage source is the cap we just measured.
+       */
+
+       while (ReadU(Probe1_Pin) > 980)
+       {
+         /* keep discharging */
+       }
+
+       R_DDR = 0;                       /* stop discharging */
+
+       Config.AutoScale = 0;            /* disable auto scaling */
+       Ticks = ReadU(Probe1_Pin);       /* U_c with Vcc reference */
+       Config.AutoScale = 1;            /* enable auto scaling again */
+       Ticks2 = ReadU(Probe1_Pin);      /* U_c with bandgap reference */
+
+       R_DDR = Probe1_Rh;               /* resume discharging */
+
+       Offset = Ticks - Ticks2;
+       /* allow some offset caused by the different voltage resolutions
+          (4.88 vs. 1.07) */
+       if ((Offset < -4) || (Offset > 4))    /* offset too large */
+       {
+         /*
+          *  Calculate total offset:
+          *  - first get offset per mV: Offset / U_c
+          *  - total offset for U_ref: (Offset / U_c) * U_ref
+          */
+
+         TempLong = Offset;
+         TempLong *= Config.U_Bandgap;       /* * U_ref */
+         TempLong /= Ticks2;                 /* / U_c */
+
+         Config.RefOffset = (int8_t)TempLong;
+       }
+
+
+      /*
+       *  In the cap measurement above the analog comparator compared
+       *  the voltages of the cap and the bandgap reference. Since the µC
+       *  has an internal voltage drop for the bandgap reference the
+       *  µC used actually U_bandgap - U_offset. We get that offset by
+       *  comparing the bandgap reference with the voltage of the cap:
+       *  U_c = U_bandgap - U_offset -> U_offset = U_c - U_bandgap
+       */
+
+      Offset = U_c - Config.U_Bandgap;
+
+      /* limit offset to a valid range of -50mV - 50mV */
+      if ((Offset > -50) && (Offset < 50)) Config.CompOffset = Offset;
+    }
   }
 
   return Flag;
@@ -909,7 +959,6 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
    *  clean up
    */
 
-  ADCSRA = (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;  /* enable ADC */
   DischargeProbes();                                   /* discharge DUT */
 
   /* reset all ports and pins */
@@ -1512,24 +1561,22 @@ unsigned int CheckDepModeFET(void)
  *  - hfe
  */
 
-unsigned int Get_hfe_c(uint8_t Type)
+unsigned long Get_hfe_c(uint8_t Type)
 {
-  unsigned int      hfe_c;         /* return value */
+  unsigned long     hfe;           /* return value */
   unsigned int      U_R_e;         /* voltage across emitter resistor */
   unsigned int      U_R_b;         /* voltage across base resistor */
   unsigned int      Ri;            /* internal resistance of µC */
-  unsigned long     hfe;           /* for calculation */
 
 
   /*
    *  measure hfe for a BJT in common collector circuit
    *  (emitter follower):
    *  - hfe = (I_e - I_b) / I_b
-   *  - measure the voltages at the resistors and calculate the currents
+   *  - measure the voltages across the resistors and calculate the currents
    *    (resistor values are well known)
    *  - hfe = ((U_R_e / R_e) - (U_R_b / R_b)) / (U_R_b / R_b)
    */
-
 
   /*
    *  setup probes and get voltages
@@ -1544,8 +1591,8 @@ unsigned int Get_hfe_c(uint8_t Type)
     R_DDR = Probe2_Rl | Probe3_Rl;      /* select Rl for probe-2 & Rl for probe-3 */
     R_PORT = Probe3_Rl;                 /* pull up base via Rl */
 
-    U_R_e = ReadU_5ms(Probe2_Pin);         /* voltage at emitter */
-    U_R_b = UREF_VCC - ReadU(Probe3_Pin);  /* Vcc - voltage at base */
+    U_R_e = ReadU_5ms(Probe2_Pin);         /* U_R_e = U_e */
+    U_R_b = UREF_VCC - ReadU(Probe3_Pin);  /* U_R_b = Vcc - U_b */
   }
   else                             /* PNP */
   {
@@ -1556,8 +1603,8 @@ unsigned int Get_hfe_c(uint8_t Type)
     R_PORT = Probe1_Rl;                 /* pull up emitter via Rl */
     R_DDR = Probe1_Rl | Probe3_Rl;      /* pull down base via Rl */
 
-    U_R_e = UREF_VCC - ReadU_5ms(Probe1_Pin);  /* Vcc - voltage at emitter */
-    U_R_b = ReadU(Probe3_Pin);                 /* voltage at base */
+    U_R_e = UREF_VCC - ReadU_5ms(Probe1_Pin);     /* U_R_e = Vcc - U_e */
+    U_R_b = ReadU(Probe3_Pin);                    /* U_R_b = U_b */
   }
 
   if (U_R_b < 10)             /* I_b < 14µA = Darlington */
@@ -1568,8 +1615,8 @@ unsigned int Get_hfe_c(uint8_t Type)
       R_DDR = Probe2_Rl | Probe3_Rh;         /* select Rl for probe-2 & Rh for probe-3 */
       R_PORT = Probe3_Rh;                    /* pull up base via Rh */
 
-      U_R_e = ReadU_5ms(Probe2_Pin);         /* voltage at emitter */
-      U_R_b = UREF_VCC - ReadU(Probe3_Pin);  /* Vcc - voltage at base */
+      U_R_e = ReadU_5ms(Probe2_Pin);         /* U_R_e = U_e */
+      U_R_b = UREF_VCC - ReadU(Probe3_Pin);  /* U_R_b = Vcc - U_b */
 
       Ri = Config.RiL;                       /* get internal resistor */
     }
@@ -1577,8 +1624,8 @@ unsigned int Get_hfe_c(uint8_t Type)
     {
       R_DDR = Probe1_Rl | Probe3_Rh;         /* pull down base via Rh */
 
-      U_R_e = UREF_VCC - ReadU_5ms(Probe1_Pin);  /* Vcc- voltage at emitter */
-      U_R_b = ReadU(Probe3_Pin);                 /* voltage at base */
+      U_R_e = UREF_VCC - ReadU_5ms(Probe1_Pin);  /* U_R_e = Vcc - U_e */
+      U_R_b = ReadU(Probe3_Pin);                 /* U_R_b = U_b */
 
       Ri = Config.RiH;                       /* get internal resistor */
     }
@@ -1595,7 +1642,6 @@ unsigned int Get_hfe_c(uint8_t Type)
     hfe /= U_R_b;                            /* / U_R_b */
     hfe *= 10;                               /* upscale to 0.1 */
     hfe /= (R_LOW * 10) + Ri;                /* / R_e in 0.1 Ohm */
-    if (hfe > UINT16_MAX) hfe = UINT16_MAX;  /* prevent overflow */
   }
   else                        /* I_b > 14µA = standard */
   {
@@ -1606,11 +1652,9 @@ unsigned int Get_hfe_c(uint8_t Type)
      */
 
     hfe = (unsigned long)((U_R_e - U_R_b) / U_R_b);
-  }  
+  }
 
-  hfe_c = (unsigned int)hfe;
-
-  return hfe_c;
+  return hfe;
 }
 
 
@@ -1920,16 +1964,16 @@ void CheckBJTorDepMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
       hfe_e /= (R_LOW * 10) + Config.RiL;    /* / R_c in 0.1 Ohm */
 
     /* get hfe for common collector circuit */
-    hfe_c = (unsigned long)Get_hfe_c(BJT_Type);
+    hfe_c = Get_hfe_c(BJT_Type);
 
     /* keep largest hfe */
     if (hfe_c > hfe_e) hfe_e = hfe_c;
 
     /* only update data if hfe is larger than old one */ 
-    if ((unsigned int)hfe_e > BJT.hfe)
+    if (hfe_e > BJT.hfe)
     {
       /* save data */
-      BJT.hfe = (unsigned int)hfe_e;
+      BJT.hfe = hfe_e;
       BJT.B = Probe3_Pin;
 
       if (BJT_Type == TYPE_NPN)    /* NPN */
@@ -2024,7 +2068,7 @@ void CheckBJTorDepMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
 void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 {
   uint8_t           Flag;               /* temporary value */
-  unsigned int      U_Rl;               /* voltage across Rl */
+  unsigned int      U_Rl;               /* voltage across Rl (load) */
   unsigned int      U_1;                /* voltage #1 */
 
   /* init */
@@ -2040,12 +2084,11 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
    *  probe-1 and probe-2 we might have a semiconductor:
    *  - BJT
    *  - enhancement mode FET
-   *  - IGBT
    *  - Thyristor or Triac
    *  or a large resistor
    */
 
-  if (U_Rl < 977)         /* current < 1.4mA */
+  if (U_Rl < 977)         /* load current < 1.4mA */
   {
     /*
      *  check for:
@@ -2069,7 +2112,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
        *  If DUT is conducting we might have a PNP BJT or p-channel FET.
        */
 
-      if (U_1 > 3422)                   /* detected current */
+      if (U_1 > 3422)                   /* detected current > 4.8mA */
       {
         /* distinguish PNP BJT from p-channel MOSFET */
         CheckBJTorDepMOSFET(TYPE_PNP, U_Rl);
@@ -2099,7 +2142,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
        *  a n-channel MOSFET.
        */
 
-      if (U_1 < 1600)                   /* detected current */
+      if (U_1 < 1600)                   /* detected current > 4.8mA */
       {
         /* first check for thyristor and triac */
         Flag = CheckThyristorTriac();
@@ -2120,7 +2163,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
    *  - small resistor (checked later on)
    */
 
-  else              /* current > 1.4mA */
+  else              /* load current > 1.4mA */
   {
     /* We check for a diode even if we already found a component to get Vf. */
     CheckDiode();

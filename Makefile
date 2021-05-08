@@ -141,7 +141,8 @@ dist:
 
 # clean up
 clean:
-	-rm -rf ${OBJECTS} ${NAME} dep/* ${NAME}.hex ${NAME}.eep ${NAME}.lss ${NAME}.map
+	-rm -rf ${OBJECTS} ${NAME} dep/* *.tgz
+	-rm -rf ${NAME}.hex ${NAME}.eep ${NAME}.lss ${NAME}.map
 
 
 #
@@ -172,19 +173,19 @@ endif
 ifeq (${MCU},atmega328)
 ifeq (${FREQ},1)
 # internal RC oscillator and /1 clock divider
-FUSES_RC = -U lfuse:w:0x62:m -U hfuse:w:0xd9:m
+FUSES_RC = -U lfuse:w:0x62:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
 # external 8MHz full swing crystal and /8 clock divider
-FUSES_CRYSTAL = -U lfuse:w:0x77:m -U hfuse:w:0xd9:m
+FUSES_CRYSTAL = -U lfuse:w:0x77:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
 # external 8MHz low power crystal and /8 clock divider
-FUSES_LOWPOWER = -U lfuse:w:0x7f:m -U hfuse:w:0xd9:m
+FUSES_LOWPOWER = -U lfuse:w:0x7f:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
 endif
 ifeq (${FREQ},8)
 # internal RC oscillator and /1 clock divider
-FUSES_RC = -U lfuse:w:0xe2:m -U hfuse:w:0xd9:m
+FUSES_RC = -U lfuse:w:0xe2:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
 # external 8MHz full swing crystal and /1 clock divider
-FUSES_CRYSTAL = -U lfuse:w:0xf7:m -U hfuse:w:0xd9:m
+FUSES_CRYSTAL = -U lfuse:w:0xf7:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
 # external 8MHz low power crystal and /1 clock divider
-FUSES_LOWPOWER = -U lfuse:w:0xff:m -U hfuse:w:0xd9:m
+FUSES_LOWPOWER = -U lfuse:w:0xff:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
 endif
 endif
 

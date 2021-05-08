@@ -58,10 +58,10 @@ void lcd_enable(void)
  *  - byte value to send
  */
 
-void lcd_send(unsigned char byte)
+void lcd_send(unsigned char Byte)
 {
   /* set upper nibble of byte */
-  LCD_PORT = (LCD_PORT & 0xF0) | ((byte >> 4) & 0x0F);
+  LCD_PORT = (LCD_PORT & 0xF0) | ((Byte >> 4) & 0x0F);
 
   /* give LCD some time */
   #if CPU_FREQ < 2000000
@@ -73,7 +73,7 @@ void lcd_send(unsigned char byte)
   lcd_enable();          /* trigger LCD */
 
   /* set lower nibble of byte */ 
-  LCD_PORT = (LCD_PORT & 0xF0) | (byte & 0x0F);
+  LCD_PORT = (LCD_PORT & 0xF0) | (Byte & 0x0F);
 
   /* give LCD some time */
   #if CPU_FREQ < 2000000
@@ -96,10 +96,10 @@ void lcd_send(unsigned char byte)
  *  - byte value to send
  */
  
-void lcd_command(unsigned char cmd)
+void lcd_command(unsigned char Cmd)
 {
   LCD_PORT &= ~(1 << LCD_RS);    /* set RS to 0 (command mode) */
-  lcd_send(cmd);                 /* send command */
+  lcd_send(Cmd);                 /* send command */
 }
 
 
@@ -111,10 +111,10 @@ void lcd_command(unsigned char cmd)
  *  - byte value to send
  */
 
-void lcd_data(unsigned char data)
+void lcd_data(unsigned char Data)
 {
  LCD_PORT |= (1 << LCD_RS);        /* set RS to 1 (data mode) */ 
- lcd_send(data);                   /* send data */
+ lcd_send(Data);                   /* send data */
 }
 
 
@@ -188,7 +188,7 @@ void lcd_clear_line(unsigned char Line)
     lcd_data(' ');                   /* send space */
   }
 
-  lcd_line(Line);                  /* go to beginning of line */  
+  lcd_line(Line);                  /* go back to beginning of line */  
 }
 
 
@@ -256,7 +256,7 @@ void lcd_init(void)
  *  - ID for custom character (0-7)
  */
 
-void lcd_fix_customchar(const unsigned char *chardata, uint8_t ID)
+void lcd_fix_customchar(const unsigned char *CharData, uint8_t ID)
 {
   uint8_t      i;
 
@@ -273,8 +273,8 @@ void lcd_fix_customchar(const unsigned char *chardata, uint8_t ID)
   /* write custom character */
   for (i = 0; i < 8; i++)               /* do 8 times */
   {
-    lcd_data(MEM_read_byte(chardata));    /* send byte */
-    chardata++;                           /* next one */
+    lcd_data(MEM_read_byte(CharData));    /* send byte */
+    CharData++;                           /* next one */
   }
 }
 
@@ -295,10 +295,10 @@ void lcd_fix_customchar(const unsigned char *chardata, uint8_t ID)
  *  - testpin ID (0-2)
  */
  
-void lcd_testpin(unsigned char pin)
+void lcd_testpin(unsigned char Probe)
 {
   /* since TP1 is 0 we simply add the value to '1' */
-  lcd_data('1' + pin);             /* send data */
+  lcd_data('1' + Probe);           /* send data */
 }
 
 
@@ -314,6 +314,7 @@ void lcd_space(void)
 
 
 
+#if 0
 /*
  *  write a string to the LCD
  *
@@ -321,14 +322,15 @@ void lcd_space(void)
  *  - pointer to string
  */ 
  
-void lcd_string(char *string)
+void lcd_string(char *String)
 {
-  while(*string)              /* loop until trailing 0 is reached */
+  while (*String)             /* loop until trailing 0 is reached */
   {
-    lcd_data(*string);          /* send character */
-    string++;                   /* next one */
+    lcd_data(*String);          /* send character */
+    String++;                   /* next one */
   }
 }
+#endif
 
 
 
@@ -339,16 +341,19 @@ void lcd_string(char *string)
  *  - pointer to fixed string
  */
 
-void lcd_fix_string(const unsigned char *string)
+void lcd_fix_string(const unsigned char *String)
 {
-  unsigned char cc;
+  unsigned char     Char;
 
-  while(1)
+  while (1)
   {
-    cc = MEM_read_byte(string);         /* read charavter */
-    if((cc == 0) || (cc == 128)) return;    /* check for end of string */
-    lcd_data(cc);                       /* send character */
-    string++;                           /* next one */
+    Char = MEM_read_byte(String);       /* read character */
+
+    /* check for end of string */
+    if ((Char == 0) || (Char == 128)) break;
+
+    lcd_data(Char);                     /* send character */
+    String++;                           /* next one */
   }
 }
 

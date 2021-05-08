@@ -5,11 +5,11 @@
 
                           ReadMe for the Component Tester
 
-                            (c) 2012 by Markus Reschke
+           (c) 2012 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit:  2012-08-29
+Last edit:  2012-09-27
 
 
 * About
@@ -73,15 +73,25 @@ you press the key the tester stays powered on and displays the message. That
 is caused by the implementaion of the power control circuit.
 
 
-* Selftest
+* Selftest / Self Calibration
+
+By short-circuiting all three probes you'll trigger a menu which allows you
+to select some special functions. A short key press selects the next item in
+the menu and a long key press (0.3s) runs the selected item. The selected
+item is marked by an asterisk.
+
+
++ Selftest
 
 The selftest function runs each test just 5 times. You can skip a test by a
 short key press or skip the entire selfttest by a long key press (0.3s).
-After running the tests the self calibration is performed.
 
 In test #4 you have to remove the short circuit of the probes which triggered
 the selftest mode. The tester will wait until you realy removed the short
 circuit.
+
+
++ Self Calibration
 
 The self calibration measures the zero offset for capacitance meaurements,
 e.g. the capacitance of the PCB, internal wiring and probe leads as a sum.
@@ -91,7 +101,38 @@ measured the default values defined in config.h are displayed and used. If
 everything went fine the tester will display and use the new values gained
 by the self calibration.
 
-The self calibration doesn't store its results in the EEPROM.
+The voltage offset of the analog comparator is automatically calibrated in
+the capacitance measurement if the capacitor is in the range of 100nF up
+to 20µF. Also the offset of the internal bandgap reference is determined
+in the same way. Both offsets are displayed at the end of the self
+calibration.
+
+
++ Save
+
+By flashing the firmware the pre-defined values given in config.h are stored
+in the EEPROM of the MCU. After running the self calibration you may update
+those default values using the the "Save" function. The next time you power
+on the tester the updated values will be loaded and used.
+
+If you run the tester the first time or changed the hardware setup, i.e. using
+other probe leads, I recommend to measure a capacitor (100nF - 20µF) to
+trigger the voltage offset calibrations, then run the selftest and save the
+new values.
+
+
++ Values
+
+This displays the current calibrations values and offsets used. 
+
+
+* Resistors
+
+Resistors are measured twice (both directions) and the values are compared.
+If the values differ too much the tester assumes that there are two resistors
+instead of just a single one. In that case the tester displays the result as
+two resistors with the same pins, like "1 -- 2 -- 1", and the two different
+resistance values.
 
 
 * Measuring Capacitance
@@ -140,12 +181,40 @@ fully display all data. The display of BJTs may be splitted based on the
 size of hfe.
 
 
+* Vf (V_BE) of BJTs
+
+When checking for diodes Vf is measured with Rl (high test current) and Rh (
+low test current), and both voltages are stored. The output function for BJTs
+looks up the matching diode for V_BE and interpolates the two Vf measurements
+based on the transistors hfe for a virtual test current. That way we get some
+nice results for different kinds of transistors, since Vf of a small signal
+BJT isn't measured with the same test current as for a power BJT.
+
+
 * Unsupported Components
 
-Any semiconducter which requires a high current to trigger conduction can't
-be supported, since the tester is able to provide about 7mA at maximum.
-DIACs got a V_BO of 20-200V, a voltage the tester can't provide.
-Inductors aren't supported also.
+Any semiconductor which requires a high current to trigger conduction can't
+be supported, since the tester only provides about 7mA at maximum. Also the
+tester provides just a voltage of 5V, which isn't sufficient for DIACs with
+a V_BO of 20-200V.
+
+In theory the tester could measure inductance by monitoring how the current
+increases over time. Tests showed that this works only in quite limited way,
+so we won't support inductors. A better way is to add a signal source (sinus
+AC), meassuring frequency, current and voltage, and calculating the inductance
+by the frequency and the complex resistance.
+
+
+* Change Log
+
+v1.00m 2012-09
+- Added a simple menu for selection of self test, self calibration, update of
+  the calibration values in the EEPROM and display of values.
+- Changed hfe from 16 bit to 32 bit value (no 65k limit anymore).
+
+v0.99m 2012-09
+- Initial public release based on Karl-Heinz' version 0.99k.
+
 
 
 * References
