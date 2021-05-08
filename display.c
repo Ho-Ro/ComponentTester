@@ -55,7 +55,7 @@ void Display_NextLine(void)
    *  LCD/OLED display module
    */
 
-  #ifdef UI_SERIAL_COMMANDS
+  #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
   if (Cfg.OP_Control & OP_OUT_LCD)      /* copy to LCD enabled */
   {
   #endif
@@ -92,7 +92,7 @@ void Display_NextLine(void)
     LCD_CharPos(1, Line);          /* move to new line */
   }
 
-  #ifdef UI_SERIAL_COMMANDS
+  #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
   }
   #endif
 
@@ -118,7 +118,7 @@ void Display_NextLine(void)
  *    LCD_Char() in functions.h to save a few bytes
  *
  *  requires:
- *  - character
+ *  - Char: character
  */
 
 #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
@@ -129,16 +129,10 @@ void Display_Char(unsigned char Char)
    *  LCD/OLED display module
    */
 
-  #ifdef UI_SERIAL_COMMANDS
   if (Cfg.OP_Control & OP_OUT_LCD)      /* copy to LCD enabled */
   {
-  #endif
-
-  LCD_Char(Char);                       /* send char to display */
-
-  #ifdef UI_SERIAL_COMMANDS
+    LCD_Char(Char);                     /* send char to display */
   }
-  #endif
 
 
   /*
@@ -285,10 +279,11 @@ void LCD_ClearLine2(void)
 #ifdef UI_SERIAL_COPY
 
 /*
- *  send newline and enable output to serial
+ *  enable output to TTL serial and send newline
+ *  - output to display and serial
  */
 
-void SerialCopy_On(void)
+void Display_Serial_On(void)
 {
   Serial_NewLine();                /* serial: new line */
   Cfg.OP_Control |= OP_OUT_SER;    /* enable output to serial */
@@ -297,10 +292,11 @@ void SerialCopy_On(void)
 
 
 /*
- *  disable output to serial and send newline
+ *  disable output to TTL serial and send newline
+ *  - keep output to display enabled
  */
 
-void SerialCopy_Off(void)
+void Display_Serial_Off(void)
 {
   Cfg.OP_Control &= ~OP_OUT_SER;   /* disable output to serial */
   Serial_NewLine();                /* serial: new line */
@@ -310,31 +306,37 @@ void SerialCopy_Off(void)
 
 
 
-#ifdef UI_SERIAL_COMMANDS
+#if defined (UI_SERIAL_COMMANDS) || defined (SW_DISPLAY_REG)
 
 /*
- *  switch output from LCD to TTL serial
+ *  set output to TTL serial
+ *  - and disable output to display
  */
 
-void Display_LCD2Serial(void)
+void Display_Serial_Only(void)
 {
-  Cfg.OP_Control &= ~OP_OUT_LCD;   /* disable LCD output */
+  Cfg.OP_Control &= ~OP_OUT_LCD;   /* disable display output */
   Cfg.OP_Control |= OP_OUT_SER;    /* enable serial output */
 }
 
 
 
 /*
- *  switch output from TTL serial to LCD
+ *  set output to display
+ *  - and disable output to TTL serial
  */
 
-void Display_Serial2LCD(void)
+void Display_LCD_Only(void)
 {
   Cfg.OP_Control &= ~OP_OUT_SER;   /* disable serial output */
-  Cfg.OP_Control |= OP_OUT_LCD;    /* enable LCD output */
+  Cfg.OP_Control |= OP_OUT_LCD;    /* enable display output */
 }
 
+#endif
 
+
+
+#ifdef UI_SERIAL_COMMANDS
 
 /*
  *  display a fixed string stored in EEPROM
@@ -359,7 +361,7 @@ void Display_EEString_NL(const unsigned char *String)
  * ************************************************************************ */
 
 
-#if defined (FUNC_DISPLAY_HEXBYTE) || defined (SW_IR_TRANSMITTER)
+#if defined (FUNC_DISPLAY_HEXBYTE) || defined (FUNC_DISPLAY_HEXVALUE)
 
 /*
  *  display single hexadecimal digit
@@ -374,11 +376,26 @@ void Display_HexDigit(uint8_t Digit)
    *  convert value into hex digit:
    *  - 0-9: ascii 48-57
    *  - A-F: ascii 65-70
+   *    a-f: ascii 97-102
    */
 
-  if (Digit < 10) Digit += 48;     /* 0-9 */
-  else Digit += (65 - 10);         /* A-F */
-  Display_Char(Digit);  
+  if (Digit < 10)             /* 0-9 */
+  {
+    /* char '0' is ASCII 48 */
+    Digit += 48;                   /* char 0-9 */
+  }
+  else                        /* a-f */
+  {
+    #ifdef UI_HEX_UPPERCASE
+      /* char 'A' is ASCII 65 */
+      Digit += (65 - 10);          /* char A-F */
+    #else
+      /* char 'a' is ASCII 97 */
+      Digit += (97 - 10);          /* char a-f */
+    #endif
+  }
+
+  Display_Char(Digit);        /* display digit */
 }
 
 #endif
@@ -411,7 +428,7 @@ void Display_HexByte(uint8_t Value)
 
 
 
-#ifdef SW_IR_TRANSMITTER
+#ifdef FUNC_DISPLAY_HEXVALUE
 
 /*
  *  display value as hexadecimal number
@@ -886,8 +903,74 @@ void LCD_FancySemiPinout(uint8_t Line)
 
 
 /* ************************************************************************
- *   font test
+ *   display related menu functions
  * ************************************************************************ */
+
+
+#ifdef SW_CONTRAST
+
+/*
+ *  change LCD contrast
+ *  - takes maximum value into account (UI.MaxContrast)
+ */
+
+void ChangeContrast(void)
+{
+  uint8_t          Flag = 1;            /* loop control */
+  uint8_t          Contrast;            /* contrast value */
+  uint8_t          Max;                 /* contrast maximum */
+  
+
+  /*
+   *  increase: short key press / right turn 
+   *  decrease: long key press / left turn
+   *  done:     two brief key presses          
+   */
+
+  LCD_Clear();
+  Display_EEString_Space(Contrast_str);      /* display: Contrast */
+
+  Contrast = NV.Contrast;          /* get current value */
+  Max = UI.MaxContrast;            /* get maximum value */
+
+  while (Flag)
+  {
+    LCD_ClearLine2();
+    Display_Value(Contrast, 0, 0);
+
+    #ifdef HW_KEYS
+    if (Flag < KEY_RIGHT)               /* just for test button usage */
+    #endif
+    MilliSleep(300);                    /* smooth UI */
+
+    /* wait for user feedback */
+    Flag = TestKey(0, CHECK_KEY_TWICE | CHECK_BAT);
+
+    if (Flag == KEY_SHORT)              /* short key press */
+    {
+      if (Contrast < Max) Contrast++;   /* increase value */
+    }
+    else if (Flag == KEY_TWICE)         /* two short key presses */
+    {
+      Flag = 0;                         /* end loop */
+    }
+    #ifdef HW_KEYS
+    else if (Flag == KEY_RIGHT)         /* rotary encoder: right turn */
+    {
+      if (Contrast < Max) Contrast++;   /* increase value */
+    }
+    #endif
+    else                                /* long key press / left turn */
+    {
+      if (Contrast > 0) Contrast--;       /* decrease */
+    }
+
+    LCD_Contrast(Contrast);        /* change contrast */
+  }
+}
+
+#endif
+
 
 
 #ifdef SW_FONT_TEST

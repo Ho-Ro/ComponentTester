@@ -47,11 +47,11 @@
   /* buffers */
   char              OutBuffer[OUT_BUFFER_SIZE];   /* output buffer */
   #ifdef SERIAL_RW
-  char              RX_Buffer[RX_BUFFER_SIZE];    /* serial RX buffer */
-  uint8_t           RX_Pos = 0;                   /* position in buffer */
+    char            RX_Buffer[RX_BUFFER_SIZE];    /* serial RX buffer */
+    uint8_t         RX_Pos = 0;                   /* position in buffer */
     #ifdef SERIAL_BITBANG
-    uint8_t         RX_Char;                 /* RX char (bit buffer) */
-    uint8_t         RX_Bits;                 /* bit counter for RX char */
+      uint8_t       RX_Char;                 /* RX char (bit buffer) */
+      uint8_t       RX_Bits;                 /* bit counter for RX char */
     #endif
   #endif
 
@@ -61,7 +61,7 @@
   Adjust_Type       NV;                      /* basic adjustment offsets and values */
 
   #ifdef HW_TOUCH
-  Touch_Type        Touch;                   /* touch screen adjustment offsets */
+    Touch_Type      Touch;                   /* touch screen adjustment offsets */
   #endif
 
   /* probing */
@@ -76,24 +76,24 @@
   AltSemi_Type      AltSemi;                 /* special semiconductor */
 
   #ifdef SW_INDUCTOR
-  Inductor_Type     Inductor;                /* inductor */
+    Inductor_Type   Inductor;                /* inductor */
   #endif
 
   #ifdef UI_SERIAL_COMMANDS
-  Info_Type         Info;                    /* additional component data */
+    Info_Type       Info;                    /* additional component data */
   #endif
 
   #ifdef HW_SPI
-  SPI_Type          SPI;                     /* SPI */
+    SPI_Type        SPI;                     /* SPI */
   #endif
 
   #ifdef HW_I2C
-  I2C_Type          I2C;                     /* I2C */
+    I2C_Type        I2C;                     /* I2C */
   #endif
 
   #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
-  /* demodulated/raw IR code */
-  uint8_t           IR_Code[IR_CODE_BYTES];  /* raw data */
+    /* demodulated/raw IR code */
+    uint8_t         IR_Code[IR_CODE_BYTES];  /* raw data */
   #endif
 
 
@@ -123,8 +123,8 @@
   const Adjust_Type     NV_Adjust_2 EEMEM = {R_MCU_LOW, R_MCU_HIGH, NV_R_ZERO, NV_C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
 
   #ifdef HW_TOUCH
-  /* touch screen adjustment offsets */
-  const Touch_Type      NV_Touch EEMEM = {0, 0, 0, 0, 0};
+    /* touch screen adjustment offsets */
+    const Touch_Type    NV_Touch EEMEM = {0, 0, 0, 0, 0};
   #endif
 
 
@@ -148,7 +148,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.40m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.41m";
 
 
   /* common terms and texts */
@@ -187,6 +187,7 @@
   const unsigned char I_DSS_str[] MEM_TYPE = "Idss";
   const unsigned char I_leak_str[] MEM_TYPE = "I_l";
   const unsigned char R_DS_str[] MEM_TYPE = "Rds";
+  const unsigned char V_GSoff_str[] MEM_TYPE = "V_GS(off)";
 
 
   /* options */
@@ -198,11 +199,11 @@
     const unsigned char IR_NEC_str[] MEM_TYPE = "NEC";
     const unsigned char IR_SIRC_str[] MEM_TYPE = "SIRC";
     #ifdef SW_IR_RX_EXTRA
-    const unsigned char IR_IR60_str[] MEM_TYPE = "IR60";
-    const unsigned char IR_RCA_str[] MEM_TYPE = "RCA";
-    const unsigned char IR_RECS80_str[] MEM_TYPE = "RECS80";
-    const unsigned char IR_Sanyo_str[] MEM_TYPE = "Sanyo";
-    const unsigned char IR_uPD1986C_str[] MEM_TYPE = "µPD1986C";
+      const unsigned char IR_IR60_str[] MEM_TYPE = "IR60";
+      const unsigned char IR_RCA_str[] MEM_TYPE = "RCA";
+      const unsigned char IR_RECS80_str[] MEM_TYPE = "RECS80";
+      const unsigned char IR_Sanyo_str[] MEM_TYPE = "Sanyo";
+      const unsigned char IR_uPD1986C_str[] MEM_TYPE = "µPD1986C";
     #endif
   #endif
 
@@ -217,7 +218,7 @@
     const unsigned char IR_Samsung_str[] MEM_TYPE = "Sams";
     const unsigned char IR_Sharp_str[] MEM_TYPE = "Sharp";
     #if defined (SW_IR_RX_EXTRA) || defined (SW_IR_TX_EXTRA)
-    const unsigned char IR_Thomson_str[] MEM_TYPE = "Thom";
+      const unsigned char IR_Thomson_str[] MEM_TYPE = "Thom";
     #endif
   #endif
 
@@ -271,6 +272,8 @@
 
   /* remote commands */
   #ifdef UI_SERIAL_COMMANDS
+    /* maximum string length: RX_BUFFER_SIZE - 1 */
+
     /* feedback */ 
     const unsigned char Cmd_ERR_str[] MEM_TYPE = "ERR";
     const unsigned char Cmd_OK_str[] MEM_TYPE = "OK";
@@ -278,26 +281,30 @@
     const unsigned char Cmd_R_be_str[] MEM_TYPE = "R_BE";
     const unsigned char Cmd_D_fb_str[] MEM_TYPE = "D_FB";
     const unsigned char Cmd_BJT_str[] MEM_TYPE = "BJT";
+    #ifdef SW_SCHOTTKY_BJT
+      const unsigned char Cmd_D_Clamp_str[] MEM_TYPE = "D_CLAMP";
+    #endif
     const unsigned char Cmd_SYM_str[] MEM_TYPE = "SYM";
 
     /* commands */
     const unsigned char Cmd_VER_str[] MEM_TYPE = "VER";
-    const unsigned char Cmd_PROBE_str[] MEM_TYPE = "PROBE";
     const unsigned char Cmd_OFF_str[] MEM_TYPE = "OFF";
+    const unsigned char Cmd_PROBE_str[] MEM_TYPE = "PROBE";
     const unsigned char Cmd_COMP_str[] MEM_TYPE = "COMP";
     const unsigned char Cmd_MSG_str[] MEM_TYPE = "MSG";
     const unsigned char Cmd_QTY_str[] MEM_TYPE = "QTY";
     const unsigned char Cmd_NEXT_str[] MEM_TYPE = "NEXT";
     const unsigned char Cmd_TYPE_str[] MEM_TYPE = "TYPE";
     const unsigned char Cmd_HINT_str[] MEM_TYPE = "HINT";
+    const unsigned char Cmd_MHINT_str[] MEM_TYPE = "MHINT";
     const unsigned char Cmd_PIN_str[] MEM_TYPE = "PIN";
     const unsigned char Cmd_R_str[] MEM_TYPE = "R";
     const unsigned char Cmd_C_str[] MEM_TYPE = "C";
     #ifdef SW_INDUCTOR
-    const unsigned char Cmd_L_str[] MEM_TYPE = "L";
+      const unsigned char Cmd_L_str[] MEM_TYPE = "L";
     #endif
     #if defined (SW_ESR) || defined (SW_OLD_ESR)
-    const unsigned char Cmd_ESR_str[] MEM_TYPE = "ESR";
+      const unsigned char Cmd_ESR_str[] MEM_TYPE = "ESR";
     #endif
     const unsigned char Cmd_V_F_str[] MEM_TYPE = "V_F";
     const unsigned char Cmd_V_F2_str[] MEM_TYPE = "V_F2";
@@ -305,13 +312,14 @@
     const unsigned char Cmd_R_BE_str[] MEM_TYPE = "R_BE";
     const unsigned char Cmd_h_FE_str[] MEM_TYPE = "h_FE";
     #ifdef SW_REVERSE_HFE
-    const unsigned char Cmd_h_FE_r_str[] MEM_TYPE = "h_FE_r";
+      const unsigned char Cmd_h_FE_r_str[] MEM_TYPE = "h_FE_r";
     #endif
     const unsigned char Cmd_V_BE_str[] MEM_TYPE = "V_BE";
     const unsigned char Cmd_I_CEO_str[] MEM_TYPE = "I_CEO";
     const unsigned char Cmd_V_TH_str[] MEM_TYPE = "V_th";
     const unsigned char Cmd_C_GS_str[] MEM_TYPE = "C_GS";
     const unsigned char Cmd_R_DS_str[] MEM_TYPE = "R_DS";
+    const unsigned char Cmd_V_GS_off_str[] MEM_TYPE = "V_GS_off";
     const unsigned char Cmd_I_DSS_str[] MEM_TYPE = "I_DSS";
     const unsigned char Cmd_C_GE_str[] MEM_TYPE = "C_GE";
     const unsigned char Cmd_V_T_str[] MEM_TYPE = "V_T";
@@ -319,22 +327,23 @@
     /* command reference table */
     const Cmd_Type Cmd_Table[] MEM_TYPE = {
       {CMD_VER, Cmd_VER_str},
-      {CMD_PROBE, Cmd_PROBE_str},
       {CMD_OFF, Cmd_OFF_str},
+      {CMD_PROBE, Cmd_PROBE_str},
       {CMD_COMP, Cmd_COMP_str},
       {CMD_MSG, Cmd_MSG_str},
       {CMD_QTY, Cmd_QTY_str},
       {CMD_NEXT, Cmd_NEXT_str},
       {CMD_TYPE, Cmd_TYPE_str},
       {CMD_HINT, Cmd_HINT_str},
+      {CMD_MHINT, Cmd_MHINT_str},
       {CMD_PIN, Cmd_PIN_str},
       {CMD_R, Cmd_R_str},
       {CMD_C, Cmd_C_str},
       #ifdef SW_INDUCTOR
-      {CMD_L, Cmd_L_str},
+        {CMD_L, Cmd_L_str},
       #endif
       #if defined (SW_ESR) || defined (SW_OLD_ESR)
-      {CMD_ESR, Cmd_ESR_str},
+        {CMD_ESR, Cmd_ESR_str},
       #endif
       {CMD_I_L, I_leak_str},
       {CMD_V_F, Cmd_V_F_str},
@@ -344,19 +353,20 @@
       {CMD_R_BE, Cmd_R_BE_str},
       {CMD_H_FE, Cmd_h_FE_str},
       #ifdef SW_REVERSE_HFE
-      {CMD_H_FE_R, Cmd_h_FE_r_str},
+        {CMD_H_FE_R, Cmd_h_FE_r_str},
       #endif
       {CMD_V_BE, Cmd_V_BE_str},
       {CMD_I_CEO, Cmd_I_CEO_str},
       {CMD_V_TH, Cmd_V_TH_str},
       {CMD_C_GS, Cmd_C_GS_str},
       {CMD_R_DS, Cmd_R_DS_str},
+      {CMD_V_GS_OFF, Cmd_V_GS_off_str},
       {CMD_I_DSS, Cmd_I_DSS_str},
       {CMD_C_GE, Cmd_C_GE_str},
       {CMD_V_GT, V_GT_str},
       {CMD_V_T, Cmd_V_T_str},
       #ifdef SW_UJT
-      {CMD_R_BB, R_BB_str},
+        {CMD_R_BB, R_BB_str},
       #endif
       {0, 0}
     };
@@ -381,54 +391,54 @@
 //const uint16_t SmallCap_table[NUM_SMALL_CAP] MEM_TYPE = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
 
   #ifdef SW_PWM_SIMPLE
-  /* PWM menu: frequencies */    
-  const uint16_t PWM_Freq_table[NUM_PWM_FREQ] MEM_TYPE = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
+    /* PWM menu: frequencies */    
+    const uint16_t PWM_Freq_table[NUM_PWM_FREQ] MEM_TYPE = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
   #endif
 
   #ifdef SW_INDUCTOR
-  /* ratio based factors for inductors */
-  /* ratio:                                                200   225   250   275   300   325   350   375   400   425   450   475   500   525   550   575   600   625  650  675  700  725  750  775  800  825  850  875  900  925  950  975 */
-  const uint16_t Inductor_table[NUM_INDUCTOR] MEM_TYPE = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
+    /* ratio based factors for inductors */
+    /* ratio:                                                200   225   250   275   300   325   350   375   400   425   450   475   500   525   550   575   600   625  650  675  700  725  750  775  800  825  850  875  900  925  950  975 */
+    const uint16_t Inductor_table[NUM_INDUCTOR] MEM_TYPE = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
   #endif
 
   #if defined (HW_FREQ_COUNTER) || defined (SW_SQUAREWAVE)
-  /* Timer1 prescalers and corresponding register bits */
-  const uint16_t T1_Prescaler_table[NUM_TIMER1] MEM_TYPE = {1, 8, 64, 256, 1024};
-  const uint8_t T1_RegBits_table[NUM_TIMER1] MEM_TYPE = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
+    /* Timer1 prescalers and corresponding register bits */
+    const uint16_t T1_Prescaler_table[NUM_TIMER1] MEM_TYPE = {1, 8, 64, 256, 1024};
+    const uint8_t T1_RegBits_table[NUM_TIMER1] MEM_TYPE = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
   #endif
 
   #ifdef SW_PROBE_COLORS
-  /* probe color coding */
-  uint16_t          ProbeColors[NUM_PROBE_COLORS] = {COLOR_PROBE_1, COLOR_PROBE_2, COLOR_PROBE_3};
+    /* probe color coding */
+    uint16_t        ProbeColors[NUM_PROBE_COLORS] = {COLOR_PROBE_1, COLOR_PROBE_2, COLOR_PROBE_3};
   #endif
 
   #ifdef SW_E6
-  /* E6 (in 0.01) */
-  const uint16_t E6_table[NUM_E6] MEM_TYPE = {100, 150, 220, 330, 470, 680};  
+    /* E6 (in 0.01) */
+    const uint16_t E6_table[NUM_E6] MEM_TYPE = {100, 150, 220, 330, 470, 680};  
   #endif
 
   #ifdef SW_E12
-  /* E12 (in 0.01) */
-  const uint16_t E12_table[NUM_E12] MEM_TYPE = {100, 120, 150, 180, 220, 270, 330, 390, 470, 560, 680, 820};
+    /* E12 (in 0.01) */
+    const uint16_t E12_table[NUM_E12] MEM_TYPE = {100, 120, 150, 180, 220, 270, 330, 390, 470, 560, 680, 820};
   #endif
 
   #ifdef SW_E24
-  /* E24 (in 0.01) */
-  const uint16_t E24_table[NUM_E24] MEM_TYPE = {100, 110, 120, 130, 150, 160, 180, 200, 220, 240, 270, 300, 330, 360, 390, 420, 470, 510, 560, 620, 680, 750, 820, 910};
+    /* E24 (in 0.01) */
+    const uint16_t E24_table[NUM_E24] MEM_TYPE = {100, 110, 120, 130, 150, 160, 180, 200, 220, 240, 270, 300, 330, 360, 390, 420, 470, 510, 560, 620, 680, 750, 820, 910};
   #endif
 
   #ifdef SW_E96
-  /* E96 (in 0.01) */
-  const uint16_t E96_table[NUM_E96] MEM_TYPE = {
-    100, 102, 105, 107, 110, 113, 115, 118, 121, 124, 127, 130, 133, 137, 140, 143, 147, 150, 154, 158, 162, 165, 169, 174,
-    178, 182, 187, 191, 196, 200, 205, 210, 215, 221, 226, 232, 237, 243, 249, 255, 261, 267, 274, 280, 287, 294, 301, 309,
-    316, 324, 332, 340, 348, 357, 365, 374, 383, 392, 402, 412, 422, 432, 442, 453, 464, 475, 487, 499, 511, 523, 536, 549,
-    562, 576, 590, 604, 619, 634, 649, 665, 681, 698, 715, 732, 750, 768, 787, 806, 825, 845, 866, 887, 909, 931, 953, 976}; 
+    /* E96 (in 0.01) */
+    const uint16_t E96_table[NUM_E96] MEM_TYPE = {
+      100, 102, 105, 107, 110, 113, 115, 118, 121, 124, 127, 130, 133, 137, 140, 143, 147, 150, 154, 158, 162, 165, 169, 174,
+      178, 182, 187, 191, 196, 200, 205, 210, 215, 221, 226, 232, 237, 243, 249, 255, 261, 267, 274, 280, 287, 294, 301, 309,
+      316, 324, 332, 340, 348, 357, 365, 374, 383, 392, 402, 412, 422, 432, 442, 453, 464, 475, 487, 499, 511, 523, 536, 549,
+      562, 576, 590, 604, 619, 634, 649, 665, 681, 698, 715, 732, 750, 768, 787, 806, 825, 845, 866, 887, 909, 931, 953, 976}; 
   #endif
 
   #ifdef FUNC_COLORCODE
-  /* band colors based on value                               0                 1                 2               3                  4                  5                 6                7                  8                9 */
-  const uint16_t ColorCode_table[NUM_COLOR_CODES] MEM_TYPE = {COLOR_CODE_BLACK, COLOR_CODE_BROWN, COLOR_CODE_RED, COLOR_CODE_ORANGE, COLOR_CODE_YELLOW, COLOR_CODE_GREEN, COLOR_CODE_BLUE, COLOR_CODE_VIOLET, COLOR_CODE_GREY, COLOR_CODE_WHITE};
+    /* band colors based on value                               0                 1                 2               3                  4                  5                 6                7                  8                9 */
+    const uint16_t ColorCode_table[NUM_COLOR_CODES] MEM_TYPE = {COLOR_CODE_BLACK, COLOR_CODE_BROWN, COLOR_CODE_RED, COLOR_CODE_ORANGE, COLOR_CODE_YELLOW, COLOR_CODE_GREEN, COLOR_CODE_BLUE, COLOR_CODE_VIOLET, COLOR_CODE_GREY, COLOR_CODE_WHITE};
   #endif
 
 
@@ -470,11 +480,11 @@
   /* buffers */
   extern char            OutBuffer[];        /* output buffer */
   #ifdef SERIAL_RW
-  extern char            RX_Buffer[];        /* serial RX buffer */
-  extern uint8_t         RX_Pos;             /* position in buffer */
+    extern char          RX_Buffer[];        /* serial RX buffer */
+    extern uint8_t       RX_Pos;             /* position in buffer */
     #ifdef SERIAL_BITBANG
-    extern uint8_t       RX_Char;            /* RX char (bit buffer) */
-    extern uint8_t       RX_Bits;            /* bit counter for RX char */
+      extern uint8_t     RX_Char;            /* RX char (bit buffer) */
+      extern uint8_t     RX_Bits;            /* bit counter for RX char */
     #endif
   #endif
 
@@ -484,7 +494,7 @@
   extern Adjust_Type     NV;                 /* basic adjustment offsets and values */
 
   #ifdef HW_TOUCH
-  extern Touch_Type      Touch;              /* touch screen adjustment offsets */
+    extern Touch_Type    Touch;              /* touch screen adjustment offsets */
   #endif
 
   /* probing */
@@ -499,24 +509,24 @@
   extern AltSemi_Type    AltSemi;            /* special semiconductor */
 
   #ifdef SW_INDUCTOR
-  extern Inductor_Type   Inductor;           /* inductor */
+    extern Inductor_Type Inductor;           /* inductor */
   #endif
 
   #ifdef UI_SERIAL_COMMANDS
-  extern Info_Type       Info;               /* additional component data */
+    extern Info_Type     Info;               /* additional component data */
   #endif
 
   #ifdef HW_SPI
-  extern SPI_Type        SPI;                /* SPI */
+    extern SPI_Type      SPI;                /* SPI */
   #endif
 
   #ifdef HW_I2C
-  extern I2C_Type        I2C;                /* I2C */
+    extern I2C_Type      I2C;                /* I2C */
   #endif
 
   #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
-  /* demodulated/raw IR code */
-  extern uint8_t         IR_Code[];          /* raw data */
+    /* demodulated/raw IR code */
+    extern uint8_t       IR_Code[];          /* raw data */
   #endif
 
 
@@ -532,8 +542,8 @@
   extern const Adjust_Type    NV_Adjust_2;
 
   #ifdef HW_TOUCH
-  /* touch screen adjustment offsets */
-  extern const Touch_Type     NV_Touch;
+    /* touch screen adjustment offsets */
+    extern const Touch_Type   NV_Touch;
   #endif
 
 
@@ -656,11 +666,11 @@
     extern const unsigned char IR_NEC_str[];
     extern const unsigned char IR_SIRC_str[];
     #ifdef SW_IR_RX_EXTRA
-    extern const unsigned char IR_IR60_str[];
-    extern const unsigned char IR_RCA_str[];
-    extern const unsigned char IR_RECS80_str[];
-    extern const unsigned char IR_Sanyo_str[];
-    extern const unsigned char IR_uPD1986C_str[];
+      extern const unsigned char IR_IR60_str[];
+      extern const unsigned char IR_RCA_str[];
+      extern const unsigned char IR_RECS80_str[];
+      extern const unsigned char IR_Sanyo_str[];
+      extern const unsigned char IR_uPD1986C_str[];
     #endif
   #endif
 
@@ -675,7 +685,7 @@
     extern const unsigned char IR_Samsung_str[];
     extern const unsigned char IR_Sharp_str[];
     #if defined (SW_IR_RX_EXTRA) || defined (SW_IR_TX_EXTRA)
-    extern const unsigned char IR_Thomson_str[];
+      extern const unsigned char IR_Thomson_str[];
     #endif
   #endif
 
@@ -728,12 +738,24 @@
     extern const unsigned char CapDischarge_str[];
   #endif
 
-  #ifdef SW_MONITOR_RL
-    extern const unsigned char Monitor_RL_str[];
+  #ifdef SW_MONITOR_R
+    extern const unsigned char Monitor_R_str[];
   #endif
 
   #ifdef SW_MONITOR_C
     extern const unsigned char Monitor_C_str[];
+  #endif
+
+  #ifdef SW_MONITOR_L
+    extern const unsigned char Monitor_L_str[];
+  #endif
+
+  #ifdef SW_MONITOR_RCL
+    extern const unsigned char Monitor_RCL_str[];
+  #endif
+
+  #ifdef SW_MONITOR_RL
+    extern const unsigned char Monitor_RL_str[];
   #endif
 
   #ifdef SW_POWER_OFF
@@ -757,6 +779,7 @@
     extern const unsigned char FontTest_str[];
   #endif
 
+
   /* remote commands */
   #ifdef UI_SERIAL_COMMANDS
     /* feedback */
@@ -766,37 +789,45 @@
     extern const unsigned char Cmd_R_be_str[];
     extern const unsigned char Cmd_D_fb_str[];
     extern const unsigned char Cmd_BJT_str[];
+    #ifdef SW_SCHOTTKY_BJT
+      extern const unsigned char Cmd_D_Clamp_str[];
+    #endif
     extern const unsigned char Cmd_SYM_str[];
 
     /* commands */
     extern const unsigned char Cmd_VER_str[];
-    extern const unsigned char Cmd_PROBE_str[];
     extern const unsigned char Cmd_OFF_str[];
+    extern const unsigned char Cmd_PROBE_str[];
     extern const unsigned char Cmd_COMP_str[];
     extern const unsigned char Cmd_MSG_str[];
     extern const unsigned char Cmd_QTY_str[];
     extern const unsigned char Cmd_NEXT_str[];
     extern const unsigned char Cmd_TYPE_str[];
     extern const unsigned char Cmd_HINT_str[];
+    extern const unsigned char Cmd_MHINT_str[];
     extern const unsigned char Cmd_PIN_str[];
     extern const unsigned char Cmd_R_str[];
     extern const unsigned char Cmd_C_str[];
     #ifdef SW_INDUCTOR
-    extern const unsigned char Cmd_L_str[];
+      extern const unsigned char Cmd_L_str[];
     #endif
     #if defined (SW_ESR) || defined (SW_OLD_ESR)
-    extern const unsigned char Cmd_ESR_str[];
+      extern const unsigned char Cmd_ESR_str[];
     #endif
     extern const unsigned char Cmd_V_F_str[];
     extern const unsigned char Cmd_V_F2_str[];
     extern const unsigned char Cmd_C_D_str[];
     extern const unsigned char Cmd_R_BE_str[];
     extern const unsigned char Cmd_h_FE_str[];
+    #ifdef SW_REVERSE_HFE
+      extern const unsigned char Cmd_h_FE_r_str[];
+    #endif
     extern const unsigned char Cmd_V_BE_str[];
     extern const unsigned char Cmd_I_CEO_str[];
     extern const unsigned char Cmd_V_TH_str[];
     extern const unsigned char Cmd_C_GS_str[];
     extern const unsigned char Cmd_R_DS_str[];
+    extern const unsigned char Cmd_V_GS_off_str[];
     extern const unsigned char Cmd_I_DSS_str[];
     extern const unsigned char Cmd_C_GE_str[];
     extern const unsigned char Cmd_V_T_str[];
@@ -822,48 +853,48 @@
   extern const uint16_t SmallCap_table[];
 
   #ifdef SW_PWM_SIMPLE
-  /* PWM menu: frequencies */
-  extern const uint16_t PWM_Freq_table[];
+    /* PWM menu: frequencies */
+    extern const uint16_t PWM_Freq_table[];
   #endif
 
   #ifdef SW_INDUCTOR
-  /* voltage based factors for inductors */
-  extern const uint16_t Inductor_table[];
+    /* voltage based factors for inductors */
+    extern const uint16_t Inductor_table[];
   #endif
 
   #if defined (HW_FREQ_COUNTER) || defined (SW_SQUAREWAVE)
-  /* Timer1 prescalers and corresponding register bits */
-  extern const uint16_t T1_Prescaler_table[];
-  extern const uint8_t T1_RegBits_table[];
+    /* Timer1 prescalers and corresponding register bits */
+    extern const uint16_t T1_Prescaler_table[];
+    extern const uint8_t T1_RegBits_table[];
   #endif
 
   #ifdef SW_PROBE_COLORS
-  extern uint16_t        ProbeColors[];      /* probe color coding */
+    extern uint16_t      ProbeColors[];      /* probe color coding */
   #endif
 
   #ifdef SW_E6
   /* E6 (in 0.01) */
-  extern const uint16_t E6_table[];
+    extern const uint16_t E6_table[];
   #endif
 
   #ifdef SW_E12
   /* E12 (in 0.01) */
-  extern const uint16_t E12_table[];
+    extern const uint16_t E12_table[];
   #endif
 
   #ifdef SW_E24
-  /* E24 (in 0.01) */
-  extern const uint16_t E24_table[];
+    /* E24 (in 0.01) */
+    extern const uint16_t E24_table[];
   #endif
 
   #ifdef SW_E96
-  /* E96 (in 0.01) */
-  extern uint16_t E96_table[];
+    /* E96 (in 0.01) */
+    extern uint16_t E96_table[];
   #endif
 
   #ifdef FUNC_COLORCODE
-  /* band colors based on value */
-  extern const uint16_t ColorCode_table[];
+    /* band colors based on value */
+    extern const uint16_t ColorCode_table[];
   #endif
 
 

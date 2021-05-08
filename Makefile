@@ -68,7 +68,7 @@ endif
 # - ATmega 1280   : m1280
 # - ATmega 1284   : m1284
 # - ATmega 1284P  : m1284p
-# - ATmega 2560   : m2650
+# - ATmega 2560   : m2560
 PARTNO = m328p
 
 # avrdude: ISP programmer, port and options
@@ -127,12 +127,13 @@ DIST = $(notdir ${CURDIR})
 # compiler flags
 CC = avr-gcc
 CPP = avr-g++
-CFLAGS = -mmcu=${MCU} -Wall -mcall-prologues -I. -Ibitmaps
+CFLAGS = -mmcu=${MCU} -Wall -I. -Ibitmaps
 CFLAGS += -DF_CPU=${FREQ}000000UL
 CFLAGS += -DOSC_STARTUP=${OSC_STARTUP}
-CFLAGS += -gdwarf-2 -std=gnu99 -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
-CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d
+CFLAGS += -gdwarf-2 -std=gnu99 -Os -mcall-prologues
+CFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 #CFLAGS += -flto
+CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d
 
 # linker flags
 LDFLAGS = -mmcu=${MCU} -Wl,-Map=${NAME}.map
@@ -147,17 +148,19 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 HEADERS = config.h config_328.h config_644.h config_1280.h
 HEADERS += colors.h common.h functions.h variables.h $(wildcard var_*.h)
 HEADERS += OneWire.h ADS7843.h
-HEADERS += HD44780.h ILI9163.h ILI9341.h ILI9481.h ILI9486.h PCD8544.h
-HEADERS += PCF8814.h SSD1306.h ST7036.h ST7565R.h ST7735.h ST7920.h STE2007.h
+HEADERS += HD44780.h ILI9163.h ILI9341.h ILI9481.h ILI9486.h
+HEADERS += PCD8544.h PCF8814.h SH1106.h SSD1306.h
+HEADERS += ST7036.h ST7565R.h ST7735.h ST7920.h STE2007.h
 
 # objects
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o display.o
 OBJECTS_C += resistor.o cap.o semi.o inductor.o tools_misc.o tools_signal.o
 OBJECTS_C += SPI.o I2C.o serial.o commands.o OneWire.o
 OBJECTS_C += IR_RX.o IR_TX.o DHTxx.o ADS7843.o
-OBJECTS_C += HD44780.o ILI9163.o ILI9341.o ILI9481.o ILI9486.o PCD8544.o
-OBJECTS_C += PCF8814.o SSD1306.o ST7036.o ST7565R.o ST7735.o ST7920.o
-OBJECTS_C += STE2007.o VT100.o
+OBJECTS_C += HD44780.o ILI9163.o ILI9341.o ILI9481.o ILI9486.o
+OBJECTS_C += PCD8544.o PCF8814.o SH1106.o SSD1306.o
+OBJECTS_C += ST7036.o ST7565R.o ST7735.o ST7920.o
+OBJECTS_C += STE2007.o VT100.o TestDisplay.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 

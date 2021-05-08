@@ -105,9 +105,10 @@ void DelayTimer(void)
 
 /*
  *  measure ESR
+ *  - tolerates charge up to about 130mV
  *
  *  requires:
- *  - pointer to cap data structure 
+ *  - pointer to cap data structure
  *
  *  returns:
  *  - ESR in 0.01 Ohm
@@ -135,7 +136,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
   /*
    *  Hint: 
-   *  - When we would use MilliSleep here we'd have to change the MCU
+   *  - When we would use MilliSleep() we'd have to change the MCU
    *    sleep mode to idle to keep the timer running in sleep mode.
    */
 
@@ -147,6 +148,10 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   DischargeProbes();                    /* try to discharge probes */
   if (Check.Found == COMP_ERROR) return ESR;   /* skip on error */
 
+  /* Some testers need additional discharging to lower the cap's residual
+     voltage to a reasonable level. */
+  DischargeCap(Cap->A, Cap->B);         /* additional discharge */
+
   UpdateProbes(Cap->A, Cap->B, 0);      /* update probes */
   Probe1 = Probes.Ch_1;                 /* ADC MUX for probe-1 */
   Probe2 = Probes.Ch_2;                 /* ADC MUX for probe-2 */
@@ -154,7 +159,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   Probe1 |= ADC_REF_BANDGAP;            /* select bandgap reference */
   Probe2 |= ADC_REF_BANDGAP;            /* select bandgap reference */
 
-  /* register bit to enable and start ADC */
+  /* register bits to enable and start ADC */
   Bits = (1 << ADSC) | (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
 
   /* init variables */
@@ -297,7 +302,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     #if CPU_FREQ < 8000000
     wait2us();                     /* second half-pulse */
     #endif
-    R_PORT = 0;                    /* set resistor port to low */
+//    R_PORT = 0;                    /* set resistor port to low */
     R_DDR = 0;                     /* set resistor port to HiZ */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
     U_2 = ADCW;                    /* save ADC value */
@@ -306,7 +311,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     /*
      *  reverse mode, probe-2 only (probe-1 in HiZ mode)
      *  set probes: GND -- probe-2 -- Rl -- Vcc / probe-1 -- HiZ
-     *  get voltage at probe 2 (voltage at RiL)
+     *  get voltage at probe-2 (voltage at RiL)
      */
 
     ADC_DDR = Probes.Pin_2;        /* pull down probe-2 directly */
@@ -344,7 +349,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     #if CPU_FREQ < 8000000
     wait2us();                     /* second half-pulse */
     #endif
-    R_PORT = 0;                    /* set resistor port to low */
+//    R_PORT = 0;                    /* set resistor port to low */
     R_DDR = 0;                     /* set resistor port to HiZ */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
     U_4 = ADCW;                    /* save ADC value */
@@ -360,6 +365,10 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     Sum_2 += U_4;        /* negative pulse with DUT */
     n--;                 /* next loop run */
   }
+
+  /* probes: reset to safe mode */
+  ADC_DDR = 0;
+  R_PORT = 0;
 
 
   /*
@@ -404,7 +413,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     }
     else                      /* offset problem or zero */
     {
-      /* should only happen for large caps */
+      /* should only happen for large caps (>1000µF) */
       if (CmpValue(Cap->Value, Cap->Scale, 1000, -6) > 0)
       {
         ESR = 0;                   /* can't be less than 0 Ohms */
@@ -412,8 +421,15 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     }
   }
 
-  /* update Uref flag for next ADC run */
-  Cfg.RefFlag = ADC_REF_BANDGAP;   /* update flag */
+
+  /*
+   *  clean up
+   */
+
+  /* update reference source for next ADC run */
+  Cfg.Ref = ADC_REF_BANDGAP;       /* we've used the bandgap reference */
+
+  DischargeProbes();               /* discharge DUT */
 
   return ESR;
 }
@@ -494,6 +510,10 @@ void DelayTimer(void)
 
 /*
  *  measure ESR
+ *  - tolerates charge up to about 130mV
+ *
+ *  requires:
+ *  - pointer to cap data structure
  *
  *  returns:
  *  - ESR in 0.01 Ohm
@@ -526,6 +546,8 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
   DischargeProbes();                    /* try to discharge probes */
   if (Check.Found == COMP_ERROR) return ESR;   /* skip on error */
+
+  DischargeCap(Cap->A, Cap->B);         /* additional discharge */
 
   UpdateProbes(Cap->A, Cap->B, 0);      /* update probes */
   Probe1 = Probes.Ch_1;                 /* ADC MUX for probe-1 */
@@ -778,8 +800,15 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     ESR = U_1;                /* we got a valid result */
   }
 
-  /* update Uref flag for next ADC run */
-  Cfg.RefFlag = ADC_REF_BANDGAP;   /* update flag */
+
+  /*
+   *  clean up
+   */
+
+  /* update reference source for next ADC run */
+  Cfg.Ref = ADC_REF_BANDGAP;       /* we've used the bandgap reference */
+
+  DischargeProbes();               /* discharge DUT */
 
   return ESR;
 }
@@ -995,8 +1024,14 @@ large_cap:
     TempInt = ReadU(Probes.Ch_1);       /* get voltage after delay */
 
     /* calculate voltage drop */
-    if (U_Zero > TempInt) U_Zero -= TempInt;
-    else U_Zero = 0;
+    if (U_Zero > TempInt)               /* sanity check */
+    {
+      U_Zero -= TempInt;                /* voltage drop */
+    }
+    else                                /* no drop */
+    {
+      U_Zero = 0;                       /* drop is zero */
+    }
   }
 
 

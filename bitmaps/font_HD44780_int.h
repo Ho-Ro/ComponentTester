@@ -4,7 +4,7 @@
  *   - uses internal font of HD44780
  *   - English/Japanese version
  *
- *   (c) 2015-2019 by Markus Reschke
+ *   (c) 2015-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -15,6 +15,9 @@
 
 #ifdef FONT_HD44780_INT
 
+
+/* source management */
+#define FONT_SET                   /* font set included */
 
 /* font size */
 #define FONT_SIZE_X          5     /* width:  5 dots */
@@ -50,8 +53,8 @@ const uint8_t FontData[] PROGMEM = {
 
 
 /*
- *  font lookup table for ASCII ISO 8859-1
- *  - 8 bit ASCII to module's built-in font
+ *  font lookup table for ISO 8859-1
+ *  - 8 bit ISO 8859-1 to module's built-in font
  *  - ff: no bitmap available
  */
 

@@ -68,7 +68,7 @@
   #endif
 
   #ifdef UI_KEY_HINTS
-  const unsigned char Menu_or_Test_str[] MEM_TYPE = "<Menu O Test>";
+    const unsigned char Menu_or_Test_str[] MEM_TYPE = "<Menu O Test>";
   #endif
 
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
@@ -80,7 +80,7 @@
   #endif
 
   #ifdef HW_ZENER
-    const unsigned char Zener_str[] MEM_TYPE = "Zener";
+    const unsigned char Zener_str[] MEM_TYPE = "Zener+Voltaje";
     const unsigned char Min_str[] MEM_TYPE = "Min";
   #endif
 
@@ -148,12 +148,24 @@
     const unsigned char CapDischarge_str[] MEM_TYPE = "Descargando";
   #endif
 
-  #ifdef SW_MONITOR_RL
-    const unsigned char Monitor_RL_str[] MEM_TYPE = "R/L Monitor";
+  #ifdef SW_MONITOR_R
+    const unsigned char Monitor_R_str[] MEM_TYPE = "R Monitor";
   #endif
 
   #ifdef SW_MONITOR_C
-    const unsigned char Monitor_C_str[] MEM_TYPE = "C Monitor";
+    const unsigned char Monitor_C_str[] MEM_TYPE = "Cond. Monitor";
+  #endif
+
+  #ifdef SW_MONITOR_L
+    const unsigned char Monitor_L_str[] MEM_TYPE = "I Monitor";
+  #endif
+
+  #ifdef SW_MONITOR_RCL
+    const unsigned char Monitor_RCL_str[] MEM_TYPE = "R/C/I Monitor";
+  #endif
+
+  #ifdef SW_MONITOR_RL
+    const unsigned char Monitor_RL_str[] MEM_TYPE = "R/I Monitor";
   #endif
 
   #ifdef HW_TOUCH
@@ -165,7 +177,7 @@
   #endif
 
   #ifdef SW_ONEWIRE_SCAN
-    const unsigned char OneWire_Scan_str[] MEM_TYPE = "OneWire Scan";
+    const unsigned char OneWire_Scan_str[] MEM_TYPE = "Escan. OneWire";
     const unsigned char Bus_str[] MEM_TYPE = "Bus";
   #endif
 

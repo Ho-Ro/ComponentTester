@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2020-06-28
+Letzte Änderung: 2020-09-21
 
 Inhaltsübersicht:
   - Über den Tester
@@ -30,6 +30,7 @@ Inhaltsübersicht:
     - ILI9486
     - PCD8544
     - PCF8814
+    - SH1106
     - SSD1306
     - ST7036
     - ST7565R
@@ -56,8 +57,7 @@ Inhaltsübersicht:
     - Zenertest
     - ESR-Messung
     - Kondensatorleckstrom
-    - R/L-Monitor
-    - C-Monitor
+    - R/C/L-Monitore
     - Frequenzzähler
       - Einfacher Zähler
       - Erweiterter Zähler
@@ -83,13 +83,13 @@ Inhaltsübersicht:
   - Induktivitäten
   - Bauteile entladen
   - ADC Oversampling
-  - V_BE von Bipolartransistoren
   - Ergebnisanzeige
     - Zusätzliche Hinweise
       - Bipolartransistoren
       - TRIACs
       - CLDs
   - Nicht unterstütze Bauelemente
+  - Abhilfen für manche Tester
   - Bekannte Probleme
   - Hilfe
   - Firmware-Änderungen
@@ -165,6 +165,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - Bipolartransistoren
   + V_f wird für praxisnahe Testströme interpoliert
   + Erkennung von Germanium-Transistoren mit höherem Leckstrom
+  + Erkennung von Schottky-Transistoren
 - JFETs
   + Erkennung von JFETs mit sehr niedrigem I_DSS
 - TRIACs
@@ -174,6 +175,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - Test von Opto-Kopplern
 - Test von Modellbau-Servos
 - OneWire (DS18B20)
+- DHTxx-Sensoren
 - Ereigniszähler
 - Strukturierter Quellcode
 - Und Manches mehr, was mir gerade nicht einfällt.
@@ -413,10 +415,16 @@ Stromversorgung (nicht parasitär versorgt) ausgelegt.
 
 Beschaltung von Test-Pins:
   Probe #1:  Gnd
-  Probe #2:  Vcc (Strom durch 680 Ohm Widerstand begrenzt)
-  Probe #3:  DQ (Daten)
+  Probe #2:  DQ (Daten)
+  Probe #3:  Vcc (Strom durch 680 Ohm Widerstand begrenzt)
   Ein externer Pull-Up-Widerstand von 4,7kOhm zwischen DQ and Vcc wird
   benötigt!
+
+Funktionen, die genau einen Client am Bus erfordern, können optional den ROM-
+Code des Clients ausgeben (ONEWIRE_READ_ROM). Im Fall eines CRC-Fehlers oder
+wenn mehrere Clients am Bus hängen, ist die Ausgabe "-". Ist der komplette
+ROM-Code Null, besteht ein Lesefehler. Ansonsten zeigt der erste Teil des
+ROM-Codes die Produktfamilie und der zweite Teil die Seriennummer.
 
 
 * Anzeige-Module
@@ -429,6 +437,7 @@ Im Augenblick werden folgende Controller unterstützt:
 - ILI9486 (grafisches Farb-Display 320x480, teilweise ungetestet)
 - PCD8544 (grafisches Display 84x48)
 - PCF8814 (grafisches Display 96x65)
+- SH1106 (grafisches Display 128x64)
 - SSD1306 (grafisches Display 128x64)
 - ST7036 (textbasiertes Display, 3 Zeilen mit je 16 Zeichen, ungetestet)
 - ST7565R (grafisches Display 128x64)
@@ -438,12 +447,18 @@ Im Augenblick werden folgende Controller unterstützt:
 - VT100 Terminal
 
 Beachte die Versorgungsspannung und die Logikpegel des Anzeige-Moduls! Benutze
-Pegelumsetzer, sofern notwendig. Wenn das Display trotz korrekter Beschaltung
-nichts anzeigt, versuche den Kontrast zu ändern (config_<MCU>.h).
+Pegelumsetzer, sofern notwendig. Ein einfacher Pegelumsetzer mit Widerständen
+in Reihe unter Ausnutzung der internen Begrenzungsdioden des Anzeige-
+Controllers kann funktionieren, aber nur für langsame Busse, wie z.B. Bit-Bang
+SPI. Daher empfehle ich, Pegelumsetzer-ICs zu verwenden. 
 
-Bei den meisten Anzeige-Modulen kannst Du die /CS und /RES Signale per Pullup/
-down-Widerstände fest verdrahten und die entsprechenden IO-Pins aus-
-kommentieren, sofern das Anzeige-Modul allein am Bus hängt. 
+Falls Du IO-Pins einsparen möchtest, kannst Du bei fast allen Anzeige-Modulen
+/CS und /RES per Pullup/Pulldown-Widerstände fest verdrahten und die
+entsprechenden IO-Pins in der Konfiguration (config_<MCU>.h) auskommentieren,
+solange das Anzeige-Modul allein am Bus hängt.
+
+Wenn das Display trotz korrekter Beschaltung nichts anzeigt, versuche den
+Kontrast zu ändern (config_<MCU>.h).
 
 Grafik-Anzeigen haben meistens Einstellmöglichkeiten für die Orientierung der
 Ausgabe, z.B. Bild um 90° rotieren, Bild horizontal spiegeln oder auch
@@ -505,8 +520,8 @@ Der ILI9163 wird mittels 4-Draht-SPI gesteuert. Die Pins sind:
   /RESX       LCD_RES          PD4          optional
   /CSX        LCD_CS           PD5          optional
   D/CX        LCD_DC           PD3
-  SCL         LCD_SCL          PD2
-  SDIO        LCD_SDA          PD1
+  SCL         LCD_SCL          PD2          SPI Clock
+  SDIO        LCD_SDA          PD1          SPI MOSI
 
 Für eine korrekte Anzeige mußt Du evtl. mit den Einstellungen X/Y-Flip
 experimentieren. Bei Bedarf kannst Du auch die X-Richtung verschieben. Wenn
@@ -517,7 +532,8 @@ Anschalten kurz zufällige Pixel zu sehen.
 
 + ILI9341/ILI9342
 
-Der ILI9341/ILI9342 wird mittels 4-Line-SPI gesteuert. Die Pins sind:
+Der ILI9341/ILI9342 wird mittels 4-Line-SPI oder 8-Bit-Parallel gesteuert. Die
+Pins für 4-Line-SPI sind:
 
   Modul       config-<MCU>.h   Standard     Hinweis
                                ATmega 328
@@ -525,20 +541,44 @@ Der ILI9341/ILI9342 wird mittels 4-Line-SPI gesteuert. Die Pins sind:
   /RES        LCD_RES          PD4          optional
   /CS         LCD_CS           PD5          optional
   D/C         LCD_DC           PD3
-  SCK         LCD_SCK          PD2
-  SDI         LCD_SDI          PD1
+  SCK         LCD_SCK          PD2          SPI Clock
+  SDI         LCD_SDI          PD1          SPI MOSI
   SDO         LCD_SDO          -            nur ILI9341, noch nicht benutzt
 
+Das Pinout für 8-Bit-Parallel ist:
+
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 2560
+  ---------------------------------------------------------------
+              LCD_PORT         PORTB
+  /RESX       LCD_RES          PB4          optional
+  /CSX        LCD_CS           PB5          optional
+  D/CX        LCD_DC           PB7
+  WRX         LCD_WR           PB0
+  RDX         LCD_RD           PB6
+              LCD_PORT2        PORTL
+  D0          LCD_DB0          PL0          LCD_PORT2 Pin #0
+  D1          LCD_DB1          PL1          LCD_PORT2 Pin #1
+  D2          LCD_DB2          PL2          LCD_PORT2 Pin #2
+  D3          LCD_DB3          PL3          LCD_PORT2 Pin #3
+  D4          LCD_DB4          PL4          LCD_PORT2 Pin #4
+  D5          LCD_DB5          PL5          LCD_PORT2 Pin #5
+  D6          LCD_DB6          PL6          LCD_PORT2 Pin #6
+  D7          LCD_DB7          PL7          LCD_PORT2 Pin #7
+
 Für eine korrekte Anzeige mußt Du evtl. mit den Einstellungen X/Y-Flip und
-Rotate experimentieren. Und nicht vergessen die X und Y-AUflösung korrekt
-zu setzen (ILI9341 ist 240x320 und ILI9342 ist 320x240).
+Rotate experimentieren. Und nicht vergessen, die X und Y-Auflösung korrekt
+zu setzen (ILI9341 ist 240x320 und ILI9342 ist 320x240). Manche Anzeigemodule
+haben den erweiterten Befehlssatz des ILI9341 deaktiviert (EXTC-Pin liegt auf
+Masse), und die Ausgabe ist dann oft nur schemenhaft. Das läßt sich per
+LCD_EXT_CMD_OFF korrigieren.
 
-Aufgrund der hohen Pixelzahl ist die Ausgabe etwas langsam. Das Löschen der
-kompletten Anzeige dauert etwa 3 Sekunden bei 8MHz MCU-Takt, wenn Bit-Bang-
-SPI genutzt wird.
+Aufgrund der hohen Pixelzahl ist die Ausgabe per SPI etwas langsam. Das
+Löschen der kompletten Anzeige dauert etwa 3 Sekunden bei Bit-Bang-SPI
+und 8MHz MCU-Takt. Besser Hardware-SPI oder den Parallel-Bus nutzen.
 
 
-+ ILI9481 (ungetestet)
++ ILI9481 (teilweise ungetestet)
 
 Der ILI9481 wird per 8-Bit-Parallel oder 16-Bit-Parallel gesteuert.
 
@@ -597,8 +637,8 @@ Der PCD8544 wird mittels SPI gesteuert. Die Pins sind:
   /RES        LCD_RES          PD4          optional
   /SCE        LCD_SCE          PD5          optional
   D/C         LCD_DC           PD3
-  SCLK        LCD_SCLK         PD2
-  SDIN        LCD_SDIN         PD1
+  SCLK        LCD_SCLK         PD2          SPI Clock
+  SDIN        LCD_SDIN         PD1          SPI MOSI
 
 Da das Display nur 84 Punkte in X-Richtung hat, ergeben sich max. 14 Zeichen
 pro Zeile bei einem 6x8-Zeichensatz. Also werden bis zu zwei Zeichen
@@ -615,11 +655,47 @@ Der PCF8814 wird typischerweise per 3-Draht-SPI gesteuert. Die Pins für
   ---------------------------------------------------------------
   /RES        LCD_RESET        PD4
   /CS         LCD_CS           PD5          optional
-  SCLK        LCD_SCLK         PD2
-  SDIN        LCD_SDIN         PD1
+  SCLK        LCD_SCLK         PD2          SPI Clock
+  SDIN        LCD_SDIN         PD1          SPI MOSI
 
 Bei Bedarf kann die Ausgabe über die Y-Flip-Einstellung und den MX-Pin (X-Flip)
 des PCF8814 (Pull-Up/Down) rotiert werden.
+
+
++ SH1106 (teilweise ungetestet)
+
+Der SH1106 wird mittels 3-Line-SPI, 4-Line-SPI oder I2C gesteuert. 3-Line-SPI
+benötigt den Bit-Bang-Modus, und SPI_9 muss aktiviert sein. Die Pins für
+4-Line-SPI sind:
+
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RESET        PD4          optional
+  /CS         LCD_CS           PD5          optional
+  A0          LCD_A0           PD3
+  SCL (D0)    LCD_SCL          PD2          SPI Clock
+  SI (D1)     LCD_SI           PD1          SPI MOSI
+
+Für 3-Line-SPI (nur Bit-Bang):
+
+  /RES        LCD_RESET        PD4          optional
+  /CS         LCD_CS           PD5          optional
+  A0                           Gnd
+  SCL (D0)    LCD_SCL          PD2          SPI Clock
+  SI (D1)     LCD_SI           PD1          SPI MOSI
+
+Und für I2C:
+
+  /RES        LCD_RESET        PD4          optional
+  /CS                          Gnd
+  SCL (D0)    I2C_SCL          PD1
+  SDA (D1)    I2C_SDA          PD0
+  SA0 (A0)                     Gnd (0x3c) / 3.3V (0x3d)
+
+Mit den X/Y-Flip Einstellungen kannst Du die Orientierung der Anzeige
+anpassen, wenn notwenig. Bei vielen SH1106-Display-Modulen muss der X-Offset
+auf 2 gesetzt werden. 
 
 
 + SSD1306
@@ -634,15 +710,15 @@ benötigt den Bit-Bang-Modus, und SPI_9 muss aktiviert sein. Die Pins für
   /RES        LCD_RESET        PD4          optional
   /CS         LCD_CS           PD5          optional
   DC          LCD_DC           PD3
-  SCLK (D0)   LCD_SCLK         PD2
-  SDIN (D1)   LCD_SDIN         PD1
+  SCLK (D0)   LCD_SCLK         PD2          SPI Clock
+  SDIN (D1)   LCD_SDIN         PD1          SPI MOSI
 
 Für 3-Line-SPI (nur Bit-Bang):
 
   /RES        LCD_RESET        PD4          optional
   /CS         LCD_CS           PD5          optional
-  SCLK (D0)   LCD_SCLK         PD2
-  SDIN (D1)   LCD_SDIN         PD1
+  SCLK (D0)   LCD_SCLK         PD2          SPI Clock
+  SDIN (D1)   LCD_SDIN         PD1          SPI MOSI
 
 Und für I2C:
 
@@ -677,8 +753,8 @@ Und für 4-Draht-SPI:
   XRESET      LCD_RESET        PD4          optional
   CSB         LCD_CS           PD5          optional
   RS          LCD_RS           PD3
-  SCL (DB6)   LCD_SCL          PD2
-  SI (DB7)    LCD_SI           PD1
+  SCL (DB6)   LCD_SCL          PD2          SPI Clock
+  SI (DB7)    LCD_SI           PD1          SPI MOSI
 
 Der ST7036i spricht I2C, wird aber (noch) nicht unterstützt. Ein spezielles
 Merkmal des ST7036 ist ein Pin zum Aktivieren eines erweiterten Befehlsatzes (
@@ -697,8 +773,8 @@ Der ST7565R wird mittels 4-Line-SPI gesteuert. Die Pins sind:
   /RES        LCD_RESET        PD0          optional
   /CS1        LCD_CS           PD5          optional
   A0          LCD_A0           PD1
-  SCL (DB6)   LCD_SCL          PD2
-  SI (DB7)    LCD_SI           PD3
+  SCL (DB6)   LCD_SCL          PD2          SPI Clock
+  SI (DB7)    LCD_SI           PD3          SPI MOSI
 
 Für eine korrekte Anzeige mußt Du evtl. mit den Einstellungen X/Y-Flip und
 X-Offset experimentieren.
@@ -714,8 +790,8 @@ Der ST7735 wird mittels 4-Line-SPI gesteuert. Die Pins sind:
   /RESX       LCD_RES          PD4          optional
   /CSX        LCD_CS           PD5          optional
   D/CX        LCD_DC           PD3
-  SCL         LCD_SCL          PD2
-  SDA         LCD_SDA          PD1
+  SCL         LCD_SCL          PD2          SPI Clock
+  SDA         LCD_SDA          PD1          SPI MOSI
 
 Für eine korrekte Anzeige mußt Du evtl. mit den Einstellungen X/Y-Flip
 experimentieren. Wenn LCD_LATE_ON aktiviert ist, startet der Tester mit einem
@@ -744,8 +820,8 @@ Und für SPI:
 
  /XRESET      LCD_RESET        PD4          optional
  CS (RS)      LCD_CS           PD5          optional
- SCLK (E)     LCD_SCLK         PD2
- SID (RW)     LCD_SID          PD1
+ SCLK (E)     LCD_SCLK         PD2          SPI Clock
+ SID (RW)     LCD_SID          PD1          SPI MOSI
 
 Wegen dem schlechten Design des ST7920 können nur Zeichensätze mit einer Breite
 von 8 Pixeln verwendet werden. Zur Handhabung der horizontalen Addressierung in
@@ -762,8 +838,8 @@ sind:
   ---------------------------------------------------------------
   /RES        LCD_RESET        PD4          optional
   /CS         LCD_CS           PD5          optional
-  SCLK        LCD_SCLK         PD2
-  SDIN        LCD_SDIN         PD1
+  SCLK        LCD_SCLK         PD2          SPI Clock
+  SDIN        LCD_SDIN         PD1          SPI MOSI
 
 Falls nötig, kannst Du die Ausgabe über die X/Y-Flip-Einstellungen rotieren.
 
@@ -1168,22 +1244,23 @@ Beschaltung für Kondensator:
    Pin #3:  Minus
 
 
-+ R/L-Monitor
++ R/C/L-Monitore
 
-Der R/L-Monitor misst ständig Widerstand und ggf. Induktivität eines Bauteils
-an den Pins #1 und #3. Zwischen den Messungen gibt es jeweils ein kurze Pause
-von 2 Sekunden, die durch einen Cursor unten rechts signalisiert wird. Während
-der Pause lässt sich der Monitor durch zwei kurze Tastendrücke (Testtaste)
+Die Monitorfunktionen messen ständig passive Bauteile an den Testpins #1 und
+#3. Nach dem Starten zeigt der Tester die Beschaltung der Testpins für ein paar
+Sekunden an, was durch die Testtaste übersprungen werden kann.
+
+Zwischen den Messungen gibt es jeweils eine kurze Pause von einer oder zwei
+Sekunden, die durch einen Cursor unten rechts signalisiert wird. Während der
+Pause lässt sich der Monitor durch zwei kurze Tastendrücke (Testtaste)
 beenden.
 
-
-+ C-Monitor
-
-Der C-Monitor misst ständig Kapazität und ggf. den ESR eines Kondensators an
-den Pins #1 und #3. Zwischen den Messungen gibt es jeweils ein kurze Pause
-von 2 Sekunden, die durch einen Cursor unten rechts signalisiert wird. Während
-der Pause lässt sich der Monitor durch zwei kurze Tastendrücke (Testtaste)
-beenden.
+Verfügbare Monitore:
+- R-Monitor (Widerstand)
+- C-Monitor (Kapazität plus optional ESR)
+- L-Monitor (Induktivität)
+- R/C/L-Monitor (R plus optional L, oder C plus optional ESR)
+- R/L-Monitor (Widerstand plus optional Induktivität)
 
 
 + Frequenzzähler (Hardware-Option)
@@ -1617,12 +1694,21 @@ starten. Wie üblich beenden zwei kurze Tastendrücke die Funktion.
 Hiermit wird der OneWire-Temperatursensor DS18B20 ausgelesen. Zum Einrichten
 des OneWire-Busses siehe bitte den Abschnitt "Busse & Schnittstellen". Bei
 Benutzung der Test-Pins informiert der Tester über die Beschaltung und wartet
-bis ein externer Pull-Up-Widerstand erkannt wurde. Mit einem Tastendruck läßt
-sich dies überspringen.
+dann bis ein externer Pull-Up-Widerstand erkannt wurde. Mit einem Tastendruck
+läßt sich dies überspringen.
 
 Nach den Verbinden des DS18B20 als einziger Client am Bus startet ein Tasten-
 druck das Auslesen der Temperatur (kann fast eine Sekunde dauen). Zum Beenden
-zweimal kurz die Test-Taste drücken.
+zweimal kurz die Test-Taste drücken. Und mit einem langen Tastendruck wählst
+Du den Auto-Modus (automatische Aktualisierung), welcher durch ein "*" in der
+ersten Zeile signalisert wird.
+
+Beschaltung von Test-Pins:
+  Probe #1:  Gnd
+  Probe #2:  DQ (Daten)
+  Probe #3:  Vcc (Strom durch 680 Ohm Widerstand begrenzt)
+  Ein externer Pull-Up-Widerstand von 4,7kOhm zwischen DQ and Vcc wird
+  benötigt!
 
 
 + DHTxx-Sensoren
@@ -1754,6 +1840,9 @@ temporären Wechsel der Messkabel nur einen Selbstabgleich macht und nach
 dem Neustart wieder die Werte für die Haupt-Messkabel hat. Ansonsten müsste
 man für die alten Kabel wieder einen neuen Selbstabgleich machen.
 
+Als Option kannst Du das Lade-Menü automatisch nach dem Einschalten des
+Testers anzeigen lassen (UI_CHOOSE_PROFILE).
+
 
 + Werte anzeigen
 
@@ -1872,10 +1961,13 @@ eine einfache Kompensation, da hier noch weitere Tests notwendig sind. Wenn Du
 größere Abweichungen beim Vergleich mit einem richtigen LCR-Meter siehst,
 kannst Du die Offsetwerte entsprechend deinem Tester anpassen.
 
-Hinweis: Bei unerwarteten Messwerten bitte die Messung wiederholen.
-
 Wenn Du eine Prüfung auf E-Normwerte möchtest, bitte die SW_L_E*-Schalter
 in config.h aktivieren (nur Text-Modus).
+
+Hinweise:
+- Bei unerwarteten Messwerten bitte die Messung wiederholen.
+- Die Induktivitätsmessung wird nur durchgeführt, wenn der Widerstand der
+  Spule kleiner als 2k Ohm ist.
 
 
 * Bauteile entladen
@@ -1902,16 +1994,6 @@ Standardwert ist 25 Samples. Du kannst versuchen, durch Erhöhen des
 Oversamplingwerts die Genauigkeit des Testers zu erhöhen. Allerdings
 steigt mit einem höheren Wert auch die benötigte Zeit, d.h. die Messungen
 werden langsamer.
-
-
-* V_BE von Bipolartransistoren
-
-Beim Test auf Dioden wird Vf zum einen mit Rl (hoher Teststrom) und zum
-anderen mit Rh (niedriger Teststrom) gemessen. Die Ausgabefunktion für
-Bipolartransistoren interpoliert aus den beiden Vf-Werten V_BE abhängig vom
-hFE für einen virtuellen Teststrom. Somit erhält man praxisnahe Werte, da V_BE
-eines Kleinsignaltransistors mit einem anderen Strom gemessen wird als bei
-einem Leistungstransistor.
 
 
 * Ergebnisanzeige
@@ -1955,6 +2037,18 @@ Display sein, wird die Ausgabe des Symbols übersprungen.
 
 Bipolartransistoren
 
+Ein Kleinbuchstabe hinter dem hFE-Wert zeigt den Typ der Testschaltung an,
+die zum Messen benutzt wurde:
+  - e: Emitterschaltung
+  - c: Kollectorschaltung
+
+Beim Test auf Dioden wird Vf zum einen mit Rl (hoher Teststrom) und zum
+anderen mit Rh (niedriger Teststrom) gemessen. Die Ausgabefunktion für
+Bipolartransistoren interpoliert aus den beiden Vf-Werten V_BE abhängig vom
+hFE für einen virtuellen Teststrom. Somit erhält man praxisnahe Werte, da V_BE
+eines Kleinsignaltransistors mit einem anderen Strom gemessen wird als bei
+einem Leistungstransistor.
+
 Bei einem Bipolartransistor mit Basis-Emitter-Widerstand wird der Widerstand
 angezeigt. Beachte, dass der B-E-Widerstand Einfluss auf V_BE und hFE hat.
 Wenn der Transistor zusätzlich eine Schutzdiode hat, kann er als Transistor
@@ -1968,6 +2062,11 @@ Schutzdiode, die sich auf dem gleichen Substrat befindet. Der integrierte
 PN-Übergang erzeugt einen parasitären zweiten Transistor. Ein NPN bekommt
 somit einen paristären PNP und umgekehrt. Wird ein solcher Transistor
 entdeckt, wird er mit einem "+" hinter der Typenangabe gekennzeichnet.
+
+Bei einem Schottky-Transistor (Schottky-clamped BJT) wird die Schottky-
+Diode zwischen Basis und Kollektor incl. V_f angezeigt, sofern die Erkennung
+aktiviert ist (SW_SCHOTTKY_BJT). Es sei darauf hingewiesen, dass I_CEO bei
+einem Schottky-Transistor erhöht ist.
 
 
 TRIACs
@@ -2001,10 +2100,30 @@ konnte, dann ist es wahrscheinlich eine CLD.
 
 * Nicht unterstütze Bauelemente
 
-Alle Halbleiter, welche einen hohen Steuerstrom benötigen, können nicht
-erkannt werden, da der Tester max. ca. 7mA Strom zum Schalten hat. Auch
-liefert der Tester nur 5V, was z.B. nicht ausreichend für DIACs mit einem
-V_BO von 20-200V ist.
+Alle Halbleiter, welche einen hohen Steuerstrom oder eine hohe Steuerspannung
+benötigen, können nicht erkannt werden, da der Tester max. ca. 7mA Strom und
+5V Spannung zum Schalten hat. So kann z.B. ein DIAC mit einem V_BO von 20-200V
+nicht getestet werden. Das gleiche für Thyristoren and TRIACs mit hohem
+Triggerstrom.
+
+
+* Abhilfen für manche Tester
+
+Wenn Dein Tester eines der folgenden Probleme zeigt, kannst Du ein Worksround
+versuchen:
+
+- hFE viel zu hoch 
+
+  Problem:
+  Bei der Kollektorschaltung mit Rl als Basiswiderstand wird aus unbekanntem
+  Grund die Basisspannung zu niedrig gemessen. Somit erscheint der Basisstrom
+  ebenfalls niedriger und verursacht einen zu hohen hFE-Wert. 
+
+  Betroffene Tester:
+  Hiland M644
+
+  Abhilfe:
+  Aktiviere NO_HFE_C_RL in config.h!
 
 
 * Bekannte Probleme
@@ -2111,7 +2230,7 @@ Testkommandos:
   - Beispielantwort für FET (MOSFET): "MOSFET n-ch enh."
 
   HINT
-  - gibt Hinweise zu speziellen Merkmalen zurück
+  - gibt Hinweise zu speziellen Merkmalen eines Bauteils zurück
   - nur für Diode, BJT, FET und IGBT
   - verfügbare Merkmale:
     - NPN      möglicherweise ein NPN BJT (Diode)
@@ -2120,9 +2239,19 @@ Testkommandos:
     - BJT+     integrierte Freilaufdiode auf gleichem Substrat
                erzeugt parasitären zweiten BJT (BJT)
     - D_FB     Body/Freilauf-Diode (BJT, FET, IGBT)
+    - D_CLAMP  Schottky-Transistor (BJT)
+               benötigt aktivierte Schottky-Transistor-Erkennung
     - SYM      Drain und Source symmetrisch (FET) 
   - Beispielantwort für BJT: "D_FB R_BE"
   - Beispielantwort für FET (MOSFET): "D_FB"
+
+  MHINT
+  - giobt Hinweise zu Messungen zurück
+  - nur für BJT
+  - verfügbare Merkmale:
+    - h_FE_e   h_FE-Messung mit Emitterschaltung (BJT)
+    - h_FE_c   h_FE-Messung mit Kollektorschaltung (BJT)
+  - Beispielantwort für BJT: "h_FE_e"
 
   PIN
   - gibt Anschlußbelegung zurück
@@ -2160,7 +2289,7 @@ Testkommandos:
 
   ESR
   - gibt ESR-Wert zurück (Equivalent Series Resistance)
-  - requires ESR measurement to be enabled
+  - benötigt aktivierte ESR-Messung
   - nur für Kondensator
   - Beispielantwort: "0.21R"
 
@@ -2230,6 +2359,11 @@ Testkommandos:
   - nur für FET (MOSFET)
   - Beispielantwort: "1.20R"
 
+  V_GS_off
+  - gibt V_GS(off) zurück (Cutoff Spannung)
+  - nur für Verarmungstyp-FET
+  - Beispielantwort: "-3072mV"
+
   I_DSS
   - gibt I_DSS zurück (Drain-Source-Strom, kurzgeschlossenes Gate)
   - nur für Verarmungstyp-FET
@@ -2252,7 +2386,7 @@ Testkommandos:
 
   R_BB
   - gibt R_BB zurück (interbase resistance)
-  - requires UJT detection to be enabled
+  - benötigt aktivierte UJT-Erkennung
   - nur für UJT
   - Beispielantwort: "4758R"
 

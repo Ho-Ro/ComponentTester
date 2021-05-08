@@ -656,7 +656,7 @@ ISR(ISR_USART_RX, ISR_BLOCK)
    *    (no nested interrupts)
    */
 
-  /* todo: shall be allow nested interrupts for more critical things? */
+  /* todo: shall we allow nested interrupts for more critical things? */
   /* todo: check receiver error flags? UCSRnA must be read before UDRn! */
 
   Char = REG_UDR;                       /* get received char & clear flag */

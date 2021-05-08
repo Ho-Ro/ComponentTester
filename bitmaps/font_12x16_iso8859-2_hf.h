@@ -16,6 +16,9 @@
 #ifdef FONT_12X16_ISO8859_2_HF
 
 
+/* source management */
+#define FONT_SET                   /* font set included */
+
 /* font size */
 #define FONT_SIZE_X         12     /* width:  12 dots */
 #define FONT_SIZE_Y         16     /* height: 16 dots */
@@ -408,8 +411,8 @@ const uint8_t FontData[] PROGMEM = {
 
 
 /*
- *  font lookup table UTF-8
- *  - 8 bit U+0000 to U+017F to custom font
+ *  font lookup table for ISO 8859-2
+ *  - 8 bit ISO 8859-2 to custom font
  *  - ff: no bitmap available
  */
 
@@ -419,7 +422,7 @@ const uint8_t FontTable[] PROGMEM = {
   0x02,        /* 0x02 -> symbol: diode C-A */
   0x03,        /* 0x03 -> symbol: capacitor */
   0x04,        /* 0x04 -> omega */
-  0xff,        /* 0x05 -> b5 */
+  0x05,        /* 0x05 -> µ (micro) */
   0x06,        /* 0x06 -> symbol: resistor left side */
   0x07,        /* 0x07 -> symbol: resistor right side */
   0xff,        /* 0x08 -> n/a */

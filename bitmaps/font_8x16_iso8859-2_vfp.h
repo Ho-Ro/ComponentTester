@@ -16,6 +16,8 @@
 #ifdef FONT_8X16_ISO8859_2_VFP
 
 
+/* source management */
+#define FONT_SET                   /* font set included */
 /* font size */
 #define FONT_SIZE_X          8     /* width:   8 dots */
 #define FONT_SIZE_Y         16     /* height: 16 dots */
@@ -258,7 +260,7 @@ const uint8_t FontData[] PROGMEM = {
 
 
 /*
- *  font lookup table ASCII ISO 8859-2
+ *  font lookup table for ISO 8859-2
  *  - 8 bit ISO 8859-2 to custom font
  *  - ff: no bitmap available
  */

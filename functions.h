@@ -212,17 +212,20 @@
   extern void LCD_ClearLine2(void);
 
   #ifdef UI_SERIAL_COPY
-  extern void SerialCopy_On(void);
-  extern void SerialCopy_Off(void);
+  extern void Display_Serial_On(void);
+  extern void Display_Serial_Off(void);
+  #endif
+
+  #if defined (UI_SERIAL_COMMANDS) || defined (SW_DISPLAY_REG)
+  extern void Display_Serial_Only(void);
+  extern void Display_LCD_Only(void);
   #endif
 
   #ifdef UI_SERIAL_COMMANDS
-  extern void Display_LCD2Serial(void);
-  extern void Display_Serial2LCD(void);
   extern void Display_EEString_NL(const unsigned char *String);
   #endif
 
-  #if defined (FUNC_DISPLAY_HEXBYTE) || defined (SW_IR_TRANSMITTER)
+  #if defined (FUNC_DISPLAY_HEXBYTE) || defined (FUNC_DISPLAY_HEXVALUE)
   extern void Display_HexDigit(uint8_t Digit);
   #endif
 
@@ -230,7 +233,7 @@
   extern void Display_HexByte(uint8_t Value);
   #endif
 
-  #ifdef SW_IR_TRANSMITTER
+  #ifdef FUNC_DISPLAY_HEXVALUE
   extern void Display_HexValue(uint16_t Value, uint8_t Bits);
   #endif
 
@@ -246,12 +249,16 @@
   extern void Display_SignedValue(int32_t Value, int8_t Exponent, unsigned char Unit);
 
   #ifdef FUNC_EVALUE
-    extern void Display_EValue(uint16_t Value, int8_t Scale, unsigned char Unit);
+  extern void Display_EValue(uint16_t Value, int8_t Scale, unsigned char Unit);
   #endif
 
   #ifdef SW_SYMBOLS
   extern void LCD_FancySemiPinout(uint8_t Line);
   #endif
+
+  #ifdef SW_CONTRAST
+  extern void ChangeContrast(void);
+  #endif  
 
   #ifdef SW_FONT_TEST
   extern void FontTest(void);
@@ -339,6 +346,8 @@
   extern int8_t ShortCircuit(uint8_t Mode);
 
   extern void MarkItem(uint8_t Item, uint8_t Selected);
+
+  extern void AdjustmentMenu(uint8_t Mode);
   extern void MainMenu(void);
 
 #endif
@@ -398,12 +407,24 @@
   extern void Cap_Leakage(void);
   #endif
 
-  #ifdef SW_MONITOR_RL
-  extern void Monitor_RL(void);
+  #ifdef SW_MONITOR_R
+  extern void Monitor_R(void);
   #endif
 
   #ifdef SW_MONITOR_C
   extern void Monitor_C(void);
+  #endif
+
+  #ifdef SW_MONITOR_L
+  extern void Monitor_L(void);
+  #endif
+
+  #ifdef SW_MONITOR_RCL
+  extern void Monitor_RCL(void);
+  #endif
+
+  #ifdef SW_MONITOR_RL
+  extern void Monitor_RL(void);
   #endif
 
 #endif
@@ -525,6 +546,9 @@
   extern void BackupProbes(void);
   extern uint8_t GetThirdProbe(uint8_t Probe1, uint8_t Probe2);
   extern uint8_t ShortedProbes(void);
+  #if defined (SW_ESR) || defined (SW_OLD_ESR)
+  extern void DischargeCap(uint8_t Probe1, uint8_t Probe2);
+  #endif
   extern void DischargeProbes(void);
   extern void PullProbe(uint8_t Probe, uint8_t Mode);
 

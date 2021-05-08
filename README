@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit: 2020-06-28
+Last edit: 2020-09-21
 
 Content
   - About
@@ -30,6 +30,7 @@ Content
     - ILI9486
     - PCD8544
     - PCF8814
+    - SH1106
     - SSD1306
     - ST7036
     - ST7565R
@@ -56,8 +57,7 @@ Content
     - Zener Tool
     - ESR Tool
     - Capacitor Leakage Check
-    - R/L Monitor
-    - C Monitor
+    - R/C/L Monitors
     - Frequency Counter
       - Basic Counter
       - Extended Counter
@@ -83,13 +83,13 @@ Content
   - Inductors
   - Discharging Components
   - ADC Oversampling
-  - V_BE of BJTs
   - Displaying Results
     - Additional Hints
       - BJTs
       - TRIACs
       - CLDs
   - Unsupported Components
+  - Workarounds for some Testers
   - Known Issues
   - Support
   - Change Log
@@ -145,7 +145,7 @@ Product or company names are possibly trademarks of the respective owners.
 
 Karl-Heinz has done a really great documentation of the tester. I recommend
 to read it. Therefore I'll tell you just about the major differences to the
-official release:
+k-firmware:
 
 - user interface
   + No worries! ;)
@@ -164,6 +164,7 @@ official release:
 - BJTs
   + V_f is interpolated for a more suitable (virtual) I_b based on hFE
   + detection of Germanium BJTs with high leakage current
+  + detection of Schottky-clamped BJTs
 - JFETs
   + detection of JFETs with very low I_DSS
 - TRIACs
@@ -173,6 +174,7 @@ official release:
 - opto coupler check
 - RC servo check
 - OneWire (DS18B20)
+- DHTxx Sensors
 - event counter
 - structured source code
 - some more I couldn't think of right now
@@ -405,14 +407,20 @@ The default setting for the TTL serial is 9600 8N1:
 
 Another supported bus is OneWire which can use either the probes/test pins (
 ONEWIRE_PROBES) or a dedicated I/O pin (ONEWIRE_IO_PIN). The driver is designed
-for standard bus speed and clients to be powered externally (not parasitic-
+for standard bus speed and externally powered clients (not parasitic-
 powered).
 
 Pin assignment for probes:
   Probe #1:  Gnd
-  Probe #2:  Vcc (current limited by 680 ohms resistor)
-  Probe #3:  DQ (data)
+  Probe #2:  DQ (data)
+  Probe #3:  Vcc (current limited by 680 ohms resistor)
   An external pull-up resistor of 4.7kOhms between DQ and Vcc is required!
+
+Related tools which require a single client to be connected to the bus can
+optionally output the client's ROM code (ONEWIRE_READ_ROM). In case of a CRC
+error or if multiple clients are connected the output will be '-'. When the
+ROM code is zero there's a read issue. Otherwise the first part of the ROM
+code shows the device family and the second part the serial number.
 
 
 * Displays
@@ -425,6 +433,7 @@ At the moment following display controllers are supported:
 - ILI9486 (color graphic display 320x480, partly untested)
 - PCD8544 (graphic display 84x48)
 - PCF8814 (graphic display 96x65)
+- SH1106 (graphic display 128x64)
 - SSD1306 (graphic display 128x64)
 - ST7036 (character display, 3 lines with 16 characters, untested)
 - ST7565R (graphic display 128x64)
@@ -434,18 +443,24 @@ At the moment following display controllers are supported:
 - VT100 Terminal
 
 Take care about the LCD's supply voltage and logic levels! Use a level shifter
-if required. If the display doesn't show anything after double checking the
-wiring, please try different contrast settings (config_<MCU>.h).
+if required. A simple level shifter with in-series resistors relying on the
+display controller's internal clamping diodes may work, but only for low speed
+busses like bit-bang SPI. Therefore I recommend to use proper level shifter
+ICs.
 
-For most displays you can hardwire the /CS and /RES lines via pull-up/down
-resistors and comment out the corresponding IO pins when the display is the
-only device on a bus.
+To save a few IO pins you can hardwire the /CS and /RES lines via pull-up/down
+resistors for nearly all displays and comment out the corresponding IO pins in
+the configuration (config_<MCU>.h) as long as the display is the only device
+on the interface bus.
+
+If the display doesn't show anything after double checking the wiring, please
+try different contrast settings (config_<MCU>.h). 
 
 Most graphic displays provide settings to change the image orientation, e.g.
 for rotating the image by 90° and mirroring the image horizontally or
 vertically. That way the image can be adjusted for each tester as needed.
 For color graphic displays additional settings are available. In the normal
-color mode the tester uses different colors which can be changed by editing
+color mode the tester uses several colors which can be changed by editing
 the colors.h file. By commenting out LCD_COLOR the two-color mode is enabled
 and the pen color will be COLOR_PEN, while the background color is set to
 COLOR_BACKGROUND. In case the RGB base colors red and blue are reversed
@@ -500,8 +515,8 @@ The ILI9163 is driven by 4-wire SPI. The pin assignment is:
   /RESX       LCD_RES          PD4          optional
   /CSX        LCD_CS           PD5          optional
   D/CX        LCD_DC           PD3
-  SCL         LCD_SCL          PD2
-  SDIO        LCD_SDA          PD1
+  SCL         LCD_SCL          PD2          SPI clock
+  SDIO        LCD_SDA          PD1          SPI MOSI
 
 You might need to play with the x/y flip settings to get the correct
 orientation for your display. If necessary you can also offset the x
@@ -512,7 +527,8 @@ for a moment.
 
 + ILI9341/ILI9342
 
-The ILI9341/ILI9342 is driven by 4-line SPI. The pin assignment is:
+The ILI9341/ILI9342 is driven by 4-line SPI or 8-bit parallel. The pin
+assignment for 4-line SPI is:
 
   display     config-<MCU>.h   default      remark
                                ATmega 328
@@ -520,20 +536,44 @@ The ILI9341/ILI9342 is driven by 4-line SPI. The pin assignment is:
   /RES        LCD_RES          PD4          optional
   /CS         LCD_CS           PD5          optional
   D/C         LCD_DC           PD3
-  SCK         LCD_SCK          PD2
-  SDI         LCD_SDI          PD1
+  SCK         LCD_SCK          PD2          SPI clock
+  SDI         LCD_SDI          PD1          SPI MOSI
   SDO         LCD_SDO          -            ILI9341 only, not used yet
+
+For 8-bit parallel:
+
+  display     config-<MCU>.h   default      remark
+                               ATmega 2560
+  ---------------------------------------------------------------
+              LCD_PORT         PORTB
+  /RESX       LCD_RES          PB4          optional
+  /CSX        LCD_CS           PB5          optional
+  D/CX        LCD_DC           PB7
+  WRX         LCD_WR           PB0
+  RDX         LCD_RD           PB6
+              LCD_PORT2        PORTL
+  D0          LCD_DB0          PL0          LCD_PORT2 pin #0
+  D1          LCD_DB1          PL1          LCD_PORT2 pin #1
+  D2          LCD_DB2          PL2          LCD_PORT2 pin #2
+  D3          LCD_DB3          PL3          LCD_PORT2 pin #3
+  D4          LCD_DB4          PL4          LCD_PORT2 pin #4
+  D5          LCD_DB5          PL5          LCD_PORT2 pin #5
+  D6          LCD_DB6          PL6          LCD_PORT2 pin #6
+  D7          LCD_DB7          PL7          LCD_PORT2 pin #7
 
 You might need to play with the x/y flip and rotate settings to get the
 correct orientation for your display. And don't forget to set x and y dots
-based on the controller (ILI9341 is 240x320 and ILI9342 is 320x240).
+based on the controller (ILI9341 is 240x320 and ILI9342 is 320x240). Some
+display modules disabled the ILI9341's extended command set (EXTC pin
+connected to Gnd). In that case you might see a blurry or ghostly output
+which can be fixed by enabling LCD_EXT_CMD_OFF.
 
 Based on the relative high number of pixels the display output is somewhat
-slow. A complete screen clear takes about 3 seconds with a 8MHz MCU clock
-when using the bit-bang SPI.
+slow via SPI. A complete screen clear takes about 3 seconds for bit-bang SPI
+and an 8MHz MCU clock. Better use harwdare SPI or the parallel bus.
 
 
-+ ILI9481 (untested)
++ ILI9481 (partly untested)
 
 The ILI9481 is driven by 8-bit parallel or 16-bit parallel.
 
@@ -592,8 +632,8 @@ The PCD8544 is driven by SPI. The pin assignment is:
   /RES        LCD_RES          PD4          optional
   /SCE        LCD_SCE          PD5          optional
   D/C         LCD_DC           PD3
-  SCLK        LCD_SCLK         PD2
-  SDIN        LCD_SDIN         PD1
+  SCLK        LCD_SCLK         PD2          SPI clock
+  SDIN        LCD_SDIN         PD1          SPI MOSI
 
 Since the display has just 84 pixels in x direction you'll get 14 chars per
 line with a 6x8 font. So up to two chars might be not displayed. To mitigate
@@ -610,11 +650,45 @@ the 3-wire SPI (bit-bang only) is:
   ---------------------------------------------------------------
   /RES        LCD_RESET        PD4
   /CS         LCD_CS           PD5          optional
-  SCLK        LCD_SCLK         PD2
-  SDIN        LCD_SDIN         PD1
+  SCLK        LCD_SCLK         PD2          SPI clock
+  SDIN        LCD_SDIN         PD1          SPI MOSI
 
 If necessary you can rotate the output via the y-flip setting and pulling
 the PCF8814's MX pin (x-flip) down or up.
+
+
++ SH1106 (partly untested)
+
+The SH1106 is driven by 3-wire SPI, 4-wire SPI or I2C. 3-wire SPI requires
+bit-bang mode and SPI_9 to be enabled. The pin assignment for 4-wire SPI is:
+
+  display     config-<MCU>.h   default      remark
+                               ATmega 328
+  ---------------------------------------------------------------
+  /RES        LCD_RESET        PD4          optional
+  /CS         LCD_CS           PD5          optional
+  A0          LCD_A0           PD3
+  SCL (D0)    LCD_SCL          PD2          SPI clock
+  SI (D1)     LCD_SI           PD1          SPI MOSI
+
+For 3-wire SPI (bit-bang only):
+
+  /RES        LCD_RESET        PD4          optional
+  /CS         LCD_CS           PD5          optional
+  A0                           Gnd
+  SCL (D0)    LCD_SCL          PD2          SPI clock
+  SI (D1)     LCD_SI           PD1          SPI MOSI
+
+And for I2C:
+
+  /RES        LCD_RESET        PD4          optional
+  /CS                          Gnd
+  SCL (D0)    I2C_SCL          PD1
+  SDA (D1)    I2C_SDA          PD0
+  SA0 (A0)                     Gnd (0x3c) / 3.3V (0x3d)
+
+Using the x/y flip settings you can change the output orientation if
+neccessary. Many SH1106 based display modules need the x offset set to 2.
 
 
 + SSD1306
@@ -628,15 +702,15 @@ bit-bang mode and SPI_9 to be enabled. The pin assignment for 4-wire SPI is:
   /RES        LCD_RESET        PD4          optional
   /CS         LCD_CS           PD5          optional
   DC          LCD_DC           PD3
-  SCLK (D0)   LCD_SCLK         PD2
-  SDIN (D1)   LCD_SDIN         PD1
+  SCLK (D0)   LCD_SCLK         PD2          SPI clock
+  SDIN (D1)   LCD_SDIN         PD1          SPI MOSI
 
 For 3-wire SPI (bit-bang only):
 
   /RES        LCD_RESET        PD4          optional
   /CS         LCD_CS           PD5          optional
-  SCLK (D0)   LCD_SCLK         PD2
-  SDIN (D1)   LCD_SDIN         PD1
+  SCLK (D0)   LCD_SCLK         PD2          SPI clock
+  SDIN (D1)   LCD_SDIN         PD1          SPI MOSI
 
 And for I2C:
 
@@ -671,8 +745,8 @@ And for 4-wire SPI:
   XRESET      LCD_RESET        PD4          optional
   CSB         LCD_CS           PD5          optional
   RS          LCD_RS           PD3
-  SCL (DB6)   LCD_SCL          PD2
-  SI (DB7)    LCD_SI           PD1
+  SCL (DB6)   LCD_SCL          PD2          SPI clock
+  SI (DB7)    LCD_SI           PD1          SPI MOSI
 
 The ST7036i speaks I2C but isn't supported (yet). A special feature of the
 ST7036 is a dedicated pin to enable an extended instruction set (pin EXT) which
@@ -690,8 +764,8 @@ The ST7565R is driven by 4-line SPI. The pin assignment is:
   /RES        LCD_RESET        PD0          optional
   /CS1        LCD_CS           PD5          optional
   A0          LCD_A0           PD1
-  SCL (DB6)   LCD_SCL          PD2
-  SI (DB7)    LCD_SI           PD3
+  SCL (DB6)   LCD_SCL          PD2          SPI clock
+  SI (DB7)    LCD_SI           PD3          SPI MOSI
 
 You might need to play with the x/y flip and x-offset settings to get
 the correct orientation for your display. 
@@ -707,8 +781,8 @@ The ST7735 is driven by 4-wire SPI. The pin assignment is:
   /RESX       LCD_RES          PD4          optional
   /CSX        LCD_CS           PD5          optional
   D/CX        LCD_DC           PD3
-  SCL         LCD_SCL          PD2
-  SDA         LCD_SDA          PD1
+  SCL         LCD_SCL          PD2          SPI clock
+  SDA         LCD_SDA          PD1          SPI MOSI
 
 You might need to play with the x/y flip settings to get the correct
 orientation for your display. With LCD_LATE_ON enabled the tester starts
@@ -737,8 +811,8 @@ And for SPI:
 
  /XRESET      LCD_RESET        PD4          optional
  CS (RS)      LCD_CS           PD5          optional
- SCLK (E)     LCD_SCLK         PD2
- SID (RW)     LCD_SID          PD1
+ SCLK (E)     LCD_SCLK         PD2          SPI clock
+ SID (RW)     LCD_SID          PD1          SPI MOSI
 
 Because of the ST7920's poor design only fonts with a width of 8 pixels can be
 used. To cope with the horizontal 16 bit addressing grid I had to add a screen
@@ -755,8 +829,8 @@ the 3-wire SPI (bit-bang only) is:
   ---------------------------------------------------------------
   /RES        LCD_RESET        PD4          optional
   /CS         LCD_CS           PD5          optional
-  SCLK        LCD_SCLK         PD2
-  SDIN        LCD_SDIN         PD1
+  SCLK        LCD_SCLK         PD2          SPI clock
+  SDIN        LCD_SDIN         PD1          SPI MOSI
 
 If necessary you can rotate the output via the x/y flip settings.
 
@@ -1144,20 +1218,22 @@ How to connect the capacitor:
    Probe #3: negative (Gnd)
 
 
-+ R/L Monitor
++ R/C/L Monitors
 
-The R/L monitor measures continuously the resistance and optionally inductance
-of a component connected to probes #1 and #3. There's a delay of 2 seconds
-between measurements, indicated by a cursor at the bottom right, during which
-you can exit the monitor by two short presses of the test button.
+The monitor tools measure continuously a passive component connected to
+probes #1 and #3. After starting a monitor tool the tester displays the probe
+pinout for a few seconds which can be skipped by pressing the test button.
 
+There's a delay of one or two seconds between measurements, indicated by a
+cursor at the bottom right, during which you can exit the monitor by two short
+presses of the test button.
 
-+ C Monitor
-
-The C monitor measures continuously the capacitance and optionally the ESR of
-a capacitor connected to probes #1 and #3. There's a delay of 2 seconds
-between measurements, indicated by a cursor at the bottom right, during which
-you can exit the monitor by two short presses of the test button.
+Available monitors:
+- R Monitor (resistance)
+- C Monitor (capacitance plus optionally ESR)
+- L Monitor (inductance)
+- R/C/L Monitor (R plus optionally L, or C plus optionally ESR)
+- R/L Monitor (resistance plus optionally inductance)
 
 
 + Frequency Counter (hardware option)
@@ -1582,12 +1658,20 @@ And as usual, two short button presses will exit the tool.
 This tool reads the OneWire temperature sensor DS18B20 and displays the
 temperature. Please see section "Busses & Interfaces" for the setup of the
 OneWire bus. When using the probes the tester will inform you about the pin
-assignment and waits until it detects the external pull-up resistor. You can
-skip this by a key press.
+assignment and then waits until it detects the external pull-up resistor. You
+can skip this by a key press.
 
 After connecting the DS18B20 as the only client on the OneWire bus push the
 test button for reading the sensor (this may take nearly a second). To exit
-the tool press the test button twice quickly.
+the tool press the test button twice quickly. And with a long button press
+you can select the auto mode (automatic updating) which is indicated by
+an "*" after the tool name.
+
+Pin assignment for probes:
+  Probe #1:  Gnd
+  Probe #2:  DQ (data)
+  Probe #3:  Vcc (current limited by 680 ohms resistor)
+  An external pull-up resistor of 4.7kOhms between DQ and Vcc is required!
 
 
 + DHTxx Sensors
@@ -1717,6 +1801,9 @@ you switch back to the standard probe leads you don't need to re-adjust
 the tester because the old values are still stored. Just powercycle the
 tester.
 
+There is an option (UI_CHOOSE_PROFILE) to automatically enter the load menu
+after powering on the tester.
+
 
 + Show Values
 
@@ -1811,7 +1898,7 @@ color-codes for caps.
 * Inductors
 
 The inductance measurement isn't very accurate, and things like the MCU clock
-speed and the PCB layout has an impact on the results. Basically it's based
+speed and the PCB layout have an impact on the results. Basically it's based
 on measuring the time between switching on current flow and reaching a specific
 current. For high inductances there's a low current check, and for low
 inductances a high current check, which exceeds the MCU's pin drive limit
@@ -1831,10 +1918,13 @@ further tests. If you see any major deviations when compairing the measurement
 results with a proper LCR meter, you can adjust the offset values of your
 tester.
 
-Hint: When getting unexpected results please re-run the test.
-
 If you like to have the check for E series norm values please enable the
 SW_L_E* switches in config.h (text mode only).
+
+Hints:
+- When getting unexpected results please re-run the test.
+- The inductance measurement is only performed when the inductors's
+  resistance is lower than 2k Ohms.
 
 
 * Discharging Components
@@ -1859,16 +1949,6 @@ The ADC function is modified to support a variable oversampling (1-255 times).
 The default value is 25 samples. You can try to improve the accuracy of the
 measurements by increasing the number of samples. Note that more samples will
 take more time resulting in slower measurements.
-
-
-* V_BE of BJTs
-
-When checking for diodes Vf is measured with Rl (high test current) and Rh (
-low test current), and both voltages are stored. The output function for BJTs
-looks up the matching diode for V_BE and interpolates the two Vf measurements
-based on the transistors hFE for a virtual test current. That way we get more
-suitable results for different kinds of transistors, since Vf of a small signal
-BJT isn't measured with the same test current as for a power BJT.
 
 
 * Displaying Results
@@ -1910,18 +1990,34 @@ for the symbol, the pinout will be skipped.
 
 BJTs
 
+A lowercase letter following the hFE value indicates the test circuit type
+used for measuring hFE:
+  - e: common emitter circuit
+  - c: common collector circuit
+
+When checking for diodes Vf is measured with Rl (high test current) and Rh (
+low test current), and both voltages are stored. The output function for BJTs
+looks up the matching diode for V_BE and interpolates the two Vf measurements
+based on the transistors hFE for a virtual test current. That way we get more
+suitable results for different kinds of transistors, since Vf of a small signal
+BJT isn't measured with the same test current as for a power BJT.
+
 In case of a BJT with a base emitter resistor the tester displays that
 resistor. Be aware that the B-E resistor has an impact on V_BE and hFE. If the
 BJT also has a freewheeling diode the BJT might be detected as BJT or two
 diodes based on the value of the base emitter resistor (low value resistor -> 2
 diodes). In the latter case the tester shows the two diodes and the resistor
-while hinting at a possible NPN or PNP BJT. Unfortunately the low value base
+while hinting at a possible NPN or PNP BJT. Unfortunately a low value base
 emitter resistor prevents the correct detection of the BJT.
 
 Another special case is a BJT with an integrated freewheeling diode on the same
 subtrate as the BJT. That integrated diode junction creates a parasitic
 transistor. A NPN BJT will have a parasitic PNP and vice versa. If such a BJT
 is found the tester shows a '+' behind the BJT type.
+
+For a Schottky transistor (Schottky-clamped BJT) the clamping diode between
+base and collector and it's V_f are displayed if the detection is enabled (
+SW_SCHOTTKY_BJT). Note that a Schottky transistor has an increased I_CEO.
 
 
 TRIACs
@@ -1955,10 +2051,29 @@ most likely a CLD.
 
 * Unsupported Components
 
-Any semiconductor which requires a high current to trigger conduction can't
-be supported, since the tester only provides about 7mA at maximum. Also the
-tester provides just a voltage of 5V, which isn't sufficient for DIACs with
-a V_BO of 20-200V.
+Any semiconductor which requires a high current or high voltage to trigger
+conduction can't be detected, since the tester only provides about 7mA current
+and 5V voltage at maximum. So components like a DIAC with a V_BO of 20-200V
+can't be checked. Same for SCRs and TRIACs with a high trigger current.
+
+
+* Workarounds for some Testers
+
+If your tester has one of the following issues you can try to enable a
+workaround:
+
+- hFE way too high.
+
+  Problem:
+  Using the common collector circuit with Rl as base resistor the base voltage
+  is memasured too low for some unknown reason. So the base current appears
+  to be lower also, and causes a too high hFE value.
+
+  Affected testers:
+  Hiland M644
+
+  Workaround:
+  Enable NO_HFE_C_RL in config.h!
 
 
 * Known Issues
@@ -2063,7 +2178,7 @@ Probing Commands:
   - example response for FET (MOSFET): "MOSFET n-ch enh."
 
   HINT
-  - returns hints on special features
+  - returns hints on special features of a component
   - applies to diode, BJT, FET and IGBT
   - hints available:
     - NPN      possibly a NPN BJT (diode)
@@ -2072,9 +2187,19 @@ Probing Commands:
     - BJT+     integrated flyback diode on same substrate
                creating a parasitic second BJT (BJT)
     - D_FB     body/flyback diode (BJT, FET, IGBT)
+    - D_CLAMP  Schottky-clamped BJT (BJT)
+               requires Schottky transistor detection to be enabled
     - SYM      symmetrical drain and source (FET) 
   - example response for BJT: "D_FB R_BE"
   - example response for FET (MOSFET): "D_FB"
+
+  MHINT
+  - returns hints on measurements
+  - applies to BJT
+  - hints avaiable:
+    - h_FE_e   h_FE measurement performed with common emitter circuit (BJT)
+    - h_FE_c   h_FE measurement performed with common collector circuit (BJT)
+  - example response for BJT: "h_FE_e"
 
   PIN
   - returns pinout of component
@@ -2181,6 +2306,11 @@ Probing Commands:
   - returns R_DS_on value (drain-source on-resistance)
   - applies to FET (MOSFET)
   - example response: "1.20R"
+
+  V_GS_off
+  - returns V_GS(off) value (cutoff voltage)
+  - applies to FET (depletion mode)
+  - example response: "-3072mV"
 
   I_DSS
   - returns I_DSS value (drain-source current, zero bias / shorted gate)

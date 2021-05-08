@@ -192,8 +192,8 @@ uint8_t ShortedPair(uint8_t Probe1, uint8_t Probe2)
  *  check for a short circuit between all probes
  *
  *  returns:
- *  - 0 if no probes are short-circuited
- *  - number of probe pairs short-circuited (3 = all)
+ *  - number of short-circuited probe pairs
+ *    (0 = none, 3 = all)
  */
 
 uint8_t ShortedProbes(void)
@@ -207,6 +207,97 @@ uint8_t ShortedProbes(void)
 
   return Flag;  
 }
+
+
+
+#if defined (SW_ESR) || defined (SW_OLD_ESR)
+
+/*
+ *  discharge cap connected to two probes
+ *
+ *  requires:
+ *  - Probe1: ID of probe-1
+ *  - Probe2: ID of probe-2
+ */
+
+void DischargeCap(uint8_t Probe1, uint8_t Probe2)
+{
+  uint8_t           n;             /* counter */
+  uint16_t          U_1;           /* voltage #1 */
+  uint16_t          U_2;           /* voltage #2 */
+
+  /* probes: set to safe mode */
+  ADC_DDR = 0;
+  ADC_PORT = 0;
+  R_DDR = 0;
+  R_PORT = 0;
+
+
+  /*
+   *  figure out the positive charged pin
+   */
+
+  UpdateProbes(Probe1, Probe2, 0);      /* update probes */
+
+  /* try probe-1 */ 
+  ADC_DDR = Probes.Pin_1;          /* pull down probe-1 directly */
+  U_1 = ReadU(Probes.Ch_2);        /* get voltage at probe-2 */
+
+  /* try probe-2 */
+  ADC_DDR = Probes.Pin_2;          /* pull down probe-2 directly */
+  U_2 = ReadU(Probes.Ch_1);        /* get voltage at probe-1 */
+
+  if (U_2 > U_1)                   /* probe-1 is positive */
+  {
+    /* reverse probes */
+    UpdateProbes(Probe2, Probe1, 0);    /* update probes */
+  } 
+
+
+  /*
+   *  discharge cap to voltage below 40mV
+   */
+
+  /* discharge positive side via Rl */
+  ADC_DDR = Probes.Pin_1;          /* pull down probe-1 directly */
+  R_DDR = Probes.Rl_2;             /* pull down probe-2 via Rl */
+
+  n = 1;
+
+  while (n)                        /* processing loop */
+  {
+    U_1 = ReadU(Probes.Ch_2);      /* get voltage at probe-2 */
+
+    if (U_1 < 400)                 /* below 400mV */
+    {
+      ADC_DDR |= Probes.Pin_2;     /* also pull down probe-2 directly */
+    }
+
+    if (U_1 < 40)                  /* discharged < 40mV */
+    {
+      n = 0;                       /* end loop */
+    }
+    else                           /* not discharged yet */
+    {
+      n++;                         /* another cycle */
+
+      if (n > 50)                  /* timeout (5s) */
+      {
+        n = 0;                     /* end loop */
+      }
+      else                         /* keep discharging */
+      {
+        MilliSleep(100);           /* wait */
+      }
+    }
+  }
+
+  /* probes: reset to safe mode */
+  ADC_DDR = 0;
+  R_DDR = 0;
+}
+
+#endif
 
 
 
@@ -256,7 +347,7 @@ void DischargeProbes(void)
    *    voltage.
    */
 
-  Counter = 1;
+  Counter = 1;                          /* reset variables */
   ID = 2;
   Flags = 0;
 
@@ -288,7 +379,7 @@ void DischargeProbes(void)
       /* increase limit if we start at a low voltage */
       if ((U_c < 10) && (Limit <= 40)) Limit = 80;
 
-      Counter++;              /* increase no-changes counter */
+      Counter++;                        /* increase no-changes counter */
     }
 
     if (U_c <= CAP_DISCHARGED)          /* seems to be discharged */
@@ -301,29 +392,29 @@ void DischargeProbes(void)
       ADC_DDR |= DATA_read_byte(&Pin_table[ID]);
     }
 
-    if (Flags == 0b00000111)              /* all probes discharged */
+    if (Flags == 0b00000111)            /* all probes discharged */
     {
-      Counter = 0;                        /* end loop */
+      Counter = 0;                      /* end loop */
     }
-    else if (Counter > Limit)             /* no decrease for some time */
+    else if (Counter > Limit)           /* no decrease for some time */
     {
       /* might be a battery or a super cap */
-      Check.Found = COMP_ERROR;           /* report error */
-      Check.Type = TYPE_DISCHARGE;        /* discharge problem */
-      Check.Probe = ID;                   /* save probe */
-      Check.U = U_c;                      /* save voltage */
-      Counter = 0;                        /* end loop */
+      Check.Found = COMP_ERROR;         /* report error */
+      Check.Type = TYPE_DISCHARGE;      /* discharge problem */
+      Check.Probe = ID;                 /* save probe */
+      Check.U = U_c;                    /* save voltage */
+      Counter = 0;                      /* end loop */
     }
     else                                /* go for another round */
     {
-      wdt_reset();                        /* reset watchdog */
-      MilliSleep(50);                     /* wait for 50ms */
+      wdt_reset();                      /* reset watchdog */
+      MilliSleep(50);                   /* wait for 50ms */
     }
   }
 
   /* reset probes */
-  R_DDR = 0;                       /* set resistor port to input mode */
-  ADC_DDR = 0;                     /* set ADC port to input mode */
+  R_DDR = 0;                  /* set resistor port to input mode */
+  ADC_DDR = 0;                /* set ADC port to input mode */
 }
 
 
@@ -334,25 +425,37 @@ void DischargeProbes(void)
  *  requires:
  *  - mask for probe resistors
  *  - pull mode (bit flags):
- *    0b00000000 = down
- *    0b00000001 = up 
- *    0b00000100 = 1ms
- *    0b00001000 = 10ms
+ *    PULL_DOWN  pull down
+ *    PULL_UP    pull up 
+ *    PULL_1MS   for 1ms
+ *    PULL_10MS  for 10ms
  */
 
 void PullProbe(uint8_t Mask, uint8_t Mode)
 {
   /* set pull mode */
-  if (Mode & PULL_UP) R_PORT |= Mask;   /* pull-up */
-  else R_PORT &= ~Mask;                 /* pull-down */
-  R_DDR |= Mask;                        /* enable pulling */
+  if (Mode & PULL_UP)         /* pull-up */
+  {
+    R_PORT |= Mask;                /* set bit */
+  }
+  else                        /* pull-down */
+  {
+    R_PORT &= ~Mask;               /* clear bit */
+  }
+  R_DDR |= Mask;              /* enable pulling */
 
-  if (Mode & PULL_1MS) wait1ms();       /* wait 1ms */
-  else wait10ms();                      /* wait 10ms */
+  if (Mode & PULL_1MS)        /* wait 1ms */
+  {
+    wait1ms();
+  }
+  else                        /* wait 10ms */
+  {
+    wait10ms();
+  }
 
   /* reset pulling */
-  R_DDR &= ~Mask;                       /* set to HiZ mode */
-  R_PORT &= ~Mask;                      /* set 0 */
+  R_DDR &= ~Mask;             /* set to HiZ mode */
+  R_PORT &= ~Mask;            /* set 0 */
 }
 
 
@@ -926,7 +1029,10 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   }
 
 
-  /* clean up */
+  /*
+   *  clean up
+   */
+
   ADC_DDR = 0;           /* set ADC port to HiZ mode */
   ADC_PORT = 0;          /* set ADC port low */
   R_DDR = 0;             /* set resistor port to HiZ mode */

@@ -6,6 +6,62 @@
 
 ------------------------------------------------------------------------------
 
+v1.41m 2020-09
+- New remote command "MHINT" for hints about measurements (at the moment just
+  the test circuit type for h_FE).
+- Added auto mode (automatic update) to DS18B20 tool (suggested by
+  Obelix2007@EEVblog).
+- Added additional discharge function to resolve ESR issue on some tester
+  clones (reported by indman@EEVblog). ESR value was way too high for cap
+  >= 470µF connected to probes #1 and #2, in ESR tool, C monitor and RCL
+  monitor. And for cap >= 4700µF in all modes. Affected testers are Hiland
+  M644 and TC-1 variants.
+- Updated degree character in font_16x26_hf.h and font_16x26_iso8859-2_hf.h (
+  changes provided by Bohu).
+- Driver for OLED controller SH1106 (3-wire SPI, 4-wire SPI and I2C; thanks
+  to Old-Papa for providing a sample display).
+- Fixed issue with missing setup of optional /RES line for I2C in SSD1306
+  driver.
+- Added output of test circuit type for hFE.
+- Changed output of hexadecimal values to lowercase by default and added
+  switch to enable uppercase (UI_HEX_UPPERCASE).
+- Option for OneWire related tools to also read and display the ROM code (
+  ONEWIRE_READ_ROM, suggested by indman@EEVblog).
+- Swapped DQ and Vcc probes for OneWire bus to match sensor pinout (suggested
+  by indman@EEVblog).
+- Added detection for Schottky-clamped BJTs (SW_SCHOTTKY_BJT).
+- Improved detection of depletion mode FETs by adding filter for Schottky-
+  clamped BJTs. 
+- Optimized text line management for clearing the display. 
+- Added special display driver for identifying display controllers.
+- Added R/C/L monitor (SW_MONITOR_RCL, suggested by indman@EEVblog).
+- Fixed problem with jumping inductance values in L and R/L monitor (reported
+  by indman@EEVblog).
+- Added measurement of V_GS(off) for depletion-mode FETs (suggested by
+  joshto@EEVblog). Also added "V_GS_off" command to remote command option.
+- Added support for 8-bit parallel bus to ILI9341 driver. Also added a
+  configuration switch for ILI9341 with diabled extended command set (
+  LCD_EXT_CMD_OFF, thanks to Bohu for providing a sample display).
+- Added 16x26 cyrillic font (FONT_16X26_WIN1251_HF, provided by
+  Yuriy_K@VRTP.RU).
+- Fixed missing µ (micro) in multiple ISO8859-2 fonts (reported by
+  indman@EEVblog and Obelix2007@EEVblog).
+- Fixed transposed digits for ATmega 2560 in Makefile (reported by Bohu).
+- Colored battery status for color displays (suggested by indman@EEVblog).
+- Replaced alternative 8x16 win1251 font with an updated version provided by
+  indman@EEVblog.
+- Fixed issue with validity check of low value resistors in CheckResistor() (
+  reported by indman@EEVblog).
+- Updated SmallResistor(), MeasureInductance() and GetGateThreshold() to
+  support ADC_LARGE_BUFFER_CAP.
+- Added missing update of ADC reference source to MeasureInductance() and
+  GetGateThreshold().
+- Added option to select the adjustment profile after powering on (
+  UI_CHOOSE_PROFILE, suggested by Bohu).
+- Added dedicated monitoring tools for resistors and inductors (SW_MONITOR_R,
+  SW_MONITOR_L, suggested by indman@EEVblog).
+- Updated Spanish texts (thanks to pepe10000@EEVblog).
+
 v1.40m 2020-07
 - Fixed error in SSD1306 driver which caused component symbols placed wrongly
   (reported by Andrei Paul).
@@ -43,7 +99,7 @@ v1.40m 2020-07
 - Replaced some ISO8859-2 fonts with updated versions provided by Bohu.
 - Option for checking resistors for E series norm value (SW_R_E*). Also
   for capacitors (SW_C_E*) and inductors (SW_L_E*). Optional output of
-  color code for resistors (requires color graphics display). 
+  color code for resistors (requires color graphics display).
 
 v1.39m 2020-03
 - Added Polish texts based on ISO 8859-2 (Thanks to Jacon).

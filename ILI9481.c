@@ -3,7 +3,7 @@
  *   driver functions for ILI9481 compatible color graphic displays
  *   - 320 x 480 pixels
  *   - interfaces
- *     - 8 bit parallel (untested)
+ *     - 8 bit parallel
  *     - 9 bit parallel (not supported)
  *     - 16 bit parallel (untested)
  *     - 18 bit parallel (not supported)
@@ -43,8 +43,6 @@
  *    DB13     LCD_DB13 (LCD_PORT3 pin #5)
  *    DB14     LCD_DB14 (LCD_PORT3 pin #6)
  *    DB15     LCD_DB15 (LCD_PORT3 pin #7)
- *  - pin assignment for 16 bit parallel interface
- *    same as for 8 bit parallel but additionally
  *  - max. clock rate for parallel bus: 10MHz write and 2.2MHz read
  *  - pin assignment for 4 line SPI
  *    /RESX       Vcc or LCD_RES (optional)
@@ -94,8 +92,20 @@
 #include "font_10x16_iso8859-2_hf.h"
 #include "font_12x16_iso8859-2_hf.h"
 #include "font_16x26_iso8859-2_hf.h"
+#include "font_16x26_win1251_hf.h"
 #include "symbols_24x24_hf.h"
 #include "symbols_32x32_hf.h"
+
+/* sanity check */
+#ifndef FONT_SET
+  #error <<< No font selected! >>>
+#endif
+#ifdef SW_SYMBOLS
+  #ifndef SYMBOL_SET
+    #error <<< No symbols selected! >>>
+  #endif
+#endif
+
 
 
 /*
@@ -153,7 +163,7 @@ uint16_t            LineFlags;     /* bitfield for up to 16 lines */
 
 /*
  *  protocol:
- *  - CSX -> D/CX -> D7-0 with rising edge of SCL
+ *  - write: CSX low -> D/CX -> D7-0 with rising edge of SCL
  *  - D/CX: high = data / low = command
  *
  *  hints:
@@ -325,7 +335,10 @@ void LCD_Data2(uint16_t Data)
 
 /*
  *  protocol:
- *  - CSX -> D/CX -> D7-0 with rising edge of WRX
+ *  - write: CSX low -> D/CX -> WRX low to init write -> set D7-0 ->
+ *           rising edge of WRX triggers read
+ *  - read:  CSX low -> D/CX -> RDX low to trigger output ->
+ *           read D7-0 with rising edge of RDX
  *  - D/CX: high = data / low = command
  *
  *  hints:
@@ -418,64 +431,6 @@ void LCD_SendByte(uint8_t Byte)
 
 
 
-#if 0
-
-/*
- *  read byte from LCD
- *  - timing for register data
- *  - not suitable for frame memory
- *
- *  returns:
- *  - byte
- */
-
-uint8_t LCD_ReadByte(void)
-{
-  uint8_t           Byte;     /* return value */
-
-  /* set data pins to input mode */
-  LCD_DDR2 = 0b00000000;           /* DB0-7 */
-
-  #ifdef LCD_CS
-  /* select chip */
-  LCD_PORT &= ~(1 << LCD_CD);      /* set /CSX low */
-  #endif
-
-  /* indicate data mode */
-  LCD_PORT |= (1 << LCD_DC);       /* set D/CX high */
-
-  /* start read cycle (RDX low for min. 170ns) */
-  LCD_PORT &= ~(1 << LCD_RD);      /* set RDX low */
-
-  /* wait for LCD to fetch data: max. 340ns */
-  wait1us();                       /* wait 1탎 */
-
-  /* read data */
-  Byte = LCD_PIN2;
-
-  /* end read cycle */
-  LCD_PORT |= (1 << LCD_RD);       /* set RDX high */
-
-  /* wait for LCD to release data lines: max. 250ns */
-  wait1us();                       /* wait 1탎 */
-
-  /* next read cycle after 90ns RDX being high */
-
-  #ifdef LCD_CS
-  /* deselect chip */
-  LCD_PORT |= (1 << LCD_CS);       /* set /CSX high */
-  #endif
-
-  /* set data pins back to output mode */
-  LCD_DDR2 = 0b11111111;           /* DB0-7 */
-
-  return Byte;
-}
-
-#endif
-
-
-
 /*
  *  send a command to the LCD
  *
@@ -563,6 +518,64 @@ void LCD_Data2(uint16_t Data)
   #endif
 }
 
+
+
+#if 0
+
+/*
+ *  read byte from LCD
+ *  - timing for register data
+ *  - not suitable for frame memory
+ *
+ *  returns:
+ *  - byte
+ */
+
+uint8_t LCD_ReadByte(void)
+{
+  uint8_t           Byte;     /* return value */
+
+  /* set data pins to input mode before reading */
+  LCD_DDR2 = 0b00000000;         /* DB0-7 */
+
+  #ifdef LCD_CS
+  /* select chip */
+  LCD_PORT &= ~(1 << LCD_CD);      /* set /CSX low */
+  #endif
+
+  /* indicate data mode */
+  LCD_PORT |= (1 << LCD_DC);       /* set D/CX high */
+
+  /* start read cycle (RDX low for min. 170ns) */
+  LCD_PORT &= ~(1 << LCD_RD);      /* set RDX low */
+
+  /* wait for LCD to fetch data: max. 340ns */
+  wait1us();                       /* wait 1탎 */
+
+  /* read data */
+  Byte = LCD_PIN2;
+
+  /* end read cycle */
+  LCD_PORT |= (1 << LCD_RD);       /* set RDX high */
+
+  /* wait for LCD to release data lines: max. 250ns */
+  wait1us();                       /* wait 1탎 */
+
+  /* next read cycle after 90ns RDX being high */
+
+  #ifdef LCD_CS
+  /* deselect chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CSX high */
+  #endif
+
+  /* set data pins back to output mode after reading */
+  LCD_DDR2 = 0b11111111;         /* DB0-7 */
+
+  return Byte;
+}
+
+#endif
+
 #endif
 
 
@@ -577,7 +590,8 @@ void LCD_Data2(uint16_t Data)
 
 /*
  *  protocol:
- *  - CSX -> D/CX -> D15-0 with rising edge of WRX
+ *  - write: CSX low -> D/CX -> WRX low to init write -> set D15-0 ->
+ *           rising edge of WRX triggers read
  *  - D/CX: high = data / low = command
  *  - commands have to be sent as 2 bytes
  *
@@ -848,7 +862,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
 
 void LCD_ClearLine(uint8_t Line)
 {
-  uint16_t          x = 0;         /* x position */
+  uint16_t          x;             /* x position */
   uint8_t           y;             /* y position */
   uint8_t           Pos = 1;       /* character position */
 
@@ -860,7 +874,7 @@ void LCD_ClearLine(uint8_t Line)
     Pos = UI.CharPos_X;            /* get current character position */
   }
 
-  /* have we to clear this line? */
+  /* text line optimization */
   if (Line <= 16)                  /* prevent overflow */
   {
     y = Line - 1;                  /* bitfield starts at zero */
@@ -869,21 +883,19 @@ void LCD_ClearLine(uint8_t Line)
 
     if (! (LineFlags & x))         /* bit not set */
     {
+      /* empty text line, already cleared */
       return;                      /* nothing do to */
+    }
+    else if (Pos == 1)             /* bit set and complete line */
+    {
+      /* we'll clear this line completely */
+      LineFlags &= ~x;             /* clear bit */
     }
   }
 
   /* manage address window */
   LCD_CharPos(Pos, Line);          /* update character position */
                                    /* also updates X_Start and Y_Start */
-  if (Pos == 1)                    /* complete line */
-  {
-    if (x > 0)                     /* got line bit */
-    {
-      LineFlags &= ~x;             /* clear bit */
-    }
-  }
-
   X_End = LCD_PIXELS_X - 1;             /* last column */
   Y_End = Y_Start + FONT_SIZE_Y - 1;    /* last row */
   y = FONT_SIZE_Y;                      /* set default */

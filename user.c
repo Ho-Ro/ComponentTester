@@ -1168,7 +1168,7 @@ void SmoothLongKeyPress(void)
 
 
 /* ************************************************************************
- *   extra UI stuff
+ *   various support functions
  * ************************************************************************ */
 
 
@@ -1248,74 +1248,8 @@ uint8_t ShortCircuit(uint8_t Mode)
 
 
 
-#ifdef SW_CONTRAST
-
-/*
- *  change LCD contrast
- *  - takes maximum value into account
- */
-
-void ChangeContrast(void)
-{
-  uint8_t          Flag = 1;            /* loop control */
-  uint8_t          Contrast;            /* contrast value */
-  uint8_t          Max;                 /* contrast maximum */
-  
-
-  /*
-   *  increase: short key press / right turn 
-   *  decrease: long key press / left turn
-   *  done:     two brief key presses          
-   */
-
-  LCD_Clear();
-  Display_EEString_Space(Contrast_str);      /* display: Contrast */
-
-  Contrast = NV.Contrast;          /* get current value */
-  Max = UI.MaxContrast;            /* get maximum value */
-
-  while (Flag)
-  {
-    LCD_ClearLine2();
-    Display_Value(Contrast, 0, 0);
-
-    #ifdef HW_KEYS
-    if (Flag < KEY_RIGHT)               /* just for test button usage */
-    #endif
-    MilliSleep(300);                    /* smooth UI */
-
-    /* wait for user feedback */
-    Flag = TestKey(0, CHECK_KEY_TWICE | CHECK_BAT);
-
-    if (Flag == KEY_SHORT)              /* short key press */
-    {
-      if (Contrast < Max) Contrast++;   /* increase value */
-    }
-    else if (Flag == KEY_TWICE)         /* two short key presses */
-    {
-      Flag = 0;                         /* end loop */
-    }
-    #ifdef HW_KEYS
-    else if (Flag == KEY_RIGHT)         /* rotary encoder: right turn */
-    {
-      if (Contrast < Max) Contrast++;   /* increase value */
-    }
-    #endif
-    else                                /* long key press / left turn */
-    {
-      if (Contrast > 0) Contrast--;       /* decrease */
-    }
-
-    LCD_Contrast(Contrast);        /* change contrast */
-  }
-}
-
-#endif
-
-
-
 /* ************************************************************************
- *   menus
+ *   menu management
  * ************************************************************************ */
 
 
@@ -1349,6 +1283,8 @@ void MarkItem(uint8_t Item, uint8_t Selected)
 
 /*
  *  menu tool
+ *  - expects title in first line
+ *  - outputs menu starting in second line
  *
  *  requires:
  *  - Items: number of menu items
@@ -1534,47 +1470,83 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
 
 
+/* ************************************************************************
+ *   menus
+ * ************************************************************************ */
+
+
 /*
  *  adjustment menu
+ *  - select profile to load or save
+ *
+ *  requires:
+ *  - Mode: storage mode
+ *    STORAGE_SAVE      - save profile 
+ *    STORAGE_LOAD      - load profile
+ *    STORAGE_SHORT     - short menu
  */
 
 void AdjustmentMenu(uint8_t Mode)
 {
-  #define MENU_ITEMS  3
+  #define MENU_ITEMS  3       /* number of menu items */
 
-  uint8_t           Item = 0;           /* item number */
-  void              *MenuItem[MENU_ITEMS];   /* menu item strings */
-  uint8_t           MenuID[MENU_ITEMS];      /* menu item IDs */
-  uint8_t           ID;            /* profile ID */
+  uint8_t           n = 0;                   /* item index number / counter */
+  void              *Item_Str[MENU_ITEMS];   /* menu item strings */
+  uint8_t           Item_ID[MENU_ITEMS];     /* menu item IDs */
+  uint8_t           ID;                      /* ID of selected item */
 
-  /* set up menu */
-  MenuItem[Item] = (void *)Profile1_str;     /* profile #1 */
-  MenuID[Item] = 1;
-  Item++;  
-  MenuItem[Item] = (void *)Profile2_str;     /* profile #2 */
-  MenuID[Item] = 2;
-  Item++;
-  MenuItem[Item] = (void *)Exit_str;         /* exit menu */
-  MenuID[Item] = 0;
-  Item++;                                    /* add 1 for item #0 */
+  /*
+   *  set up menu
+   *  - items are added in display order
+   */
 
-  /* display mode */
+  /* profile #1 */
+  Item_Str[n] = (void *)Profile1_str;
+  Item_ID[n] = 1;
+  n++;  
+
+  /* profile #2 */
+  Item_Str[n] = (void *)Profile2_str;
+  Item_ID[n] = 2;
+  n++;
+
+  #ifdef UI_CHOOSE_PROFILE
+  if (Mode & STORAGE_SHORT)             /* short menu */
+  {
+    /* no "exit menu" */
+    Mode &= ~STORAGE_SHORT;             /* clear flag */
+  }
+  else                                  /* normal menu */
+  {
+  #endif
+
+    /* exit menu */
+    Item_Str[n] = (void *)Exit_str;
+    Item_ID[n] = 0;
+    n++;                                /* add 1 for item #0 */
+
+  #ifdef UI_CHOOSE_PROFILE
+  }
+  #endif
+
+  /* display storage mode */
   LCD_Clear();
   if (Mode == STORAGE_SAVE)        /* write mode */
   {
-    Display_EEString(Save_str);
+    Display_EEString(Save_str);    /* display: Save */
   }
   else                             /* read mode */
   {
-    Display_EEString(Load_str);
+    Display_EEString(Load_str);    /* display: Load */
   }
 
   /* run menu */
-  ID = MenuTool(Item, 1, MenuItem, NULL);    /* menu dialog */
-  ID = MenuID[ID];                           /* get item ID */
+  ID = MenuTool(n, 1, Item_Str, NULL);       /* menu dialog */
+  ID = Item_ID[ID];                          /* get item ID */
 
   if (ID > 0)                 /* valid profile ID */
   {
+    /* load/save selected profile */
     ManageAdjustmentStorage(Mode, ID);
   }
 
@@ -1583,283 +1555,429 @@ void AdjustmentMenu(uint8_t Mode)
 
 
 /*
- *  create main menu and return ID of selected item  
+ *  local constants for main menu
+ */
+
+/* menu item IDs */
+#define MENUITEM_EXIT              0
+#define MENUITEM_SELFTEST          1
+#define MENUITEM_ADJUSTMENT        2
+#define MENUITEM_SAVE              3
+#define MENUITEM_LOAD              4
+#define MENUITEM_SHOW              5
+#define MENUITEM_PWM_TOOL          6
+#define MENUITEM_SQUAREWAVE        7
+#define MENUITEM_ZENER             8
+#define MENUITEM_ESR               9
+#define MENUITEM_FREQ_COUNTER     10
+#define MENUITEM_ENCODER          11
+#define MENUITEM_CONTRAST         12
+#define MENUITEM_IR_RECEIVER      13
+#define MENUITEM_OPTO_COUPLER     14
+#define MENUITEM_SERVO            15
+#define MENUITEM_TOUCH            16
+#define MENUITEM_IR_TRANSMITTER   17
+#define MENUITEM_DS18B20          18
+#define MENUITEM_CAP_LEAKAGE      19
+#define MENUITEM_POWER_OFF        20
+#define MENUITEM_EVENT_COUNTER    21
+#define MENUITEM_MONITOR_R        22
+#define MENUITEM_MONITOR_C        23
+#define MENUITEM_DHTXX            24
+#define MENUITEM_ONEWIRE_SCAN     25
+#define MENUITEM_FONT_TEST        26
+#define MENUITEM_MONITOR_L        27
+#define MENUITEM_MONITOR_RCL      28
+#define MENUITEM_MONITOR_RL       29
+
+
+/*
+ *  create main menu and return ID of selected item
+ *
+ *  returns:
+ *  - ID of selected menu item
  */
 
 uint8_t PresentMainMenu(void)
 {
-  /* local constants */
-  #define ITEM_0         6         /* basic items */
+  /* 
+   *  local constants for calculating the number of menu items
+   */
+
+  #define ITEMS_0        6         /* basic items */
 
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
-    #define ITEM_6       1
+    #define ITEM_01      1
   #else
-    #define ITEM_6       0
+    #define ITEM_01      0
   #endif
 
   #ifdef SW_SQUAREWAVE
-    #define ITEM_7       1
+    #define ITEM_02      1
   #else
-    #define ITEM_7       0
+    #define ITEM_02      0
   #endif
 
   #ifdef HW_ZENER
-    #define ITEM_8       1
+    #define ITEM_03      1
   #else
-    #define ITEM_8       0
+    #define ITEM_03      0
   #endif
 
   #if defined (SW_ESR) || defined (SW_OLD_ESR)
-    #define ITEM_9       1
+    #define ITEM_04      1
   #else
-    #define ITEM_9       0
+    #define ITEM_04      0
   #endif
 
   #ifdef HW_FREQ_COUNTER
+    #define ITEM_05      1
+  #else
+    #define ITEM_05      0
+  #endif
+
+  #ifdef SW_ENCODER
+    #define ITEM_06      1
+  #else
+    #define ITEM_06      0
+  #endif
+
+  #ifdef SW_CONTRAST
+    #define ITEM_07      1
+  #else
+    #define ITEM_07      0
+  #endif
+
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+    #define ITEM_08      1
+  #else
+    #define ITEM_08      0
+  #endif
+
+  #ifdef SW_OPTO_COUPLER
+    #define ITEM_09      1
+  #else
+    #define ITEM_09      0
+  #endif
+
+  #ifdef SW_SERVO
     #define ITEM_10      1
   #else
     #define ITEM_10      0
   #endif
 
-  #ifdef SW_ENCODER
+  #ifdef HW_TOUCH
     #define ITEM_11      1
   #else
     #define ITEM_11      0
   #endif
 
-  #ifdef SW_CONTRAST
+  #ifdef SW_IR_TRANSMITTER
     #define ITEM_12      1
   #else
     #define ITEM_12      0
   #endif
 
-  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+  #ifdef SW_DS18B20
     #define ITEM_13      1
   #else
     #define ITEM_13      0
   #endif
 
-  #ifdef SW_OPTO_COUPLER
+  #ifdef SW_CAP_LEAKAGE
     #define ITEM_14      1
   #else
     #define ITEM_14      0
   #endif
 
-  #ifdef SW_SERVO
+  #ifdef SW_POWER_OFF
     #define ITEM_15      1
   #else
     #define ITEM_15      0
   #endif
 
-  #ifdef HW_TOUCH
+  #ifdef HW_EVENT_COUNTER
     #define ITEM_16      1
   #else
     #define ITEM_16      0
   #endif
 
-  #ifdef SW_IR_TRANSMITTER
+  #ifdef SW_MONITOR_R
     #define ITEM_17      1
   #else
     #define ITEM_17      0
   #endif
 
-  #ifdef SW_DS18B20
+  #ifdef SW_MONITOR_C
     #define ITEM_18      1
   #else
     #define ITEM_18      0
   #endif
 
-  #ifdef SW_CAP_LEAKAGE
+  #ifdef SW_DHTXX
     #define ITEM_19      1
   #else
     #define ITEM_19      0
   #endif
 
-  #ifdef SW_POWER_OFF
+  #ifdef SW_ONEWIRE_SCAN
     #define ITEM_20      1
   #else
     #define ITEM_20      0
   #endif
 
-  #ifdef HW_EVENT_COUNTER
+  #ifdef SW_FONT_TEST
     #define ITEM_21      1
   #else
     #define ITEM_21      0
   #endif
 
-  #ifdef SW_MONITOR_RL
+  #ifdef SW_MONITOR_L
     #define ITEM_22      1
   #else
     #define ITEM_22      0
   #endif
 
-  #ifdef SW_MONITOR_C
+  #ifdef SW_MONITOR_RCL
     #define ITEM_23      1
   #else
     #define ITEM_23      0
-  #endif
+  #endif 
 
-  #ifdef SW_DHTXX
+  #ifdef SW_MONITOR_RL
     #define ITEM_24      1
   #else
     #define ITEM_24      0
   #endif
 
-  #ifdef SW_ONEWIRE_SCAN
-    #define ITEM_25      1
-  #else
-    #define ITEM_25      0
-  #endif
+  #define ITEMS_1        (ITEM_01 + ITEM_02 + ITEM_03 + ITEM_04 + ITEM_05 + ITEM_06 + ITEM_07 + ITEM_08 + ITEM_09 + ITEM_10)
+  #define ITEMS_2        (ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20)
+  #define ITEMS_3        (ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24)
 
-  #ifdef SW_FONT_TEST
-    #define ITEM_26      1
-  #else
-    #define ITEM_26      0
-  #endif
-
-  #define ITEMS_1        (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14)
-  #define ITEMS_2        (ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20 + ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24)
-  #define ITEMS_3        (ITEM_25 + ITEM_26)
-
-  #define MENU_ITEMS     (ITEMS_1 + ITEMS_2 + ITEMS_3)
+  /* number of menu items */
+  #define MENU_ITEMS     (ITEMS_0 + ITEMS_1 + ITEMS_2 + ITEMS_3)
 
 
-  uint8_t           Item = 0;           /* item number */
-  uint8_t           ID;                 /* ID of selected item */
-  void              *MenuItem[MENU_ITEMS];   /* menu item strings */
-  uint8_t           MenuID[MENU_ITEMS];      /* menu item IDs */
+  /*
+   *  local variables
+   */
+
+  uint8_t           n = 0;                   /* item index number / counter */
+  uint8_t           ID;                      /* ID of selected item */
+  void              *Item_Str[MENU_ITEMS];   /* menu item strings */
+  uint8_t           Item_ID[MENU_ITEMS];     /* menu item IDs */
 
 
   /*
    *  set up menu
+   *  - items are added in display order
    */
 
-  /* extra items */
+  /*
+   *  test/check/signal features
+   */
+
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
-  MenuItem[Item] = (void *)PWM_str;          /* PWM tool */
-  MenuID[Item] = 6;
-  Item++;
-  #endif
-  #ifdef SW_SQUAREWAVE
-  MenuItem[Item] = (void *)SquareWave_str;   /* Square Wave Signal Generator */
-  MenuID[Item] = 7;
-  Item++;
-  #endif
-  #ifdef HW_ZENER
-  MenuItem[Item] = (void *)Zener_str;        /* Zener tool */
-  MenuID[Item] = 8;  
-  Item++;
-  #endif
-  #if defined (SW_ESR) || defined (SW_OLD_ESR)
-  MenuItem[Item] = (void *)ESR_str;          /* in-circuit ESR */
-  MenuID[Item] = 9;
-  Item++;
-  #endif
-  #ifdef SW_CAP_LEAKAGE
-  MenuItem[Item] = (void *)CapLeak_str;      /* cap leakage */
-  MenuID[Item] = 19;
-  Item++;
-  #endif
-  #ifdef SW_MONITOR_RL
-  MenuItem[Item] = (void *)Monitor_RL_str;   /* monitor RL */
-  MenuID[Item] = 22;
-  Item++;
-  #endif
-  #ifdef SW_MONITOR_C
-  MenuItem[Item] = (void *)Monitor_C_str;    /* monitor C */
-  MenuID[Item] = 23;
-  Item++;
-  #endif
-  #ifdef HW_FREQ_COUNTER
-  MenuItem[Item] = (void *)FreqCounter_str;  /* frequency counter */
-  MenuID[Item] = 10;
-  Item++;
-  #endif
-  #ifdef HW_EVENT_COUNTER
-  MenuItem[Item] = (void *)EventCounter_str; /* event counter */
-  MenuID[Item] = 21;
-  Item++;
-  #endif
-  #ifdef SW_ENCODER
-  MenuItem[Item] = (void *)Encoder_str;      /* rotary encoder check */
-  MenuID[Item] = 11;
-  Item++;
-  #endif
-  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
-  MenuItem[Item] = (void *)IR_Detector_str;  /* IR RC detection */
-  MenuID[Item] = 13;
-  Item++;
-  #endif
-  #ifdef SW_IR_TRANSMITTER
-  MenuItem[Item] = (void *)IR_Transmitter_str;    /* IR RC transmitter */
-  MenuID[Item] = 17;
-  Item++;
-  #endif
-  #ifdef SW_OPTO_COUPLER
-  MenuItem[Item] = (void *)OptoCoupler_str;  /* opto coupler tool */
-  MenuID[Item] = 14;
-  Item++;
-  #endif
-  #ifdef SW_SERVO
-  MenuItem[Item] = (void *)Servo_str;        /* servo check */
-  MenuID[Item] = 15;
-  Item++;
-  #endif
-  #ifdef SW_ONEWIRE_SCAN
-  MenuItem[Item] = (void *)OneWire_Scan_str; /* OneWire scan tool */
-  MenuID[Item] = 25;
-  Item++;
-  #endif
-  #ifdef SW_DS18B20
-  MenuItem[Item] = (void *)DS18B20_str;      /* DS18B20 sensor */
-  MenuID[Item] = 18;
-  Item++;
-  #endif
-  #ifdef SW_DHTXX
-  MenuItem[Item] = (void *)DHTxx_str;        /* DHT11/DHT22 sensor */
-  MenuID[Item] = 24;
-  Item++;
+  /* PWM tool */
+  Item_Str[n] = (void *)PWM_str;
+  Item_ID[n] = MENUITEM_PWM_TOOL;
+  n++;
   #endif
 
-  /* standard items */
-  MenuItem[Item] = (void *)Selftest_str;     /* selftest */
-  MenuID[Item] = 1;
-  Item++;
-  MenuItem[Item] = (void *)Adjustment_str;   /* self-adjustment */
-  MenuID[Item] = 2;
-  Item++;
+  #ifdef SW_SQUAREWAVE
+  /* Square Wave Signal Generator */
+  Item_Str[n] = (void *)SquareWave_str;
+  Item_ID[n] = MENUITEM_SQUAREWAVE;
+  n++;
+  #endif
+
+  #ifdef HW_ZENER
+  /* Zener tool */
+  Item_Str[n] = (void *)Zener_str;
+  Item_ID[n] = MENUITEM_ZENER;  
+  n++;
+  #endif
+
+  #if defined (SW_ESR) || defined (SW_OLD_ESR)
+  /* in-circuit ESR */
+  Item_Str[n] = (void *)ESR_str;
+  Item_ID[n] = MENUITEM_ESR;
+  n++;
+  #endif
+
+  #ifdef SW_CAP_LEAKAGE
+  /* cap leakage */
+  Item_Str[n] = (void *)CapLeak_str;
+  Item_ID[n] = MENUITEM_CAP_LEAKAGE;
+  n++;
+  #endif
+
+  #ifdef SW_MONITOR_R
+  /* monitor R */
+  Item_Str[n] = (void *)Monitor_R_str;
+  Item_ID[n] = MENUITEM_MONITOR_R;
+  n++;
+  #endif
+
+  #ifdef SW_MONITOR_C
+  /* monitor C */
+  Item_Str[n] = (void *)Monitor_C_str;
+  Item_ID[n] = MENUITEM_MONITOR_C;
+  n++;
+  #endif
+
+  #ifdef SW_MONITOR_L
+  /* monitor L */
+  Item_Str[n] = (void *)Monitor_L_str;
+  Item_ID[n] = MENUITEM_MONITOR_L;
+  n++;
+  #endif
+
+  #ifdef SW_MONITOR_RCL
+  /* monitor R/C/L */
+  Item_Str[n] = (void *)Monitor_RCL_str;
+  Item_ID[n] = MENUITEM_MONITOR_RCL;
+  n++;
+  #endif
+
+  #ifdef SW_MONITOR_RL
+  /* monitor R/L */
+  Item_Str[n] = (void *)Monitor_RL_str;
+  Item_ID[n] = MENUITEM_MONITOR_RL;
+  n++;
+  #endif
+
+  #ifdef HW_FREQ_COUNTER
+  /* frequency counter */
+  Item_Str[n] = (void *)FreqCounter_str;
+  Item_ID[n] = MENUITEM_FREQ_COUNTER;
+  n++;
+  #endif
+
+  #ifdef HW_EVENT_COUNTER
+  /* event counter */
+  Item_Str[n] = (void *)EventCounter_str;
+  Item_ID[n] = MENUITEM_EVENT_COUNTER;
+  n++;
+  #endif
+
+  #ifdef SW_ENCODER
+  /* rotary encoder check */
+  Item_Str[n] = (void *)Encoder_str;
+  Item_ID[n] = MENUITEM_ENCODER;
+  n++;
+  #endif
+
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+  /* IR RC detection */
+  Item_Str[n] = (void *)IR_Detector_str;
+  Item_ID[n] = MENUITEM_IR_RECEIVER;
+  n++;
+  #endif
+
+  #ifdef SW_IR_TRANSMITTER
+  /* IR RC transmitter */
+  Item_Str[n] = (void *)IR_Transmitter_str;
+  Item_ID[n] = MENUITEM_IR_TRANSMITTER;
+  n++;
+  #endif
+
+  #ifdef SW_OPTO_COUPLER
+  /* opto coupler tool */
+  Item_Str[n] = (void *)OptoCoupler_str;
+  Item_ID[n] = MENUITEM_OPTO_COUPLER;
+  n++;
+  #endif
+
+  #ifdef SW_SERVO
+  /* servo check */
+  Item_Str[n] = (void *)Servo_str;
+  Item_ID[n] = MENUITEM_SERVO;
+  n++;
+  #endif
+
+  #ifdef SW_ONEWIRE_SCAN
+  /* OneWire scan tool */
+  Item_Str[n] = (void *)OneWire_Scan_str;
+  Item_ID[n] = MENUITEM_ONEWIRE_SCAN;
+  n++;
+  #endif
+
+  #ifdef SW_DS18B20
+  /* DS18B20 sensor */
+  Item_Str[n] = (void *)DS18B20_str;
+  Item_ID[n] = MENUITEM_DS18B20;
+  n++;
+  #endif
+
+  #ifdef SW_DHTXX
+  /* DHT11/DHT22 sensor */
+  Item_Str[n] = (void *)DHTxx_str;
+  Item_ID[n] = MENUITEM_DHTXX;
+  n++;
+  #endif
+
+  /*
+   *  tester management and settings
+   */
+
+  /* selftest */
+  Item_Str[n] = (void *)Selftest_str;
+  Item_ID[n] = MENUITEM_SELFTEST;
+  n++;
+
+  /* self-adjustment */
+  Item_Str[n] = (void *)Adjustment_str;
+  Item_ID[n] = MENUITEM_ADJUSTMENT;
+  n++;
+
   #ifdef SW_CONTRAST
-  MenuItem[Item] = (void *)Contrast_str;     /* LCD contrast */
-  MenuID[Item] = 12;
-  Item++;
+  /* LCD contrast */
+  Item_Str[n] = (void *)Contrast_str;
+  Item_ID[n] = MENUITEM_CONTRAST;
+  n++;
   #endif
+
   #ifdef HW_TOUCH
-  MenuItem[Item] = (void *)TouchSetup_str;   /* touch screen adjustment */
-  MenuID[Item] = 16;
-  Item++;
+  /* touch screen adjustment */
+  Item_Str[n] = (void *)TouchSetup_str;
+  Item_ID[n] = MENUITEM_TOUCH;
+  n++;
   #endif
-  MenuItem[Item] = (void *)Save_str;         /* save self-adjustment values */
-  MenuID[Item] = 3;
-  Item++;
-  MenuItem[Item] = (void *)Load_str;         /* load self-adjustment values */
-  MenuID[Item] = 4;
-  Item++;
-  MenuItem[Item] = (void *)Show_str;         /* show self-adjustment values */
-  MenuID[Item] = 5;
-  Item++;
+
+  /* save self-adjustment values */
+  Item_Str[n] = (void *)Save_str;
+  Item_ID[n] = MENUITEM_SAVE;
+  n++;
+
+  /* load self-adjustment values */
+  Item_Str[n] = (void *)Load_str;
+  Item_ID[n] = MENUITEM_LOAD;
+  n++;
+
+  /* show self-adjustment values */
+  Item_Str[n] = (void *)Show_str;
+  Item_ID[n] = MENUITEM_SHOW;
+  n++;
+
   #ifdef SW_FONT_TEST
-  MenuItem[Item] = (void *)FontTest_str;     /* font test */
-  MenuID[Item] = 26;
-  Item++;
+  /* font test */
+  Item_Str[n] = (void *)FontTest_str;
+  Item_ID[n] = MENUITEM_FONT_TEST;
+  n++;
   #endif
+
   #ifdef SW_POWER_OFF
-  MenuItem[Item] = (void *)PowerOff_str;     /* power off tester */
-  MenuID[Item] = 20;
-  Item++;
+  /* power off tester */
+  Item_Str[n] = (void *)PowerOff_str;
+  Item_ID[n] = MENUITEM_POWER_OFF;
+  n++;
   #endif
-  MenuItem[Item] = (void *)Exit_str;         /* exit menu */
-  MenuID[Item] = 0;
-  Item++;                                    /* add 1 for item #0 */
+
+  /* exit menu */
+  Item_Str[n] = (void *)Exit_str;
+  Item_ID[n] = MENUITEM_EXIT;
+  n++;                                  /* add 1 for item #0 */
 
 
   /*
@@ -1867,17 +1985,43 @@ uint8_t PresentMainMenu(void)
    */
 
   LCD_Clear();
-  Display_EEString(Select_str);              /* display "Select" */
-  ID = MenuTool(Item, 1, MenuItem, NULL);    /* menu dialog */
-  ID = MenuID[ID];                           /* get item ID */
-
-  return(ID);                 /* return item ID */
+  Display_EEString(Select_str);         /* display "Select" */
+  ID = MenuTool(n, 1, Item_Str, NULL);  /* menu dialog */
+  ID = Item_ID[ID];                     /* get item ID */
 
   /* clean up */
+  #undef MENU_ITEMS
+  #undef ITEMS_0
   #undef ITEMS_1
   #undef ITEMS_2
   #undef ITEMS_3
-  #undef MENU_ITEMS
+
+  #undef ITEM_01
+  #undef ITEM_02
+  #undef ITEM_03
+  #undef ITEM_04
+  #undef ITEM_05
+  #undef ITEM_06
+  #undef ITEM_07
+  #undef ITEM_08
+  #undef ITEM_09
+  #undef ITEM_10
+  #undef ITEM_11
+  #undef ITEM_12
+  #undef ITEM_13
+  #undef ITEM_14
+  #undef ITEM_15
+  #undef ITEM_16
+  #undef ITEM_17
+  #undef ITEM_18
+  #undef ITEM_19
+  #undef ITEM_20
+  #undef ITEM_21
+  #undef ITEM_22
+  #undef ITEM_23
+  #undef ITEM_24
+
+  return(ID);                 /* return item ID */
 }
 
 
@@ -1899,30 +2043,37 @@ void MainMenu(void)
   /* run selected item */
   switch (ID)
   {
-    /* case 0:              exit menu */
+    /* exit menu */
+    /* case MENUITEM_EXIT: */
 
-    case 1:              /* self-test */
+    /* self-test */
+    case MENUITEM_SELFTEST:
       Flag = SelfTest();
       break;
 
-    case 2:              /* self-adjustment */
+    /* self-adjustment */
+    case MENUITEM_ADJUSTMENT:
       Flag = SelfAdjustment();
       break;
 
-    case 3:              /* save adjustment values */
+    /* save adjustment values */
+    case MENUITEM_SAVE:
       AdjustmentMenu(STORAGE_SAVE);
       break;
 
-    case 4:              /* load adjustment values */
+    /* load adjustment values */
+    case MENUITEM_LOAD:
       AdjustmentMenu(STORAGE_LOAD);
       break;
 
-    case 5:              /* show basic adjustment values */
+    /* show basic adjustment values */
+    case MENUITEM_SHOW:
       ShowAdjustmentValues();
       break;
 
     #ifdef SW_PWM_SIMPLE
-    case 6:              /* PWM tool with simple UI */
+    /* PWM tool with simple UI */
+    case MENUITEM_PWM_TOOL:
       /* run PWM menu */
       LCD_Clear();
       Display_EEString(PWM_str);
@@ -1933,128 +2084,170 @@ void MainMenu(void)
     #endif
 
     #ifdef SW_PWM_PLUS
-    case 6:              /* PWM tool with improved UI */
+    /* PWM tool with improved UI */
+    case MENUITEM_PWM_TOOL:
       PWM_Tool();
       break;
     #endif
 
     #ifdef SW_SQUAREWAVE
-    case 7:              /* square wave signal generator */
+    /* square wave signal generator */
+    case MENUITEM_SQUAREWAVE:
       SquareWave_SignalGenerator();
       break;
     #endif
 
     #ifdef HW_ZENER
-    case 8:              /* Zener tool */
+    /* Zener tool */
+    case MENUITEM_ZENER:
       Zener_Tool();
       break;
     #endif
 
     #if defined (SW_ESR) || defined (SW_OLD_ESR)
-    case 9:              /* ESR tool */
+    /* ESR tool */
+    case MENUITEM_ESR:
       ESR_Tool();
       break;
     #endif
 
     #ifdef HW_FREQ_COUNTER
-    case 10:             /* frequency counter */
+    /* frequency counter */
+    case MENUITEM_FREQ_COUNTER:
       FrequencyCounter();
       break;
     #endif
 
     #ifdef SW_ENCODER
-    case 11:             /* rotary encoder check */
+    /* rotary encoder check */
+    case MENUITEM_ENCODER:
       Encoder_Tool();
       break;
     #endif
 
     #ifdef SW_CONTRAST
-    case 12:             /* change contrast */
+    /* change contrast */
+    case MENUITEM_CONTRAST:
       ChangeContrast();
       break;
     #endif
 
     #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
-    case 13:             /* IR RC detector/decoder */
+    /* IR RC detector/decoder */
+    case MENUITEM_IR_RECEIVER:
       IR_Detector();
       break;
     #endif
 
     #ifdef SW_OPTO_COUPLER
-    case 14:             /* opto coupler tool */
+    /* opto coupler tool */
+    case MENUITEM_OPTO_COUPLER:
       OptoCoupler_Tool();
       break;
     #endif
 
     #ifdef SW_SERVO
-    case 15:             /* servo check */
+    /* servo check */
+    case MENUITEM_SERVO:
       Servo_Check();
       break;
     #endif
 
     #ifdef HW_TOUCH
-    case 16:             /* touch screen adjustment */
+    /* touch screen adjustment */
+    case MENUITEM_TOUCH:
       Flag = Touch_Adjust();
       break;
     #endif
 
     #ifdef SW_IR_TRANSMITTER
-    case 17:             /* IR RC transmitter */
+    /* IR RC transmitter */
+    case MENUITEM_IR_TRANSMITTER:
       IR_RemoteControl();
       break;
     #endif
 
     #ifdef SW_DS18B20
-    case 18:             /* DS18B20 sensor */
+    /* DS18B20 sensor */
+    case MENUITEM_DS18B20:
       Flag = DS18B20_Tool();
       break;
     #endif
 
     #ifdef SW_CAP_LEAKAGE
-    case 19:             /* cap leakage */
+    /* cap leakage */
+    case MENUITEM_CAP_LEAKAGE:
       Cap_Leakage();
       break;
     #endif
 
     #ifdef SW_POWER_OFF
-    case 20:             /* power off */
+    /* power off */
+    case MENUITEM_POWER_OFF:
       PowerOff();
       break;
     #endif
 
     #ifdef HW_EVENT_COUNTER
-    case 21:             /* event counter */
+    /* event counter */
+    case MENUITEM_EVENT_COUNTER:
       EventCounter();
       break;
     #endif
 
-    #ifdef SW_MONITOR_RL
-    case 22:             /* monitor RL */
-      Monitor_RL();
+    #ifdef SW_MONITOR_R
+    /* monitor R */
+    case MENUITEM_MONITOR_R:
+      Monitor_R();
       break;
     #endif
 
     #ifdef SW_MONITOR_C
-    case 23:             /* monitor C */
+    /* monitor C */
+    case MENUITEM_MONITOR_C:
       Monitor_C();
       break;
     #endif
 
     #ifdef SW_DHTXX
-    case 24:             /* DHT11/DHT22 sensor */
+    /* DHT11/DHT22 sensor */
+    case MENUITEM_DHTXX:
       Flag = DHTxx_Tool();
       break;
     #endif
 
     #ifdef SW_ONEWIRE_SCAN
-    case 25:             /* OneWire scan tool */
+    /* OneWire scan tool */
+    case MENUITEM_ONEWIRE_SCAN:
       Flag = OneWire_Scan_Tool();
       break;
     #endif
 
     #ifdef SW_FONT_TEST
-    case 26:             /* font test */
+    /* font test */
+    case MENUITEM_FONT_TEST:
       FontTest();
+      break;
+    #endif
+
+    #ifdef SW_MONITOR_L
+    /* monitor L */
+    case MENUITEM_MONITOR_L:
+      Monitor_L();
+      break;
+    #endif
+
+    #ifdef SW_MONITOR_RCL
+    /* monitor R/C/L */
+    case MENUITEM_MONITOR_RCL:
+      Monitor_RCL();
+      break;
+    #endif
+
+    #ifdef SW_MONITOR_RL
+    /* monitor R/L */
+    case MENUITEM_MONITOR_RL:
+      Monitor_RL();
       break;
     #endif
   }
@@ -2066,6 +2259,42 @@ void MainMenu(void)
   else
     Display_EEString(Done_str);    /* display: done! */
 }
+
+
+/*
+ *  clean up local constants for main menu
+ */
+
+/* menu item IDs */
+#undef MENUITEM_EXIT
+#undef MENUITEM_SELFTEST
+#undef MENUITEM_ADJUSTMENT
+#undef MENUITEM_SAVE
+#undef MENUITEM_LOAD
+#undef MENUITEM_SHOW
+#undef MENUITEM_PWM_TOOL
+#undef MENUITEM_SQUAREWAVE
+#undef MENUITEM_ZENER
+#undef MENUITEM_ESR
+#undef MENUITEM_FREQ_COUNTER
+#undef MENUITEM_ENCODER
+#undef MENUITEM_CONTRAST
+#undef MENUITEM_IR_RECEIVER
+#undef MENUITEM_OPTO_COUPLER
+#undef MENUITEM_SERVO
+#undef MENUITEM_TOUCH
+#undef MENUITEM_IR_TRANSMITTER
+#undef MENUITEM_DS18B20
+#undef MENUITEM_CAP_LEAKAGE
+#undef MENUITEM_POWER_OFF
+#undef MENUITEM_EVENT_COUNTER
+#undef MENUITEM_MONITOR_R
+#undef MENUITEM_MONITOR_C
+#undef MENUITEM_DHTXX
+#undef MENUITEM_ONEWIRE_SCAN
+#undef MENUITEM_FONT_TEST
+#undef MENUITEM_MONITOR_L
+#undef MENUITEM_MONITOR_RCL
 
 
 

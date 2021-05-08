@@ -7,8 +7,8 @@
 
 ------------------------------------------------------------------------------
 
-DIY Kit "AY-AT"
-- ATmega328
+DIY Kit "AY-AT" / GM328A
+- ATmega328, 8MHz clock
 - ST7735 color LCD module (bit-bang SPI)
 - rotary encoder (PD1 & PD3, in parallel with display)
 - external 2.5V voltage reference (TL431)
@@ -38,11 +38,11 @@ LCD module:
 #define LCD_SDA          PD3            /* port pin used for SDA */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       160            /* number of vertical dots */
+//#define LCD_OFFSET_X     4              /* enable x offset of 2 or 4 dots */
+//#define LCD_OFFSET_Y     2              /* enable y offset of 1 or 2 dots */
 #define LCD_FLIP_X                      /* enable horizontal flip */
 //#define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
-//#define LCD_OFFSET_X     4              /* enable x offset of 2 or 4 dots */
-//#define LCD_OFFSET_Y     2              /* enable y offset of 1 or 2 dots */
 //#define LCD_LATE_ON                     /* turn on LCD after clearing it */
 #define FONT_10X16_HF                   /* 10x16 font */
 #define SYMBOLS_24X24_HF                /* 24x24 symbols */
@@ -89,7 +89,7 @@ Inductance compensation offsets for 20MHz model
 ------------------------------------------------------------------------------
 
 M12864 DIY Transistor Tester
-- ATmega328
+- ATmega328, 8MHz clock
 - ST7565 display (bit-bang SPI)
 - rotary encoder (PD1 & PD3, in parallel with display)
 - external 2.5V voltage reference (TL431)
@@ -223,11 +223,11 @@ LCD module:
 #define LCD_SDA          PD1            /* port pin used for SDA */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       156            /* number of vertical dots */
+#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
+#define LCD_OFFSET_Y                    /* enable y offset of 2 dots */
 #define LCD_FLIP_X                      /* enable horizontal flip */
 //#define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
-#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
-#define LCD_OFFSET_Y                    /* enable y offset of 2 dots */
 #define LCD_LATE_ON                     /* turn on LCD after clearing it */
 #define FONT_10X16_HF                   /* 10x16 font */
 #define SYMBOLS_30X32_HF                /* 30x32 symbols */
@@ -298,12 +298,12 @@ LCD module:
 #define LCD_SDA          PB6            /* port pin used for SDA */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       160            /* number of vertical dots */
+#define LCD_OFFSET_X     2              /* enable x offset of 2 or 4 dots */
+#define LCD_OFFSET_Y     1              /* enable y offset of 1 or 2 dots */
 //#define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
 #define LCD_LATE_ON                     /* turn on LCD after clearing it */
-#define LCD_OFFSET_X     2              /* enable x offset of 2 or 4 dots */
-#define LCD_OFFSET_Y     1              /* enable y offset of 1 or 2 dots */
 #define FONT_10X16_HF                   /* 10x16 font */
 #define SYMBOLS_30X32_HF                /* 30x32 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
@@ -359,6 +359,7 @@ Hiland M644
 - external 2.5V voltage reference (TL431)
 - boost converter for Zener check
 - extended frequency counter
+  (but no input buffer stage for direct frequency measurement) 
 - fixed adjustment cap
 - settings provided by Horst O. (obelix2007@mikrocontroller.net)
 
@@ -372,7 +373,7 @@ Hardware Options:
 #define HW_ADJUST_CAP
 
 Workarounds:
-#define NO_HFE_C_RL                     /* if hFE values are too high */
+#define NO_HFE_C_RL                     /* if hFE values too high */
 
 LCD module:
 #define LCD_ST7565R
@@ -387,8 +388,8 @@ LCD module:
 #define LCD_SI           PB7            /* port pin used for SI (LCD's data input) */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */
-//#define LCD_FLIP_X                      /* enable horizontal flip */
 //#define LCD_OFFSET_X                  /* enable x offset of 4 dots */
+//#define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_START_Y      0              /* start line (0-63) */
 #define LCD_CONTRAST     3              /* default contrast (0-63) */
@@ -479,8 +480,8 @@ LCD module:
 #define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */
-#define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_OFFSET_X                    /* enable x offset of 4 dots */
+#define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_START_Y      0              /* start line (0-63) */
 #define LCD_CONTRAST     15             /* default contrast (0-63) */
@@ -499,6 +500,8 @@ Arduino Uno or Mega 2560
   Mega 2560: ATmega 2560, 16MHz clock
 - Download the Arduino pinout diagram to get the mapping between Arduino and
   ATmega pins.
+- The integrated USB2serial adapter makes serial communication simple
+  (enable SERIAL_HARDWARE).
 - only the essential settings are listed
 
 Hardware options:
@@ -513,5 +516,6 @@ Power management:
 
 Measurement settings and offsets:
 #define ADC_LARGE_BUFFER_CAP
+
 
 ------------------------------------------------------------------------------

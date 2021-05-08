@@ -438,7 +438,7 @@
  *  - 1 byte cmd + 3 bytes data (read mode)
  */
 
-#define CMD_GET_SCANLINE      0b01000100     /* get scan line  */
+#define CMD_GET_SCANLINE      0b01000101     /* get scan line  */
 
 /* data byte #1: dummy data */
 /* data byte #2: line number - MSB (bits 8) */

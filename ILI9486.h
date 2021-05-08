@@ -554,7 +554,7 @@
  *  - 1 byte cmd + 3 bytes data (read mode)
  */
 
-#define CMD_READ_SCANLINE     0b01000100     /* read scan line  */
+#define CMD_READ_SCANLINE     0b01000101     /* read scan line  */
 
 /* data byte #1: dummy data */
 /* data byte #2: line number - MSB (bits 15-8) */
@@ -656,7 +656,7 @@
  *  - 1 byte cmd + 2 bytes data (read mode)
  */
 
-#define CMD_READ_MIN_CABC     0b01010111     /* read CABC minimum brightness */
+#define CMD_READ_MIN_CABC     0b01011111     /* read CABC minimum brightness */
 
 /* data byte #1: dummy data */
 /* data byte #2: minimum brightness level of CABC function */
@@ -703,7 +703,7 @@
 #define CMD_READ_ID2          0b11011011     /* read ID2 */
 
 /* data byte #1: dummy data */
-/* data byte #2: LCD module/driver version */
+/* data byte #2: LCD module/driver version (default: 0x80) */
 
 
 /*
@@ -714,7 +714,7 @@
 #define CMD_READ_ID3          0b11011100     /* read ID3 */
 
 /* data byte #1: dummy data */
-/* data byte #2: LCD module/driver */
+/* data byte #2: LCD module/driver (default: 0x66) */
 
 
 
@@ -930,7 +930,7 @@
   /* interface to access GRAM: */
 #define FLAG_RM_SYS           0b00000000     /* system interface */
 #define FLAG_RM_RGB           0b00100000     /* RGB interface */
-  /* display data path for RG B interface: */
+  /* display data path for RGB interface: */
 #define FLAG_BYPASS_MEM       0b00000000     /* memory */
 #define FLAG_BYPASS_REG       0b10000000     /* direct to shift register */
 
@@ -1036,7 +1036,7 @@
   /* low voltage detection control: */
 #define FLAG_GAS_ON           0b00000000     /* enable */
 #define FLAG_GAS_OFF          0b00000001     /* disable */
-  /* output level of gate drivers G1-G320: */
+  /* output level of gate drivers G1-G480: */
 #define FLAG_DTE_GON_0        0b00000000     /* VGH */
 #define FLAG_DTE_GON_1        0b00000010     /* VGH */
 #define FLAG_DTE_GON_2        0b00000100     /* VGL */
@@ -1173,7 +1173,7 @@
 #define CMD_POWER_CTRL_3      0b11000010     /* power control 3 */
 
 /* data byte #1: */
-  /* frequency of step-up circuits 1,4 and 5: */
+  /* frequency of step-up circuits 1, 4 and 5: */
 #define FLAG_DCA0_0125        0b00000000     /* 1/8 Hz */
 #define FLAG_DCA0_025         0b00000001     /* 1/4 Hz */
 #define FLAG_DCA0_05          0b00000010     /* 1/2 Hz */
@@ -1202,7 +1202,7 @@
 #define CMD_POWER_CTRL_4      0b11000011     /* power control 4 */
 
 /* data byte #1: */
-  /* frequency of step-up circuits 1,4 and 5: */
+  /* frequency of step-up circuits 1, 4 and 5: */
 #define FLAG_DCB0_0125        0b00000000     /* 1/8 Hz */
 #define FLAG_DCB0_025         0b00000001     /* 1/4 Hz */
 #define FLAG_DCB0_05          0b00000010     /* 1/2 Hz */
@@ -1231,7 +1231,7 @@
 #define CMD_POWER_CTRL_5      0b11000100     /* power control 5 */
 
 /* data byte #1: */
-  /* frequency of step-up circuits 1,4 and 5: */
+  /* frequency of step-up circuits 1, 4 and 5: */
 #define FLAG_DCC0_0125        0b00000000     /* 1/8 Hz */
 #define FLAG_DCC0_025         0b00000001     /* 1/4 Hz */
 #define FLAG_DCC0_05          0b00000010     /* 1/2 Hz */
@@ -1574,22 +1574,22 @@
 
 /* data byte #1: */
   /* grayscale threshold for user interface mode: */
-#define FLAG_DTH_UI_224      0b00000000     /* 224 */
-#define FLAG_DTH_UI_220      0b00000001     /* 220 */
-#define FLAG_DTH_UI_216      0b00000010     /* 216 */
-#define FLAG_DTH_UI_212      0b00000011     /* 212 */
-#define FLAG_DTH_UI_208      0b00000100     /* 208 */
-#define FLAG_DTH_UI_204      0b00000101     /* 204 */
-#define FLAG_DTH_UI_200      0b00000110     /* 200 */
-#define FLAG_DTH_UI_196      0b00000111     /* 196 */
-#define FLAG_DTH_UI_192      0b00001000     /* 192 */
-#define FLAG_DTH_UI_188      0b00001001     /* 188 */
-#define FLAG_DTH_UI_184      0b00001010     /* 184 */
-#define FLAG_DTH_UI_180      0b00001011     /* 180 */
-#define FLAG_DTH_UI_176      0b00001100     /* 176 */
-#define FLAG_DTH_UI_172      0b00001101     /* 172 */
-#define FLAG_DTH_UI_168      0b00001110     /* 168 */
-#define FLAG_DTH_UI_164      0b00001111     /* 164 */
+#define FLAG_DTH_UI_252       0b00000000     /* 252 */
+#define FLAG_DTH_UI_248       0b00000001     /* 248 */
+#define FLAG_DTH_UI_244       0b00000010     /* 244 */
+#define FLAG_DTH_UI_240       0b00000011     /* 240 */
+#define FLAG_DTH_UI_236       0b00000100     /* 236 */
+#define FLAG_DTH_UI_232       0b00000101     /* 232 */
+#define FLAG_DTH_UI_228       0b00000110     /* 228 */
+#define FLAG_DTH_UI_224       0b00000111     /* 224 */
+#define FLAG_DTH_UI_220       0b00001000     /* 220 */
+#define FLAG_DTH_UI_216       0b00001001     /* 216 */
+#define FLAG_DTH_UI_212       0b00001010     /* 212 */
+#define FLAG_DTH_UI_208       0b00001011     /* 208 */
+#define FLAG_DTH_UI_204       0b00001100     /* 204 */
+#define FLAG_DTH_UI_200       0b00001101     /* 200 */
+#define FLAG_DTH_UI_196       0b00001110     /* 196 */
+#define FLAG_DTH_UI_192       0b00001111     /* 192 */
 
 
 /*
@@ -1611,13 +1611,13 @@
 #define FLAG_DIM_STILL_64     0b00000111     /* 64 frames */
   /* transition time of brightness change in moving image mode: */
 #define FLAG_DIM_MOV_05       0b00000000     /* 1 frame */
-#define FLAG_DIM_MOV_1        0b00000001     /* 1 frame */
-#define FLAG_DIM_MOV_2        0b00000010     /* 2 frames */
-#define FLAG_DIM_MOV_4        0b00000011     /* 4 frames */
-#define FLAG_DIM_MOV_8        0b00000100     /* 8 frames */
-#define FLAG_DIM_MOV_16       0b00000101     /* 16 frames */
-#define FLAG_DIM_MOV_32       0b00000110     /* 32 frames */
-#define FLAG_DIM_MOV_64       0b00000111     /* 64 frames */
+#define FLAG_DIM_MOV_1        0b00010000     /* 1 frame */
+#define FLAG_DIM_MOV_2        0b00100000     /* 2 frames */
+#define FLAG_DIM_MOV_4        0b00110000     /* 4 frames */
+#define FLAG_DIM_MOV_8        0b01000000     /* 8 frames */
+#define FLAG_DIM_MOV_16       0b01010000     /* 16 frames */
+#define FLAG_DIM_MOV_32       0b01100000     /* 32 frames */
+#define FLAG_DIM_MOV_64       0b01110000     /* 64 frames */
 
 
 /*

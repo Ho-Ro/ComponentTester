@@ -2,7 +2,7 @@
  *
  *   pause functions
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -78,9 +78,9 @@ void MilliSleep(uint16_t Time)
     /*
      *  After returning from the power down or power save sleep modes the
      *  main oscillator needs following start-up times to stabilize:
-     *  - crystal oscillator:  16k cycles
-     *  - ceramic resonator:   1k or 256 cycles
-     *  - internal RC osc.:    6 cycles
+     *  - crystal oscillator:                     16k cycles
+     *  - low power crystal / ceramic resonator:  1k or 256 cycles
+     *  - internal RC oscillator:                 6 cycles
      */
 
     /* compensate oscillator start-up */

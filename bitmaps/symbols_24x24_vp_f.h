@@ -4,7 +4,7 @@
  *   vertically aligned, horizontal bit order flipped
  *   with bank/page-wise grouping
  *
- *   (c) 2018 by Markus Reschke
+ *   (c) 2018-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -15,6 +15,9 @@
 
 #ifdef SYMBOLS_24X24_VP_F
 
+
+/* source management */
+#define SYMBOL_SET                 /* symbol set included */
 
 /* symbol size */
 #define SYMBOL_SIZE_X       24     /* width:  24 dots */

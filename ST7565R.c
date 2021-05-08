@@ -43,6 +43,7 @@
 #define LCD_DRIVER_C
 
 
+
 /*
  *  include header files
  */
@@ -68,6 +69,17 @@
 #include "font_8x12t_win1251_vfp.h"
 #include "font_8x16_win1251_vfp.h"
 #include "symbols_24x24_vfp.h"
+
+/* sanity check */
+#ifndef FONT_SET
+  #error <<< No font selected! >>>
+#endif
+#ifdef SW_SYMBOLS
+  #ifndef SYMBOL_SET
+    #error <<< No symbols selected! >>>
+  #endif
+#endif
+
 
 
 /*

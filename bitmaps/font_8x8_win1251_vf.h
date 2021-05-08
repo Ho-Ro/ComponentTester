@@ -16,6 +16,9 @@
 #ifdef FONT_8X8_WIN1251_VF
 
 
+/* source management */
+#define FONT_SET                   /* font set included */
+
 /* font size */
 #define FONT_SIZE_X          8     /* width:  8 dots */
 #define FONT_SIZE_Y          8     /* heigth: 8 dots */
@@ -207,8 +210,8 @@ const uint8_t FontData[] PROGMEM = {
 
 
 /*
- *  font lookup table for ISO 8859-1
- *  - 8 bit ISO 8859-1 to custom font
+ *  font lookup table for Windows-1251 (CP1251)
+ *  - 8 bit Windows-1251 to custom font
  *  - ff: no bitmap available
  */
 

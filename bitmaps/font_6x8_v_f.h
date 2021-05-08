@@ -15,6 +15,8 @@
 #ifdef FONT_6X8_V_F
 
 
+/* source management */
+#define FONT_SET                   /* font set included */
 /* font size */
 #define FONT_SIZE_X          6     /* width:  8 dots */
 #define FONT_SIZE_Y          8     /* height: 8 dots */

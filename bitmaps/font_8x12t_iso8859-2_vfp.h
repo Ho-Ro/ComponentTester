@@ -17,6 +17,9 @@
 #ifdef FONT_8X12T_ISO8859_2_VFP
 
 
+/* source management */
+#define FONT_SET                   /* font set included */
+
 /* font size */
 #define FONT_SIZE_X          8     /* width:   8 dots */
 #define FONT_SIZE_Y         12     /* heigth: 12 dots */
@@ -270,17 +273,17 @@ const uint8_t FontTable[] PROGMEM = {
   0x02,        /* 0x02 -> symbol: diode C-A */
   0x03,        /* 0x03 -> symbol: capacitor */
   0x04,        /* 0x04 -> omega */
-  0xff,        /* 0x05 -> b5 */
+  0x05,        /* 0x05 -> µ (micro) */
   0x06,        /* 0x06 -> symbol: resistor left side */
   0x07,        /* 0x07 -> symbol: resistor right side */
-  0xff,        /* 0x08 -> c4 */
-  0xff,        /* 0x09 -> d6 */
-  0xff,        /* 0x0a -> dc */
-  0xff,        /* 0x0b -> df */
-  0xff,        /* 0x0c -> e4 */
-  0xff,        /* 0x0d -> f6 */
-  0xff,        /* 0x0e -> fc */
-  0xff,        /* 0x0f -> b0 */
+  0xff,        /* 0x08 -> n/a */
+  0xff,        /* 0x09 -> n/a */
+  0xff,        /* 0x0a -> n/a */
+  0xff,        /* 0x0b -> n/a */
+  0xff,        /* 0x0c -> n/a */
+  0xff,        /* 0x0d -> n/a */
+  0xff,        /* 0x0e -> n/a */
+  0xff,        /* 0x0f -> n/a */
 
   0xff,        /* 0x10 -> n/a */
   0xff,        /* 0x11 -> n/a */

@@ -32,6 +32,7 @@
  *  - max. SPI clock rate: 10MHz
  *  - pin assignment for I2C
  *    /RES            Vcc or LCD_RESET (optional)
+ *    /CS             Gnd
  *    SA0 (D/C)       slave address SA0 (Gnd for 0x3c / 3.3V for 0x3d)
  *    SCL (D0)        I2C_SCL
  *    SDA (D1 & D2)   I2C_SDA
@@ -51,6 +52,7 @@
 
 /* source management */
 #define LCD_DRIVER_C
+
 
 
 /*
@@ -78,6 +80,16 @@
 #include "font_8x12t_win1251_vfp.h"
 #include "font_8x16_win1251_vfp.h"
 #include "symbols_24x24_vfp.h"
+
+/* sanity check */
+#ifndef FONT_SET
+  #error <<< No font selected! >>>
+#endif
+#ifdef SW_SYMBOLS
+  #ifndef SYMBOL_SET
+    #error <<< No symbols selected! >>>
+  #endif
+#endif
 
 
 
@@ -126,7 +138,7 @@ uint8_t             Y_Start;       /* start position Y (page) */
 
 /*
  *  protocol:
- *  - CS -> D/C -> D7-0 with rising edge of SCLK
+ *  - /CS -> D/C -> D7-0 with rising edge of SCLK
  *  - D/C: high = data / low = command
  */
 
@@ -153,23 +165,23 @@ void LCD_BusSetup(void)
 
   /* optional output pins */
   #ifdef LCD_RESET
-    Bits |= (1 << LCD_RESET);      /* /RES */
+  Bits |= (1 << LCD_RESET);        /* /RES */
   #endif
   #ifdef LCD_CS
-    Bits |= (1 << LCD_CS);         /* /CS */
+  Bits |= (1 << LCD_CS);           /* /CS */
   #endif
 
   LCD_DDR = Bits;                  /* set new directions */
 
   /* set default levels */
   #ifdef LCD_CS
-    /* disable chip */
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
+  /* disable chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CS high */
   #endif
 
   #ifdef LCD_RESET
-    /* disable reset */
-    LCD_PORT |= (1 << LCD_RESET);  /* set /RES high */
+  /* disable reset */
+  LCD_PORT |= (1 << LCD_RESET);    /* set /RES high */
   #endif
 
 
@@ -208,14 +220,14 @@ void LCD_Cmd(uint8_t Cmd)
 
   /* select chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS low */
+  LCD_PORT &= ~(1 << LCD_CS);      /* set /CS low */
   #endif
 
   SPI_Write_Byte(Cmd);             /* write command byte */
 
   /* deselect chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CS high */
   #endif
 }
 
@@ -235,14 +247,14 @@ void LCD_Data(uint8_t Data)
 
   /* select chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS low */
+  LCD_PORT &= ~(1 << LCD_CS);      /* set /CS low */
   #endif
 
   SPI_Write_Byte(Data);            /* write data byte */
 
   /* deselect chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CS high */
   #endif
 }
 
@@ -282,23 +294,23 @@ void LCD_BusSetup(void)
 
   /* optional output pins */
   #ifdef LCD_RESET
-    Bits |= (1 << LCD_RESET);      /* /RES */
+  Bits |= (1 << LCD_RESET);        /* /RES */
   #endif
   #ifdef LCD_CS
-    Bits |= (1 << LCD_CS);         /* /CS */
+  Bits |= (1 << LCD_CS);           /* /CS */
   #endif
 
   LCD_DDR = Bits;                  /* set new directions */
 
   /* set default levels */
   #ifdef LCD_CS
-    /* disable chip */
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
+  /* disable chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CS high */
   #endif
 
   #ifdef LCD_RESET
-    /* disable reset */
-    LCD_PORT |= (1 << LCD_RESET);  /* set /RES high */
+  /* disable reset */
+  LCD_PORT |= (1 << LCD_RESET);    /* set /RES high */
   #endif
 
 
@@ -321,7 +333,7 @@ void LCD_Cmd(uint8_t Cmd)
 {
   /* select chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS low */
+  LCD_PORT &= ~(1 << LCD_CS);      /* set /CS low */
   #endif
 
   SPI_Write_Bit(0);                /* indicate command (D/C=0) */
@@ -329,7 +341,7 @@ void LCD_Cmd(uint8_t Cmd)
 
   /* deselect chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CS high */
   #endif
 }
 
@@ -345,7 +357,7 @@ void LCD_Data(uint8_t Data)
 {
   /* select chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS low */
+  LCD_PORT &= ~(1 << LCD_CS);      /* set /CS low */
   #endif
 
   SPI_Write_Bit(1);                /* indicate data (D/C=1) */
@@ -353,7 +365,7 @@ void LCD_Data(uint8_t Data)
 
   /* deselect chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CS high */
   #endif
 }
 
@@ -403,6 +415,15 @@ uint8_t             MultiByte;     /* control flag */
 void LCD_BusSetup(void)
 {
   /* I2C is set up already in main() */
+
+  /* optional control lines */
+  #ifdef LCD_RESET
+  /* set pin to output mode */
+  LCD_DDR |= (1 << LCD_RESET);          /* /RES */
+
+  /* disable reset */
+  LCD_PORT |= (1 << LCD_RESET);         /* set /RES high */
+  #endif
 
   /* set timing */
   I2C.Timeout = 1;            /* ACK timeout 10µs */

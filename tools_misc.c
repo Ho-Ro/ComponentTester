@@ -29,12 +29,31 @@
 
 
 
+/*
+ *  local constants
+ *  - simplify ifdefs
+ */
+
+/* ProbePinout() */
+#if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (SW_SQUAREWAVE) || defined (SW_SERVO) || defined (SW_ESR) || defined (SW_OLD_ESR)
+  #ifndef FUNC_PROBE_PINOUT
+    #define FUNC_PROBE_PINOUT
+  #endif
+#endif
+
+#if defined (SW_MONITOR_R) || defined (SW_MONITOR_C) || defined (SW_MONITOR_L) || defined(SW_MONITOR_RCL) || defined(SW_MONITOR_RL)
+  #ifndef FUNC_PROBE_PINOUT
+    #define FUNC_PROBE_PINOUT
+  #endif
+#endif
+
+
 /* ************************************************************************
  *   support functions
  * ************************************************************************ */
 
 
-#if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (SW_SQUAREWAVE) || defined (SW_SERVO) || defined (SW_ESR) || defined (SW_OLD_ESR)
+#ifdef FUNC_PROBE_PINOUT
 
 /*
  *  display probe pinout
@@ -70,7 +89,7 @@ void ProbePinout(uint8_t Mode)
     ID_3 = '-';
   }
   #endif
-  #if defined(SW_MONITOR_RL) || defined (SW_MONITOR_C)
+  #if defined (SW_MONITOR_R) || defined (SW_MONITOR_C) || defined (SW_MONITOR_L) || defined(SW_MONITOR_RCL) || defined(SW_MONITOR_RL)
   else if (Mode == PROBES_RCL)     /* monitoring RCL */
   {
     /* probe #1: * / probe #3: * */
@@ -281,9 +300,6 @@ void Zener_Tool(void)
 
   while (Run)
   {
-    /* check voltage references */
-    CheckVoltageRefs();
-
     /* get voltage (10:1 voltage divider) */
     U1 = ReadU(TP_ZENER);          /* read voltage (in mV) */
                                    /* with 10:1 divider: 10mV */
@@ -720,7 +736,7 @@ void OptoCoupler_Tool(void)
     {
       LCD_Clear();
       #ifdef UI_SERIAL_COPY
-      SerialCopy_On();             /* enable serial output & NL */
+      Display_Serial_On();         /* enable serial output & NL */
       #endif
       Display_EEString(OptoCoupler_str);     /* display: Opto Coupler */
       Display_NextLine();
@@ -987,7 +1003,7 @@ void OptoCoupler_Tool(void)
       }
 
       #ifdef UI_SERIAL_COPY
-      SerialCopy_Off();            /* disable serial output & NL */
+      Display_Serial_Off();        /* disable serial output & NL */
       #endif
     }
   }
@@ -1230,13 +1246,13 @@ void Cap_Leakage(void)
  * ************************************************************************ */
 
 
-#ifdef SW_MONITOR_RL
+#ifdef SW_MONITOR_R
 
 /*
- *  monitor R/L on probes #1 and #3
+ *  monitor R on probes #1 and #3
  */
 
-void Monitor_RL(void)
+void Monitor_R(void)
 {
   uint8_t           Flag = 1;           /* loop control flag */
   uint8_t           Test;               /* user feedback */
@@ -1244,7 +1260,7 @@ void Monitor_RL(void)
 
   /* show info */
   LCD_Clear();
-  Display_EEString(Monitor_RL_str);     /* display: monitor RL */
+  Display_EEString(Monitor_R_str);      /* display: R monitor */
   ProbePinout(PROBES_RCL);              /* show probes used */
 
   /* init */
@@ -1260,9 +1276,6 @@ void Monitor_RL(void)
 
   while (Flag)
   {
-    /* check voltage references to update voltages */
-    CheckVoltageRefs();
-
     /* measure R and display value */
     Check.Resistors = 0;                /* reset resistor counter */
     CheckResistor();                    /* check for resistor */
@@ -1272,15 +1285,6 @@ void Monitor_RL(void)
     {
       /* display value */
       Display_Value(R1->Value, R1->Scale, LCD_CHAR_OMEGA);
-
-      #ifdef SW_INDUCTOR
-      /* get inductance and display if relevant */
-      if (MeasureInductor(R1) == 1)
-      {
-        Display_Space();
-        Display_Value(Inductor.Value, Inductor.Scale, 'H');
-      }
-      #endif
     }
     else                                /* no resistor */
     {
@@ -1308,6 +1312,7 @@ void Monitor_RL(void)
 
 /*
  *  monitor C on probes #1 and #3
+ *  - optionally ESR
  */
 
 void Monitor_C(void)
@@ -1321,7 +1326,7 @@ void Monitor_C(void)
 
   /* show info */
   LCD_Clear();
-  Display_EEString(Monitor_C_str);      /* display: monitor C */
+  Display_EEString(Monitor_C_str);      /* display: C monitor */
   ProbePinout(PROBES_RCL);              /* show probes used */
 
   /* init */
@@ -1366,6 +1371,279 @@ void Monitor_C(void)
       Flag = 0;                    /* end processing loop */
     }
   }
+}
+
+#endif
+
+
+
+#ifdef SW_MONITOR_L
+
+/*
+ *  monitor L on probes #1 and #3
+ */
+
+void Monitor_L(void)
+{
+  uint8_t           Flag = 1;           /* loop control flag */
+  uint8_t           Test;               /* user feedback */
+  Resistor_Type     *R1;                /* pointer to resistor #1 */
+
+  /* show info */
+  LCD_Clear();
+  Display_EEString(Monitor_L_str);      /* display: L monitor */
+  ProbePinout(PROBES_RCL);              /* show probes used */
+
+  /* init */
+  R1 = &Resistors[0];                   /* pointer to first resistor */
+
+
+  /*
+   *  processing loop
+   */
+
+  while (Flag)
+  {
+    /* measure R */
+    UpdateProbes(PROBE_1, PROBE_3, 0);  /* set probes */
+    Check.Resistors = 0;                /* reset resistor counter */
+    CheckResistor();                    /* check for resistor */
+    LCD_ClearLine2();                   /* clear line #2 */
+
+    if (Check.Resistors == 1)           /* found resistor */
+    {
+      /* get inductance and display if relevant */
+      if (MeasureInductor(R1) == 1)
+      {
+        Display_Value(Inductor.Value, Inductor.Scale, 'H');
+      }
+      else                              /* no inductor */
+      {
+        Display_Char('-');              /* display: nothing */
+      }
+    }
+    else                                /* no resistor */
+    {
+      Display_Char('-');                /* display: nothing */
+    }
+
+    /* user feedback (1s delay) */
+    Test = TestKey(1000, CHECK_KEY_TWICE | CHECK_BAT | CURSOR_STEADY);
+
+    if (Test == KEY_TWICE)         /* two short key presses */
+    {
+      Flag = 0;                    /* end processing loop */
+    }
+  }
+}
+
+#endif
+
+
+
+#ifdef SW_MONITOR_RCL
+
+/*
+ *  monitor R plus L, or C plus ESR on probes #1 and #3
+ */
+
+void Monitor_RCL(void)
+{
+  uint8_t           Run = 1;            /* loop control flag */
+  uint8_t           Test;               /* user feedback */
+  Resistor_Type     *R1;                /* pointer to resistor #1 */
+  Capacitor_Type    *Cap;               /* pointer to cap */
+  #if defined (SW_ESR) || defined (SW_OLD_ESR)
+  uint16_t          ESR;                /* ESR (in 0.01 Ohms) */
+  #endif
+
+  /* show info */
+  LCD_Clear();
+  Display_EEString(Monitor_RCL_str);    /* display: RCL monitor */
+  ProbePinout(PROBES_RCL);              /* show probes used */
+
+  /* init */
+  R1 = &Resistors[0];                   /* pointer to first resistor */
+  Cap = &Caps[0];                       /* pointer to first cap */
+  Check.Diodes = 0;                     /* reset diode counter */
+
+
+  /*
+   *  processing loop
+   */
+
+  while (Run)
+  {
+    /*
+     *  check for R, L and C
+     */
+
+    Check.Found = COMP_NONE;            /* no component */
+
+    if (Run != COMP_CAPACITOR)          /* none, R or L */
+    {
+      /* increase number of samples to lower spread of measurement values */
+      Cfg.Samples = 100;                /* perform 100 ADC samples */
+
+      /* measure R */
+      UpdateProbes(PROBE_1, PROBE_3, 0);     /* set probes */
+      Check.Resistors = 0;                   /* reset resistor counter */
+      CheckResistor();                       /* check for resistor */
+
+      if (Check.Resistors == 1)         /* found resistor */
+      {
+        Check.Found = COMP_RESISTOR;         /* is R */
+
+        /* measure L */
+        if (MeasureInductor(R1) == 1)        /* got inductance */
+        {
+          Run = COMP_INDUCTOR;               /* is an inductor */
+        }
+        else                                 /* no inductance */
+        {
+          Run = COMP_RESISTOR;               /* is a resistor */
+        }
+      }
+      else                              /* no resistor */
+      {
+        Run = 1;                             /* reset to "no component" */
+      }
+
+      Cfg.Samples = ADC_SAMPLES;        /* set ADC samples back to default */
+    }
+
+    if (Run != COMP_INDUCTOR)           /* none, C or R */
+    {
+      /* measure capacitance */
+      MeasureCap(PROBE_1, PROBE_3, 0);       /* measure capacitance */
+
+      if (Check.Found == COMP_CAPACITOR)     /* found cap */
+      {
+        Run = COMP_CAPACITOR;                /* is a cap */
+      }
+      else if (Run != COMP_RESISTOR)         /* no cap and no resistor */
+      {
+        Run = 1;                             /* reset to "no component" */
+      }
+    }
+
+
+    /*
+     *  display measurement
+     */
+
+    LCD_ClearLine2();                   /* clear line #2 */
+
+    if (Run == 1)                       /* no component */
+    {
+      Display_Char('-');                /* display: nothing */
+    }
+    else if (Run == COMP_CAPACITOR)     /* C */
+    {
+      /* display capacitance */
+      Display_Value(Cap->Value, Cap->Scale, 'F');
+
+      #if defined (SW_ESR) || defined (SW_OLD_ESR)
+      /* show ESR */
+      ESR = MeasureESR(Cap);                 /* measure ESR */
+      if (ESR < UINT16_MAX)                  /* if successfull */
+      {
+        Display_Space();
+        Display_Value(ESR, -2, LCD_CHAR_OMEGA);   /* display ESR */
+      }
+      #endif
+    }
+    else                                 /* R or L */
+    {
+      /* display resistance */
+      Display_Value(R1->Value, R1->Scale, LCD_CHAR_OMEGA);
+
+      if (Run == COMP_INDUCTOR)          /* L */
+      {
+        /* display inductance */
+        Display_Space();
+        Display_Value(Inductor.Value, Inductor.Scale, 'H');
+      }
+    }
+
+
+    /* user feedback (1s delay) */
+    Test = TestKey(1000, CHECK_KEY_TWICE | CHECK_BAT | CURSOR_STEADY);
+
+    if (Test == KEY_TWICE)         /* two short key presses */
+    {
+      Run = 0;                     /* end processing loop */
+    }
+  }
+}
+
+#endif
+
+
+
+#ifdef SW_MONITOR_RL
+
+/*
+ *  monitor R plus L on probes #1 and #3
+ */
+
+void Monitor_RL(void)
+{
+  uint8_t           Flag = 1;           /* loop control flag */
+  uint8_t           Test;               /* user feedback */
+  Resistor_Type     *R1;                /* pointer to resistor #1 */
+
+  /* show info */
+  LCD_Clear();
+  Display_EEString(Monitor_RL_str);     /* display: monitor RL */
+  ProbePinout(PROBES_RCL);              /* show probes used */
+
+  /* init */
+  R1 = &Resistors[0];                   /* pointer to first resistor */
+  /* increase number of samples to lower spread of measurement values */
+  Cfg.Samples = 100;                    /* perform 100 ADC samples */
+
+
+  /*
+   *  processing loop
+   */
+
+  while (Flag)
+  {
+    /* measure R and display value */
+    UpdateProbes(PROBE_1, PROBE_3, 0);  /* set probes */
+    Check.Resistors = 0;                /* reset resistor counter */
+    CheckResistor();                    /* check for resistor */
+    LCD_ClearLine2();                   /* clear line #2 */
+
+    if (Check.Resistors == 1)           /* found resistor */
+    {
+      /* display value */
+      Display_Value(R1->Value, R1->Scale, LCD_CHAR_OMEGA);
+
+      /* get inductance and display if relevant */
+      if (MeasureInductor(R1) == 1)
+      {
+        Display_Space();
+        Display_Value(Inductor.Value, Inductor.Scale, 'H');
+      }
+    }
+    else                                /* no resistor */
+    {
+      Display_Char('-');                /* display: nothing */
+    }
+
+    /* user feedback (1s delay) */
+    Test = TestKey(1000, CHECK_KEY_TWICE | CHECK_BAT | CURSOR_STEADY);
+
+    if (Test == KEY_TWICE)         /* two short key presses */
+    {
+      Flag = 0;                    /* end processing loop */
+    }
+  }
+
+  /* clean up */
+  Cfg.Samples = ADC_SAMPLES;       /* set ADC samples back to default */
 }
 
 #endif

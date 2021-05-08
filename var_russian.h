@@ -68,7 +68,7 @@
   #endif
 
   #ifdef UI_KEY_HINTS
-  const unsigned char Menu_or_Test_str[] MEM_TYPE = "<Меню Тест>";
+    const unsigned char Menu_or_Test_str[] MEM_TYPE = "<Меню Тест>";
   #endif
 
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
@@ -129,7 +129,6 @@
 
   #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20) || defined (SW_ONEWIRE_SCAN) || defined (HW_EVENT_COUNTER)
     const unsigned char Start_str[] MEM_TYPE = "Старт";
-	
   #endif
 
   #ifdef SW_UJT
@@ -149,12 +148,24 @@
     const unsigned char CapDischarge_str[] MEM_TYPE = "Разряд";
   #endif
 
-  #ifdef SW_MONITOR_RL
-    const unsigned char Monitor_RL_str[] MEM_TYPE = "R/L монитор";
+  #ifdef SW_MONITOR_R
+    const unsigned char Monitor_R_str[] MEM_TYPE = "R монитор";
   #endif
 
   #ifdef SW_MONITOR_C
     const unsigned char Monitor_C_str[] MEM_TYPE = "C монитор";
+  #endif
+
+  #ifdef SW_MONITOR_L
+    const unsigned char Monitor_L_str[] MEM_TYPE = "L монитор";
+  #endif
+
+  #ifdef SW_MONITOR_RCL
+    const unsigned char Monitor_RCL_str[] MEM_TYPE = "RCL монитор";
+  #endif
+
+  #ifdef SW_MONITOR_RL
+    const unsigned char Monitor_RL_str[] MEM_TYPE = "RL монитор";
   #endif
 
   #ifdef HW_TOUCH

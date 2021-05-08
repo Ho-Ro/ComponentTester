@@ -49,6 +49,7 @@
 #define LCD_DRIVER_C
 
 
+
 /*
  *  include header files
  */
@@ -62,6 +63,11 @@
 /* fonts (5x8) */
 #include "font_HD44780_int.h"           /* international (English) */
 #include "font_HD44780_win1251.h"       /* Cyrillic (European) */
+
+/* sanity check */
+#ifndef FONT_SET
+  #error <<< No font selected! >>>
+#endif
 
 
 

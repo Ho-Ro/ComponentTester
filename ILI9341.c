@@ -5,7 +5,7 @@
  *   - ILI9341: 240 x 320 pixels
  *     ILI9342: 320 x 240 pixels
  *   - interfaces
- *     - 8 bit parallel in 8080-I and 8080-II mode (untested)
+ *     - 8 bit parallel in 8080-I and 8080-II mode
  *     - 9 bit parallel in 8080-I and 8080-II mode (not supported)
  *     - 16 bit parallel in 8080-I and 8080-II mode (not supported)
  *     - 18 bit parallel in 8080-I and 8080-II mode (not supported)
@@ -66,6 +66,7 @@
 #define LCD_DRIVER_C
 
 
+
 /*
  *  include header files
  */
@@ -85,8 +86,19 @@
 #include "font_10x16_iso8859-2_hf.h"
 #include "font_12x16_iso8859-2_hf.h"
 #include "font_16x26_iso8859-2_hf.h"
+#include "font_16x26_win1251_hf.h"
 #include "symbols_24x24_hf.h"
 #include "symbols_32x32_hf.h"
+
+/* sanity check */
+#ifndef FONT_SET
+  #error <<< No font selected! >>>
+#endif
+#ifdef SW_SYMBOLS
+  #ifndef SYMBOL_SET
+    #error <<< No symbols selected! >>>
+  #endif
+#endif
 
 
 
@@ -409,71 +421,6 @@ void LCD_SendByte(uint8_t Byte)
 
 
 
-#if 0
-
-/*
- *  read byte from LCD
- *  - timing for register data
- *  - not suitable for frame memory
- *
- *  returns:
- *  - byte
- */
-
-uint8_t LCD_ReadByte(void)
-{
-  uint8_t           Byte;     /* return value */
-
-  /* set data pins to input mode */
-  LCD_DDR2 = 0b00000000;           /* D0-7 */
-
-  #ifdef LCD_CS
-  /* select chip */
-  LCD_PORT &= ~(1 << LCD_CD);      /* set /CSX low */
-  #endif
-
-  /* indicate data mode */
-  LCD_PORT |= (1 << LCD_DC);       /* set D/CX high */
-
-  /* start read cycle (RDX low for min. 45ns) */
-  LCD_PORT &= ~(1 << LCD_RD);      /* set RDX low */
-
-  /* wait for LCD to fetch data: max. 40ns */
-  asm volatile("nop\n\t"::);       /* burn a clock cycle */
-
-  /* read data */
-  Byte = LCD_PIN2;
-
-  /* end read cycle */
-  LCD_PORT |= (1 << LCD_RD);       /* set RDX high */
-
-  /* wait for LCD to release data lines: max. 80ns */
-  #ifndef LCD_CS
-  /* burn two clock cycles */
-  asm volatile(
-    "nop\n\t"
-    "nop\n\t"
-    ::
-  );
-  #endif
-
-  /* next read cycle after 90ns RDX being high */
-
-  #ifdef LCD_CS
-  /* deselect chip */
-  LCD_PORT |= (1 << LCD_CS);       /* set /CSX high */
-  #endif
-
-  /* set data pins back to output mode */
-  LCD_DDR2 = 0b11111111;           /* D0-7 */
-
-  return Byte;
-}
-
-#endif
-
-
-
 /*
  *  send a command to the LCD
  *
@@ -561,6 +508,71 @@ void LCD_Data2(uint16_t Data)
   #endif
 }
 
+
+
+#if 0
+
+/*
+ *  read byte from LCD
+ *  - timing for register data
+ *  - not suitable for frame memory
+ *
+ *  returns:
+ *  - byte
+ */
+
+uint8_t LCD_ReadByte(void)
+{
+  uint8_t           Byte;     /* return value */
+
+  /* set data pins to input mode */
+  LCD_DDR2 = 0b00000000;           /* D0-7 */
+
+  #ifdef LCD_CS
+  /* select chip */
+  LCD_PORT &= ~(1 << LCD_CD);      /* set /CSX low */
+  #endif
+
+  /* indicate data mode */
+  LCD_PORT |= (1 << LCD_DC);       /* set D/CX high */
+
+  /* start read cycle (RDX low for min. 45ns) */
+  LCD_PORT &= ~(1 << LCD_RD);      /* set RDX low */
+
+  /* wait for LCD to fetch data: max. 40ns */
+  asm volatile("nop\n\t"::);       /* burn a clock cycle */
+
+  /* read data */
+  Byte = LCD_PIN2;
+
+  /* end read cycle */
+  LCD_PORT |= (1 << LCD_RD);       /* set RDX high */
+
+  /* wait for LCD to release data lines: max. 80ns */
+  #ifndef LCD_CS
+  /* burn two clock cycles */
+  asm volatile(
+    "nop\n\t"
+    "nop\n\t"
+    ::
+  );
+  #endif
+
+  /* next read cycle after 90ns RDX being high */
+
+  #ifdef LCD_CS
+  /* deselect chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CSX high */
+  #endif
+
+  /* set data pins back to output mode */
+  LCD_DDR2 = 0b11111111;           /* D0-7 */
+
+  return Byte;
+}
+
+#endif
+
 #endif
 
 
@@ -645,7 +657,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
 
 void LCD_ClearLine(uint8_t Line)
 {
-  uint16_t          x = 0;         /* x position */
+  uint16_t          x;             /* x position */
   uint8_t           y;             /* y position */
   uint8_t           Pos = 1;       /* character position */
 
@@ -657,7 +669,7 @@ void LCD_ClearLine(uint8_t Line)
     Pos = UI.CharPos_X;            /* get current character position */
   }
 
-  /* have we to clear this line? */
+  /* text line optimization */
   if (Line <= 16)                  /* prevent overflow */
   {
     y = Line - 1;                  /* bitfield starts at zero */
@@ -666,21 +678,19 @@ void LCD_ClearLine(uint8_t Line)
 
     if (! (LineFlags & x))         /* bit not set */
     {
+      /* empty text line, already cleared */
       return;                      /* nothing do to */
+    }
+    else if (Pos == 1)             /* bit set and complete line */
+    {
+      /* we'll clear this line completely */
+      LineFlags &= ~x;             /* clear bit */
     }
   }
 
   /* manage address window */
   LCD_CharPos(Pos, Line);         /* update character position */
                                   /* also updates X_Start and Y_Start */
-  if (Pos == 1)                   /* complete line */
-  {
-    if (x > 0)                    /* got line bit */
-    {
-      LineFlags &= ~x;            /* clear bit */
-    }
-  }
-
   X_End = LCD_PIXELS_X - 1;             /* last column */
   Y_End = Y_Start + FONT_SIZE_Y - 1;    /* last row */
   y = FONT_SIZE_Y;                      /* set default */
@@ -695,7 +705,7 @@ void LCD_ClearLine(uint8_t Line)
 
   LCD_AddressWindow();                  /* set window */
 
-  /* send background color */
+  /* clear all pixels in window */
   LCD_Cmd(CMD_MEM_WRITE);          /* start writing */
 
   while (y > 0)                    /* character height (pages) */
@@ -760,6 +770,7 @@ void LCD_Init(void)
    *  set registers
    */
 
+  #ifndef LCD_EXT_CMD_OFF
   /* power control A */
   LCD_Cmd(CMD_POWER_CTRL_A);
   LCD_Data(MASK_POWER_CTRL_A_1);        /* fixed value */
@@ -805,15 +816,18 @@ void LCD_Init(void)
   LCD_Cmd(CMD_TIME_CTRL_B);
   LCD_Data(FLAG_VG_SW_T1_0 | FLAG_VG_SW_T2_0 | FLAG_VG_SW_T3_0 | FLAG_VG_SW_T4_0);
   LCD_Data(MASK_TIME_CTRL_B_2);                   /* fixed value */
+  #endif
 
   /* set pixel format for RGB image data */
   LCD_Cmd(CMD_SET_PIX_FORMAT);
   LCD_Data(FLAG_DBI_16);           /* 16 Bits / RGB565 */
 
+  #ifndef LCD_EXT_CMD_OFF
   /* frame control for normal display mode */
   LCD_Cmd(CMD_FRAME_CTRL_NORM);
   LCD_Data(FLAG_DIVA_1);           /* f_OSC */
   LCD_Data(FLAG_RTNA_24);          /* 24 clocks */
+  #endif
 
   /* display function control */
   LCD_Cmd(CMD_FUNC_CTRL);
@@ -873,8 +887,11 @@ void LCD_Init(void)
   LineFlags = 0xffff;           /* clear all lines by default */
   LCD_CharPos(1, 1);            /* reset character position */
 
-  #ifdef SPI_HARDWARE
+  #if defined (LCD_SPI) && defined (SPI_HARDWARE)
   /* For bit-bang SPI we don't clear the display now, because it's quite slow */
+  LCD_Clear();
+  #endif
+  #if defined (LCD_PAR_8)
   LCD_Clear();
   #endif
 }

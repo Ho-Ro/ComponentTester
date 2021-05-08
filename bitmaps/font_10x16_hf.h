@@ -15,6 +15,9 @@
 #ifdef FONT_10X16_HF
 
 
+/* source management */
+#define FONT_SET                   /* font set included */
+
 /* font size */
 #define FONT_SIZE_X         10     /* width:  10 dots */
 #define FONT_SIZE_Y         16     /* height: 16 dots */

@@ -16,6 +16,9 @@
 #ifdef FONT_HD44780_WIN1251
 
 
+/* source management */
+#define FONT_SET                   /* font set included */
+
 /* font size */
 #define FONT_SIZE_X          5     /* width:  5 dots */
 #define FONT_SIZE_Y          8     /* height: 8 dots */
@@ -50,8 +53,8 @@ const uint8_t FontData[] PROGMEM = {
 
 
 /*
- *  font lookup table for ASCII ISO 8859-1 / Windows-1251
- *  - 8 bit ASCII to module's built-in font
+ *  font lookup table for Windows-1251 (CP1251)
+ *  - 8 bit Windows-1251 to module's built-in font
  *  - ff: no bitmap available
  */
 

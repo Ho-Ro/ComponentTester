@@ -567,7 +567,7 @@ uint8_t DHTxx_Tool(void)
   uint8_t           Data[5];       /* sensor data */
   uint8_t           Sensor = DHT11;     /* sensor model */
   uint8_t           Mode = MODE_MANUAL; /* operation mode */
-  uint16_t          Timeout;
+  uint16_t          Timeout;       /* timeout for user feedback */
 
   /* inform user about pinout and check for external pull-up resistor */
   Flag = DHTxx_Probes();

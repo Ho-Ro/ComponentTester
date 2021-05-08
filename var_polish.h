@@ -68,7 +68,7 @@
   #endif
 
   #ifdef UI_KEY_HINTS
-  const unsigned char Menu_or_Test_str[] MEM_TYPE = "<Menu Test>";
+    const unsigned char Menu_or_Test_str[] MEM_TYPE = "<Menu Test>";
   #endif
 
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
@@ -148,12 +148,24 @@
     const unsigned char CapDischarge_str[] MEM_TYPE = "Rozladowyw.";
   #endif
 
-  #ifdef SW_MONITOR_RL
-    const unsigned char Monitor_RL_str[] MEM_TYPE = "R/L Monitor";
+  #ifdef SW_MONITOR_R
+    const unsigned char Monitor_R_str[] MEM_TYPE = "R Monitor";
   #endif
 
   #ifdef SW_MONITOR_C
     const unsigned char Monitor_C_str[] MEM_TYPE = "C Monitor";
+  #endif
+
+  #ifdef SW_MONITOR_L
+    const unsigned char Monitor_L_str[] MEM_TYPE = "L Monitor";
+  #endif
+
+  #ifdef SW_MONITOR_RCL
+    const unsigned char Monitor_RCL_str[] MEM_TYPE = "RCL Monitor";
+  #endif
+
+  #ifdef SW_MONITOR_RL
+    const unsigned char Monitor_RL_str[] MEM_TYPE = "RL Monitor";
   #endif
 
   #ifdef HW_TOUCH

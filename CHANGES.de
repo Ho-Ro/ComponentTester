@@ -6,6 +6,62 @@
 
 ------------------------------------------------------------------------------
 
+v1.41m 2020-09
+- Neues Fernsteuerkommando "MHINT" für Hinweise zu Messungen (momentan nur
+  Typ der Testschaltung für h_FE).
+- Auto-Modus (automatische Aktualisierung) für DS18B20 eingebaut (Vorschlag
+  von Obelix2007@EEVblog).
+- Zusätzliche Endladefunktion zum Beseitigen eines ESR-Problems bei manchen
+  Testerclones (gemeldet von indman@EEVblog). ESR-Wert war viel zu hoch für
+  Elko >=470µF an Testpins #1 und #2, im ESR-Tool, C-Monitor und RCL-Monitor.
+  Und für Elko >=4700µF in allen Modi. Betroffene Tester sind Hiland M644 und
+  TC-1-Varianten.
+- Grad-Zeichen in font_16x26_hf.h und font_16x26_iso8859-2_hf.h aktualsiert (
+  Änderungen von Bohu). 
+- Treiber für OLED-Controller SH1106 (3-Wire SPI, 4-Wire SPI und I2C; Dank an
+  Old-Papa für ein Test-Display).
+- Fehlende Initialisierung des /RES-Signals für I2C im SSD1306-Treiber
+  ergänzt.
+- Ausgabe des Typs der Testschaltung für hFE.
+- Ausgabe von Hexadezimalwerten auf Kleinbuchstaben geändert, und Schalter zum
+  Aktivieren von Grossbuchstaben ergänzt (UI_HEX_UPPERCASE).
+- Option für OneWire-Funktionen zum zusätzlichen Auslesen und Anzeigen des
+  ROM-Codes (ONEWIRE_READ_ROM, Vorschlag von indman@EEVblog).
+- DQ und Vcc-Testpins für OneWire-Bus passend zur Pinbelegung von Sensoren
+  vertauscht (Vorschlag von indman@EEVblog).
+- Erkennung von Schottky-Transistoren (SW_SCHOTTKY_BJT).
+- Verbesserung der Erkennung von FET-Verarmungstypen mittels Filter für
+  Schottky-Transistoren.
+- Textzeilenverwaltung zum Löschen der Anzeige optimiert.
+- Spezieller Display-Treiber zum Identifizieren von Display-Controllern.
+- R/C/L-Monitor (SW_MONITOR_RCL, Vorschlag von indman@EEVblog).
+- Problem mit wechselnden Induktivitätswerten im L und R/L-Monitor gelöst (
+  gemeldet von indman@EEVblog).
+- Messung von V_GS(off) für Verarmungstyp-FETs (Vorschlag von joshto@EEVblog).
+  Fernsteuerkommandos um den Befehl "V_GS_off" erweitert.
+- ILI9341-Treiber um Unterstützung von 8-Bit-Parallel-Bus erweitert. Außerdem
+  Konfigurationsschalter für ILI9341 mit deaktiviertem erweiterten
+  Befehlssatz ergänzt (LCD_EXT_CMD_OFF, Dank an Bohu für ein Testexemplar).
+- Kyrillischer 16x26-Zeichensatz (FONT_16X26_WIN1251_HF, Dank an
+  Yuriy_K@VRTP.RU).
+- Problem mit fehlendem µ (micro) in mehreren ISO8859-2-Zeichensätzen
+  behoben (gemeldet von indman@EEVblog und Obelix2007@EEVblog).
+- Zahlendreher bei ATmega 2560 im Makefile korrigiert (gemeldet von Bohu).
+- Farbiger Batteriestatus für Farbanzeigen (Vorschlag von indman@EEVblog).
+- Alternativen 8x16-Win1251-Zeichensatz durch aktualisierte Version von
+  indman@EEVblog ersetzt.
+- Problem mit der Gültigkeitsprüfung von kleinen Widerständen in 
+  CheckResistor() beseitigt (gemeldet von indman@EEVblog).
+- SmallResistor(), MeasureInductance() und GetGateThreshold() für die Unter-
+  stützung von ADC_LARGE_BUFFER_CAP aktualsiert.
+- Fehlende Aktualisierung der ADC-Referenzquelle in MeasureInductance() und
+  GetGateThreshold() ergänzt.
+- Option zur Auswahl des Abgleichprofils nach dem Einschalten (
+  UI_CHOOSE_PROFILE, Vorschlag von Bohu).
+- Eigene Monitorfunktion für Widerstände und Induktivitäten (SW_MONITOR_R,
+  SW_MONITOR_L, Vorschlag von indman@EEVblog).
+- Spanische Texte aktualisiert (Dank an pepe10000@EEVblog).
+
 v1.40m 2020-07
 - Fehler in SSD1306-Treiber beseitigt, der zur Falschplatzierung der Bauteile-
   symbole führte (gemeldet von Andrei Paul).

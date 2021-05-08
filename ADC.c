@@ -41,8 +41,11 @@
  *    with 25 samples we end up with about 2.6ms
  *
  *  requires:
- *  - Channel: ADC MUX input channel (register bits corresponding with MUX0-4)
- *             (or MUX0-5 when support for pins ADC8-15 is enabled)
+ *  - Channel: ADC MUX input channel
+ *    - ATmega328: register bits corresponding with MUX0-3
+ *    - ATmega324/644/1284: register bits corresponding with MUX0-4
+ *    - ATmega640/1280/2560: register bits corresponding with MUX0-4
+ *      (todo: add MUX5 to support also ADC8-15)
  */
 
 uint16_t ReadU(uint8_t Channel)
@@ -55,7 +58,7 @@ uint16_t ReadU(uint8_t Channel)
   /* AREF pin is connected to external buffer cap (1nF) */
 
   #if 0
-  /* manage channels ADC8-15 */
+  /* manage channels ADC8-15 (ATmega640/1280/2560) */
   if (Channel & 0b00100000)        /* bit 6 set: ADC8-15 */
   {
     ADCSRB |= (1 << MUX5);         /* set MUX5 */
@@ -64,24 +67,26 @@ uint16_t ReadU(uint8_t Channel)
   {
     ADCSRB &= ~(1 << MUX5);        /* clear MUX5 */
   }
-
-  Channel &= 0b00011111;           /* filter bits 0-4 (MUX0-4) */
   #endif
 
-  Channel |= ADC_REF_VCC;          /* add voltage reference: AVcc */
+  /* prepare bitfield for register: start with AVcc as voltage reference */
+  Channel &= ADC_CHAN_MASK;        /* filter reg bits for MUX channel */
+  Channel |= ADC_REF_VCC;          /* add bits for voltage reference: AVcc */
 
 sample:
 
   ADMUX = Channel;                 /* set input channel and U reference */
 
-  /* 
-   *  dummy conversion
-   *  - if voltage reference has changed run a dummy conversion
-   *  - recommended by datasheet
+  /*
+   *  change of voltage reference
+   *  - voltage needs some time to stabilize at buffer cap 
+   *  - run a dummy conversion after change (recommended by datasheet)
+   *  - It seems that we have to run a dummy conversion also after the
+   *    ADC hasn't run for a while. So let's do one anyway.
    */
 
   Ref = Channel & ADC_REF_MASK;    /* get register bits for voltage reference */
-  if (Ref != Cfg.RefFlag)          /* reference has changed */
+  if (Ref != Cfg.Ref)              /* reference source has changed */
   {
     /* wait some time for voltage stabilization */
     #ifndef ADC_LARGE_BUFFER_CAP
@@ -92,11 +97,18 @@ sample:
       wait10ms();                    /* 10ms */
     #endif
 
+    #if 0
+    /* dummy conversion */
     ADCSRA |= (1 << ADSC);         /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
+    #endif
 
-    Cfg.RefFlag = Ref;             /* update voltage reference */
+    Cfg.Ref = Ref;                 /* update reference source */
   }
+
+  /* perform dummy conversion anyway */
+  ADCSRA |= (1 << ADSC);         /* start conversion */
+  while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
 
 
   /*
@@ -131,7 +143,7 @@ sample:
       }
     }
 
-    Counter++;                     /* one less to do */
+    Counter++;                     /* another sample done */
   }
 
 

@@ -3,7 +3,7 @@
  *   monospaced 5x8 font based on ISO 8859-1
  *   - uses internal font of ST7036
  *
- *   (c) 2019 by Markus Reschke
+ *   (c) 2019-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -14,6 +14,9 @@
 
 #ifdef FONT_ST7036
 
+
+/* source management */
+#define FONT_SET                   /* font set included */
 
 /* font size */
 #define FONT_SIZE_X          5     /* width:  5 dots */
@@ -49,8 +52,8 @@ const uint8_t FontData[] PROGMEM = {
 
 
 /*
- *  font lookup table for ASCII ISO 8859-1
- *  - 8 bit ASCII to module's built-in font
+ *  font lookup table for ISO 8859-1
+ *  - 8 bit ISO 8859-1 to module's built-in font
  *  - ff: no bitmap available
  */
 

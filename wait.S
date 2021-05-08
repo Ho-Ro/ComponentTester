@@ -62,10 +62,10 @@
 
 ; waiting functions for MCU clock rates of 1MHz, 2MHz, 4MHz, 8MHz and 16MHz
 ; stacked design to minimize flash memory usage:
-; - 68 Byte at 1MHz
-; - 70 Byte at 2MHz
-; - 76 Byte at 4MHz
-; - 74 Byte at 8Mhz
+; - 68 Bytes at 1MHz
+; - 70 Bytes at 2MHz
+; - 76 Bytes at 4MHz
+; - 74 Bytes at 8Mhz
 ; No registers are used, just the stack pointer.
 ; Maximum RAM usage of 28 bytes for return addresses.
 
@@ -195,26 +195,31 @@ wait20us:
 
 /*
  *  10탎 and below based on MCU clock rate
+ *  - rcall needs 3 clock cycles
+ *  - ret needs 4 clock cycles
  */
 
 wait10us:		;	1+x return addresses
 
 #if CPU_FREQ == 1000000
-;1MHz version			x = 0
-;rcall needs 3 clock cycles for ATmega8L
- nop			;if call needs 4 clock cycles, remove one nop!
+;1MHz: clock cycle 1탎		x = 0
+
+;wait10us
  nop
  nop
-;ret needs 4 clock cycles (1탎 each)
+ nop
 #endif
 
 
 #if CPU_FREQ == 2000000
-;2MHz version			x = 1
+;2MHz: clock cycle 500ns	x = 1
+
+.global wait5us		;wait 5탎
+
+;wait10us
  rcall wait5us		;5탎
 ;proceed with wait5us	;+5탎
 
-.global wait5us		;wait 5탎
 wait5us:
  nop
  nop
@@ -223,10 +228,13 @@ wait5us:
 
 
 #if CPU_FREQ == 4000000
-;4MHz version			x = 2
+;4MHz: clock cycle 250ns	x = 2
+
 .global wait5us		;wait 5탎
 .global wait4us		;wait 4탎
 .global wait2us		;wait 2탎
+
+;wait10us
  rcall wait5us		;5탎
 ;proceed with wait5us	;+5탎
 
@@ -247,12 +255,15 @@ wait2us:
 
 
 #if CPU_FREQ == 8000000
-;8MHz Version			x = 2
+;8MHz: clock cycle 125ns	x = 2
+
 .global wait5us		;wait 5탎
 .global wait4us		;wait 4탎
 .global wait3us		;wait 3탎
 .global wait2us		;wait 2탎
 .global wait1us		;wait 1탎
+
+;wait10us
  rcall wait5us		;5탎
 ;proceed with wait5us	;+5탎
 
@@ -278,12 +289,15 @@ wait1us:
 
 
 #if CPU_FREQ == 16000000
-;16MHz Version			x = 2
+;16MHz: clock cycle 62.5ns	x = 2
+
 .global wait5us		;wait 5탎
 .global wait4us		;wait 4탎
 .global wait3us		;wait 3탎
 .global wait2us		;wait 2탎
 .global wait1us		;wait 1탎
+
+;wait10us
  rcall wait5us		;5탎
 ;proceed with wait5us	;+5탎
 
@@ -313,12 +327,15 @@ wait500ns:
 
 
 #if CPU_FREQ == 20000000
-;20MHz Version			x = 2
+;20MHz: clock cycle 50ns	x = 2
+
 .global wait5us		;wait 5탎
 .global wait4us		;wait 4탎
 .global wait3us		;wait 3탎
 .global wait2us		;wait 2탎
 .global wait1us		;wait 1탎
+
+;wait10us
  rcall wait5us		;5탎
 ;proceed with wait5us	;+5탎
 
@@ -340,7 +357,7 @@ wait2us:
 
 wait1us:
  rcall wait500ns	;500ns
-;proceed with wait500ms	;+500ns
+;proceed with wait500ns	;+500ns
 
 wait500ns:
  nop

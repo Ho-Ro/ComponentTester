@@ -184,9 +184,15 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
   ADCSRA = ADC_CLOCK_DIV;               /* disable ADC, but keep clock dividers */
   ADCSRB = (1 << ACME);                 /* use ADC multiplexer as negative input */
   ADMUX = ADC_REF_BANDGAP | Probes.Ch_2;     /* switch ADC multiplexer to probe-2 */
-                                        /* and set AREF to Vcc */
+                                        /* and set AREF to bandgap reference */
   ACSR = (1 << ACBG) | (1 << ACIC);     /* use bandgap as positive input, trigger timer1 */
-  wait1ms();                            /* allow bandgap reference to settle */
+  #ifndef ADC_LARGE_BUFFER_CAP
+    /* buffer cap: 1nF or none at all */
+    wait1ms();                          /* time for voltage stabilization */
+  #else
+    /* buffer cap: 100nF */
+    wait10ms();                         /* time for voltage stabilization */
+  #endif
   wdt_reset();                          /* reset watchdog */
 
 
@@ -359,6 +365,9 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
       }
     }
   }
+
+  /* update reference source for next ADC run */
+  Cfg.Ref = ADC_REF_BANDGAP;       /* we've used the bandgap reference */
 
   return Flag;
 }

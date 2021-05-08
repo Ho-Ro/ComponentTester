@@ -2,7 +2,7 @@
  *
  *   automation / remote commands via serial interface 
  *
- *   (c) 2018 by Markus Reschke
+ *   (c) 2018-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -434,6 +434,13 @@ uint8_t Cmd_HINT(void)
         Display_EEString(Cmd_BJT_str);       /* send: BJT */
         Display_Char('+');                   /* send: + */
       }
+      #ifdef SW_SCHOTTKY_BJT
+      if (Info.Flags & INFO_BJT_SCHOTTKY)    /* Schottky-clamped BJT */
+      {
+        SpaceLogic();                        /* space logic */
+        Display_EEString(Cmd_D_Clamp_str);   /* send: D_CLAMP */
+      }
+      #endif
       break;
 
     case COMP_FET:            /* FET (JFET/MOSFET) */
@@ -463,6 +470,59 @@ uint8_t Cmd_HINT(void)
   }
 
   if ((Flag == SIGNAL_OK) && FirstFlag)      /* no features available */
+  {
+    Flag = SIGNAL_NA;      /* signal N/A */
+  }
+
+  return Flag;
+}
+
+
+
+/*
+ *  command: MHINT
+ *  - return hints about measurements
+ *
+ *  returns:
+ *  - SIGNAL_ERR on error
+ *  - SIGNAL_NA on n/a
+ *  - SIGNAL_OK on success
+ */
+
+uint8_t Cmd_MHINT(void)
+{
+  uint8_t           Flag = SIGNAL_OK;   /* return value */
+
+  FirstFlag = 1;              /* reset multi string logic */
+
+  switch (Check.Found)        /* based on component */
+  {
+    case COMP_BJT:            /* BJT */
+      /* hFE test circuit type */
+      if (Semi.Flags & HFE_COMMON_EMITTER)        /* common emitter */
+      {
+        /* common emitter circuit */
+        SpaceLogic();
+        Display_EEString(Cmd_h_FE_str);           /* send: h_FE */
+        Display_Char('_');                        /* send: _ */
+        Display_Char('e');                        /* send: e */
+      }
+      else if (Semi.Flags & HFE_COMMON_COLLECTOR) /* common collector */
+      {
+        /* common collector circuit */
+        SpaceLogic();
+        Display_EEString(Cmd_h_FE_str);           /* send: h_FE */
+        Display_Char('_');                        /* send: _ */
+        Display_Char('c');                        /* send: c */
+      }
+      break;
+
+    default:                  /* unsupported */
+      Flag = SIGNAL_ERR;      /* signal error */
+      break;
+  }
+
+  if ((Flag == SIGNAL_OK) && FirstFlag)      /* no hints available */
   {
     Flag = SIGNAL_NA;      /* signal N/A */
   }
@@ -1286,6 +1346,41 @@ uint8_t Cmd_R_DS(void)
 
 
 /*
+ *  command: V_GS_off
+ *  - return V_GS(off) value
+ *
+ *  returns:
+ *  - SIGNAL_ERR on error
+ *  - SIGNAL_NA on n/a
+ *  - SIGNAL_OK on success
+ */
+
+uint8_t Cmd_V_GS_off(void)
+{
+  uint8_t           Flag = SIGNAL_NA;   /* return value */
+
+  /* depletion-mode FET */
+  if ((Check.Found == COMP_FET) && (Check.Type & TYPE_DEPLETION))
+  {
+    if (Semi.U_3 != 0)                  /* if not zero */
+    {
+      /* send value */
+      Display_SignedValue(Semi.U_3, -3, 'V');     /* in mV */
+
+      Flag = SIGNAL_OK;                 /* signal ok */
+    }
+  }
+  else                                  /* other component */
+  {
+    Flag = SIGNAL_ERR;                  /* signal error */
+  }
+
+  return Flag;
+}
+
+
+
+/*
  *  command: V_GT
  *  - return V_GT value
  *
@@ -1489,15 +1584,15 @@ uint8_t RunCommand(uint8_t ID)
       Display_EEString(Version_str);         /* send firmware version */
       break;
 
+    case CMD_OFF:             /* power off */
+      Key = KEY_POWER_OFF;                   /* set virtual key */
+      Display_EEString(Cmd_OK_str);          /* send: OK */
+      break;
+
     case CMD_PROBE:           /* probe component */
       Key = KEY_PROBE;                       /* set virtual key */
       /* OK is returned after probing by main() */
       Flag = SIGNAL_NONE;                    /* no newline */ 
-      break;
-
-    case CMD_OFF:             /* power off */
-      Key = KEY_POWER_OFF;                   /* set virtual key */
-      Display_EEString(Cmd_OK_str);          /* send: OK */
       break;
 
     case CMD_COMP:            /* return component type ID */
@@ -1531,6 +1626,10 @@ uint8_t RunCommand(uint8_t ID)
 
     case CMD_HINT:            /* return hints about special features */
       Flag = Cmd_HINT();                     /* run command */
+      break;
+
+    case CMD_MHINT:           /* return hints about measurements */
+      Flag = Cmd_MHINT();                    /* run command */
       break;
 
     case CMD_PIN:             /* return pinout */
@@ -1611,6 +1710,10 @@ uint8_t RunCommand(uint8_t ID)
 
     case CMD_R_DS:            /* return R_DS */
       Flag = Cmd_R_DS();                     /* run command */
+      break;
+
+    case CMD_V_GS_OFF:        /* return V_GS(off) */
+      Flag = Cmd_V_GS_off();                 /* run command */
       break;
 
     case CMD_V_GT:            /* return V_GT */

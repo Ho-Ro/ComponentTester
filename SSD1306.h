@@ -287,7 +287,7 @@
  */
 
 /* byte #1: command */
-#define CMD_CHARGE_PUMP       0b10001101     /* set charge pump*/
+#define CMD_CHARGE_PUMP       0b10001101     /* set charge pump */
 
 /* byte #2: mode */
 #define FLAG_CHARGEPUMP_OFF   0b00010000     /* disable charge pump */
@@ -350,7 +350,7 @@
 
 /* byte #2: offset */
 /* valid range: 0 - 63 */
-/* default: 0*/
+/* default: 0 */
 
 
 /*

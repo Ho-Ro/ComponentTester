@@ -39,6 +39,7 @@
 #define LCD_DRIVER_C
 
 
+
 /*
  *  include header files
  */
@@ -59,6 +60,17 @@
 #include "font_8x16alt_win1251_hf.h"
 #include "symbols_24x24_hf.h"
 #include "symbols_30x32_hf.h"
+
+/* sanity check */
+#ifndef FONT_SET
+  #error <<< No font selected! >>>
+#endif
+#ifdef SW_SYMBOLS
+  #ifndef SYMBOL_SET
+    #error <<< No symbols selected! >>>
+  #endif
+#endif
+
 
 
 /*
@@ -367,7 +379,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
 
 void LCD_ClearLine(uint8_t Line)
 {
-  uint16_t          x = 0;         /* x position */
+  uint16_t          x;             /* x position */
   uint8_t           y;             /* y position */
   uint8_t           Pos = 1;       /* character position */
 
@@ -379,7 +391,7 @@ void LCD_ClearLine(uint8_t Line)
     Pos = UI.CharPos_X;            /* get current character position */
   }
 
-  /* have we to clear this line? */
+  /* text line optimization */
   if (Line <= 16)                  /* prevent overflow */
   {
     y = Line - 1;                  /* bitfield starts at zero */
@@ -388,21 +400,19 @@ void LCD_ClearLine(uint8_t Line)
 
     if (! (LineFlags & x))         /* bit not set */
     {
+      /* empty text line, already cleared */
       return;                      /* nothing do to */
+    }
+    else if (Pos == 1)             /* bit set and complete line */
+    {
+      /* we'll clear this line completely */
+      LineFlags &= ~x;             /* clear bit */
     }
   }
 
   /* manage address window */
   LCD_CharPos(Pos, Line);         /* update character position */
                                   /* also updates X_Start and Y_Start */
-  if (Pos == 1)                   /* complete line */
-  {
-    if (x > 0)                    /* got line bit */
-    {
-      LineFlags &= ~x;            /* clear bit */
-    }
-  }
-
   /* address limit for X */
   #ifdef LCD_SHIFT_X
     /* consider X offset */
@@ -435,7 +445,7 @@ void LCD_ClearLine(uint8_t Line)
 
   LCD_AddressWindow();                  /* set window */
 
-  /* send background color */
+  /* clear all pixels in window */
   LCD_Cmd(CMD_MEM_WRITE);          /* start writing */
 
   while (y > 0)                    /* character height (pages) */

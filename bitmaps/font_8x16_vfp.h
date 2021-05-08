@@ -1,6 +1,6 @@
 /* ************************************************************************
  *
- *   monospaced 8x16 font
+ *   monospaced 8x16 font based on ISO 8859-1
  *   vertically aligned, vertical bit order flipped, bank-wise grouping
  *
  *   provided by indman@EEVblog and Gennady_13@VRTP.RU
@@ -15,6 +15,9 @@
 
 #ifdef FONT_8X16_VFP
 
+
+/* source management */
+#define FONT_SET                   /* font set included */
 
 /* font size */
 #define FONT_SIZE_X          8     /* width:   8 dots */
@@ -184,8 +187,8 @@ const uint8_t FontData[] PROGMEM = {
 
 
 /*
- *  font lookup table ASCII ISO 8859-1
- *  - 8 bit Windows-1251(CP1251) to custom font
+ *  font lookup table for ISO 8859-1
+ *  - 8 bit ISO 8859-1 to custom font
  *  - ff: no bitmap available
  */
 

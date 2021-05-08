@@ -65,6 +65,7 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
    *  - use Rl as current shunt
    *  - measure voltage at high side of DUT for 100 times 
    *  - repeat that for the low side of the DUT
+   *  - use ADC directly
    */
 
   /* set probes: GND -- probe 2 / probe 1 -- Rl -- 5V */
@@ -104,7 +105,13 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
     /* set ADC to use bandgap reference and run a dummy conversion */
     Probe |= ADC_REF_BANDGAP;
     ADMUX = Probe;                   /* set input channel and U reference */
-    wait100us();                     /* time for voltage stabilization */
+    #ifndef ADC_LARGE_BUFFER_CAP
+      /* buffer cap: 1nF or none at all */
+      wait100us();                   /* time for voltage stabilization */
+    #else
+      /* buffer cap: 100nF */
+      wait10ms();                    /* time for voltage stabilization */
+    #endif
     ADCSRA |= (1 << ADSC);           /* start conversion */
     while (ADCSRA & (1 << ADSC));    /* wait until conversion is done */
 
@@ -194,8 +201,8 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
 #undef MODE_LOW
 #undef MODE_HIGH
 
-  /* update Uref flag for next ADC run */
-  Cfg.RefFlag = ADC_REF_BANDGAP;        /* update flag */
+  /* update reference source for next ADC run */
+  Cfg.Ref = ADC_REF_BANDGAP;       /* we've used the bandgap reference */
 
   return R;
 }
@@ -493,7 +500,7 @@ void CheckResistor(void)
           Scale = -1;              /* 0.1 Ohms by default */
 
           /*
-           *  meassure small resistor <10 Ohms with special method
+           *  measure small resistor <10 Ohms with special method
            */
 
           if (Value < 100UL)            /* < 10 Ohms */
@@ -502,8 +509,12 @@ void CheckResistor(void)
             Value2 = (uint32_t)SmallResistor(1);
 
             /* check for valid result */
-            Value1 = Value * 2;         /* allow 100% tolerance */       
-            Value1 *= 10;               /* re-scale to 0.01 Ohms */     
+            Value1 = Value * 2;         /* allow 100% tolerance */
+            if (Value < 5UL)            /* <0.5 Ohms */
+            {
+              Value1 += Value;          /* incresae to 200% */
+            }
+            Value1 *= 10;               /* re-scale to 0.01 Ohms */
 
             if (Value1 == 0)            /* if limit is 0 */ 
             {
@@ -513,7 +524,7 @@ void CheckResistor(void)
             if (Value1 > Value2)        /* got expected value */
             {
               Value = Value2;           /* take new value */
-              Scale = -2;               /* 0.01 Ohms */
+              Scale = -2;               /* in 0.01 Ohms */
             }
           }
 

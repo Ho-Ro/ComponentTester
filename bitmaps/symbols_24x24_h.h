@@ -3,7 +3,7 @@
  *   24x24 component symbols 
  *   horizontally aligned
  *
- *   (c) 2015-2017 by Markus Reschke
+ *   (c) 2015-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -14,6 +14,9 @@
 
 #ifdef SYMBOLS_24X24_H
 
+
+/* source management */
+#define SYMBOL_SET                 /* symbol set included */
 
 /* symbol size */
 #define SYMBOL_SIZE_X       24     /* width:  24 dots */

@@ -3,7 +3,7 @@
  *   32x32 component symbols 
  *   horizontally aligned, horizontal bit order flipped
  *
- *   (c) 2015-2017 by Markus Reschke
+ *   (c) 2015-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -14,6 +14,9 @@
 
 #ifdef SYMBOLS_32X32_HF
 
+
+/* source management */
+#define SYMBOL_SET                 /* symbol set included */
 
 /* symbol size */
 #define SYMBOL_SIZE_X       32     /* width:  32 dots */

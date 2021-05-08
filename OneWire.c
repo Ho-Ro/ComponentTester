@@ -11,8 +11,8 @@
  *  - DQ (data line) requires a 4.7kOhms pull-up resistor to Vcc
  *  - pin assignment for probes (ONEWIRE_PROBES)
  *    probe #1      Gnd
- *    probe #2      Vcc (via Rl to limit current)
- *    probe #3      DQ (requires 4.7kOhms pull-up resistor to Vcc)
+ *    probe #2      DQ (requires 4.7kOhms pull-up resistor to Vcc)
+ *    probe #3      Vcc (via Rl to limit current)
  *  - port and pins for dedicated MCU pin (ONEWIRE_IO_PIN)
  *    ONEWIRE_PORT  port data register
  *    ONEWIRE_DDR   port data direction register
@@ -36,6 +36,10 @@
 /* source management */
 #define ONEWIRE_C
 
+/* operation modes */
+#define MODE_MANUAL      0    /* manual mode */
+#define MODE_AUTO        1    /* automatic mode */
+
 
 /*
  *  include header files
@@ -55,7 +59,7 @@
 /* CRC */
 uint8_t        CRC8;          /* current CRC-8 */
 
-#ifdef SW_ONEWIRE_SCAN
+#if defined (ONEWIRE_READ_ROM) || defined (SW_ONEWIRE_SCAN)
 /* ROM code */
 uint8_t        ROM_Code[8];   /* ROM code */
 uint8_t        LastCon;       /* bit position of last code conflict */
@@ -98,8 +102,8 @@ void OneWire_Setup(void)
 /*
  *  set up probes for OneWire bus
  *  - probe-1: Gnd
- *  - probe-2: Vcc (current limited by Rl)
- *  - probe-3: DQ (pull-up resistor required)
+ *  - probe-2: DQ (pull-up resistor required)
+ *  - probe-3: Vcc (current limited by Rl)
  *
  *  requires:
  *  - String: string stored in EEPROM for first display line 
@@ -118,14 +122,14 @@ uint8_t OneWire_Probes(const unsigned char *String)
   ShortCircuit(0);                      /* make sure probes are not shorted */
   LCD_Clear();
   Display_EEString(String);             /* display String */
-  /* display module pinout (1: Gnd / 2: Vcc / 3: Data) */
+  /* display module pinout (1: Gnd / 2: Data / 3: Vcc) */
   Display_NextLine();
-  Show_SimplePinout('-', '+', 'd');
+  Show_SimplePinout('-', 'd', '+');
 
-  /* set probes: probe-1 -- Gnd / probe-2 -- Rl -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
-  /* pull up probe-2 via Rl, pull down probe-3 via Rh */
-  R_DDR = (1 << R_RL_2) | (1 << R_RH_3);     /* enable resistors */
-  R_PORT = (1 << R_RL_2);                    /* pull up probe-2, pull down probe-3 */
+  /* set probes: probe-1 -- Gnd / probe-3 -- Rl -- Vcc / probe-2 (HiZ) -- Rh -- Gnd */
+  /* pull up probe-3 via Rl, pull down probe-2 via Rh */
+  R_DDR = (1 << R_RL_3) | (1 << R_RH_2);     /* enable resistors */
+  R_PORT = (1 << R_RL_3);                    /* pull up probe-3, pull down probe-2 */
   ADC_PORT = 0;                              /* pull down directly: */
   ADC_DDR = (1 << TP1);                      /* probe-1 */
   wait20ms();                                /* time to settle */
@@ -133,7 +137,7 @@ uint8_t OneWire_Probes(const unsigned char *String)
   /* wait for external pull-up resistor or key press */
   while (Run)
   {
-    if (ADC_PIN & (1 << TP3))      /* check for high level of probe-3 */
+    if (ADC_PIN & (1 << TP2))      /* check for high level of probe-2 */
     {
       Flag = 1;                              /* signal "bus ok" */
       Run = 0;                               /* end loop */
@@ -150,8 +154,8 @@ uint8_t OneWire_Probes(const unsigned char *String)
     }
   }
 
-  /* remove pull-down via Rh for probe-3 */
-  R_DDR = (1 << R_RL_2);      /* disable Rh for probe-3 */
+  /* remove pull-down via Rh for probe-2 */
+  R_DDR = (1 << R_RL_3);      /* disable Rh for probe-2 */
 
   return Flag;
 }
@@ -182,8 +186,8 @@ uint8_t OneWire_ResetBus(void)
   #endif
 
   #ifdef ONEWIRE_PROBES
-  /* change probe-3 (DQ) to output mode (port pin is low) */
-  ADC_DDR |= (1 << TP3);                     /* set bit */
+  /* change probe-2 (DQ) to output mode (port pin is low) */
+  ADC_DDR |= (1 << TP2);                     /* set bit */
   #endif
 
   wait500us();                /* delay of 500µs */
@@ -194,8 +198,8 @@ uint8_t OneWire_ResetBus(void)
   #endif
 
   #ifdef ONEWIRE_PROBES
-  /* change probe-3 (DQ) back to input mode */
-  ADC_DDR &= ~(1 << TP3);                    /* clear bit */
+  /* change probe-2 (DQ) back to input mode */
+  ADC_DDR &= ~(1 << TP2);                    /* clear bit */
   #endif
 
 
@@ -218,8 +222,8 @@ uint8_t OneWire_ResetBus(void)
   #endif
 
   #ifdef ONEWIRE_PROBES
-  /* read DQ */
-  if (! (ADC_PIN & (1 << TP3)))              /* low */
+  /* read DQ (probe-2) */
+  if (! (ADC_PIN & (1 << TP2)))              /* low */
   {
     Flag = 1;                 /* signal ok */
   }
@@ -264,8 +268,8 @@ void OneWire_SendBit(uint8_t Bit)
   #endif    
 
   #ifdef ONEWIRE_PROBES
-  /* change probe-3 (DQ) to output mode (port pin is low) */
-  ADC_DDR |= (1 << TP3);                /* set bit */
+  /* change probe-2 (DQ) to output mode (port pin is low) */
+  ADC_DDR |= (1 << TP2);                /* set bit */
   #endif
 
 
@@ -283,8 +287,8 @@ void OneWire_SendBit(uint8_t Bit)
     #endif
 
     #ifdef ONEWIRE_PROBES
-    /* change probe-3 (DQ) back to input mode */
-    ADC_DDR &= ~(1 << TP3);                  /* clear bit */
+    /* change probe-2 (DQ) back to input mode */
+    ADC_DDR &= ~(1 << TP2);                  /* clear bit */
     #endif
  
     /* end the time slot + recovery time */
@@ -307,8 +311,8 @@ void OneWire_SendBit(uint8_t Bit)
     #endif
 
     #ifdef ONEWIRE_PROBES
-    /* change probe-3 (DQ) back to input mode */
-    ADC_DDR &= ~(1 << TP3);                  /* clear bit */
+    /* change probe-2 (DQ) back to input mode */
+    ADC_DDR &= ~(1 << TP2);                  /* clear bit */
     #endif
 
     /* recovery time */
@@ -349,8 +353,8 @@ uint8_t OneWire_ReadBit(void)
   #endif    
 
   #ifdef ONEWIRE_PROBES
-  /* change probe-3 (DQ) to output mode (port pin is low) */
-  ADC_DDR |= (1 << TP3);                /* set bit */
+  /* change probe-2 (DQ) to output mode (port pin is low) */
+  ADC_DDR |= (1 << TP2);                /* set bit */
   #endif
 
   wait5us();                  /* pulse delay of 5µs */
@@ -361,8 +365,8 @@ uint8_t OneWire_ReadBit(void)
   #endif
 
   #ifdef ONEWIRE_PROBES
-  /* change probe-3 (DQ) back to input mode */
-  ADC_DDR &= ~(1 << TP3);               /* clear bit */
+  /* change probe-2 (DQ) back to input mode */
+  ADC_DDR &= ~(1 << TP2);               /* clear bit */
   #endif
 
 
@@ -385,8 +389,8 @@ uint8_t OneWire_ReadBit(void)
   #endif
 
   #ifdef ONEWIRE_PROBES
-  /* read DQ */
-  if (ADC_PIN & (1 << TP3))             /* high */
+  /* read DQ (probe-2) */
+  if (ADC_PIN & (1 << TP2))             /* high */
   {
     Bit = 1;                /* 1 */
   }
@@ -404,7 +408,7 @@ uint8_t OneWire_ReadBit(void)
 
 /*
  *  send byte
- *  - bit order: LSB
+ *  - sending bit order: LSB
  *
  *  requires:
  *  - Byte: data byte
@@ -426,7 +430,7 @@ void OneWire_SendByte(uint8_t Byte)
 
 /*
  *  read byte
- *  - bit order: LSB
+ *  - reading bit order: LSB
  *
  *  returns:
  *  - Byte: data byte
@@ -838,7 +842,7 @@ uint8_t OneWire_Scan_Tool(void)
       for (n = 6; n > 0; n--)           /* 6 bytes */
       {
         Display_HexByte(ROM_Code[n]);   /* display S/N */
-      } 
+      }
 
       Run &= ~OUTPUT_FLAG;              /* clear flag */
     }
@@ -860,6 +864,78 @@ uint8_t OneWire_Scan_Tool(void)
   #undef RESET_FLAG
   #undef OUTPUT_FLAG
   #undef DONE_FLAG
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   Read ROM
+ * ************************************************************************ */
+
+
+#ifdef ONEWIRE_READ_ROM
+
+/*
+ *  read ROM code of connected device
+ *  - single client on the bus
+ *  - also display ROM code
+ */
+
+void OneWire_Read_ROM_Code(void)
+{
+  uint8_t           Flag = 0;           /* control flag */
+  uint8_t           n;                  /* counter */
+
+  wdt_reset();                /* reset watchdog */
+
+  /* transaction: initialization */
+  /* reset bus and check for presence pulse */
+  Flag = OneWire_ResetBus();    
+
+  if (Flag)                   /* detected client */
+  {
+    /* transaction: ROM command */
+    OneWire_SendByte(CMD_READ_ROM);     /* read ROM */
+
+    /* read 8 bytes */
+    n = 0;
+    while (n < 8)             /* 8 bytes */
+    {
+      ROM_Code[n] = OneWire_ReadByte();      /* read byte */
+      n++;                                   /* next byte */
+    }
+
+    /* check CRC */
+    CRC8 = 0x00;              /* reset CRC to start value */
+    n = 0;
+    while (n < 7)             /* 7 data bytes */
+    {
+      OneWire_CRC8(ROM_Code[n]);        /* process byte */
+      n++;                              /* next byte */
+    }
+
+    if (ROM_Code[7] == CRC8)   /* CRC matches */
+    {
+      /* output ROM code */ 
+
+      /* display family code */
+      Display_HexByte(ROM_Code[0]);     /* display family */
+
+      Display_Space();                  /* display space */
+
+      /* display serial number (MSB left) */
+      for (n = 6; n > 0; n--)           /* 6 bytes */
+      {
+        Display_HexByte(ROM_Code[n]);   /* display S/N */
+      }
+    }
+    else                       /* mismatch */
+    {
+      Display_Char('-');                /* display n/a */
+    }
+  }
 }
 
 #endif
@@ -1091,6 +1167,8 @@ uint8_t DS18B20_Tool(void)
   uint8_t           Test;          /* key / feedback */
   int8_t            Scale;         /* temperature scale 10^x */
   int32_t           Value;         /* temperature value */
+  uint8_t           Mode = MODE_MANUAL; /* operation mode */
+  uint16_t          Timeout = 0;        /* timeout for user feedback */
 
   #ifdef ONEWIRE_IO_PIN
   Flag = 1;                   /* set default */
@@ -1106,6 +1184,7 @@ uint8_t DS18B20_Tool(void)
   }
   #endif
 
+  /* start info */
   LCD_ClearLine2();                     /* clear line #2 */
   Display_EEString(Start_str);          /* display: Start */
 
@@ -1116,17 +1195,53 @@ uint8_t DS18B20_Tool(void)
 
   while (Run)
   {
-    /* user input */
+    /*
+     *  user input
+     */
 
     /* wait for user input */
-    Test = TestKey(0, CURSOR_BLINK | CHECK_KEY_TWICE | CHECK_BAT);
+    Test = TestKey(Timeout, CURSOR_BLINK | CHECK_KEY_TWICE | CHECK_BAT);
 
-    if (Test == KEY_TWICE)         /* two short key presses */
+    if (Test == KEY_LONG)          /* long key press */
+    {
+      /* display mode */
+      LCD_ClearLine(1);            /* clear line #1 */
+      LCD_CharPos(1, 1);           /* move to line #1 */
+      Display_EEString_Space(DS18B20_str);
+
+      /* change mode */
+      if (Mode == MODE_MANUAL)     /* manual mode */
+      {
+        Mode = MODE_AUTO;          /* set automatic mode */
+        Timeout = 1000;            /* wait for max. 1s */
+
+        /* indicate auto mode */
+        Display_Char('*');         /* display: * */
+      }
+      else                         /* automatic mode */
+      {
+        Mode = MODE_MANUAL;        /* set manual mode again */
+        Timeout = 0;               /* wait for user */
+      }
+
+      MilliSleep(500);             /* smooth UI */
+    }
+    else if (Test == KEY_TWICE)    /* two short key presses */
     {
       Run = 0;                     /* end loop */
     }
 
+
+    /* clear text lines for new output */
     LCD_ClearLine2();                   /* clear line #2 */
+    #ifdef ONEWIRE_READ_ROM
+    LCD_ClearLine(3);                   /* clear line #3 */
+    LCD_CharPos(1, 2);                  /* move to line #2 */
+    #endif
+
+    /*
+     *  read and show temperature
+     */
 
     if (Run)            /* ok to proceed */
     {
@@ -1162,6 +1277,12 @@ uint8_t DS18B20_Tool(void)
       {
         Display_Char('-');         /* display n/a */
       }
+
+      #ifdef ONEWIRE_READ_ROM
+      /* read and display ROM code */
+      LCD_CharPos(1, 3);           /* move to line #3 */
+      OneWire_Read_ROM_Code();     /* read and display ROM code */
+      #endif
     }
   }
 
@@ -1176,6 +1297,10 @@ uint8_t DS18B20_Tool(void)
  *   clean-up of local constants
  * ************************************************************************ */
 
+
+/* local constants */
+#undef MODE_MANUAL
+#undef MODE_AUTO
 
 /* source management */
 #undef ONEWIRE_C

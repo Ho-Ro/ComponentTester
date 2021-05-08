@@ -16,6 +16,9 @@
 #ifdef FONT_8X8_ISO8859_2_H
 
 
+/* source management */
+#define FONT_SET                   /* font set included */
+
 /* font size */
 #define FONT_SIZE_X          8     /* width:  8 dots */
 #define FONT_SIZE_Y          8     /* height: 8 dots */

@@ -93,9 +93,10 @@
 #define LINE_KEEP             0b00000010     /* keep first line */
 
 
-/* storage modes */
-#define STORAGE_LOAD          1         /* load adjustment values */
-#define STORAGE_SAVE          2         /* save adjustment values */
+/* storage modes (ID and bitfield) */
+#define STORAGE_LOAD          0b00000001     /* load adjustment values (ID) */
+#define STORAGE_SAVE          0b00000010     /* save adjustment values (ID) */
+#define STORAGE_SHORT         0b00000100     /* short menu (flag) */ 
 
 
 /* SPI */
@@ -196,30 +197,32 @@
 #define CMD_QTY               13   /* return component quantity */
 #define CMD_NEXT              14   /* select next component */
 #define CMD_TYPE              15   /* return more sepcific type */
-#define CMD_HINT              16   /* return hint on special features */
-#define CMD_PIN               17   /* return pinout */
-#define CMD_R                 18   /* return resistance */
-#define CMD_C                 19   /* return capacitance */
-#define CMD_L                 20   /* return inductance */
-#define CMD_ESR               21   /* return ESR */
-#define CMD_I_L               22   /* return I_leak */
-#define CMD_V_F               23   /* return V_f */
-#define CMD_V_F2              24   /* return V_f of low current measurement */
-#define CMD_C_D               25   /* return C_D */
-#define CMD_I_R               26   /* return I_R */
-#define CMD_R_BE              27   /* return R_BE */
-#define CMD_H_FE              28   /* return hFE */
-#define CMD_H_FE_R            29   /* return reverse hFE */
-#define CMD_V_BE              30   /* return V_BE */
-#define CMD_I_CEO             31   /* return I_CEO */
-#define CMD_V_TH              32   /* return V_th */
-#define CMD_C_GS              33   /* return C_GS */
-#define CMD_R_DS              34   /* return R_DS */
-#define CMD_I_DSS             35   /* return I_DSS */
-#define CMD_C_GE              36   /* return C_GE */
-#define CMD_V_GT              37   /* return V_GT */
-#define CMD_V_T               38   /* return V_T */
-#define CMD_R_BB              39   /* return R_BB */
+#define CMD_HINT              16   /* return hints on special features */
+#define CMD_MHINT             17   /* return hints on measurements */
+#define CMD_PIN               18   /* return pinout */
+#define CMD_R                 20   /* return resistance */
+#define CMD_C                 21   /* return capacitance */
+#define CMD_L                 22   /* return inductance */
+#define CMD_ESR               23   /* return ESR */
+#define CMD_I_L               24   /* return I_leak */
+#define CMD_V_F               25   /* return V_f */
+#define CMD_V_F2              26   /* return V_f of low current measurement */
+#define CMD_C_D               27   /* return C_D */
+#define CMD_I_R               28   /* return I_R */
+#define CMD_R_BE              29   /* return R_BE */
+#define CMD_H_FE              30   /* return hFE */
+#define CMD_H_FE_R            31   /* return reverse hFE */
+#define CMD_V_BE              32   /* return V_BE */
+#define CMD_I_CEO             33   /* return I_CEO */
+#define CMD_V_TH              34   /* return V_th */
+#define CMD_C_GS              35   /* return C_GS */
+#define CMD_R_DS              36   /* return R_DS */
+#define CMD_V_GS_OFF          37   /* return V_GS(off) */
+#define CMD_I_DSS             38   /* return I_DSS */
+#define CMD_C_GE              39   /* return C_GE */
+#define CMD_V_GT              40   /* return V_GT */
+#define CMD_V_T               41   /* return V_T */
+#define CMD_R_BB              42   /* return R_BB */
 
 
 
@@ -243,6 +246,7 @@
 /* BJT */
 #define INFO_BJT_D_FB         0b00000001     /* detected flyback diode */
 #define INFO_BJT_R_BE         0b00000010     /* detected B-E resistor */
+#define INFO_BJT_SCHOTTKY     0b00000100     /* detected Schottky-clamped BJT */
 
 /* FET/IGBT */
 #define INFO_FET_D_FB         0b00000001     /* detected body/flyback diode */
@@ -307,6 +311,12 @@
 
 /* diode types (bitfield) */
 #define TYPE_STANDARD         0b00000001     /* standard diode */
+
+
+/* BJT flags (bitfield) */
+#define HFE_COMMON_EMITTER    0b00000001     /* hFE: common emitter circuit */
+#define HFE_COMMON_COLLECTOR  0b00000010     /* hFE: common collector circuit */
+#define HFE_CIRCUIT_MASK      0b00000011
 
 
 /* flags for semicondutor detection logic (bitfield) */
@@ -403,12 +413,15 @@ typedef struct
   #endif
   uint8_t           Samples;       /* number of ADC samples */
   uint8_t           AutoScale;     /* flag to disable/enable ADC auto scaling */
-  uint8_t           RefFlag;       /* internal control flag for ADC */
+  uint8_t           Ref;           /* track reference source used lastly */
   uint16_t          Bandgap;       /* voltage of internal bandgap reference (mV) */
   uint16_t          Vcc;           /* voltage of Vcc (mV) */
   #ifndef BAT_NONE
   uint16_t          Vbat;          /* battery voltage (mV) */
   uint8_t           BatTimer;      /* timer for battery check (100ms) */
+  #endif
+  #ifdef SW_DISPLAY_ID
+  uint16_t          DisplayID;     /* ID of display controller */
   #endif
 } Config_Type;
 
@@ -603,8 +616,10 @@ typedef struct
   uint8_t           A;             /* probe pin connected to pin A */
   uint8_t           B;             /* probe pin connected to pin B */
   uint8_t           C;             /* probe pin connected to pin C */
+  uint8_t           Flags;         /* misc flags */
   uint16_t          U_1;           /* voltage #1 */
   int16_t           U_2;           /* voltage #2 (+/-) */
+  int16_t           U_3;           /* voltage #3 (+/-) */
   uint32_t          F_1;           /* factor #1 */
   #ifdef SW_REVERSE_HFE
   uint32_t          F_2;           /* factor #2 */
@@ -625,8 +640,9 @@ typedef struct
   C        Emitter      Source       Cathode      MT1          Emitter
   U_1      V_BE (mV)    R_DS (0.01)  V_GT (mV)    V_GT (mV)
   U_2                   V_th (mV)                              V_th (mV)
+  U_3                   V_GS(off)
   F_1      hFE                                    MT2 (mV)
-  F_2
+  F_2      hFEr
   I_value  I_CEO        I_DSS
   I_scale  I_CEO        I_DSS
   C_value  C_BE

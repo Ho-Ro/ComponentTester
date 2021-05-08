@@ -63,6 +63,7 @@
 #define LCD_DRIVER_C
 
 
+
 /*
  *  include header files
  */
@@ -75,6 +76,11 @@
 
 /* fonts (5x8) */
 #include "font_ST7036.h"      /* ST7036's internal font */
+
+/* sanity check */
+#ifndef FONT_SET
+  #error <<< No font selected! >>>
+#endif
 
 
 

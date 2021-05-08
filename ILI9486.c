@@ -43,8 +43,6 @@
  *    DB13     LCD_DB13 (LCD_PORT3 pin #5)
  *    DB14     LCD_DB14 (LCD_PORT3 pin #6)
  *    DB15     LCD_DB15 (LCD_PORT3 pin #7)
- *  - pin assignment for 16 bit parallel interface
- *    same as for 8 bit parallel but additionally
  *  - max. clock rate for parallel bus
  *    15MHz write
  *    6.25MHz read register data
@@ -99,8 +97,20 @@
 #include "font_10x16_iso8859-2_hf.h"
 #include "font_12x16_iso8859-2_hf.h"
 #include "font_16x26_iso8859-2_hf.h"
+#include "font_16x26_win1251_hf.h"
 #include "symbols_24x24_hf.h"
 #include "symbols_32x32_hf.h"
+
+/* sanity check */
+#ifndef FONT_SET
+  #error <<< No font selected! >>>
+#endif
+#ifdef SW_SYMBOLS
+  #ifndef SYMBOL_SET
+    #error <<< No symbols selected! >>>
+  #endif
+#endif
+
 
 
 /*
@@ -123,7 +133,7 @@
 /* component symbols */
 #ifdef SW_SYMBOLS
   /* resize symbols by a factor of 2 */
-  #define SYMBOL_RESIZE         2
+  #define SYMBOL_RESIZE       2
 
   /* size in relation to a character */
   #define LCD_SYMBOL_CHAR_X   (((SYMBOL_SIZE_X * SYMBOL_RESIZE) + FONT_SIZE_X - 1) / FONT_SIZE_X)
@@ -138,7 +148,7 @@
 /* color modes */
 #ifdef LCD_SPI
   /* SPI interface: use RGB666 (RGB565 not supported by SPI) */
-  #define COLORMODE_RGB666 
+  #define COLORMODE_RGB666
 #else
   /* parallel interface: use RGB565 */
   #define COLORMODE_RGB565
@@ -158,6 +168,10 @@ uint16_t            Y_End;         /* end position Y (page/row) */
 /* text line management */
 uint16_t            LineFlags;     /* bitfield for up to 16 lines */
 
+#ifdef COLORMODE_RGB666
+/* colors in RGB666 8-bit frame format */
+#endif
+
 
 
 /* ************************************************************************
@@ -167,13 +181,13 @@ uint16_t            LineFlags;     /* bitfield for up to 16 lines */
 
 /*
  *  protocol:
- *  - CSX -> D/CX -> D7-0 with rising edge of SCL
+ *  - write: CSX low -> D/CX -> D7-0 with rising edge of SCL
  *  - D/CX: high = data / low = command
  *  - commands and data have to be sent as 2 bytes
+ *    Really?
  *
  *  hints:
  *  - RGB111 and RGB666 are supported when using 4-line SPI
- *  - we'll expand the RGB565 color values to RGB666???
  */
 
 
@@ -242,7 +256,7 @@ void LCD_BusSetup(void)
 
 
 /*
- *  send a command to the LCD
+ *  send a command to the display
  *
  *  requires:
  *  - Cmd: byte value to send
@@ -271,7 +285,7 @@ void LCD_Cmd(uint8_t Cmd)
 
 
 /*
- *  send data to the LCD
+ *  send data to the display
  *
  *  requires:
  *  - Data: byte value to send
@@ -300,7 +314,7 @@ void LCD_Data(uint8_t Data)
 
 
 /*
- *  send data to the LCD
+ *  send data to the display
  *
  *  requires:
  *  - Data: 2-byte value to send
@@ -343,9 +357,11 @@ void LCD_Data2(uint16_t Data)
 
 /*
  *  protocol:
- *  - CSX -> D/CX -> D7-0 with rising edge of WRX
+ *  - write: CSX low -> D/CX -> WRX low to init write -> set D7-0 ->
+ *           rising edge of WRX triggers read
+ *  - read:  CSX low -> D/CX -> RDX low to trigger output ->
+ *           read D7-0 with rising edge of RDX
  *  - D/CX: high = data / low = command
- *  - commands have to be sent as 2 bytes
  *
  *  hints:
  *  - RGB565 and RGB666 are supported when using the 8-bit parallel interface
@@ -415,7 +431,7 @@ void LCD_BusSetup(void)
 
 
 /*
- *  send a byte (data or command) to the LCD
+ *  send a byte (data or command) to the display
  *
  *  requires:
  *  - Byte: byte value to send
@@ -437,73 +453,8 @@ void LCD_SendByte(uint8_t Byte)
 
 
 
-#if 0
-
 /*
- *  read byte from LCD
- *  - timing for register data
- *  - not suitable for frame memory
- *
- *  returns:
- *  - byte
- */
-
-uint8_t LCD_ReadByte(void)
-{
-  uint8_t           Byte;     /* return value */
-
-  /* set data pins to input mode */
-  LCD_DDR2 = 0b00000000;           /* DB0-7 */
-
-  #ifdef LCD_CS
-  /* select chip */
-  LCD_PORT &= ~(1 << LCD_CD);      /* set /CSX low */
-  #endif
-
-  /* indicate data mode */
-  LCD_PORT |= (1 << LCD_DC);       /* set D/CX high */
-
-  /* start read cycle (RDX low for min. 45ns) */
-  LCD_PORT &= ~(1 << LCD_RD);      /* set RDX low */
-
-  /* wait for LCD to fetch data: max. 40ns */
-  asm volatile("nop\n\t"::);       /* burn a clock cycle */
-
-  /* read data */
-  Byte = LCD_PIN2;
-
-  /* end read cycle */
-  LCD_PORT |= (1 << LCD_RD);       /* set RDX high */
-
-  /* wait for LCD to release data lines: max. 80ns */
-  #ifndef LCD_CS
-  /* burn two clock cycles */
-  asm volatile(
-    "nop\n\t"
-    "nop\n\t"
-    ::
-  );
-  #endif
-
-  /* next read cycle after 90ns RDX being high */
-
-  #ifdef LCD_CS
-  /* deselect chip */
-  LCD_PORT |= (1 << LCD_CS);       /* set /CSX high */
-  #endif
-
-  /* set data pins back to output mode */
-  LCD_DDR2 = 0b11111111;           /* DB0-7 */
-
-  return Byte;
-}
-
-#endif
-
-
-
-/*
- *  send a command to the LCD
+ *  send a command to the display
  *
  *  requires:
  *  - Cmd: byte value to send
@@ -519,9 +470,8 @@ void LCD_Cmd(uint8_t Cmd)
   /* indicate command mode */
   LCD_PORT &= ~(1 << LCD_DC);      /* set D/CX low */
 
-  /* send command: 2 bytes */
-  LCD_SendByte(0);                 /* send dummy MSB */
-  LCD_SendByte(Cmd);               /* send command byte as LSB */
+  /* send command */
+  LCD_SendByte(Cmd);               /* send command byte */
 
   #ifdef LCD_CS
   /* deselect chip */
@@ -532,7 +482,7 @@ void LCD_Cmd(uint8_t Cmd)
 
 
 /*
- *  send data to the LCD
+ *  send data to the display
  *
  *  requires:
  *  - Data: byte value to send
@@ -560,7 +510,7 @@ void LCD_Data(uint8_t Data)
 
 
 /*
- *  send data to the LCD
+ *  send data to the display
  *
  *  requires:
  *  - Data: 2-byte value to send
@@ -590,6 +540,71 @@ void LCD_Data2(uint16_t Data)
   #endif
 }
 
+
+
+#if 0
+
+/*
+ *  read byte from display
+ *  - timing for register data
+ *  - not suitable for frame memory
+ *
+ *  returns:
+ *  - byte
+ */
+
+uint8_t LCD_ReadByte(void)
+{
+  uint8_t           Byte;     /* return value */
+
+  /* set data pins to input mode before reading */
+  LCD_DDR2 = 0b00000000;         /* DB0-7 */
+
+  #ifdef LCD_CS
+  /* select chip */
+  LCD_PORT &= ~(1 << LCD_CS);      /* set /CSX low */
+  #endif
+
+  /* indicate data mode */
+  LCD_PORT |= (1 << LCD_DC);       /* set D/CX high */
+
+  /* start read cycle (RDX low for min. 45ns) */
+  LCD_PORT &= ~(1 << LCD_RD);      /* set RDX low */
+
+  /* wait for LCD to fetch data: max. 40ns */
+  asm volatile("nop\n\t"::);       /* burn a clock cycle */
+
+  /* read data: DB0-7 */
+  Byte = LCD_PIN2;
+
+  /* end read cycle */
+  LCD_PORT |= (1 << LCD_RD);       /* set RDX high */
+
+  /* wait for LCD to release data lines: max. 80ns */
+  #ifndef LCD_CS
+  /* burn two clock cycles */
+  asm volatile(
+    "nop\n\t"
+    "nop\n\t"
+    ::
+  );
+  #endif
+
+  /* next read cycle after 90ns RDX being high */
+
+  #ifdef LCD_CS
+  /* deselect chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CSX high */
+  #endif
+
+  /* set data pins back to output mode after reading */
+  LCD_DDR2 = 0b11111111;         /* DB0-7 */
+
+  return Byte;
+}
+
+#endif
+
 #endif
 
 
@@ -604,7 +619,8 @@ void LCD_Data2(uint16_t Data)
 
 /*
  *  protocol:
- *  - CSX -> D/CX -> D15-0 with rising edge of WRX
+ *  - write: CSX low -> D/CX -> WRX low to init write -> set D15-0 ->
+ *           rising edge of WRX triggers read
  *  - D/CX: high = data / low = command
  *  - commands have to be sent as 2 bytes
  *
@@ -678,7 +694,7 @@ void LCD_BusSetup(void)
 
 
 /*
- *  send a byte (data or command) to the LCD
+ *  send a byte (data or command) to the display
  *
  *  requires:
  *  - Byte: byte value to send
@@ -702,7 +718,7 @@ void LCD_SendByte(uint8_t Byte)
 
 
 /*
- *  send a command to the LCD
+ *  send a command to the display
  *
  *  requires:
  *  - Cmd: byte value to send
@@ -730,7 +746,7 @@ void LCD_Cmd(uint8_t Cmd)
 
 
 /*
- *  send data to the LCD
+ *  send data to the display
  *
  *  requires:
  *  - Data: byte value to send
@@ -758,7 +774,7 @@ void LCD_Data(uint8_t Data)
 
 
 /*
- *  send data to the LCD
+ *  send data to the display
  *
  *  requires:
  *  - Data: 2-byte value to send
@@ -798,14 +814,32 @@ void LCD_Data2(uint16_t Data)
 
 
 /* ************************************************************************
- *   high level functions
+ *   conversion functions
  * ************************************************************************ */
 
 
 #ifdef COLORMODE_RGB666
 
 /*
- *  expand RGB565 value to RGB666
+ *  RGB565 to RGB666
+ *  - DB[15-11] -> R[5-1], DB15 -> R0
+ *    R[5-0] = (R[4-0] << 1) | (R5 >> 4)
+ *  - DB[10-5] -> G[5-0]
+ *    G[5-0] = G[5-0]
+ *  - DB[4-0] -> B[5-1], DB4 -> B0
+ *    B[5-0] = (B[4-0] << 1) | (B5 >> 4)
+ */
+
+/*
+ *  8-bit frame format for RGB666
+ *  - first byte:  R[5-0] -> D[7-2], D[1-0] are 0
+ *  - second byte: G[5-0] -> D[7-2], D[1-0] are 0
+ *  - third byte:  B[5-0] -> D[7-2], D[1-0] are 0
+ */
+
+
+/*
+ *  expand RGB565 value to RGB666 in 8-bit frame format
  *
  *  requires:
  *  - Color: RGB565 color value
@@ -815,6 +849,11 @@ void LCD_Data2(uint16_t Data)
 
 #endif
 
+
+
+/* ************************************************************************
+ *   high level functions
+ * ************************************************************************ */
 
 
 /*
@@ -891,7 +930,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
 
 void LCD_ClearLine(uint8_t Line)
 {
-  uint16_t          x = 0;         /* x position */
+  uint16_t          x;             /* x position */
   uint8_t           y;             /* y position */
   uint8_t           Pos = 1;       /* character position */
 
@@ -903,7 +942,7 @@ void LCD_ClearLine(uint8_t Line)
     Pos = UI.CharPos_X;            /* get current character position */
   }
 
-  /* have we to clear this line? */
+  /* text line optimization */
   if (Line <= 16)                  /* prevent overflow */
   {
     y = Line - 1;                  /* bitfield starts at zero */
@@ -912,21 +951,19 @@ void LCD_ClearLine(uint8_t Line)
 
     if (! (LineFlags & x))         /* bit not set */
     {
+      /* empty text line, already cleared */
       return;                      /* nothing do to */
+    }
+    else if (Pos == 1)             /* bit set and complete line */
+    {
+      /* we'll clear this line completely */
+      LineFlags &= ~x;             /* clear bit */
     }
   }
 
   /* manage address window */
   LCD_CharPos(Pos, Line);          /* update character position */
                                    /* also updates X_Start and Y_Start */
-  if (Pos == 1)                    /* complete line */
-  {
-    if (x > 0)                     /* got line bit */
-    {
-      LineFlags &= ~x;             /* clear bit */
-    }
-  }
-
   X_End = LCD_PIXELS_X - 1;             /* last column */
   Y_End = Y_Start + FONT_SIZE_Y - 1;    /* last row */
   y = FONT_SIZE_Y;                      /* set default */
@@ -1010,7 +1047,7 @@ void LCD_Init(void)
 
 
   /* 
-   *  set registers of LCD controller
+   *  set registers of display controller
    */
 
   /* interface mode control */
