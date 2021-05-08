@@ -291,13 +291,22 @@ uint8_t Cmd_MSG(void)
   {
     Flag = SIGNAL_NA;                   /* n/a by default */
 
-    if (Check.Type == TYPE_DISCHARGE)   /* discharge failed */
+    if (Check.Type == TYPE_DISCHARGE)        /* discharge failed */
     {
       Display_EEString_Space(DischargeFailed_str);   /* send: Battery? */
       Display_ProbeNumber(Check.Probe);              /* send probe ID */
       Display_Char(':');
       Display_Space();
       Display_Value(Check.U, -3, 'V');               /* send voltage */
+
+      Flag = SIGNAL_OK;                 /* signal success */
+    }
+
+    else if (Check.Type == TYPE_DETECTION)   /* detection error */
+    {
+      /* simply send: No component found! */
+      Display_EEString_Space(Failed1_str);   /* send: No component */
+      Display_EEString_Space(Failed2_str);   /* send: found! */
 
       Flag = SIGNAL_OK;                 /* signal success */
     }
@@ -1068,6 +1077,49 @@ uint8_t Cmd_H_FE(void)
 
 
 
+#ifdef SW_REVERSE_HFE
+
+/*
+ *  command: H_FE_R
+ *  - return reverse h_FE value
+ *
+ *  returns:
+ *  - SIGNAL_ERR on error
+ *  - SIGNAL_NA on n/a
+ *  - SIGNAL_OK on success
+ */
+
+uint8_t Cmd_H_FE_R(void)
+{
+  uint8_t           Flag = SIGNAL_OK;   /* return value */
+
+  if (Check.Found == COMP_BJT)          /* BJT */
+  {
+    if ((Info.Flags & (INFO_BJT_D_FB | INFO_BJT_R_BE)) ||
+        (Semi.F_2 == 0))
+    {
+      /* can't measure reverse h_FE with flyback diode or R_BE */
+      /* or value might be inbalid */
+      Flag = SIGNAL_NA;                 /* signal n/a */      
+    }
+    else
+    {
+      /* send value */
+      Display_Value(Semi.F_2, 0, 0);
+    }
+  }
+  else                                  /* other component */
+  {
+    Flag = SIGNAL_ERR;                  /* signal error */
+  }
+
+  return Flag;
+}
+
+#endif
+
+
+
 /*
  *  command: V_BE
  *  - return V_BE value
@@ -1545,6 +1597,12 @@ uint8_t RunCommand(uint8_t ID)
     case CMD_H_FE:            /* return hFE */
       Flag = Cmd_H_FE();                     /* run command */
       break;
+
+    #ifdef SW_REVERSE_HFE
+    case CMD_H_FE_R:          /* return reverse hFE */
+      Flag = Cmd_H_FE_R();                   /* run command */
+      break;
+    #endif
 
     case CMD_V_BE:            /* return V_BE */
       Flag = Cmd_V_BE();                     /* run command */

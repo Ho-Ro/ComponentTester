@@ -2,7 +2,7 @@
  *
  *   common display functions and common functions for LCD modules
  *
- *   (c) 2015-2018 by Markus Reschke
+ *   (c) 2015-2019 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -452,7 +452,7 @@ void Display_HexValue(uint16_t Value, uint8_t Bits)
 
 
 
-#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO) || defined (SW_DS18B20)
+#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO) || defined (SW_DS18B20) || defined (HW_EVENT_COUNTER)
 
 /*
  *  display unsigned value plus unit
@@ -552,7 +552,7 @@ void Display_SignedFullValue(int32_t Value, uint8_t DecPlaces, unsigned char Uni
 
 
 /*
- *  display unsigned value plus unit
+ *  display unsigned value plus unit (character)
  *  - scales value to max. 4 digits excluding "." and unit
  *
  *  requires:

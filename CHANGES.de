@@ -1,12 +1,36 @@
 ------------------------------------------------------------------------------
 
-                   Änderungen der Component Tester Firmware
+             Änderungen der Component Tester Firmware (m-firmware)
 
            für ATmega 328/324/644/1284 mit Text- oder Grafikdisplay
 
-                        (c) 2012-2019 by Markus Reschke
+                       (c) 2012-2019 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.37m 2019-??
+- Fehler in DS18B20_Tool(), wenn ONEWIRE_IO_PIN aktiviert ist, beseitigt (
+  gemeldet von Bohu).
+- Problem bei der Anzeige der Watchdog-Fehlermeldung auf Farbanzeigen gelöst.
+- Neue Funktion: Ereigniszähler (HW_EVENT_COUNTER, Vorschlag von Bohu).
+- Der einfache Frequenzzähler benutzt nun TestKey() zur Benutzereingabe. Zum
+  Beenden zweimal kurz Taste drücken (war vorher ein Tastendruck).
+- Option zur Anzeige des umgekehrten hFE-Wertes von Transistoren (
+  SW_REVERSE_HFE, Vorschlag von towe96@EEVblog). Ebenfalls Fernsteuerkommandos
+  um den Befehl "h_FE_r" erweitert.
+- Bitclock-Einstellung (BITCLOCK) für avrdude in Makefile (Vorschlag von
+  Bohu). 
+- Problem bei der TRIAC-Erkennung im Fall von einem zu hohen I_GT in Q3
+  oder zu hohem I_H beseitigt (I_GT-Problem gemeldet von petroid).
+- Texte Tester_str, PWM_str, Hertz_str and CTR_str in sprachspezifischeto
+  Header-Dateien verschoben (Vorschlag von indman@EEVblog).
+- Ausgabe von Frequenzwerten (Hertz) auf festen String geändert (vorher "H"
+  als Einheit für DisplayValue() plus zusätzliches "z").  
+- Option zum Anzeigen von Bedienungshilfen  (UI_KEY_HINTS). Momentan nur
+  "Menu/Test" (Vorschlag von carrascoso@EEVblog).
+- Polnische Texte aktualisiert (C szpila@EEVblog). 
+- Russische Texte (Dank an indman@EEVblog).
+- Spanische Texte (Dank an pepe10000@EEVblog).
 
 v1.36m 2019-05
 - Optionalen 6x8 Zeichensatz im ST7565R-Treiber ergänzt.

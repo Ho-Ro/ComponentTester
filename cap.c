@@ -790,7 +790,7 @@ With ln(e^x) = x we get
 
 for an ideal capacitor whithout parallel resistive losses by leakage.
 
-Instead of calculating C directly we'll use pre calculated tables to speed
+Instead of calculating C directly we'll use pre-calculated tables to speed
 up things and keep the firmware small. The tables hold the pre-calculated
 values of -1/(R * ln(1 - U_c/U_in) for a specific range of U_c, so we just
 have to multiply the time with that stored factor to get C.

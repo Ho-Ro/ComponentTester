@@ -212,7 +212,7 @@
   extern void Display_HexValue(uint16_t Value, uint8_t Bits);
   #endif
 
-  #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO) || defined (SW_DS18B20)
+  #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO) || defined (SW_DS18B20) || defined (HW_EVENT_COUNTER)
   extern void Display_FullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
@@ -288,6 +288,9 @@
 
   extern uint8_t TestKey(uint16_t Timeout, uint8_t Mode);
   extern void WaitKey(void);
+  #if defined (SW_PWM_PLUS) || defined (SW_SERVO) || defined (HW_EVENT_COUNTER)
+  extern void SmoothLongKeyPress(void);
+  #endif
 
   extern int8_t ShortCircuit(uint8_t Mode);
 
@@ -346,6 +349,10 @@
 
   #ifdef HW_FREQ_COUNTER
   extern void FrequencyCounter(void);
+  #endif
+
+  #ifdef HW_EVENT_COUNTER
+  extern void EventCounter(void);
   #endif
 
   #ifdef SW_ENCODER

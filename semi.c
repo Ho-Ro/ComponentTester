@@ -587,7 +587,7 @@ void GetGateThreshold(uint8_t Type)
 uint32_t Get_hFE_C(uint8_t Type)
 {
   uint32_t          hFE;           /* return value */
-  uint32_t          hFE2;
+  uint32_t          hFE2;          /* temp. hFE value */
   uint16_t          U_R_e;         /* voltage across emitter resistor */
   uint16_t          U_R_b;         /* voltage across base resistor */
   uint16_t          Ri;            /* internal resistance of MCU */
@@ -631,11 +631,14 @@ uint32_t Get_hFE_C(uint8_t Type)
     U_R_b = ReadU(Probes.ADC_3);                  /* U_R_b = U_b */
   }
 
+
   /*
    *  Both resistors are the same (R_e = R_b): 
    *  - hFE = ((U_R_e / R_e) - (U_R_b / R_b)) / (U_R_b / R_b)
    *  -     = (U_R_e - U_R_b) / U_R_b 
    */
+
+  if (U_R_b == 0) U_R_b = 1;            /* prevent division by zero */
 
   hFE = (uint32_t)((U_R_e - U_R_b) / U_R_b);
 
@@ -656,7 +659,7 @@ uint32_t Get_hFE_C(uint8_t Type)
       U_R_e = ReadU_5ms(Probes.ADC_2);            /* U_R_e = U_e */
       U_R_b = Cfg.Vcc - ReadU(Probes.ADC_3);      /* U_R_b = Vcc - U_b */
 
-      Ri = NV.RiL;                           /* get internal resistor */
+      Ri = NV.RiL;                           /* get internal resistance */
     }
     else                             /* PNP */
     {
@@ -666,7 +669,7 @@ uint32_t Get_hFE_C(uint8_t Type)
       U_R_e = Cfg.Vcc - ReadU_5ms(Probes.ADC_1);  /* U_R_e = Vcc - U_e */
       U_R_b = ReadU(Probes.ADC_3);                /* U_R_b = U_b */
 
-      Ri = NV.RiH;                           /* get internal resistor */
+      Ri = NV.RiH;                           /* get internal resistance */
     }
 
     /*
@@ -769,30 +772,50 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
      *
      *  Problem:
      *  A reversed collector and emitter also passes the tests, but with a
-     *  lower hFE. So we select the results of the test run with the higher
+     *  lower hFE. So we take the results of the test run with the higher
      *  hFE. A freewheeling diode might prevent one test run.
      */
 
     if (Check.Found == COMP_BJT)        /* second test run */
     {
-      Check.Done |= DONE_SEMI;          /* no more tests needed */
-
       /*
        *  If the type is different from the one in the first run, we have
        *  a parasitic BJT (caused by a freewheeling diode on the same substrate).
        */
 
-      if (!(Check.Type & BJT_Type)) Check.Type |= TYPE_PARASITIC;
+      if (!(Check.Type & BJT_Type))     /* different type */
+      {
+        Check.Type |= TYPE_PARASITIC;   /* set flag */
+      }
+
+      /*
+       *  If we have an NPN and the collector/emitter pins are the same for both
+       *  test runs we could have a TRIAC which wasn't detected (sufficient gate
+       *  trigger current, but insufficient holding current).
+       */
+
+      else if (BJT_Type == TYPE_NPN)   /* same type and NPN */
+      {
+        if (Semi.B == Probes.ID_1)     /* same pin for collector */
+        {
+          /* possibly a TRIAC with a too high holding current */
+          Check.Found = COMP_ERROR;     /* signal error */
+          Check.Type = TYPE_DETECTION;  /* detection problem */
+        }
+      }
+
+      Check.Done |= DONE_SEMI;          /* no more tests needed */
     }
     else                                /* first test run */
     {
-      Check.Found = COMP_BJT;
-      Check.Type = BJT_Type;
+      Check.Found = COMP_BJT;           /* seems to be a BJT */
+      Check.Type = BJT_Type;            /* save BJT type */
     }
 
 
     /*
      *  Calculate hFE via voltages and known resistors:
+     *  - common emitter circuit
      *  - hFE = I_c / I_b
      *        = (U_R_c / R_c) / (U_R_b / R_b)
      *        = (U_R_c * R_b) / (U_R_b * R_c)
@@ -821,8 +844,27 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
     /* get hFE for common collector circuit */
     hFE_C = Get_hFE_C(BJT_Type);
 
-    /* keep higher hFE */
+    /* keep higher hFE of both test circuits */
     if (hFE_C > hFE_E) hFE_E = hFE_C;
+
+    /* update logic */
+    FET_Type = 0;             /* use as update flag */
+
+    if (hFE_E > Semi.F_1)     /* hFE not set yet or higher than old one */
+    {
+      FET_Type = 1;           /* update BJT data */
+
+      #ifdef SW_REVERSE_HFE
+      Semi.F_2 = Semi.F_1;    /* update reverse hFE with old value */
+                              /* old value is 0 for first BJT test run */
+      #endif
+    }
+    #ifdef SW_REVERSE_HFE
+    else                      /* hFE lower than old one */
+    {
+      Semi.F_2 = hFE_E;       /* update reverse hFE with current value */
+    }
+    #endif   
 
 
     /*
@@ -841,7 +883,7 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
 
     RestoreProbes();               /* restore original probe IDs */
 
-    if (Check.Type & TYPE_PARASITIC)
+    if (Check.Type & TYPE_PARASITIC)    /* parasitic BJT */
     {
       /*
        *  Detect the correct type:
@@ -850,22 +892,23 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
 
       if (CmpValue(Semi.C_value, Semi.C_scale, Caps[0].Value, Caps[0].Scale) == 1)   
       {
-        hFE_E = 0;       /* we keep the first type */
+        /* C_BE of old type is larger -> keep the old type */
+        FET_Type = 0;                   /* don't update data */
       }
       else
       {
-        Semi.F_1 = 0;    /* we take the new type */
-        Check.Type = BJT_Type | TYPE_PARASITIC;
+        /* C_BE of old type is lower -> take the new type */
+        FET_Type = 1;                             /* update data */
+        Check.Type = BJT_Type | TYPE_PARASITIC;   /* update type */
       }
     }
 
 
     /*
      *  update data
-     *  - if hFE is higher than old one or not set yet
      */
 
-    if (hFE_E > Semi.F_1)
+    if (FET_Type > 0)              /* update requested */
     {
       GetLeakageCurrent(0);             /* get leakage current */
 
@@ -1058,7 +1101,7 @@ void CheckDepletionModeFET(uint16_t U_Rl)
 
 
   /*
-   *  check if we got a n-channel JFET or depletion-mode MOSFET
+   *  check if we got an n-channel JFET or depletion-mode MOSFET
    *  - JFETs are depletion-mode only
    */
 
@@ -1370,7 +1413,7 @@ void CheckDepletionModeFET(uint16_t U_Rl)
 
 
 /*
- *  check for Thyristor and Triac
+ *  check for Thyristor and TRIAC
  *
  *  returns:
  *  - 1 if component was found
@@ -1385,10 +1428,10 @@ uint8_t CheckThyristorTriac(void)
   uint16_t          V_GT;          /* gate trigger voltage */
 
   /*
-   *  check for a Thyristor (SCR) or Triac
+   *  check for a Thyristor (SCR) or TRIAC
    *  - A thyristor conducts also after the gate is discharged as long
    *    as the load current stays alive and doesn't reverse polarity.
-   *  - A triac is similar to a pair of anti-parallel thyristors but is
+   *  - A TRIAC is similar to a pair of anti-parallel thyristors but is
    *    triggered also by negative gate current. 
    *  - The tester might not provide enough drive current, so it can't
    *    detect all types.
@@ -1420,16 +1463,16 @@ uint8_t CheckThyristorTriac(void)
   R_PORT = Probes.Rl_1;                 /* and pull up anode again */
   U_2 = ReadU_5ms(Probes.ADC_1);        /* get voltage at anode (below Rl) */
 
-  /* voltages at anode match behaviour of thyristor or triac */
+  /* voltages at anode match behaviour of Thyristor or TRIAC */
   if ((U_1 < 1600) && (U_2 > 4400))
   {
     /*
-     *  Now we check if the DUT is a thyristor or a triac:
+     *  Now we check if the DUT is a Thyristor or a TRIAC:
      *  - set Gate to HiZ and reverse Anode & Cathode
      *  - check if DUT doesn't conduct
      *  - trigger gate by pulling it down to Gnd for a short moment
      *  - check if DUT passes current
-     *  A thyrister shouldn't conduct but a triac should (Q3 operation mode).
+     *  A Thyrister shouldn't conduct but a TRIAC should (Q3 operation mode).
      */
 
     /* reverse Anode and Cathode (MT2 and MT1) */
@@ -1446,7 +1489,7 @@ uint8_t CheckThyristorTriac(void)
 
     if (U_1 <= 244)      /* voltage at Anode is low (no current) */
     {
-      /* trigger the gate with a negative current (Triac: Q3) */
+      /* trigger the gate with a negative current (TRIAC: Q3) */
       PullProbe(Probes.Rl_3, PULL_10MS | PULL_DOWN);
 
       /* check for conduction */
@@ -1462,11 +1505,11 @@ uint8_t CheckThyristorTriac(void)
 
         Flag = 2;                       /* save data and signal success */
       }
-      else                   /* got current -> Triac */
+      else                   /* got current -> TRIAC */
       {
         /*
-         *  To verify the Triac we stop the current flow for a moment and check
-         *  the voltage at MT2 again. The Triac shouldn't conduct anymore,
+         *  To verify the TRIAC we stop the current flow for a moment and check
+         *  the voltage at MT2 again. The TRIAC shouldn't conduct anymore.
          */
 
         /* drop load current for a moment */
@@ -1484,17 +1527,18 @@ uint8_t CheckThyristorTriac(void)
             Check.Done |= DONE_SEMI;         /* no more tests needed */
           }
 
-          Check.Found = COMP_TRIAC;     /* found Triac */
+          Check.Found = COMP_TRIAC;     /* found TRIAC */
           #ifdef SW_SYMBOLS
           Check.Symbol = SYMBOL_TRIAC;  /* set symbol ID */
           #endif
 
           /*
-           *  Triac could be in Q3 or Q4 operation mode. If G and MT1 are swapped
-           *  the triac would pass the former check in Q4 mode but the current
-           *  through MT2 would be a little bit lower. Another issue is that some
-           *  Triacs don't support Q4. So we support up to two test runs and prefer
-           *  the one with the higher voltage at MT2.
+           *  TRIAC could be in Q3 or Q4 operation mode. If G and MT1 are swapped
+           *  the TRIAC would pass the former check in Q4 mode but the current
+           *  through MT2 would be a little bit lower. Other issues are that TRIACs
+           *  usually have different trigger currents for different operation
+           *  quadrants and that some don't support Q4. So we perform up to two test
+           *  runs and prefer the one with the higher voltage at MT2.
            */
 
           if (U_1 > (uint16_t)Semi.F_1)      /* first run or higher current */

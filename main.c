@@ -146,7 +146,7 @@ void Show_Fail(void)
 {
   /* display info */
   Display_EEString(Failed1_str);        /* display: No component */
-  Display_NL_EEString(Failed2_str);     /* display: found!*/  
+  Display_NL_EEString(Failed2_str);     /* display: found! */
 
   MissedParts++;              /* increase counter */
 }
@@ -159,7 +159,7 @@ void Show_Fail(void)
 
 void Show_Error()
 {
-  if (Check.Type == TYPE_DISCHARGE)     /* discharge failed */
+  if (Check.Type == TYPE_DISCHARGE)          /* discharge failed */
   {
     Display_EEString(DischargeFailed_str);   /* display: Battery? */
 
@@ -169,6 +169,11 @@ void Show_Error()
     Display_Char(':');
     Display_Space();
     Display_Value(Check.U, -3, 'V');
+  }
+  else if (Check.Type == TYPE_DETECTION)     /* detection error */
+  {
+    /* simply display: No component found! */
+    Show_Fail();
   }
 }
 
@@ -255,14 +260,20 @@ void Show_Resistor(void)
     }
 
     /* find common pin of both resistors */
-    if ((R1->A == R2->A) || (R1->A == R2->B)) Pin = R1->A;
-    else Pin = R1->B;
+    if ((R1->A == R2->A) || (R1->A == R2->B))
+    {
+      Pin = R1->A;            /* pin A */
+    }
+    else
+    {
+      Pin = R1->B;            /* pin B */
+    }
   }
 
   #ifdef UI_SERIAL_COMMANDS
   /* set data for remote commands */
-  Info.Comp1 = (void *)R1;       /* first resistor */
-  Info.Comp2 = (void *)R2;       /* second resistor */
+  Info.Comp1 = (void *)R1;         /* first resistor */
+  Info.Comp2 = (void *)R2;         /* second resistor */
   #endif
 
 
@@ -271,16 +282,30 @@ void Show_Resistor(void)
    */
 
   /* first resistor */
-  if (R1->A != Pin) Display_ProbeNumber(R1->A);
-  else Display_ProbeNumber(R1->B);
+  if (R1->A != Pin)           /* A is not common pin */
+  {
+    Display_ProbeNumber(R1->A);    /* display pin A */
+  }
+  else                        /* single resistor or A is common pin */
+  {
+    Display_ProbeNumber(R1->B);    /* display pin B */
+  }
+
   Display_EEString(Resistor_str);
-  Display_ProbeNumber(Pin);
+  Display_ProbeNumber(Pin);       /* display common pin */
 
   if (R2)           /* second resistor */
   {
     Display_EEString(Resistor_str);
-    if (R2->A != Pin) Display_ProbeNumber(R2->A);
-    else Display_ProbeNumber(R2->B);
+
+    if (R2->A != Pin)         /* A is not common pin */
+    {
+      Display_ProbeNumber(R2->A);  /* display pin A */
+    }
+    else                      /* A is common pin */
+    {
+      Display_ProbeNumber(R2->B);  /* display pin B */
+    }
   }
 
 
@@ -797,6 +822,18 @@ void Show_BJT(void)
     Display_NL_EEString_Space(h_FE_str);     /* display: hFE */
     Display_Value(Semi.F_1, 0, 0);           /* display h_FE */
 
+    /* display reverse hFE */
+    #ifdef SW_REVERSE_HFE
+    if (Diode == NULL)             /* no freewheeling diode */
+    {
+      if (Semi.F_2 > 0)            /* valid value */
+      {
+        Display_NL_EEString_Space(h_FE_r_str);    /* display: hFEr */
+        Display_Value(Semi.F_2, 0, 0);            /* display reverse h_FE */
+      }
+    }
+    #endif
+
     /* display V_BE (taken from diode's forward voltage) */
     Diode = SearchDiode(BE_A, BE_C);    /* search for matching B-E diode */
     if (Diode != NULL)                  /* got it */
@@ -1106,14 +1143,14 @@ void Show_IGBT(void)
 
 
 /*
- *  show Thyristor and Triac
+ *  show Thyristor and TRIAC
  */
 
 void Show_ThyristorTriac(void)
 {
   /*
    *  Mapping for Semi structure:
-   *        SCR        Triac
+   *        SCR        TRIAC
    *  A   - Gate       Gate
    *  B   - Anode      MT2
    *  C   - Cathode    MT1
@@ -1127,9 +1164,9 @@ void Show_ThyristorTriac(void)
     Display_NextLine();                 /* next line (#2) */
     Show_SemiPinout('G', 'A', 'C');     /* display pinout */
   }
-  else                                  /* Triac */
+  else                                  /* TRIAC */
   {
-    Display_EEString(Triac_str);        /* display: triac */
+    Display_EEString(Triac_str);        /* display: TRIAC */
     Display_NextLine();                 /* next line (#2) */
     Show_SemiPinout('G', '2', '1');     /* display pinout */
   }
@@ -1487,7 +1524,12 @@ int main(void)
 
   if (Test)
   {
-    LCD_Clear();                        /* display was initialized before */
+    /* Display was initialized before but some global variables in the driver
+       might be zeroed. Drivers with line tracking won't clear screen. */
+    LCD_Clear();                        /* clear display */
+    #ifdef LCD_COLOR
+    UI.PenColor = COLOR_TITLE;          /* set pen color */
+    #endif
     Display_EEString(Timeout_str);      /* display: timeout */
     Display_NL_EEString(Error_str);     /* display: error */
     MilliSleep(2000);                   /* give user some time to read */
@@ -1652,6 +1694,9 @@ cycle_start:
   Semi.U_1 = 0;                    /* reset value */
   Semi.U_2 = 0;
   Semi.F_1 = 0;
+  #ifdef SW_REVERSE_HFE
+  Semi.F_2 = 0;
+  #endif
   Semi.I_value = 0;
   AltSemi.U_1 = 0;
   AltSemi.U_2 = 0;
@@ -1744,13 +1789,14 @@ cycle_start:
   }
   #endif
 
-  /* check all 6 combinations of the 3 probes */ 
+  /* check all 6 combinations of the 3 probes */
   CheckProbes(PROBE_1, PROBE_2, PROBE_3);
   CheckProbes(PROBE_2, PROBE_1, PROBE_3);
   CheckProbes(PROBE_1, PROBE_3, PROBE_2);
   CheckProbes(PROBE_3, PROBE_1, PROBE_2);
   CheckProbes(PROBE_2, PROBE_3, PROBE_1);
   CheckProbes(PROBE_3, PROBE_2, PROBE_1);
+
   CheckAlternatives();             /* process alternatives */
 
   /* if component might be a capacitor */
@@ -1902,7 +1948,12 @@ cycle_control:
   UI.LineMode = LINE_STD;          /* reset next-line mode */
 
   /* wait for key press or timeout */
-  Key = TestKey((uint16_t)CYCLE_DELAY, CURSOR_BLINK | CHECK_OP_MODE | CHECK_KEY_TWICE | CHECK_BAT);
+  #ifdef UI_KEY_HINTS
+    UI.KeyHint = (unsigned char *)Menu_or_Test_str;
+    Key = TestKey((uint16_t)CYCLE_DELAY, CURSOR_BLINK | CURSOR_TEXT | CHECK_OP_MODE | CHECK_KEY_TWICE | CHECK_BAT);
+  #else
+    Key = TestKey((uint16_t)CYCLE_DELAY, CURSOR_BLINK | CHECK_OP_MODE | CHECK_KEY_TWICE | CHECK_BAT);
+  #endif
 
   if (Key == KEY_TIMEOUT)          /* timeout (no key press) */
   {

@@ -40,13 +40,14 @@
  * ************************************************************************ */
 
 
-/* UI feedback mode (bit mask) */
+/* UI feedback mode for TestKey() (bit mask) */
 #define CURSOR_NONE           0b00000000     /* no cursor */
 #define CURSOR_STEADY         0b00000001     /* steady cursor */
 #define CURSOR_BLINK          0b00000010     /* blinking cursor */
 #define CHECK_OP_MODE         0b00000100     /* consider operation mode */
 #define CHECK_KEY_TWICE       0b00001000     /* check for two short presses of the test key */
 #define CHECK_BAT             0b00010000     /* check battery */
+#define CURSOR_TEXT           0b00100000     /* show hint instead of cursor */
 
 
 /* keys (test push button etc.) */
@@ -179,16 +180,17 @@
 #define CMD_I_R               26    /* return I_R */
 #define CMD_R_BE              27    /* return R_BE */
 #define CMD_H_FE              28    /* return hFE */
-#define CMD_V_BE              29    /* return V_BE */
-#define CMD_I_CEO             30    /* return I_CEO */
-#define CMD_V_TH              31    /* return V_th */
-#define CMD_C_GS              32    /* return C_GS */
-#define CMD_R_DS              33    /* return R_DS */
-#define CMD_I_DSS             34    /* return I_DSS */
-#define CMD_C_GE              35    /* return C_GE */
-#define CMD_V_GT              36    /* return V_GT */
-#define CMD_V_T               37    /* return V_T */
-#define CMD_R_BB              38    /* return R_BB */
+#define CMD_H_FE_R            29    /* return reverse hFE */
+#define CMD_V_BE              30    /* return V_BE */
+#define CMD_I_CEO             31    /* return I_CEO */
+#define CMD_V_TH              32    /* return V_th */
+#define CMD_C_GS              33    /* return C_GS */
+#define CMD_R_DS              34    /* return R_DS */
+#define CMD_I_DSS             35    /* return I_DSS */
+#define CMD_C_GE              36    /* return C_GE */
+#define CMD_V_GT              37    /* return V_GT */
+#define CMD_V_T               38    /* return V_T */
+#define CMD_R_BB              39    /* return R_BB */
 
 
 
@@ -254,6 +256,7 @@
 
 /* error type IDs */
 #define TYPE_DISCHARGE        1    /* discharge error */
+#define TYPE_DETECTION        2    /* detection error */
 
 
 /* FET types, also used for IGBTs (bit mask) */
@@ -276,16 +279,16 @@
 #define TYPE_STANDARD         0b00000001     /* standard diode */
 
 
-/* flags for semicondutor detection logic */
-#define DONE_NONE             0
-#define DONE_SEMI             1
-#define DONE_ALTSEMI          2
+/* flags for semicondutor detection logic (bit mask) */
+#define DONE_NONE             0b00000000     /* detected nothing / not sure yet */
+#define DONE_SEMI             0b00000001     /* detected semi */
+#define DONE_ALTSEMI          0b00000010     /* detected alternative semi */
 
 
 /* multiplicator table IDs */
-#define TABLE_SMALL_CAP       1
-#define TABLE_LARGE_CAP       2
-#define TABLE_INDUCTOR        3
+#define TABLE_SMALL_CAP       1              /* table for small caps */
+#define TABLE_LARGE_CAP       2              /* table for large caps */
+#define TABLE_INDUCTOR        3              /* table for inductors */
 
 
 /* bit flags for PullProbe() (bit mask) */
@@ -420,10 +423,12 @@ typedef struct
   uint8_t           CharMax_X;     /* max. characters per line */
   uint8_t           CharMax_Y;     /* max. number of lines */
   uint8_t           MaxContrast;   /* maximum contrast */
+
   /* color support */
   #ifdef LCD_COLOR
   uint16_t          PenColor;      /* pen color */ 
   #endif
+
   /* fancy pinout with symbols */
   #ifdef SW_SYMBOLS
   uint8_t           SymbolLine;    /* line for output */
@@ -433,12 +438,13 @@ typedef struct
   uint8_t           SymbolPos_Y;   /* y char position (top) */
   #endif
 
-  /* keys (push buttons etc.) */
+  /* additional keys (push buttons etc.) */
   #ifdef HW_KEYS
   uint8_t           KeyOld;        /* former key */
   uint8_t           KeyStep;       /* step size (1-7) */
   uint8_t           KeyStepOld;    /* former step size */
   #endif
+
   /* rotary encoder */
   #ifdef HW_ENCODER
   uint8_t           EncState;      /* last AB status */
@@ -446,15 +452,22 @@ typedef struct
   uint8_t           EncPulses;     /* number of Gray code pulses */
   uint8_t           EncTicks;      /* time counter */
   #endif
+
   /* increase/decrease push buttons */
   #ifdef HW_INCDEC_KEYS
   #endif
+
   /* touch screen */
   #ifdef HW_TOUCH
   uint16_t          TouchRaw_X;    /* raw touch screen x position */
   uint16_t          TouchRaw_Y;    /* raw touch screen y position */
   uint8_t           TouchPos_X;    /* charater x position */
   uint8_t           TouchPos_Y;    /* charater y position */
+  #endif
+
+  /* key hints */
+  #ifdef UI_KEY_HINTS
+  unsigned char     *KeyHint;      /* string pointer (EEPROM) */
   #endif
 
 } UI_Type;
@@ -556,6 +569,9 @@ typedef struct
   uint16_t          U_1;           /* voltage #1 */
   int16_t           U_2;           /* voltage #2 (+/-) */
   uint32_t          F_1;           /* factor #1 */
+  #ifdef SW_REVERSE_HFE
+  uint32_t          F_2;           /* factor #2 */
+  #endif
   uint32_t          I_value;       /* current */
   int8_t            I_scale;       /* exponent of factor (value * 10^x) */
   uint32_t          C_value;       /* capacitance */
@@ -572,7 +588,8 @@ typedef struct
   C        Emitter      Source       Cathode      MT1          Emitter
   U_1      V_BE (mV)    R_DS (0.01)  V_GT (mV)    V_GT (mV)
   U_2                   V_th (mV)                              V_th (mV)
-  F_1      h_E                                    MT2 (mV)
+  F_1      hFE                                    MT2 (mV)
+  F_2
   I_value  I_CEO        I_DSS
   I_scale  I_CEO        I_DSS
   C_value  C_BE

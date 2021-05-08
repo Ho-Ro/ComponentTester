@@ -1,7 +1,7 @@
 
 ------------------------------------------------------------------------------
 
-                   ReadMe für die Component Tester Firmware
+            ReadMe für die Component-Tester-Firmware (m-Firmware)
 
            für ATmega328/324/644/1284 mit Text- oder Grafikdisplay
 
@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2019-05-04
+Letzte Änderung: 2019-09-06
 
 Inhaltsübersicht:
   - Über den Tester
@@ -58,6 +58,7 @@ Inhaltsübersicht:
     - Frequenzzähler
       - Einfacher Zähler
       - Erweiterter Zähler
+    - Ereigniszähler
     - Drehencoder
     - Kontrast
     - Detektor/Decoder für IR-Fernbedienungen
@@ -83,6 +84,7 @@ Inhaltsübersicht:
       - CLD
   - Nicht unterstütze Bauelemente
   - Bekannte Probleme
+  - Hilfe
   - Firmware-Änderungen
   - Fernsteuerungskommandos
   - Quellenverzeichnis
@@ -167,6 +169,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - Test von Opto-Kopplern
 - Test von Modellbau-Servos
 - OneWire (DS18B20)
+- Ereigniszähler
 - Strukturierter Quellcode
 - Und Manches mehr, was mir gerade nicht einfällt.
 
@@ -175,13 +178,16 @@ Mehr Details dazu findest Du in den nachfolgenden Abschnitten.
 
 * Quellcode
 
-Eine Menge wurde aufgeräumt, Kommentare, Variablen umbenannt, Funktionen
-umstrukturiert, große Funktionen in mehrere kleine aufgeteilt und mehr. Ich
-hoffe, daß der Quellcode nun einfach zu lesen und gut verständlich ist.
+Die erste m-Firmware basierte auf dem Quellcode von Karl-Heinz. Eine Menge
+wurde aufgeräumt, Kommentare, Variablen umbenannt, Funktionen umstrukturiert,
+große Funktionen in mehrere kleine aufgeteilt und mehr. Danach entwickelte
+sich die m-Firmware immer weiter zu einer eigenständigen Version. Es sind
+u.A. einfache Frameworks für Anzeige und Schnittstellen dazu gekommen. Ich
+hoffe, daß der Quellcode einfach zu lesen und gut verständlich ist.
 
-Du findest die Firmware auf folgenden Webseiten:
+Du findest die aktuelle Firmware auf folgenden Webseiten:
 - https://www.mikrocontroller.net/svnbrowser/transistortester/Software/Markus
-- https://github.com/svn2github/transistortester/tree/master/Software/Markus
+- https://github.com/madires/Transistortester-Warehouse
 
 
 * Firmware übersetzen
@@ -208,6 +214,7 @@ Hardware-Optionen:
 - Schutz-Relais zur Kondensatorentladung
 - Messung von Zenerdioden (DC-DC-Konverter)
 - Frequenzzähler (einfache und erweiterte Version)
+- Ereigniszähler
 - Test von IR-Fernbedienungen (festes IR-Empfängermodul)
 - fester Kondensator für Selbstabgleich von Spannungsoffsets
 - SPI-Bus (Bit-Bang und Hardware)
@@ -236,8 +243,8 @@ Und natürlich die Software-Optionen:
 - DS18B20 Temperatursensor
 - Farbkodierung für Testpins (benötigt Farbdisplay)
 - Ausgabe der gefundenen Bauteile parallel über TTL-Serielle, z.B auf PC
-  (benötigt TTL-Serielle)
 - Fernsteuerkommandos über TTL-Serielle.
+- Ausgabe des umgekehrten hFE (C & E verdreht) für Bipolartransistoren
 
 Bitte die Optionen entprechend Deinen Wünschen und den begrenzten Ressourcen 
 der MCU, d.h. RAM, EEPROM und Flash-Speicher, auswählen. Sollte die Firmware
@@ -331,7 +338,7 @@ Die Standardeinstellung der seriellen Schnittstele ist 9600 8N1:
 
 + OneWire
 
-Ein weiterer untesrstützter Bus ist OneWire, welcher entweder die Test-Pins (
+Ein weiterer unterstützter Bus ist OneWire, welcher entweder die Test-Pins (
 ONEWIRE_PROBES) oder einen festen MCU-Pin (ONEWIRE_IO_PIN) benutzen kann.
 Der Treiber ist für Standard-Busgeschwindigkeit und Clients mit externer
 Stromversorgung (nicht parasitär versorgt) ausgelegt.
@@ -665,6 +672,12 @@ statischer Cursor signalisiert, daß weitere Informationen folgen, und ein
 blinkender Cursor bedeutet, daß mit der Bauteilesuche weiter gemacht wird.
 Für Menüs und einige Extrafunktionen wird der Cursor nicht angezeigt, da die
 erwartete Eingabe hier klar sein sollte. 
+
+Optional kannst du Bedienungshinweise einschalten, sofern dein Tester
+zusätzliche Eingabeoptionen und eine Anzeige mit ausreichend vielen Textzeilen
+hat (siehe UI_KEY_HINTS in config.h). Dann zeigt der Tester eine Bedienungs-
+hilfe statt des Cursors an, falls eine vorhanden ist. Im Augenblick gibt es
+nur eine solche Hilfe für die Bauteilesuche (Menü/Test).
 
 
 + Drehencoder (Hardware-Option)
@@ -1004,7 +1017,7 @@ Beschaltung für Kondensator:
 + Frequenzzähler (Hardware-Option)
 
 Den Frequenzzähler gibt es in zwei Versionen. Der Einfache besteht aus einem
-passiven Eingang auf den T0-Pin der MCU. Und der Erweiterte hat neben einem
+passiven Eingang für den T0-Pin der MCU. Und der Erweiterte hat neben einem
 Eingangspuffer auch zwei Oszillatoren zum Testen von Quartzen (für niedrige
 und hohe Frequenzen) und einen zusätzlichen Frequenzvorteiler. Beide
 Schaltungen sind in der Dokumentation von Karl-Heinz beschrieben.
@@ -1015,9 +1028,10 @@ Schaltungen sind in der Dokumentation von Karl-Heinz beschrieben.
 Ist die Zusatzschaltung für den einfachen Frequenzzähler eingebaut, kannst Du
 damit Frequenzen von ca. 10Hz bis zu 1/4 der MCU-Taktfrequenz mit einer
 Auflösung von 1Hz bei Frequenzen unterhalb von 10kHz messen. Die Frequenz wird
-ständig gemessen und angezeigt. Ein Tastendruck beendet die Messung. Die
-automatische Bereichswahl setzt die Torzeit auf Werte zwischen 10ms und 1000ms,
-je nach Frequenz.
+ständig gemessen und angezeigt, bis Du die Messung durch zwei kurze Tasten-
+drücke beendest. Die automatische Bereichswahl setzt die Torzeit auf Werte
+zwischen 10ms und 1000ms, je nach Frequenz. Der T0-Pin kann parallel zum 
+Ansteuern einer Anzeige verwendet werden.
 
 
 - Erweiterter Zähler
@@ -1031,6 +1045,37 @@ config.h den korrekten Vorteiler auszuwählen.
 Der Signaleingang (gepufferter Eingang, Quartz-Oszillator für niedrige
 Frequenzen, Quartz-Oszillator für hohe Frequenzen) wird über die Testtaste oder
 den Drehencoder geändert. Zwei kurze Tastendrücke beenden den Frequenzzähler.
+
+
++ Ereigniszähler (Hardware-Option)
+
+Der Ereigniszähler nutzt den T0-Pin als festen Eingang und reagiert auf die
+steigend Flanke eines Signals. Der T0-Pin kann nicht parallel zum Ansteuern
+einer Anzeige verwendet werden. Eine einfache Eingangsstufe wird empfohlen.
+
+Der Zähler wird über ein kleines Menü gesteuert, welches auch die Zählerwerte
+anzeigt. Die Menüpunkte werden über einen kurzen Tastendruck ausgewählt, und
+die Einstellungen über den Drehencoder oder zusätzliche Tasten geändert. Der
+erste Menüpunkt ist der Zählermodus:
+
+  - Zählen      zähle Zeit und Ereignisse
+  - Zeit        zähle Ereignisse für eine vorgegebene Zeit
+  - Ereignisse  zähle Zeit für eine vorgegebene Anzahl von Ereignissen
+
+Der zweite Menüpunkt "n" ist die Anzahl der Ereignisse. Im Zählermodus
+"Ereignisse" wird der Stopwert angezeigt, welcher geändert werden kann. Ein
+langer Tastendruck stelt den Stopwert auf einen Vorgabewert (100). In anderen
+Zählermodi ist dieser Menüpunkt blockiert. Der nächste Menüpunkt "t" ist
+die Zeitperiode in Sekunden (Vorgebwert: 60s). Gleiches Spiel, nur für den
+Zeit-Modus. Und der letzte Menüpunkt startet oder stoppt den Zähler über
+einen langen Tastendruck. Während der Zähler läuft, werden die Anzahl der
+Ereignisse und die vergangene Zeit jede Sekunde aktualisiert, und nach dem
+Stoppen die Ergebnisse angezeigt.
+
+Der Grenzwert für die Zeit ist 43200s (12h) und für die Ereignisse 4*10^9.
+Sobald einer der Grenzwerte überschritten wird, stoppt der Zähler automatisch.
+Der Grenz- oder Stopwert für Ereignisse wird alle 200ms überprüft. Daher ist
+bei mehr als 5 Ereignissen/s ein Übersteigen des Wertes möglich.
 
 
 + Drehencoder
@@ -1363,7 +1408,7 @@ JR Radios      PWM orange          Vcc rot             Gnd braun
 
 + Temperatursensor DS18B20
 
-Hiermit wird der OneWire Temperatursensor DS18B20 ausgelesen. Zum Einrichten
+Hiermit wird der OneWire-Temperatursensor DS18B20 ausgelesen. Zum Einrichten
 des OneWire-Busses siehe bitte den Abschnitt "Busse & Schnittstellen". Bei
 Benutzung der Test-Pins informiert der Tester über die Beschaltung und wartet
 bis ein externer Pull-Up-Widerstand erkannt wurde. Mit einem Tastendruck läßt
@@ -1574,13 +1619,18 @@ Hinweis: Bei unerwarteten Messwerten bitte die Messung wiederholen.
 
 * Bauteile entladen
 
+Der Tester versucht vor und während des Messens das angeschlossene Bauteil
+zu entladen. Wenn er das Bauteil nicht auf einen vorgegebenen Nullwert (
+CAP_DISCHARGED) entladen kann, gibt er einen Fehler mit Angabe des Testpins
+und der Restspannung aus.
+
 Die Entladefunktion basiert nicht auf einem festen Timeout, sondern paßt
 sich automatisch dem Entladefortschritt an. Auf diese Weise wird eine
 Batterie schneller erkannt und große Kondensatoren erhalten mehr Zeit zum
 Entladen. Sollte ein großer Elko als Batterie erkannt werden, bitte nochmal
 versuchen. In einer Umgebung mit vielen elektrischen Störungen könnte auch
-der Nullwert CAP_DISCHARGED mit 3mV zu niedrig sein (ggf. anpassen). Die
-Anzeige der Restspannung hilft beim Finden des optimalen Nullwertes.
+der Nullwert CAP_DISCHARGED mit 2mV zu niedrig sein (ggf. anpassen). Die
+anzeigte Restspannung hilft beim Finden des optimalen Nullwertes.
 
 
 * ADC Oversampling
@@ -1628,7 +1678,7 @@ zeigt die Pinbelegung ein 'x' statt 'D' oder 'S', da beide vom Tester nicht
 unterschieden werden können, sie sind funktional identisch. In diesem Fall
 bitte im Datenblatt nach Details der Pinbelegung schauen.
 
-Die Pinbelegung eines Triac wird mit den Pins 'G', '1' and '2'. angezeigt.
+Die Pinbelegung eines TRIAC wird mit den Pins 'G', '1' and '2'. angezeigt.
 '1' ist MT1 und '2' ist MT2. Und für einen UJT, sofern die Erkennung aktiviert
 ist, ist es '1' für B1, '2' für B2 und 'E' für den Emitter.
 
@@ -1656,6 +1706,22 @@ Schutzdiode, die sich auf dem gleichen Substrat befindet. Der integrierte
 PN-Übergang erzeugt einen parasitären zweiten Transistor. Ein NPN bekommt
 somit einen paristären PNP und umgekehrt. Wird ein solcher Transistor
 entdeckt, wird er mit einem "+" hinter der Typenangabe gekennzeichnet.
+
+
+TRIAC
+
+TRIACs werden in drei bzw. vier Modi, auch als Quadranten bekannt, betrieben.
+Typischerweise unterscheiden sich manche Parameter je nach Quadrant, wie z.B.
+der Triggerstrom I_GT. In manchen Fällen passiert es, daß der Teststrom vom
+Tester ausreichend ist, den TRIAC in einem Quadranten zu triggern, aber nicht
+in einem anderen. Da der Tester zwei Testläufe benötigt, um die Pins für MT1
+und MT2 zu bestimmen, kann der Tester in solchen Fällen die Pins nicht
+unterscheiden, d.h. sie könnten vertauscht sein.
+
+Manche TRIACs können vom Tester getriggert werden, haben aber einen zu hohen
+Haltestrom (I_H), wodurch sie nicht korrekt erkannt werden können. Wenn bei
+einem TRIAC der Triggerstom zu hoch für den Tester ist, wird er meistens
+als Widerstand erkannt.
 
 
 CLD
@@ -1689,6 +1755,15 @@ V_BO von 20-200V ist.
   die 50µF aus, obwohl kein Bauteil angeschlossen ist.
 - Der ESR kann bei Kondensatoren mit 180 - 220nF je nach MCU-Takt
   variieren.
+
+
+* Hilfe
+
+Hilfe findest Du in folgenden zwei Foren:
+- https://www.mikrocontroller.net/topic/248078
+  Hauptsprache ist Deutsch, Englisch ist aber auch ok.
+- https://www.eevblog.com/forum/testgear/$20-lcr-esr-transistor-checker-project/
+  Nur Englisch.
 
 
 * Firmware-Änderungen
@@ -1861,6 +1936,11 @@ Testkommandos:
   - gibt h_FE zurück (DC-Stromverstärkungsfaktor)
   - nur für BJT
   - Beispielantwort: "234"
+
+  h_FE_r
+  - gibt den umgekehrten h_FE zurück (Kollektor und Emitter verdreht)
+  - nur für BJT
+  - Beispielantwort: "23"
 
   V_BE
   - gibt V_BE zurück (Basis-Emitter-Spannung)

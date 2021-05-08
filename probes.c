@@ -225,7 +225,7 @@ void DischargeProbes(void)
 
 
   /*
-   *  set probes to a save discharge mode (pull-down via Rh) 
+   *  set probes to a safe discharge mode (pull-down via Rh) 
    */
 
   /* set ADC port to HiZ input */
@@ -248,7 +248,7 @@ void DischargeProbes(void)
    *  - A slow discharge rate will increase the timeout to support
    *    large caps.
    *  - A very large cap will discharge too slowly and an external voltage
-   *    maybe never :-)
+   *    maybe never :)
    */
 
   Counter = 1;
@@ -576,7 +576,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
     /*
      *  check for
      *  - NPN BJT (common emitter circuit)
-     *  - Thyristor and Triac
+     *  - Thyristor and TRIAC
      *  - n-channel MOSFET (high side switching circuit) or IGBT
      */
 
@@ -598,19 +598,23 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
       U_1 = ReadU_5ms(Probe1);               /* get voltage at collector */
 
       /*
-       *  If DUT is conducting we might have a NPN BJT, something similar or
-       *  a n-channel MOSFET.
+       *  If DUT is conducting we might have an NPN BJT, something similar or
+       *  an n-channel MOSFET.
        */
 
       if (U_1 < 1600)                   /* detected current > 4.8mA */
       {
-        /* first check for thyristor and triac */
+        /* first check for Thyristor and TRIAC */
         Flag = CheckThyristorTriac();
 
-        if (Flag == 0)                 /* no thyristor or triac */
+        if (Flag == 0)                 /* no Thyristor or TRIAC */
         {
-          /* We might got a NPN BJT, a n-channel MOSFET or IGBT. */
-          CheckTransistor(TYPE_NPN, U_Rl);
+          /* If we've detected a TRIAC in a former run don't check for BJT. */
+          if (Check.Found != COMP_TRIAC)
+          {
+            /* We might have an NPN BJT, an n-channel MOSFET or IGBT. */
+            CheckTransistor(TYPE_NPN, U_Rl);
+          }
         }
       }
     }

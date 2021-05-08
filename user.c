@@ -164,6 +164,39 @@ uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
 
 
 /* ************************************************************************
+ *   string functions
+ * ************************************************************************ */
+
+
+#ifdef UI_KEY_HINTS
+
+/*
+ *  get length of a fixed string stored in EEPROM
+ *
+ *  requires:
+ *  - pointer to fixed string
+ */
+
+uint8_t EEStringLength(const unsigned char *String)
+{
+  uint8_t           Length = 0;         /* return value */
+  unsigned char     Char;               /* character */
+
+  /* read characters until we get the terminating 0 */
+  while ((Char = eeprom_read_byte(String)))
+  {
+    Length++;                           /* got another character */
+    String++;                           /* next one */
+  }
+
+  return Length;
+}
+
+#endif
+
+
+
+/* ************************************************************************
  *   user input 
  *   - test push button
  *   - rotary encoder
@@ -538,6 +571,7 @@ uint8_t ReadTouchScreen(void)
  *    CHECK_OP_MODE    consider tester operation mode (Cfg.OP_Mode)
  *    CHECK_KEY_TWICE  check for two short test key presses
  *    CHECK_BAT        check battery (and power off on low battery)
+ *    CURSOR_TEXT      show text instead of cursor (UI.KeyHint)
  *
  *  returns:
  *  - KEY_TIMEOUT     reached timeout (no key press)
@@ -565,6 +599,9 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   #endif
   #ifdef POWER_OFF_TIMEOUT
   uint16_t          PwrTimeout = 0;     /* timeout for auto power-off (auto-hold mode) */
+  #endif
+  #ifdef UI_KEY_HINTS
+  uint8_t           Pos = 0;            /* X position for text */
   #endif
 
   /*
@@ -612,11 +649,30 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
     }
     else                                /* in continuous mode */
     {
-      Mode &= ~(CURSOR_STEADY | CURSOR_BLINK);    /* clear other cursor flags */
-      Mode |= CURSOR_NONE;         /* disable cursor */
+      Mode &= ~(CURSOR_STEADY | CURSOR_BLINK);    /* clear all cursor flags */
                                    /* and keep timeout */
     }
   }
+
+  #ifdef UI_KEY_HINTS
+  if (Mode & CURSOR_TEXT)          /* show key hint */
+  {
+    Test = EEStringLength(UI.KeyHint);       /* length of string */
+    Test--;                                  /* adjust to X addressing */
+
+    if (UI.CharMax_X > Test)                 /* sanity check */
+    {
+      Pos = UI.CharMax_X - Test;             /* text position */
+
+      /* disable cursor */
+      Mode &= ~(CURSOR_STEADY | CURSOR_BLINK);    /* clear all cursor flags */
+
+      /* display key hint at bottom right */
+      LCD_CharPos(Pos, UI.CharMax_Y);        /* set start position */
+      Display_EEString(UI.KeyHint);          /* display hint */
+    }
+  }
+  #endif
 
   if (Mode & (CURSOR_STEADY | CURSOR_BLINK))  /* cursor enabled */
   {
@@ -904,6 +960,15 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
     LCD_Cursor(0);            /* disable cursor on display */
   }
 
+  #ifdef UI_KEY_HINTS
+  if (Pos)                    /* show key hint */
+  {
+    /* clear key hint */
+    LCD_CharPos(Pos, UI.CharMax_Y);     /* set start position */
+    LCD_ClearLine(0);                   /* clear remaining space */
+  }
+  #endif
+
   #ifdef HW_KEYS
   UI.KeyOld = Key;            /* update former key */
   #endif
@@ -934,6 +999,29 @@ void WaitKey(void)
   /* wait for key press or 3s timeout */
   TestKey(3000, CURSOR_STEADY | CHECK_OP_MODE | CHECK_BAT);
 }
+
+
+
+#if defined (SW_PWM_PLUS) || defined (SW_SERVO) || defined (HW_EVENT_COUNTER)
+
+/*
+ *  smooth UI for a long key press to prevent a second long-key-press
+ *  action
+ */
+
+void SmoothLongKeyPress(void)
+{
+  /* wait until button is released */
+  while (!(BUTTON_PIN & (1 << TEST_BUTTON)))  /* as long as key is pressed */
+  {
+    wait10ms();               /* wait a little bit */
+    wdt_reset();              /* reset watchdog */
+  }
+
+  MilliSleep(500);            /* smooth UI */
+}
+
+#endif
 
 
 
@@ -1005,7 +1093,7 @@ uint8_t ShortCircuit(uint8_t Mode)
     else                           /* job not done yet */
     {
       /* wait 100ms or for any key press */
-      Test = TestKey(100, CURSOR_NONE | CHECK_BAT);
+      Test = TestKey(100, CHECK_BAT);
       if (Mode == 1)                         /* short circuit expected */
       {
         if (Test > KEY_TIMEOUT) Flag = 0;    /* abort on key press */
@@ -1055,7 +1143,7 @@ void ChangeContrast(void)
     MilliSleep(300);                    /* smooth UI */
 
     /* wait for user feedback */
-    Flag = TestKey(0, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
+    Flag = TestKey(0, CHECK_KEY_TWICE | CHECK_BAT);
 
     if (Flag == KEY_SHORT)              /* short key press */
     {
@@ -1222,7 +1310,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
      *  process user feedback
      */
  
-    n = TestKey(0, CURSOR_NONE | CHECK_BAT);      /* wait for key */
+    n = TestKey(0, CHECK_BAT);     /* wait for key */
 
     #ifdef HW_KEYS
     /* processing for rotary encoder etc. */
@@ -1450,8 +1538,14 @@ uint8_t PresentMainMenu(void)
     #define ITEM_20      0
   #endif
 
-  #define MENU_ITEMS (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20)
-//  #define MENU_ITEMS     21             /* worst case */
+  #ifdef HW_EVENT_COUNTER
+    #define ITEM_21      1
+  #else
+    #define ITEM_21      0
+  #endif
+
+  #define MENU_ITEMS (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20 + ITEM_21)
+//  #define MENU_ITEMS     22             /* worst case */
 
   uint8_t           Item = 0;           /* item number */
   uint8_t           ID;                 /* ID of selected item */
@@ -1492,6 +1586,11 @@ uint8_t PresentMainMenu(void)
   #ifdef HW_FREQ_COUNTER
   MenuItem[Item] = (void *)FreqCounter_str;  /* frequency counter */
   MenuID[Item] = 10;
+  Item++;
+  #endif
+  #ifdef HW_EVENT_COUNTER
+  MenuItem[Item] = (void *)EventCounter_str; /* event counter */
+  MenuID[Item] = 21;
   Item++;
   #endif
   #ifdef SW_ENCODER
@@ -1714,6 +1813,12 @@ void MainMenu(void)
     #ifdef SW_POWER_OFF
     case 20:             /* power off */
       PowerOff();
+      break;
+    #endif
+
+    #ifdef HW_EVENT_COUNTER
+    case 21:             /* event counter */
+      EventCounter();
       break;
     #endif
   }

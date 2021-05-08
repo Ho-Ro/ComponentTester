@@ -37,17 +37,23 @@
  *  local variables
  */
 
-#ifdef HW_FREQ_COUNTER_BASIC
-volatile uint16_t      FreqPulses;      /* number of pulses */
+/* pulse counter */
+#if defined (HW_FREQ_COUNTER_EXT) || defined (HW_EVENT_COUNTER)
+  volatile uint32_t      Pulses;        /* number of pulses */
+#elif defined (HW_FREQ_COUNTER_BASIC)
+  volatile uint16_t      Pulses;        /* number of pulses */
 #endif
 
-#ifdef HW_FREQ_COUNTER_EXT
-volatile uint32_t      FreqPulses;      /* number of pulses */
+/* time counter */
+#ifdef HW_EVENT_COUNTER
+volatile uint8_t         TimeTicks;     /* tick counter */
+volatile uint16_t        TimeCounter;   /* time counter */
 #endif
 
+/* sweep function for servo tester */
 #ifdef SW_SERVO
-uint8_t                SweepStep;       /* sweep step */
-volatile uint8_t       SweepDir;        /* sweep direction */
+uint8_t                  SweepStep;     /* sweep step */
+volatile uint8_t         SweepDir;      /* sweep direction */
 #endif
 
 
@@ -94,7 +100,7 @@ void ProbePinout(uint8_t Mode)
   Show_SimplePinout(ID_1, ID_2, ID_3);  /* display pinout */
 
   /* wait for any key press or 5s */
-  TestKey(5000, CURSOR_NONE | CHECK_BAT);
+  TestKey(5000, CHECK_BAT);
   LCD_ClearLine2();                /* clear line #2 */
 }
 
@@ -148,8 +154,8 @@ void PWM_Tool(uint16_t Frequency)
   ShortCircuit(0);                    /* make sure probes are not shorted */
   LCD_Clear();
   Display_EEString_Space(PWM_str);    /* display: PWM */
-  Display_Value(Frequency, 0, 'H');   /* display frequency */
-  Display_Char('z');                  /* make it Hz :-) */
+  Display_Value(Frequency, 0, 0);     /* display frequency */
+  Display_EEString(Hertz_str);        /* display: Hz */
   #ifndef HW_FIXED_SIGNAL_OUTPUT
   ProbePinout(PROBES_PWM);            /* show probes used */
   #endif
@@ -239,7 +245,7 @@ void PWM_Tool(uint16_t Frequency)
      */
 
     /* wait for user feedback */
-    Test = TestKey(0, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
+    Test = TestKey(0, CHECK_KEY_TWICE | CHECK_BAT);
 
     if (Test == KEY_SHORT)              /* short key press */
     {
@@ -496,8 +502,8 @@ void PWM_Tool(void)
 
       Value /= Top;
 
-      Display_FullValue(Value, Step, 'H');
-      Display_Char('z');                /* add z for Hz */
+      Display_FullValue(Value, Step, 0);  /* display frequency */
+      Display_EEString(Hertz_str);        /* display: Hz */
 
       Flag &= ~DISPLAY_FREQ;            /* clear flag */
     }
@@ -517,13 +523,7 @@ void PWM_Tool(void)
     /* smooth UI after long key press */
     if (Test == KEY_LONG)          /* long key press */
     {
-      /* wait until button is released to prevent further actions */
-      while (!(BUTTON_PIN & (1 << TEST_BUTTON)))  /* as long as key is pressed */
-      {
-        wait10ms();           /* simply wait */
-      }
-
-      MilliSleep(500);        /* smooth UI */
+      SmoothLongKeyPress();             /* delay next key press */
     }
 
 
@@ -532,7 +532,7 @@ void PWM_Tool(void)
      */
 
     /* wait for user feedback */
-    Test = TestKey(0, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
+    Test = TestKey(0, CHECK_KEY_TWICE | CHECK_BAT);
 
     /* consider rotary encoder's turning velocity */
     Step = UI.KeyStep;             /* get velocity (1-7) */
@@ -702,7 +702,7 @@ void PWM_Tool(void)
 void Servo_Check(void)
 {
   uint8_t           Flag;               /* loop control */
-  uint8_t           Mode;               /* UI */
+  uint8_t           Mode;               /* UI mode */
   uint8_t           Test = 0;           /* user feedback */
   uint8_t           Index;              /* PWM index */
   uint8_t           Period[4] = {200, 80, 40, 30};  /* in 0.1ms */
@@ -933,8 +933,8 @@ void Servo_Check(void)
 
       Test = Period[Index];             /* get period */
       Value = 10000 / Test;             /* calculate frequency */
-      Display_Value(Value, 0, 'H');     /* display frequency */
-      Display_Char('z');
+      Display_Value(Value, 0, 0);       /* display frequency */
+      Display_EEString(Hertz_str);      /* display: Hz */
 
       if (Flag & SWEEP_MODE)            /* in sweep mode */
       {
@@ -948,13 +948,7 @@ void Servo_Check(void)
     /* smooth UI after long key press */
     if (Test == KEY_LONG)          /* long key press */
     {
-      /* wait until button is released to prevent further actions */
-      while (!(BUTTON_PIN & (1 << TEST_BUTTON)))  /* as long as key is pressed */
-      {
-        wait10ms();           /* simply wait */
-      }
-
-      MilliSleep(500);        /* smooth UI */
+      SmoothLongKeyPress();             /* delay next key press */
     }
 
 
@@ -1428,8 +1422,8 @@ void SquareWave_SignalGenerator(void)
 
     Value /= Top + 1;
     LCD_ClearLine2();
-    Display_FullValue(Value, Test, 'H');
-    Display_Char('z');                  /* add z for Hz */
+    Display_FullValue(Value, Test, 0);  /* display frequency */
+    Display_EEString(Hertz_str);        /* display: Hz */
 
 
     /*
@@ -1437,7 +1431,7 @@ void SquareWave_SignalGenerator(void)
      */
 
     /* wait for user feedback */
-    Test = TestKey(0, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
+    Test = TestKey(0, CHECK_KEY_TWICE | CHECK_BAT);
 
     /* consider rotary encoder's turning velocity */
     Step = UI.KeyStep;             /* get velocity (1-7) */
@@ -1740,6 +1734,57 @@ void Zener_Tool(void)
  * ************************************************************************ */
 
 
+#if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT) || defined (HW_EVENT_COUNTER)
+
+/*
+ *  ISR for overflow of Timer0
+ *  - catch overflows of pulse counter 
+ */
+
+ISR(TIMER0_OVF_vect, ISR_BLOCK)
+{
+  /*
+   *  hints:
+   *  - the TOV0 interrupt flag is cleared automatically
+   *  - interrupt processing is disabled while this ISR runs
+   *    (no nested interrupts)
+   */
+
+  Pulses += 256;              /* add overflow to global counter */
+}
+
+#endif
+
+
+
+#if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT)
+
+/*
+ *  ISR for match of Timer1's OCR1A (Output Compare Register A)
+ *  - for gate time of frequency counter
+ */
+
+ISR(TIMER1_COMPA_vect, ISR_BLOCK)
+{
+  /*
+   *  hints:
+   *  - the OCF1A interrupt flag is cleared automatically
+   *  - interrupt processing is disabled while this ISR runs
+   *    (no nested interrupts)
+   */
+
+  /* gate time has passed */
+  TCCR1B = 0;                 /* disable Timer1 */
+  TCCR0B = 0;                 /* disable Timer0 */
+
+  /* break TestKey() processing */
+  Cfg.OP_Control |= OP_BREAK_KEY;       /* set break signal */
+}
+
+#endif
+
+
+
 #ifdef HW_FREQ_COUNTER_BASIC
 
 /*
@@ -1751,6 +1796,7 @@ void Zener_Tool(void)
 void FrequencyCounter(void)
 {
   uint8_t           Flag;               /* loop control flag */
+  uint8_t           Test;               /* user feedback */
   uint8_t           Old_DDR;            /* old DDR state */
   uint8_t           Index;              /* prescaler table index */
   uint8_t           Bitmask;            /* prescaler bitmask */
@@ -1759,10 +1805,10 @@ void FrequencyCounter(void)
   uint32_t          Value;              /* temporary value */
 
   /* control flags */
-  #define EXIT_ALL       0         /* end loop(s) and exit */
-  #define PROCEED        1         /* proceed with next step */
-  #define WAIT_LOOP      2         /* enter/run waiting loop */
-  #define SHOW_FREQ      3         /* display frequency */
+  #define RUN_FLAG       1         /* run flag */
+  #define WAIT_FLAG      2         /* enter/run waiting loop */
+  #define GATE_FLAG      3         /* gatetime flag */
+  #define SHOW_FREQ      4         /* display frequency */
 
   /* show info */
   LCD_Clear();                          /* clear display */
@@ -1774,7 +1820,7 @@ void FrequencyCounter(void)
    *  unknown signal. Max. frequency for Timer0 is 1/4 of the MCU clock.
    */
 
-  Flag = PROCEED;             /* enter measurement loop */
+  Flag = RUN_FLAG;            /* enter measurement loop */
 
   /*
       auto ranging
@@ -1816,7 +1862,7 @@ void FrequencyCounter(void)
    *  measurement loop
    */
 
-  while (Flag > EXIT_ALL)
+  while (Flag > 0)
   {
     /* set up T0 as input (pin might be shared with display) */
     Old_DDR = COUNTER_DDR;              /* save current settings */
@@ -1836,33 +1882,29 @@ void FrequencyCounter(void)
     Top = (uint16_t)Value;              /* use lower 16 bit */
 
     /* start timers */
-    FreqPulses = 0;                     /* reset pulse counter */
-    Flag = WAIT_LOOP;                   /* enter waiting loop */
+    Pulses = 0;                         /* reset pulse counter */
+    Flag = WAIT_FLAG;                   /* enter waiting loop */
     TCNT0 = 0;                          /* Timer0: reset pulse counter */
     TCNT1 = 0;                          /* Timer1: reset gate time counter */
     OCR1A = Top;                        /* Timer1: set gate time */
-    TCCR1B = Bitmask;                   /* start Timer1, prescaler */
-    TCCR0B = (1 << CS02) | (1 << CS01); /* start Timer0, clock source: T0 falling edge */
+    TCCR1B = Bitmask;                   /* start Timer1: prescaler */
+    TCCR0B = (1 << CS02) | (1 << CS01); /* start Timer0: clock source T0 on falling edge */
 
     /* wait for timer1 or key press */
-    while (Flag == WAIT_LOOP)
+    while (Flag == WAIT_FLAG)
     {
       if (TCCR1B == 0)                  /* Timer1 stopped by ISR */
       {
-        Flag = PROCEED;                 /* end loop and signal Timer1 event */
+        Flag = GATE_FLAG;               /* end loop and signal Timer1 event */
       }
       else                              /* Timer1 still running */
       {
-        /* check for key press */
-        while (!(BUTTON_PIN & (1 << TEST_BUTTON)))     /* pressed */
-        {
-          MilliSleep(50);          /* take a nap */
-          Flag = EXIT_ALL;         /* end all loops */
-        }
+        /* wait for user feedback */
+        Test = TestKey(0, CHECK_KEY_TWICE | CHECK_BAT);
 
-        if (Flag > EXIT_ALL)       /* smooth UI */
+        if (Test == KEY_TWICE)          /* two short key presses */
         {
-          MilliSleep(100);         /* sleep for 100ms */
+          Flag = 0;                     /* end processing loop */
         }
       }
     }
@@ -1870,14 +1912,16 @@ void FrequencyCounter(void)
     /* T0 pin might be shared with display */
     COUNTER_DDR = Old_DDR;              /* restore old settings */
 
+    Cfg.OP_Control &= ~OP_BREAK_KEY;    /* clear break signal (just in case) */
+
 
     /*
      *  process measurement
      */
 
-    if (Flag == PROCEED)                /* got measurement */
+    if (Flag == GATE_FLAG)              /* got measurement */
     {
-      FreqPulses += TCNT0;              /* add counter of Timer0 */
+      Pulses += TCNT0;                  /* add counter of Timer0 */
 
       /*
        *  calculate frequency
@@ -1886,13 +1930,13 @@ void FrequencyCounter(void)
        *    with 10ms gate time max. 50k pulses
        */
 
-      Value = FreqPulses;               /* number of pulses */
+      Value = Pulses;                   /* number of pulses */
       Value *= 1000;                    /* scale to ms */
       Value /= GateTime;                /* divide by gatetime (in ms) */
       Flag = SHOW_FREQ;                 /* display frequency */
 
       /* autoranging */
-      if (FreqPulses > 10000)           /* range overrun */
+      if (Pulses > 10000)               /* range overrun */
       {
         if (GateTime > 10)              /* upper range limit not reached yet */
         {
@@ -1901,10 +1945,10 @@ void FrequencyCounter(void)
           #if CPU_FREQ > 16000000 
           if (Index == 3) Index--;      /* skip 256, use 64 */
           #endif
-          Flag = PROCEED;               /* don't display frequency */
+          Flag = RUN_FLAG;              /* don't display frequency */
         }
       }
-      else if (FreqPulses < 1000)       /* range underrun */
+      else if (Pulses < 1000)           /* range underrun */
       {
         if (GateTime < 1000)            /* lower range limit not reached yet */
         {
@@ -1913,7 +1957,7 @@ void FrequencyCounter(void)
           #if CPU_FREQ > 16000000 
           if (Index == 3) Index++;      /* skip 256, use 1024 */
           #endif
-          Flag = PROCEED;               /* don't display frequency */
+          Flag = RUN_FLAG;              /* don't display frequency */
         }
       }
     }
@@ -1929,9 +1973,9 @@ void FrequencyCounter(void)
 
     if (Flag == SHOW_FREQ)              /* valid frequency */
     {
-      Display_Value(Value, 0, 'H');     /* display frequency */
-      Display_Char('z');                /* append "z" for Hz */
-      Flag = 1;                         /* clear flag */
+      Display_Value(Value, 0, 0);       /* display frequency */
+      Display_EEString(Hertz_str);      /* display: Hz */
+      Flag = RUN_FLAG;                  /* clear flag */
     }
     else                                /* invalid frequency */
     {
@@ -1948,50 +1992,10 @@ void FrequencyCounter(void)
   TIMSK1 = 0;                 /* disable all interrupts for Timer1 */
 
   /* local constants */
-  #undef EXIT_ALL
-  #undef PROCEED
-  #undef WAIT_LOOP
+  #undef RUN_FLAG
+  #undef WAIT_FLAG
+  #undef GATE_FLAG
   #undef SHOW_FREQ
-}
-
-
-
-/*
- *  ISR for overflow of Timer0
- *  - catch overflows of pulse counter 
- */
-
-ISR(TIMER0_OVF_vect, ISR_BLOCK)
-{
-  /*
-   *  hints:
-   *  - the TOV0 interrupt flag is cleared automatically
-   *  - interrupt processing is disabled while this ISR runs
-   *    (no nested interrupts)
-   */
-
-  FreqPulses += 256;          /* add overflow to global counter */
-}
-
-
-
-/*
- *  ISR for match of Timer1's OCR1A (Output Compare Register A)
- *  - for frequency counter gate time
- */
-
-ISR(TIMER1_COMPA_vect, ISR_BLOCK)
-{
-  /*
-   *  hints:
-   *  - the OCF1A interrupt flag is cleared automatically
-   *  - interrupt processing is disabled while this ISR runs
-   *    (no nested interrupts)
-   */
-
-  /* gate time has passed */
-  TCCR1B = 0;                 /* disable Timer1 */
-  TCCR0B = 0;                 /* disable Timer0 */
 }
 
 #endif
@@ -2223,12 +2227,12 @@ void FrequencyCounter(void)
 
     /* start timers */
     Flag |= WAIT_FLAG;                  /* enter waiting loop */
-    FreqPulses = 0;                     /* reset pulse counter */
+    Pulses = 0;                         /* reset pulse counter */
     TCNT0 = 0;                          /* Timer0: reset pulse counter */
     TCNT1 = 0;                          /* Timer1: reset gate time counter */
     OCR1A = Top;                        /* Timer1: set gate time */
-    TCCR1B = Bitmask;                   /* start Timer1, prescaler */
-    TCCR0B = (1 << CS02) | (1 << CS01); /* start Timer0, clock source: T0 falling edge */
+    TCCR1B = Bitmask;                   /* start Timer1: prescaler */
+    TCCR0B = (1 << CS02) | (1 << CS01); /* start Timer0: clock source T0 on falling edge */
 
 
     /*
@@ -2244,7 +2248,7 @@ void FrequencyCounter(void)
       else                              /* Timer1 still running */
       {
         /* wait for user feedback */
-        Test = TestKey(0, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
+        Test = TestKey(0, CHECK_KEY_TWICE | CHECK_BAT);
 
         if (Test == KEY_SHORT)          /* short key press */
         {
@@ -2274,11 +2278,6 @@ void FrequencyCounter(void)
       }
     }
 
-
-    /*
-     *  process measurement
-     */
-
     if (InDir)                     /* restore old setting for T0 */
     {
       COUNTER_DDR |= (1 << COUNTER_IN);      /* set to output mode */
@@ -2286,12 +2285,17 @@ void FrequencyCounter(void)
 
     Cfg.OP_Control &= ~OP_BREAK_KEY;    /* clear break signal (just in case) */
 
+
+    /*
+     *  process measurement
+     */
+
     if (Flag & GATE_FLAG)               /* got measurement */
     {
-      FreqPulses += TCNT0;              /* add counter of Timer0 */
+      Pulses += TCNT0;                  /* add counter of Timer0 */
 
       /* autoranging */
-      if (FreqPulses < MinPulses)       /* range underrun */
+      if (Pulses < MinPulses)           /* range underrun */
       {
         if (Range > 0)                  /* not lowest range yet */
         {
@@ -2299,7 +2303,7 @@ void FrequencyCounter(void)
           Flag |= UPDATE_RANGE;         /* set flag for updating range */
         }
       }
-      else if (FreqPulses > MaxPulses)  /* range overrun */
+      else if (Pulses > MaxPulses)      /* range overrun */
       {
         if (Range < 2)                  /* not highest range yet */
         {
@@ -2322,15 +2326,15 @@ void FrequencyCounter(void)
       if (Div == 1)                     /* f-prescaler 1:1 */
       {
         /* no overflow possible */
-        FreqPulses *= 1000;             /* scale to ms */
-        FreqPulses /= GateTime;         /* divide by gatetime (in ms) */
+        Pulses *= 1000;                 /* scale to ms */
+        Pulses /= GateTime;             /* divide by gatetime (in ms) */
       }
       else                              /* f-prescaler 16:1 or 32:1 */
       {
         /* prevent overflow */
-        FreqPulses *= 100;              /* scale to 10ms */
-        FreqPulses *= Div;              /* * f-prescaler */
-        FreqPulses /= (GateTime / 10);  /* divide by gatetime (in 10ms) */
+        Pulses *= 100;                  /* scale to 10ms */
+        Pulses *= Div;                  /* * f-prescaler */
+        Pulses /= (GateTime / 10);      /* divide by gatetime (in 10ms) */
       }
 
       Flag &= ~GATE_FLAG;          /* clear flag */
@@ -2350,18 +2354,18 @@ void FrequencyCounter(void)
       Test = 0;                         /* dot position */
       Index = 0;                        /* unit char */
 
-      if (FreqPulses >= 1000000)        /* f >= 1MHz */
+      if (Pulses >= 1000000)            /* f >= 1MHz */
       {
         Test = 6;             /* 10^6 */
         Index = 'M';          /* M for mega */
       }
-      else if (FreqPulses >= 1000)      /* f >= 1kHz */
+      else if (Pulses >= 1000)          /* f >= 1kHz */
       {
         Test = 3;             /* 10^3 */
         Index = 'k';          /* k for kilo */
       }
 
-      Display_FullValue(FreqPulses, Test, Index);
+      Display_FullValue(Pulses, Test, Index);
       Display_EEString(Hertz_str);      /* display: "Hz" */
 
       Flag &= ~SHOW_FREQ;               /* clear flag */
@@ -2385,6 +2389,7 @@ void FrequencyCounter(void)
   CtrlDir &= (1 << COUNTER_CTRL_DIV) | (1 << COUNTER_CTRL_CH0) | (1 << COUNTER_CTRL_CH1);
   COUNTER_CTRL_DDR &= ~CtrlDir;         /* set former direction */
 
+  /* local constants */
   #undef SHOW_FREQ
   #undef UPDATE_RANGE
   #undef UPDATE_CHANNEL
@@ -2393,46 +2398,612 @@ void FrequencyCounter(void)
   #undef RUN_FLAG
 }
 
+#endif
+
+
+
+#ifdef HW_EVENT_COUNTER
 
 
 /*
- *  ISR for overflow of Timer0
- *  - catch overflows of pulse counter 
+ *  ISR for match of Timer1's OCR1B (Output Compare Register B)
+ *  - for time ticks of event counter
  */
 
-ISR(TIMER0_OVF_vect, ISR_BLOCK)
+ISR(TIMER1_COMPB_vect, ISR_BLOCK)
 {
   /*
    *  hints:
-   *  - the TOV0 interrupt flag is cleared automatically
+   *  - the OCF1B interrupt flag is cleared automatically
    *  - interrupt processing is disabled while this ISR runs
    *    (no nested interrupts)
    */
 
-  FreqPulses += 256;          /* add overflow to global counter */
+  /* time ticks */
+  TimeTicks++;                     /* got another tick */
+  if (TimeTicks >= 5)              /* 5 ticks = 1 second */
+  {
+    TimeTicks = 0;                 /* reset tick counter */
+    TimeCounter++;                 /* got another second */
+  }
+
+  TIFR1 = (1 << OCF1A);                 /* clear output compare A match flag */
+
+  /* break TestKey() processing */
+  Cfg.OP_Control |= OP_BREAK_KEY;       /* set break signal */
 }
 
 
 
 /*
- *  ISR for match of Timer1's OCR1A (Output Compare Register A)
- *  - for frequency counter gate time
+ *  event counter
+ *  - counter input: T0
+ *    needs to be dedicated pin (not in parallel with display!)
+ *  - requires additional keys (e.g. rotary encoder) and
+ *    display with more than 5 lines
+ *  - requires idle sleep mode to keep timers running when MCU is sleeping
+ *  - requires MCU clock of 8, 16 or 20MHz
  */
 
-ISR(TIMER1_COMPA_vect, ISR_BLOCK)
+void EventCounter(void)
 {
+  uint8_t           Flag;               /* loop control flag */
+  uint8_t           Test;               /* user feedback */
+  uint8_t           CounterMode;        /* counter mode */
+  uint8_t           Item;               /* UI item */
+  uint8_t           Show;               /* display control */
+  uint8_t           Temp;               /* temp. value */
+  uint16_t          Step;               /* step size */
+  unsigned char     *String = NULL;     /* string pointer (EEPROM) */
+  uint16_t          TimeTrigger;        /* time limit/trigger */
+  uint32_t          EventsTrigger;      /* events limit/trigger */
+  uint32_t          Events;             /* events */
+
+
+  /* control flags */
+  #define RUN_FLAG            0b00000001     /* run flag */
+  #define WAIT_FLAG           0b00000010     /* wait flag */
+  #define IDLE_FLAG           0b00000100     /* idle flag (not counting) */
+  #define DELAY_FLAG          0b00001000     /* delay flag */
+  #define START_COUNTING      0b00010000     /* start counting */
+  #define MANAGE_COUNTING     0b00100000     /* manage counting */
+  #define STOP_COUNTING       0b01000000     /* stop counting */
+
+  /* counter mode */
+  #define MODE_COUNT          1         /* count events and time (start/stop) */
+  #define MODE_TIME           2         /* count events during given time period */
+  #define MODE_EVENTS         3         /* count time for given number of events */
+
+  /* UI item */
+  #define UI_COUNTERMODE      1         /* counter mode */
+  #define UI_EVENTS           2         /* events */
+  #define UI_TIME             3         /* time */
+  #define UI_STARTSTOP        4         /* start/stop */
+
+  /* display control (follows UI items) */
+  #define SHOW_MODE           0b00000001     /* show mode */
+  #define SHOW_EVENTS         0b00000010     /* show events */
+  #define SHOW_TIME           0b00000100     /* show time */
+  #define SHOW_STARTSTOP      0b00001000     /* show start/stop */
+
+  /* defaults and maximums */
+  #define DEFAULT_TIME        60             /* one minute */
+  #define DEFAULT_EVENTS      100            /* ? */
+  #define MAX_TIME            43200          /* 12h (in seconds) */
+  #define MAX_EVENTS          4000000000     /* ? */
+
+  /* show flags based on item number */
+  uint8_t UI_Index[4] = { SHOW_MODE, SHOW_EVENTS, SHOW_TIME, SHOW_STARTSTOP };
+
+  /* show info */
+  LCD_Clear();                          /* clear display */
+  Display_EEString(EventCounter_str);   /* display: Event Counter */
+
+
   /*
-   *  hints:
-   *  - the OCF1A interrupt flag is cleared automatically
-   *  - interrupt processing is disabled while this ISR runs
-   *    (no nested interrupts)
+   *  We use Timer1 for the time period and Timer0 to count the events.
+   *  Max. event frequency for Timer0 is 1/4 of the MCU clock.
    */
 
-  /* gate time has passed */
-  TCCR1B = 0;                 /* disable Timer1 */
-  TCCR0B = 0;                 /* disable Timer0 */
+  /*
+   *  MCU     pre-     top     top
+   *  Clock   scaler   1s      0.2s
+   *   1MHz   1:64     15625    3125  (not supported)
+   *   8MHz   1:256    31250    6250
+   *  16MHz   1:256    62500   12500
+   *  20MHz   1:256    78125   15625
+   *
+   *  - top = (f_MCU / (f_tick * prescaler)) - 1
+   *        = (f_MCU * t_tick / prescaler) - 1
+   *  - t_tick = 0.2s
+   */
 
-  Cfg.OP_Control |= OP_BREAK_KEY;       /* break TestKey() processing */
+  #define TOP       (CPU_FREQ / (5 * 256)) - 1
+
+  /* set up Timer0 (event counter) */
+  TCCR0A = 0;                      /* normal mode (count up) */
+  TIFR0 = (1 << TOV0);             /* clear overflow flag */
+  TIMSK0 = (1 << TOIE0);           /* enable overflow interrupt */
+
+  /* set up Timer1 (time ticks) */
+  TCCR1A = 0;                      /* CTC mode */
+  TIFR1 = (1 << OCF1A) | (1 << OCF1B);  /* clear output compare A & B match flag */
+  TIMSK1 = (1 << OCIE1B);          /* enable output compare B match interrupt */
+  OCR1B = TOP;                     /* set top value for time tick */
+  OCR1A = TOP;                     /* same for CTC */
+
+  /* set up T0 as input (just in case) */
+  COUNTER_DDR &= ~(1 << COUNTER_IN);    /* set to input mode */
+  wait500us();                          /* settle time */
+
+  /* set start values */
+  Events = 0;                      /* make compiler happy */
+  EventsTrigger = DEFAULT_EVENTS;  /* set default value */
+  TimeTrigger = DEFAULT_TIME;      /* set default value */
+  Step = 0;                        /* make compiler happy */
+  CounterMode = MODE_COUNT;        /* default mode: count */
+  Item = UI_COUNTERMODE;           /* select start item */
+  Flag = RUN_FLAG | IDLE_FLAG;     /* set control flags */
+  /* display everything at startup */
+  Show = SHOW_MODE | SHOW_EVENTS | SHOW_TIME | SHOW_STARTSTOP;
+
+
+  /*
+   *  processing loop
+   */
+
+  while (Flag > 0)
+  {
+    /*
+     *  start counting
+     */
+
+    if (Flag & START_COUNTING)
+    {
+      /* reset counters */
+      Pulses = 0;                  /* pulse counter (ISR) */
+      Events = 0;                  /* total value for events */
+      TimeTicks = 0;               /* counter for ticks */
+      TimeCounter = 0;             /* total value for time (s) */
+      TCNT0 = 0;                   /* Timer0: reset event/pulse counter */
+      TCNT1 = 0;                   /* Timer1: reset time counter */      
+
+      /* start counters */
+      /* start Timer1: prescaler 1:256, CTC mode */
+      TCCR1B = (1 << CS12) | (1 << WGM12);
+      /* start Timer0: clock source T0 on rising edge */
+      TCCR0B = (1 << CS02) | (1 << CS01) | (1 << CS00);
+
+      Flag &= ~(START_COUNTING | IDLE_FLAG);      /* clear flags */
+
+      /* update display of events and time (clear trigger values) */
+      Show |= SHOW_EVENTS | SHOW_TIME;
+    }
+
+
+    /*
+     *  manage counting
+     *  - run for each time tick (Timer1)
+     */
+
+    if (Flag & MANAGE_COUNTING)
+    {
+      /* time counters are managed by ISR */
+
+      /* events: get current value */
+      Events = Pulses;                  /* get pulses */
+      Events += TCNT0;                  /* add counter */
+
+      /* prevent overflow */
+      if ((TimeCounter >= MAX_TIME) ||
+          (Events >= MAX_EVENTS))
+      {
+        /* reached maximum */
+        Flag |= STOP_COUNTING;          /* stop counting */
+      }
+
+      /* manage trigger */
+      if (CounterMode == MODE_TIME)          /* time mode */
+      {
+        if (TimeCounter >= TimeTrigger)      /* limit exeeded */
+        {
+          Flag |= STOP_COUNTING;        /* stop counting */
+        }
+      }
+      else if (CounterMode == MODE_EVENTS)   /* events mode */
+      {
+        if (Events >= EventsTrigger)    /* limit exeeded */
+        {
+          Flag |= STOP_COUNTING;        /* stop counting */
+        }
+      }
+
+      Flag &= ~MANAGE_COUNTING;         /* clear flag */
+
+      /* each second */
+      if (TimeTicks == 0)               /* full second */
+      { 
+        Show |= SHOW_EVENTS | SHOW_TIME;     /* show events and time */
+      }
+    }
+
+
+    /*
+     *  stop counting (part 1)
+     */
+
+    if (Flag & STOP_COUNTING)
+    {
+      /* stop counters */
+      TCCR1B = 0;                  /* disable Timer1 */
+      TCCR0B = 0;                  /* disable Timer0 */
+
+      /* flags are reset later on to allow output of results */
+
+      /* display current values for events and time */
+      Show |= SHOW_EVENTS | SHOW_TIME | SHOW_STARTSTOP;
+    }
+
+
+    /*
+     *  display counter mode
+     */
+
+    if (Show & SHOW_MODE)          /* display mode */
+    {
+      switch (CounterMode)              /* get mode specifics */
+      {
+        case MODE_COUNT:                /* count time and events */
+          String = (unsigned char *)Count_str;
+          break;
+
+        case MODE_TIME:                 /* given time period */
+          String = (unsigned char *)Time_str;
+          break;
+
+        case MODE_EVENTS:               /* given number of events */
+          String = (unsigned char *)Events_str;
+          break;
+      }
+
+      /* display mode (in line #2) */
+      LCD_ClearLine2();                      /* clear line #2 */
+      MarkItem(UI_COUNTERMODE, Item);        /* mark item if selected */
+      Display_EEString(String);              /* display mode name */
+
+      Show |= SHOW_TIME | SHOW_EVENTS;       /* update display of trigger values */
+    }
+
+
+    /*
+     *  display events
+     */
+
+    if (Show & SHOW_EVENTS)        /* display events */
+    {
+      LCD_ClearLine(3);                      /* clear line #3 */
+      LCD_CharPos(1, 3);                     /* go to start of line #3 */
+      MarkItem(UI_EVENTS, Item);             /* mark item if selected */
+      Display_Char('n');                     /* display: n */
+      Display_Space();
+
+      if (Flag & IDLE_FLAG)        /* not counting */
+      {
+        if (CounterMode == MODE_EVENTS)      /* events mode */
+        {
+          /* display trigger value */
+          Display_FullValue(EventsTrigger, 0, 0);
+        }
+      }
+      else                         /* counting */
+      {
+        /* display events counter */
+        Display_FullValue(Events, 0, 0);
+      }
+    }
+
+
+    /*
+     *  display time
+     */
+
+    if (Show & SHOW_TIME)          /* display time */
+    {
+      LCD_ClearLine(4);                      /* clear line #4 */
+      LCD_CharPos(1, 4);                     /* go to start of line #4 */
+      MarkItem(UI_TIME, Item);               /* mark item if selected */
+      Display_Char('t');                     /* display: t */
+      Display_Space();
+
+      if (Flag & IDLE_FLAG)        /* not counting */
+      {
+        if (CounterMode == MODE_TIME)        /* time mode */
+        {
+          /* display trigger value */
+          Display_FullValue(TimeTrigger, 0, 's');
+        }
+      }
+      else                         /* counting */
+      {
+        /* display time elapsed */
+        Display_FullValue(TimeCounter, 0, 's');
+      }
+    }
+
+
+    /*
+     *  stop counting (part 2)
+     */
+
+    if (Flag & STOP_COUNTING)
+    {
+      /* reset flags */
+      Flag &= ~STOP_COUNTING;           /* clear flag */
+      Flag |= IDLE_FLAG;                /* set idle flag */
+    }
+
+
+    /*
+     *  display start/stop
+     */
+
+    if (Show & SHOW_STARTSTOP)     /* display start/stop */
+    {
+      if (Flag & IDLE_FLAG)        /* display: start */
+      {
+        String = (unsigned char *)Start_str;
+      }
+      else                         /* display: stop */
+      {
+        String = (unsigned char *)Stop_str;
+      }
+
+      LCD_ClearLine(5);                      /* clear line #5 */
+      LCD_CharPos(1, 5);                     /* go to start of line #5 */
+      MarkItem(UI_STARTSTOP, Item);          /* mark item if selected */
+      Display_EEString(String);              /* display start/stop */
+    }
+
+
+    /* smooth UI after long key press */
+    if (Flag & DELAY_FLAG)
+    {
+      SmoothLongKeyPress();        /* delay next key press */
+
+      Flag &= ~DELAY_FLAG;         /* clear flag */
+    }
+
+    /* update display control flag */
+    if (Flag & IDLE_FLAG)               /* not counting */
+    {
+      /* set display control flag based on currently selected item */
+      Show = UI_Index[Item - 1];
+    }
+    else                                /* counting */
+    {
+      /* reset display control */
+      Show = 0;
+    }
+
+
+    /*
+     *  wait for user feedback or Timer1 (via OP_BREAK_KEY)
+     */
+
+    Flag |= WAIT_FLAG;             /* enter waiting loop */
+
+    while (Flag & WAIT_FLAG)
+    {
+      /* wait for user feedback */
+      Test = TestKey(0, CHECK_KEY_TWICE | CHECK_BAT);
+
+      /* consider rotary encoder's turning velocity (1-7) */
+      Temp = UI.KeyStep;                /* get velocity */
+      Step = Temp;
+      if (Temp > 1)                     /* larger step */
+      {
+        /* increase step size based on turning velocity */
+        if (Item == UI_TIME)            /* time */
+        {
+          /* 16 bit value */
+          if (Temp <= 3) Step = 10;
+          else if (Temp <= 5) Step = 120;
+          else Step = 1800;
+        }
+        else if (Item == UI_EVENTS)     /* events */
+        {
+          /* 32 bit value - simply too large */
+          if (Temp <= 3) Step = 10;
+          else if (Temp <= 5) Step = 100;
+          else Step = 1000;
+        }
+      }
+
+      if (Test == KEY_TIMEOUT)          /* timeout by OP_BREAK_KEY */
+      {
+        Flag |= MANAGE_COUNTING;        /* manage counting */
+        Flag &= ~WAIT_FLAG;             /* end waiting loop */
+      }
+      else if (Test == KEY_SHORT)       /* short key press */
+      {
+        /* switch to next item */
+        if (Flag & IDLE_FLAG)           /* when not counting */
+        {
+          if (Item < UI_STARTSTOP)      /* not last item */
+          {
+            /* go to next item */
+            Item++;                     /* next one */
+
+            /* special rules */
+            if (CounterMode == MODE_COUNT)        /* counter mode */
+            {
+              /* skip events and time */
+              if (Item < UI_STARTSTOP) Item = UI_STARTSTOP;
+            }
+            else if (CounterMode == MODE_EVENTS)  /* events mode */
+            {
+              /* skip time */
+              if (Item == UI_TIME) Item = UI_STARTSTOP;
+            }
+            else                                  /* time mode */
+            {
+              /* skip events */
+              if (Item == UI_EVENTS) Item = UI_TIME;
+            }
+          }
+          else                          /* last item */
+          {
+            /* go to first item */
+            Item = UI_COUNTERMODE;
+          }
+
+          /* update display flags (old and new item) */
+          Test = UI_Index[Item - 1];    /* get new display flag */
+          Show |= Test;                 /* add new display flag */
+
+          Flag &= ~WAIT_FLAG;           /* end waiting loop */
+        }
+      }
+      else if (Test == KEY_LONG)        /* long key press */
+      {
+        if (Item == UI_STARTSTOP)       /* start/stop selected */
+        {
+          if (Flag & IDLE_FLAG)         /* not counting */
+          {
+            /* start counting */
+            Flag |= START_COUNTING | DELAY_FLAG;
+          }
+          else                          /* counting */
+          {
+            /* stop counting */
+            Flag |= STOP_COUNTING | DELAY_FLAG;
+          }
+
+          Flag &= ~WAIT_FLAG;           /* end waiting loop */
+        }
+        else if (Item == UI_EVENTS)     /* events selected */
+        {
+          /* reset to default value */
+          EventsTrigger = DEFAULT_EVENTS;
+
+          Flag |= DELAY_FLAG;           /* set delay flag */
+          Flag &= ~WAIT_FLAG;           /* end waiting loop */
+        }
+        else if (Item == UI_TIME)       /* time selected */
+        {
+          /* reset to default value */
+          TimeTrigger = DEFAULT_TIME;
+
+          Flag |= DELAY_FLAG;           /* set delay flag */
+          Flag &= ~WAIT_FLAG;           /* end waiting loop */
+        }
+      }
+      else if (Test == KEY_TWICE)       /* two short key presses */
+      {
+        /* exit tool */
+        Flag = 0;                       /* end processing loop */
+      }
+      else if (Test == KEY_RIGHT)       /* right key */
+      {
+        if (Item == UI_COUNTERMODE)     /* counter mode selected */
+        {
+          /* change to next mode */
+          CounterMode++;
+          /* overrun to first mode */
+          if (CounterMode > MODE_EVENTS) CounterMode = MODE_COUNT;
+
+          Flag &= ~WAIT_FLAG;           /* end waiting loop */
+        }
+        else if (Item == UI_EVENTS)     /* events selected */
+        {
+          /* increase event trigger */
+          EventsTrigger += Step;
+          /* limit overflow to max. value */
+          if (EventsTrigger > MAX_EVENTS) EventsTrigger = MAX_EVENTS;
+
+          Flag &= ~WAIT_FLAG;           /* end waiting loop */
+        }
+        else if (Item == UI_TIME)       /* time selected */
+        {
+          /* increase time trigger */
+          TimeTrigger += Step;
+          /* limit overflow to max. value */
+          if (TimeTrigger > MAX_TIME) TimeTrigger = MAX_TIME;
+
+          Flag &= ~WAIT_FLAG;           /* end waiting loop */
+        }
+      }
+      else if (Test == KEY_LEFT)        /* left key */
+      {
+        if (Item == UI_COUNTERMODE)     /* counter mode selected */
+        {
+          /* change to previous mode */
+          CounterMode--;
+          /* underrun to last mode */
+          if (CounterMode == 0) CounterMode = MODE_EVENTS;
+
+          Flag &= ~WAIT_FLAG;           /* end waiting loop */
+        }
+        else if (Item == UI_EVENTS)     /* events selected */
+        {
+          /* decrease event trigger */
+          EventsTrigger -= Step;
+          /* limit underflow to zero */
+          if (EventsTrigger > MAX_EVENTS) EventsTrigger = 0;
+
+          Flag &= ~WAIT_FLAG;           /* end waiting loop */
+        }
+        else if (Item == UI_TIME)       /* time selected */
+        {
+          /* decrease time trigger */
+          TimeTrigger -= Step;
+          /* limit underflow to zero */
+          if (TimeTrigger > MAX_TIME) TimeTrigger = 0;
+
+          Flag &= ~WAIT_FLAG;           /* end waiting loop */
+        }
+      }
+    }
+  }
+
+
+  /*
+   *  clean up
+   */
+
+  /* timers */
+  TIMSK0 = 0;                 /* disable all interrupts for Timer0 */
+  TIMSK1 = 0;                 /* disable all interrupts for Timer1 */
+
+  /* local constants */
+  #undef TOP
+
+  #undef RUN_FLAG
+  #undef WAIT_FLAG
+  #undef IDLE_FLAG
+  #undef DELAY_FLAG
+  #undef START_COUNTING
+  #undef MANAGE_COUNTING
+  #undef STOP_COUNTING
+
+  #undef MODE_COUNT
+  #undef MODE_TIME
+  #undef MODE_EVENTS
+
+  #undef UI_COUNTERMODE
+  #undef UI_EVENTS
+  #undef UI_TIME
+  #undef UI_STARTSTOP
+
+  #undef SHOW_MODE
+  #undef SHOW_EVENTS
+  #undef SHOW_TIME
+  #undef SHOW_STARTSTOP
+
+  #undef DEFAULT_TIME
+  #undef DEFAULT_EVENTS
+  #undef MAX_TIME
+  #undef MAX_EVENTS
 }
 
 #endif
@@ -2709,7 +3280,7 @@ void Check_LED(uint8_t Probe1, uint8_t Probe2)
  *    - LED's cathode and TRIAC's MT2
  *  - supports:
  *    - BJT
- *    - Triac (with and without zero crossing circuit)
+ *    - TRIAC (with and without zero crossing circuit)
  */
 
 void OptoCoupler_Tool(void)
@@ -3039,15 +3610,16 @@ void OptoCoupler_Tool(void)
 
 uint8_t DS18B20_Tool(void)
 {
-  uint8_t           Flag;     /* control flag */
-  uint8_t           Test;     /* key / feedback */
-  uint8_t           Bits;     /* bit depth */
-  int8_t            Scale;    /* temperature scale 10^x */
-  int32_t           Value;    /* temperature value */
+  uint8_t           Flag = 1;      /* control flag */
+  uint8_t           Test;          /* key / feedback */
+  uint8_t           Bits;          /* bit depth */
+  int8_t            Scale;         /* temperature scale 10^x */
+  int32_t           Value;         /* temperature value */
   #ifdef UI_FAHRENHEIT
-  int32_t           Temp;     /* temporary value */
+  int32_t           Temp;          /* temporary value */
   #endif
 
+  #ifdef ONEWIRE_PROBES 
   /* inform user about pinout and check for external pull-up resistor */
   Flag = OneWire_Probes(DS18B20_str);
 
@@ -3055,6 +3627,7 @@ uint8_t DS18B20_Tool(void)
   {
     return 0;                 /* exit tool and signal error */
   }
+  #endif
 
   LCD_ClearLine2();                     /* clear line #2 */
   Display_EEString(Start_str);          /* display: Start */
@@ -3310,7 +3883,7 @@ void Cap_Leakage(void)
     if (! (Flag & CHANGED_MODE))        /* skip when mode has changed */
     {
       /* wait for user feedback or timeout of 2s */
-      Test = TestKey(2000, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
+      Test = TestKey(2000, CHECK_KEY_TWICE | CHECK_BAT);
       /* also delay for next loop run */
 
       if (Test == KEY_SHORT)            /* short key press */

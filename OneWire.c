@@ -134,7 +134,7 @@ uint8_t OneWire_Probes(const unsigned char *String)
     else                           /* check test key */
     {
       /* wait 100ms for key press */
-      Flag = TestKey(100, CURSOR_NONE | CHECK_BAT);
+      Flag = TestKey(100, CHECK_BAT);
       if (Flag)                              /* key pressed */
       {
         Flag = 0;                            /* signed "skipped" */

@@ -60,11 +60,17 @@ PARTNO = m328p
 # avrdude: ISP programmer
 #PROGRAMMER = buspirate
 #PROGRAMMER = USBasp
+#PROGRAMMER = usbtiny
+#PROGRAMMER = stk500v2
 PROGRAMMER = avrispmkII
 
 # avrdude: port of ISP programmer
 #PORT = /dev/bus_pirate
+#PORT = /dev/ttyACM0
 PORT = usb
+
+# avrdude: bitclock
+BITCLOCK = 10.0
 
 
 #
@@ -169,7 +175,7 @@ ${OBJECTS_S}: %.o: %.S ${HEADERS} ${MAKEFILE_LIST}
 
 # upload firmware
 upload: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
-	avrdude -c ${PROGRAMMER} -B 5.0 -p ${PARTNO} -P ${PORT} \
+	avrdude -c ${PROGRAMMER} -B ${BITCLOCK} -p ${PARTNO} -P ${PORT} \
 	  -U flash:w:./${NAME}.hex:a -U eeprom:w:./$(NAME).eep:a
 
 # create distribution package
@@ -274,5 +280,5 @@ fuses:
   ifeq ($(strip ${FUSES}),)
 	@echo Invalid fuse settings!
   else
-	avrdude -c ${PROGRAMMER} -B 10.0 -p ${PARTNO} -P ${PORT} ${FUSES}
+	avrdude -c ${PROGRAMMER} -B ${BITCLOCK} -p ${PARTNO} -P ${PORT} ${FUSES}
   endif

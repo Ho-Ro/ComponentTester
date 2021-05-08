@@ -16,9 +16,16 @@
 #if defined (UI_RUSSIAN)
 
   /*
-   *  constant strings (stored in EEPROM)
+   *  constant strings
+   *  - stored in EEPROM
    */
 
+
+  /* firmware */
+  const unsigned char Tester_str[] EEMEM = "Component Tester";
+
+
+  /* common terms and texts */
   const unsigned char Probing_str[] EEMEM = "Тестирование...";
   const unsigned char Timeout_str[] EEMEM = "Время истекло";
   const unsigned char Failed1_str[] EEMEM = "Компонент не";
@@ -43,6 +50,12 @@
   const unsigned char PUT_str[] EEMEM = "Транз. (ПОПТ)";
   const unsigned char Bye_str[] EEMEM = "До свидания!";
 
+
+  /* units */
+  const unsigned char Hertz_str[] EEMEM = "Hz";
+
+
+  /* options */
   #ifndef BAT_NONE
     const unsigned char Battery_str[] EEMEM = "Bat";
     const unsigned char OK_str[] EEMEM = "ok";
@@ -52,6 +65,14 @@
 
   #ifdef BAT_EXT_UNMONITORED
     const unsigned char External_str[] EEMEM = "ext";
+  #endif
+
+  #ifdef UI_KEY_HINTS
+  const unsigned char Menu_or_Test_str[] EEMEM = "<Menu Test>";
+  #endif
+
+  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
+    const unsigned char PWM_str[] EEMEM = "PWM";
   #endif
 
   #ifdef SW_SQUAREWAVE
@@ -72,6 +93,14 @@
     const unsigned char FreqInput_str[] EEMEM = "BNC";
     const unsigned char LF_Crystal_str[] EEMEM = "LF crystal";
     const unsigned char HF_Crystal_str[] EEMEM = "HF crystal";
+  #endif
+
+  #ifdef HW_EVENT_COUNTER
+    const unsigned char EventCounter_str[] EEMEM = "Event Counter";
+    const unsigned char Count_str[] EEMEM = "Count";
+    const unsigned char Time_str[] EEMEM = "Time";
+    const unsigned char Events_str[] EEMEM = "Events";
+    const unsigned char Stop_str[] EEMEM = "Stop";
   #endif
 
   #ifdef SW_ENCODER
@@ -95,9 +124,10 @@
   #ifdef SW_OPTO_COUPLER
     const unsigned char OptoCoupler_str[] EEMEM = "Oптрон";
     const unsigned char None_str[] EEMEM = "не найден";
+    const unsigned char CTR_str[] EEMEM = "CTR";
   #endif
 
-  #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20)
+  #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20) || defined (HW_EVENT_COUNTER)
     const unsigned char Start_str[] EEMEM = "Начать проверку";
   #endif
 

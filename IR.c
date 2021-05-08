@@ -601,7 +601,7 @@ uint8_t PxM_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t tS, uint8_t t0, ui
   {
     Display_NextLine();
     Display_Value(Counter, 0, 0);  /* display pulse number */
-    Display_Char(':');
+    Display_Char(':');             /* display; : */
     Display_Value(Time, 0, 0);     /* display pulse duration */
   }
   #endif
@@ -1072,7 +1072,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
       if (Temp > 0)                /* display version */
       {
-        Display_Char('-');
+        Display_Char('-');         /* display: - */
         Display_Char(Temp);        /* display: 5 or 6 */
       }
 
@@ -1096,16 +1096,16 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
         Display_HexByte(Extras);        /* display manufacturer MSB */
         Display_HexByte(Address);       /* display manufacturer LSB */
-        Display_Char(':');
+        Display_Char(':');              /* display: : */
 
         Extras = GetBits(21, 4, IR_LSB);     /* get system */
         Address = GetBits(25, 8, IR_LSB);    /* get product (address) */
         Command = GetBits(33, 8, IR_LSB);    /* get function (command) */      
 
         Display_HexDigit(Extras);  /* display system */
-        Display_Char('-');
+        Display_Char('-');         /* display: - */
         Display_HexByte(Address);  /* display product */
-        Display_Char(':');
+        Display_Char(':');         /* display: : */
         Display_HexByte(Command);  /* display function */
 
         Flag = PACKET_OK;          /* packet ok */
@@ -1430,12 +1430,12 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
       if (Flag == PACKET_OK)       /* valid packet */
       {
         Display_HexByte(Command);  /* display command */
-        Display_Char(':');
+        Display_Char(':');         /* display: : */
         Display_HexByte(Address);  /* display address */
 
         if (Bits == 20)            /* 20 bit format */
         {
-          Display_Char(':');
+          Display_Char(':');                 /* display: : */
           Extras = GetBits(13, 8, IR_LSB);   /* get extended */
           Display_HexByte(Extras);           /* display extended data */
         }
@@ -1509,7 +1509,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
         if (Bits == 11)                   /* we expect 11 bits */
         {
           Display_NL_EEString_Space(IR_RECS80_str);    /* display protocol */
-          Display_Char('x');                      /* display: x */
+          Display_Char('x');                           /* display: x */
           Display_Space();
 
           Address = GetBits(2, 4, IR_MSB);        /* get subsystem address */
@@ -1565,7 +1565,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
           Display_NL_EEString_Space(IR_Sharp_str);  /* display protocol */
           Display_HexByte(Address);                 /* display address */
-          Display_Char(':');
+          Display_Char(':');                        /* display: : */
           Display_HexByte(Command);                 /* display command */
 
           IR_State = 1;                 /* got packet #1 */
@@ -1729,9 +1729,9 @@ result:
   {
     Display_NextLine();            /* new line */
     Display_Value(Pulses, 0, 0);   /* display number of pulses */
-    Display_Char(':');
+    Display_Char(':');             /* display: : */
     Display_Value(Time1, 0, 0);    /* display time units of first pulse */
-    Display_Char('-');
+    Display_Char('-');             /* display: - */
     Display_Value(Time2, 0, 0);    /* display time units of first pause */
 
     #if 0
@@ -1762,7 +1762,7 @@ result:
   if (Flag == PACKET_DISPLAY)      /* known protocol & standard output */
   {
     Display_HexByte(Address);      /* display address */
-    Display_Char(':');
+    Display_Char(':');             /* display: : */
     Display_HexByte(Command);      /* display command */
   }
 
@@ -1869,7 +1869,7 @@ void IR_Detector(void)
     else                           /* check test key */
     {
       /* wait 100ms for key press */
-      Flag = TestKey(100, CURSOR_NONE | CHECK_BAT);
+      Flag = TestKey(100, CHECK_BAT);
       /* also delay for next loop run */
 
       if (Flag)                         /* key pressed */
@@ -2004,7 +2004,7 @@ void IR_Detector(void)
       Run = MODE_WAIT;                     /* switch back to waiting mode */
 
       /* check test button */
-      while (!(BUTTON_PIN & (1 << TEST_BUTTON)))
+      while (!(BUTTON_PIN & (1 << TEST_BUTTON)))  /* key pressed */
       {
         MilliSleep(50);            /* take a nap */
         Run = 0;                   /* end loop */
@@ -3133,7 +3133,7 @@ void IR_RemoteControl(void)
   /* display pinout (1: Gnd / 2: LED / 3: Gnd) */
   Display_NextLine();
   Show_SimplePinout('-', 's', '-');
-  TestKey(3000, CURSOR_NONE | CHECK_BAT);    /* wait 3s or for key press */
+  TestKey(3000, CHECK_BAT);             /* wait 3s or for key press */
   #endif
 
   #ifndef HW_FIXED_SIGNAL_OUTPUT
@@ -3346,7 +3346,7 @@ void IR_RemoteControl(void)
     {
       LCD_ClearLine2();                 /* line #2 */
       MarkItem(MODE_PROTO, Mode);       /* mark mode if selected */
-      Display_EEString(ProtoStr);
+      Display_EEString(ProtoStr);       /* display protocol */
 
       Flag &= ~DISPLAY_PROTO;           /* clear flag */
     }
@@ -3358,16 +3358,16 @@ void IR_RemoteControl(void)
 
       /* display frequency */
       LCD_ClearLine(3);                 /* line #3 */
-      LCD_CharPos(1, 3);
+      LCD_CharPos(1, 3);                /* start of line #3 */
       MarkItem(MODE_FREQ, Mode);        /* mark mode if selected */
-      Display_Value(Carrier, 3, 'H');
-      Display_Char('z');
+      Display_Value(Carrier, 3, 0);     /* display frequency */
+      Display_EEString(Hertz_str);      /* display: Hz */
 
       /* display duty cycle */
       MarkItem(MODE_DUTYCYCLE, Mode);   /* mark mode if selected */
-      Display_Char('1');
-      Display_Char('/');
-      Display_Char('0' + DutyCycle);
+      Display_Char('1');                /* display: 1 */
+      Display_Char('/');                /* display: / */
+      Display_Char('0' + DutyCycle);    /* display denominator */
 
       /* calculate top value for Timer1 (carrier) */
       /* top = (f_MCU / (prescaler * f_PWM)) - 1 */
@@ -3386,7 +3386,7 @@ void IR_RemoteControl(void)
     if (Flag & DISPLAY_DATA)       /* display IR data */
     {
       LCD_ClearLine(4);                 /* line #4 */
-      LCD_CharPos(1, 4);
+      LCD_CharPos(1, 4);                /* start of line #4 */
 
       n = 0;
       while (n < Fields)           /* loop through data fields */
@@ -3408,7 +3408,7 @@ void IR_RemoteControl(void)
      */
 
     /* wait for user feedback */
-    Test = TestKey(0, CURSOR_NONE | CHECK_KEY_TWICE | CHECK_BAT);
+    Test = TestKey(0, CHECK_KEY_TWICE | CHECK_BAT);
 
     if (Mode >= MODE_DATA)              /* code data mode */
     {
@@ -3575,7 +3575,7 @@ void IR_RemoteControl(void)
         IR_Toggle ^= 0b00000001;        /* toggle flag */
 
         /* check if we should repeat sending */
-        Test = TestKey(100, CURSOR_NONE | CHECK_BAT);  /* get user feedback */
+        Test = TestKey(100, CHECK_BAT); /* get user feedback */
         if (Test == KEY_LONG)           /* long key press */
         {
           n = 2;                        /* repeat code */

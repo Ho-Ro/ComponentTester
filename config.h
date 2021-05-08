@@ -2,7 +2,7 @@
  *
  *   global configuration, setup and settings
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2019 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -117,8 +117,8 @@
 
 /*
  *  fixed signal output
- *  - in case MCU's OC1B pin is wired as dedicated signal output
- *    instead of driving Rl probe resistor for test pin #2
+ *  - in case the MCU's OC1B pin is wired as dedicated signal output
+ *    instead of driving the Rl probe resistor for test pin #2
  *  - uncomment to enable
  */
 
@@ -144,13 +144,27 @@
  *  - prescalers 1:1 and 16:1 (32:1)
  *  - see COUNTER_PORT for port pins (config-<MCU>.h)
  *  - requires a display with more than 2 text lines
- *  - uncomment to enable (not supported yet)
+ *  - uncomment to enable
  *  - select the circuit's prescaler setting: either 16:1 or 32:1 
  */
 
 //#define HW_FREQ_COUNTER_EXT
 #define FREQ_COUNTER_PRESCALER     16   /* 16:1 */
 //#define FREQ_COUNTER_PRESCALER     32   /* 32:1 */
+
+
+/*
+ *  event counter
+ *  - default pin: T0 (PD4 ATmega 328)
+ *  - uses T0 directly as event/pulse input (rising edge)
+ *  - no shared operation with displays possible for T0
+ *  - requires additional keys (e.g. rotary encoder) and a display with
+ *    more than 5 lines
+ *  - only for MCU clock of 8, 16 or 20MHz
+ *  - uncomment to enable
+ */
+
+//#define HW_EVENT_COUNTER
 
 
 /*
@@ -343,6 +357,15 @@
 //#define SW_CAP_LEAKAGE
 
 
+/*
+ *  Reverse hFE for BJTs
+ *  - hFE for collector and emitter reversed
+ *  - uncomment to enable
+ */
+
+#define SW_REVERSE_HFE
+
+
 
 /* ************************************************************************
  *   Makefile workaround for some IDEs 
@@ -422,6 +445,17 @@
  */
 
 //#define UI_SHORT_CIRCUIT_MENU
+
+
+/*
+ *  Show key hints instead of cursor if available.
+ *  - currently only "Menu/Test"
+ *  - requires additional keys and display with a sufficient number of
+ *    text lines (recommended: >= 8 lines)
+ *  - uncomment to enable
+ */
+
+//#define UI_KEY_HINTS
 
 
 /*
@@ -770,7 +804,7 @@
 /*
  *  OneWire bus
  *  - for dedicated I/O pin please see ONEWIRE_PORT (config_<MCU>.h)
- *  - uncomment either ONEWIRE_PROBES or ONEWIRE_ to enable
+ *  - uncomment either ONEWIRE_PROBES or ONEWIRE_IO_PIN to enable
  */
 
 //#define ONEWIRE_PROBES             /* via probes */
@@ -802,7 +836,7 @@
 
 /*
  *  define clock divider
- *  - supports 1MHz, 2MHz, 4MHz, 8MHz and 16MHz MCU clocks
+ *  - supports 1MHz, 2MHz, 4MHz, 8MHz, 16MHz and 20MHz MCU clocks
  *  - we got only 7 fixed prescalers from 2 up to 128
  */
 
@@ -887,6 +921,11 @@
 
 /* options which require additional keys */
 #ifndef HW_KEYS
+
+  /* key hints */
+  #ifdef UI_KEY_HINTS
+    #undef UI_KEY_HINTS
+  #endif
 
   /* PWM+ */
   #ifdef SW_PWM_PLUS

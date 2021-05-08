@@ -98,7 +98,8 @@
 
 
   /*
-   *  NVRAM values (stored in EEPROM) with their defaults
+   *  NVRAM values with their defaults
+   *  - stored in EEPROM
    */
 
   /* manage CapZero */
@@ -121,10 +122,11 @@
 
 
   /*
-   *  constant strings (stored in EEPROM)
+   *  constant strings
+   *  - stored in EEPROM
    */
 
-  /* language specific */
+  /* language specific text */
   #include "var_czech.h"
   #include "var_danish.h"
   #include "var_english.h"
@@ -134,9 +136,12 @@
   #include "var_spanish.h"
   #include "var_russian.h"
 
-  /* language independent */
-  const unsigned char Tester_str[] EEMEM = "Component Tester";
-  const unsigned char Version_str[] EEMEM = "v1.36m";
+
+  /* firmware */
+  const unsigned char Version_str[] EEMEM = "v1.37m";
+
+
+  /* common terms and texts */
   const unsigned char MOS_str[] EEMEM = "MOS";
   const unsigned char FET_str[] EEMEM = "FET";
   const unsigned char Channel_str[] EEMEM = "-ch";
@@ -179,14 +184,6 @@
     const unsigned char ESR_str[] EEMEM = "ESR";
   #endif
 
-  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
-    const unsigned char PWM_str[] EEMEM = "PWM";
-  #endif
-
-  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT)
-    const unsigned char Hertz_str[] EEMEM = "Hz";
-  #endif
-
   #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     const unsigned char IR_NEC_str[] EEMEM = "NEC";
     const unsigned char IR_SIRC_str[] EEMEM = "SIRC";
@@ -223,7 +220,6 @@
   #endif
 
   #ifdef SW_OPTO_COUPLER
-    const unsigned char CTR_str[] EEMEM = "CTR";
     const unsigned char If_str[] EEMEM = "If";
     const unsigned char t_on_str[] EEMEM = "t_on";
     const unsigned char t_off_str[] EEMEM = "t_off";
@@ -235,6 +231,10 @@
 
   #ifdef SW_DS18B20
     const unsigned char DS18B20_str[] EEMEM = "DS18B20";
+  #endif
+
+  #ifdef SW_REVERSE_HFE
+    const unsigned char h_FE_r_str[] EEMEM ="hFEr";
   #endif
 
 
@@ -280,6 +280,9 @@
     const unsigned char Cmd_C_D_str[] EEMEM = "C_D";
     const unsigned char Cmd_R_BE_str[] EEMEM = "R_BE";
     const unsigned char Cmd_h_FE_str[] EEMEM = "h_FE";
+    #ifdef SW_REVERSE_HFE
+    const unsigned char Cmd_h_FE_r_str[] EEMEM = "h_FE_r";
+    #endif
     const unsigned char Cmd_V_BE_str[] EEMEM = "V_BE";
     const unsigned char Cmd_I_CEO_str[] EEMEM = "I_CEO";
     const unsigned char Cmd_V_TH_str[] EEMEM = "V_th";
@@ -316,6 +319,9 @@
       {CMD_I_R, I_R_str},
       {CMD_R_BE, Cmd_R_BE_str},
       {CMD_H_FE, Cmd_h_FE_str},
+      #ifdef SW_REVERSE_HFE
+      {CMD_H_FE_R, Cmd_h_FE_r_str},
+      #endif
       {CMD_V_BE, Cmd_V_BE_str},
       {CMD_I_CEO, Cmd_I_CEO_str},
       {CMD_V_TH, Cmd_V_TH_str},
@@ -334,7 +340,8 @@
 
 
   /*
-   *  constant tables (stored in EEPROM)
+   *  constant tables
+   *  - stored in EEPROM
    */
 
   /* unit prefixes: p, n, µ, m, 0, k, M (used by value display) */
@@ -368,7 +375,8 @@
 
 
   /*
-   *  bitmask tables for probe settings (stored in EEPROM)
+   *  bitmask tables for probe settings
+   *  - stored in EEPROM
    *  - this saves some bytes in the firmware
    */
 
@@ -454,7 +462,8 @@
 
 
   /*
-   *  NVRAM values (stored in EEPROM) with their defaults
+   *  NVRAM values with their defaults
+   *  - stored in EEPROM
    */
 
   /* basic adjustment values: profile #1 */
@@ -470,11 +479,19 @@
 
 
   /*
-   *  constant strings (stored in EEPROM)
+   *  constant strings
+   *  - stored in EEPROM
    */
 
+
+  /* firmware */
   extern const unsigned char Version_str[];
+
+
+  /* common terms and texts */
   extern const unsigned char Probing_str[];
+  extern const unsigned char Failed1_str[];
+  extern const unsigned char Failed2_str[];
   extern const unsigned char Done_str[];
   extern const unsigned char Select_str[];
   extern const unsigned char Selftest_str[];
@@ -491,7 +508,6 @@
   extern const unsigned char BJT_str[];
   extern const unsigned char Triac_str[];
   extern const unsigned char PUT_str[];
-
   extern const unsigned char MOS_str[];
   extern const unsigned char FET_str[];
   extern const unsigned char Channel_str[];
@@ -522,17 +538,21 @@
   extern const unsigned char Profile2_str[];
 
 
+  /* units */
+  extern const unsigned char Hertz_str[];
+
+
   /* options */
+  #ifdef UI_KEY_HINTS
+    extern const unsigned char Menu_or_Test_str[];
+  #endif
+
   #if defined (SW_ESR) || defined (SW_OLD_ESR)
     extern const unsigned char ESR_str[];
   #endif
 
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
     extern const unsigned char PWM_str[];    
-  #endif
-
-  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT)
-    extern const unsigned char Hertz_str[];
   #endif
 
   #ifdef SW_SQUAREWAVE
@@ -553,6 +573,14 @@
     extern const unsigned char FreqInput_str[];
     extern const unsigned char LF_Crystal_str[];
     extern const unsigned char HF_Crystal_str[];
+  #endif
+
+  #ifdef HW_EVENT_COUNTER
+    extern const unsigned char EventCounter_str[];
+    extern const unsigned char Count_str[];
+    extern const unsigned char Time_str[];
+    extern const unsigned char Events_str[];
+    extern const unsigned char Stop_str[];
   #endif
 
   #ifdef SW_ENCODER
@@ -611,7 +639,7 @@
     extern const unsigned char t_off_str[];
   #endif
 
-  #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20)
+  #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20) || defined (HW_EVENT_COUNTER)
     extern const unsigned char Start_str[];
   #endif
 
@@ -697,7 +725,8 @@
 
 
   /*
-   *  constant tables (stored in EEPROM)
+   *  constant tables
+   *  - stored in EEPROM
    */
 
   /* unit prefixes: p, n, µ, m, 0, k, M (used by value display) */

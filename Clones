@@ -230,6 +230,7 @@ LCD module:
 
 Multifunction Tester TC-1
 - ATmega324 (very poor pin assignment), 16MHz clock
+  later models may have an ATmega644
 - ST7735 display (bit-bang SPI)
 - external 2.5V voltage reference (TL431)
 - fixed IR receiver module
@@ -240,18 +241,25 @@ Multifunction Tester TC-1
 - initial information provided by indman@EEVblog 
 
 Hints:
-- control MCU U4 needs to be replaced with a simple control circuit (TC1-Mod,
+- Control MCU U4 needs to be replaced with a simple control circuit (TC1-Mod,
   see source repository for Hardware/Markus/TC1-Mod.kicad.tgz, 5µA standby
   current in total) or reprogrammed with a modified firmware (see
-  https://github.com/atar-axis/tc1-u4)
-- set extended fuse byte to 0xfd (brown-out detection)
-- if D2 (rectifier diode for Zener test voltage) gets hot replace it with a
-  Schottky diode rated for 80V reverse voltage or higher, e.g. SS18
-- replace C11 and C12 (filter caps for Zener test voltage) with a 10 or 22µF
-  low-ESR electrolytic cap rated for 100V or higher because of MLCC DC bias
-  capacitance derating issue
-- based on the LCD module used you might have to set LCD_FLIP_X instead of
-  LCD_FLIP_Y
+  https://github.com/atar-axis/tc1-u4).
+- Set extended fuse byte to 0xfd (brown-out detection).
+- If D2 (rectifier diode for Zener test voltage) gets hot replace it with a
+  Schottky diode rated for 80V reverse voltage or higher, e.g. SS18.
+- Replace C11 and C12 (filter caps for Zener test voltage) with a 10 or 22µF
+  low-ESR electrolytic cap rated for 100V or higher because of the MLCC DC
+  bias capacitance derating issue.
+- Based on the LCD module used you might have to set LCD_FLIP_X instead of
+  LCD_FLIP_Y.
+- The TC-1 can't provide signal output (PWM/squarewave/etc.) on probe #2. Use
+  PD4 (OC1B) as dedicated signal output (add a resistor to limit current) and
+  enable HW_FIXED_SIGNAL_OUTPUT in config.h.
+- If you like to add a rotary encoder or in/decrease buttons please use
+  PB5 (display's D/C) and PB6 (display's SDA).
+- You can also get the frequency counter by using PB0 (T0) as input und adding
+  a simple input stage.
 
 Hardware Options:
 #define HW_REF25
