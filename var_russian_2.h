@@ -77,7 +77,7 @@
     const unsigned char Contrast_str[] EEMEM = "Контраст";
   #endif
 
-  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     const unsigned char IR_Detector_str[] EEMEM = "ИК-приёмник";
   #endif
 
@@ -88,8 +88,11 @@
 
   #ifdef SW_OPTO_COUPLER
     const unsigned char OptoCoupler_str[] EEMEM = "Oптрон";
-    const unsigned char Start_str[] EEMEM = "Начать проверку";
     const unsigned char None_str[] EEMEM = "не найден";
+  #endif
+
+  #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20)
+    const unsigned char Start_str[] EEMEM = "Начать проверку";
   #endif
 
   #ifdef SW_UJT
@@ -99,6 +102,14 @@
   #ifdef SW_SERVO
     const unsigned char Servo_str[] EEMEM = "Сервопривод";
     const unsigned char Sweep_str[] EEMEM = "<->";
+  #endif
+
+  #ifdef SW_CAP_LEAKAGE
+    const unsigned char CapLeak_str[] EEMEM = "Cap Leakage";
+    const unsigned char CapCharge_str[] EEMEM = "Charging";
+    const unsigned char CapHigh_str[] EEMEM = "Rl";
+    const unsigned char CapLow_str[] EEMEM = "Rh";
+    const unsigned char CapDischarge_str[] EEMEM = "Discharging";
   #endif
 
   #ifdef HW_TOUCH

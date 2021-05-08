@@ -82,12 +82,12 @@
  *  local variables
  */
 
-#if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
+#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
 /* demodulated/raw IR code */
 uint8_t             IR_Code[IR_CODE_BYTES];  /* raw data */
 #endif
 
-#if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
 /* decoding logic */
 uint8_t             IR_State = 0;            /* multi packet protocol state */
 
@@ -1858,14 +1858,14 @@ void IR_Detector(void)
   while (n)
   {
     #ifdef SW_IR_RECEIVER
-    if (ADC_PIN & (1 << TP3))           /* check for high level */
+    if (ADC_PIN & (1 << TP3))      /* check for high level */
     #else
-    if (IR_PIN & (1 << IR_DATA))        /* check for high level */
+    if (IR_PIN & (1 << IR_DATA))   /* check for high level */
     #endif
     {
       n = 0;                            /* end this loop */
     }
-    else
+    else                           /* check test key */
     {
       Flag = TestKey(100, CURSOR_NONE); /* wait 100ms for key press */
       if (Flag)                         /* key pressed */

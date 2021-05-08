@@ -8,6 +8,15 @@
 
 ------------------------------------------------------------------------------
 
+v1.34m 2018-10
+- Added leakage check for capacitors.
+- Changed default value for RH_OFFSET to 350 Ohms. 
+- Fixed missing menu entry for fixed IR receiver module.
+- Polish texts (thanks to Szpila).
+- Display driver for output via VT100 serial terminal.
+- Support for temperature sensor DS18B20.
+- Driver for OneWire bus.
+
 v1.33m 2018-05
 - Fixed orientation of TRIAC symbol in symbols_32x32_hf.h.
 - Added remote commands for automation (via TTL serial).

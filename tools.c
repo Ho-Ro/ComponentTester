@@ -64,6 +64,8 @@ volatile uint8_t       SweepDir;        /* sweep direction */
  *
  *  required:
  *  - Mode
+ *    PROBES_PWM  PWM signal
+ *    PROBES_ESR  ESR measurement
  */
 
 void ProbePinout(uint8_t Mode)
@@ -79,6 +81,7 @@ void ProbePinout(uint8_t Mode)
     ID_2 = 's';
     ID_3 = '-';
   }
+  #if defined (SW_ESR) || defined (SW_OLD_ESR)
   else                        /* ESR */
   {
     /* 1: + / 3: - */
@@ -86,6 +89,7 @@ void ProbePinout(uint8_t Mode)
     ID_2 = 0;
     ID_3 = '-';
   }
+  #endif
 
   Show_SimplePinout(ID_1, ID_2, ID_3);  /* display pinout */
 
@@ -293,7 +297,7 @@ void PWM_Tool(uint16_t Frequency)
 
 /*
  *  PWM generator with improved UI
- *  - use probe #2 (OC1B) as PWM output
+ *  - uses probe #2 (OC1B) as PWM output
  *    and probe #1 & probe #3 as ground
  *  - alternative: dedicated signal output via OC1B
  *  - max. reasonable PWM frequency for 8MHz MCU clock is 40kHz
@@ -694,7 +698,7 @@ void PWM_Tool(void)
 
 /*
  *  Servo Check, PWM generator for testing servos
- *  - use probe #2 (OC1B) as PWM output
+ *  - uses probe #2 (OC1B) as PWM output
  *    and probe #1 & probe #3 as ground
  *  - alternative: dedicated signal output via OC1B
  *  - requires additional keys (e.g. rotary encoder) and
@@ -1273,7 +1277,7 @@ ISR(TIMER0_COMPA_vect, ISR_BLOCK)
 
 /*
  *  create square wave signal with variable frequency
- *  - use probe #2 (OC1B) as output
+ *  - uses probe #2 (OC1B) as output
  *    and probe #1 & probe #3 as ground
  *  - alternative: dedicated signal output via OC1B
  *  - requires additional keys (e.g. rotary encoder)
@@ -1530,7 +1534,7 @@ void SquareWave_SignalGenerator(void)
 
 /*
  *  ESR tool
- *  - use probe #1 (pos) and probe #3 (neg) 
+ *  - uses probe #1 (pos) and probe #3 (neg) 
  */
 
 void ESR_Tool(void)
@@ -2005,7 +2009,7 @@ ISR(TIMER1_COMPA_vect, ISR_BLOCK)
 
 /*
  *  extended frequency counter
- *  - frequency input T0 
+ *  - frequency input: T0 
  *  - control signals
  *    prescaler       - COUNTER_CTRL_DIV
  *    channel addr #0 - COUNTER_CTRL_CH0
@@ -3024,6 +3028,339 @@ void OptoCoupler_Tool(void)
       #endif
     }
   }
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   OneWire
+ * ************************************************************************ */
+
+
+#ifdef SW_DS18B20
+
+/*
+ *  temperature sensor DS18B20
+ */
+
+void DS18B20_Tool(void)
+{
+  uint8_t           Flag;     /* control flag */
+  uint8_t           Test;     /* key / feedback */
+  uint8_t           Bits;     /* bit depth */
+  int8_t            Scale;    /* temperature scale 10^x */
+  int32_t           Value;    /* temperature value */
+  #ifdef UI_FAHRENHEIT
+  int32_t           Temp;     /* temporary value */
+  #endif
+
+  /* inform user about pinout and check for client */
+  Flag = OneWire_Probes(DS18B20_str);
+  LCD_ClearLine2();                     /* clear line #2 */
+  Display_EEString(Start_str);          /* display: Start */
+
+
+  /*
+   *  processing loop
+   */
+
+  while (Flag)
+  {
+    /* user input */
+    Test = TestKey(0, CURSOR_BLINK);    /* get user input */
+
+    if (Test == KEY_SHORT)         /* short key press */
+    {
+      /* a second key press ends tool */
+      MilliSleep(50);
+      Test = TestKey(300, CURSOR_NONE);
+      if (Test > KEY_TIMEOUT)           /* any key */
+      {
+        Flag = 0;                       /* end loop */
+      }
+    }
+
+    LCD_ClearLine2();                   /* clear line #2 */
+
+    if (Flag)            /* ok to proceed */
+    {
+      /* get temperature from DS18B20 (in °C) */
+      Test = DS18B20_ReadTemperature(&Value, &Scale, &Bits);
+
+      if (Test)                    /* got temperature */
+      {
+        /* Scale should be -1 to -4: 1-4 decimal places */
+        Scale = -Scale;
+
+        #ifdef UI_FAHRENHEIT
+        /*
+         *  convert °C to °F
+         *  - T[°F] = T[°C] * 9/5 + 32
+         */
+
+        Value *= 9;
+        Value /= 5;
+        Temp = 32;            /* offset */
+
+        /* scale offset to match temperature's scale */
+        Test = Scale;         /* decimal places */
+        while (Test > 0)
+        {
+          Temp *= 10;         /* scale by 10^1 */
+          Test--;             /* next digit */
+        }
+        Value += Temp;        /* add scaled offset */
+        #endif
+
+        /* todo: add degree symbol to bitmap fonts */ 
+        Display_SignedFullValue(Value, Scale, '°');
+
+        #ifdef UI_FAHRENHEIT
+          Display_Char('F');       /* display: F (Fahrenheit) */
+        #else
+          Display_Char('C');       /* display: C (Celsius) */
+        #endif
+      }
+      else                         /* some error */
+      {
+        Display_Char('-');         /* display n/a */
+      }
+    }
+  }
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   capacitor leakage current
+ * ************************************************************************ */
+
+
+#ifdef SW_CAP_LEAKAGE
+
+/*
+ *  tool for measuring the leakage current of a capacitor
+ *  - uses probe #1 (pos) and probe #3 (neg)
+ *  - requires display with more than 2 lines
+ */
+
+void Cap_Leakage(void)
+{
+  uint8_t           Flag;               /* loop control flag */
+  uint8_t           Test = 0;           /* user feedback */
+  uint8_t           Mode;               /* mode */
+  uint16_t          U1;                 /* voltage #1 */
+  uint32_t          Value;              /* temp. value */
+
+  /* control flags */
+  #define RUN_FLAG            0b00000001     /* run flag */
+  #define CHANGED_MODE        0b00000100     /* mode has changed */
+
+  /* mode */
+  #define MODE_NONE           0         /* no mode (show pinout) */
+  #define MODE_HIGH           1         /* charge cap: high current */
+  #define MODE_LOW            2         /* charge cap: low current */
+  #define MODE_DISCHARGE      3         /* discharge cap */
+
+  /* show info */
+  LCD_Clear();                          /* clear display */
+  Display_EEString(CapLeak_str);        /* display: cap leakage */
+
+  /* set start values */
+  Flag = RUN_FLAG | CHANGED_MODE;
+  Mode = MODE_NONE;
+
+  UpdateProbes(PROBE_1, 0, PROBE_3);    /* update bitmasks and probes */
+
+  while (Flag > 0)       /* processing loop */
+  {
+    /*
+     *  display mode and set probes
+     */
+
+    if (Flag & CHANGED_MODE)       /* mode has changed */
+    {
+      LCD_ClearLine2();            /* clear line #2 */
+
+      switch (Mode)                /* based on mode */
+      {
+        case MODE_NONE:            /* display pinout */
+          /* probe-1: Vcc / probe-3: Gnd */
+          Show_SimplePinout('+', 0, '-');
+          LCD_ClearLine(3);             /* clear line #3 */
+          break;
+
+        case MODE_HIGH:            /* charge cap with high current (Rl) */
+          Display_EEString_Space(CapCharge_str);
+          Display_EEString(CapHigh_str);
+
+          /* set probes: probe-3 -- Rl -- Gnd / probe-1 -- Vcc */
+          ADC_DDR = 0;                  /* set to HiZ */
+          R_DDR = Probes.Rl_3;          /* select Rl for probe-3 */
+          R_PORT = 0;                   /* pull down probe-3 via Rl */
+          ADC_PORT = Probes.Pin_1;      /* pull up probe-1 directly */
+          ADC_DDR = Probes.Pin_1;       /* enable pull-up of probe-1 */
+          break;
+
+        case MODE_LOW:             /* charge cap with low current (Rh) */
+          /* max. charge current I = 5V/Rh = 10.6µA */
+          Display_EEString_Space(CapCharge_str);
+          Display_EEString(CapLow_str);
+
+          /* set probes: probe-3 -- Rh -- Gnd / probe-1 -- Vcc */
+          /* simply switch pull-down resistor Rl to Rh */
+          R_DDR = Probes.Rh_3;          /* select Rh for probe-3 */
+          break;
+
+        case MODE_DISCHARGE:       /* discharge cap */
+          Display_EEString(CapDischarge_str);
+          /* set probes: probe-3 -- Gnd / probe-1 -- Rl -- Gnd */
+          ADC_DDR = 0;                  /* set to HiZ */
+          R_DDR = Probes.Rl_1;          /* select Rl for probe-1 */
+          /* R_PORT set to 0 already: pull down probe-1 via Rl */
+          ADC_DDR = Probes.Pin_3;       /* set probe-3 to output */
+          ADC_PORT = 0;                 /* pull down probe-3 directly */
+          break;
+      }
+
+      Flag &= ~CHANGED_MODE;       /* clear flag */
+    }
+
+
+    /*
+     *  manage modes
+     */
+
+    if (Mode != MODE_NONE)
+    {
+      LCD_ClearLine(3);            /* clear line #3 */
+      LCD_CharPos(1, 3);           /* move to line #3 */
+
+      switch (Mode)                /* based on mode */
+      {
+        case MODE_HIGH:            /* charge cap with high current (Rl) */
+          /* voltage across Rl and RiL at probe-3 */
+          U1 = ReadU(Probes.ADC_3);          /* read voltage at probe-3 */
+
+          /* calculate current: I = U / R (ignore R_Zero) */
+          Value = U1;                        /* U across Rl and RiL in mV */
+          Value *= 100000;                   /* scale to 0.01 µV */
+          Value /= ((R_LOW * 10) + NV.RiL);  /* 0.01 µV / 0.1 Ohms = 0.1 µA */
+          Display_Value(Value, -7, 'A');     /* display current */
+
+          /* change to low current mode when current is quite low */
+          if (U1 <= 3)                       /* I <= 4.2µA */
+          {
+            Mode = MODE_LOW;                 /* low current mode */
+            Flag |= CHANGED_MODE;            /* set flag for changed mode */
+          }
+          break;
+
+        case MODE_LOW:             /* charge cap with low current (Rh) */
+          /* voltage across Rh at probe-3 (ignore RiL) */
+          U1 = ReadU(Probes.ADC_3);          /* read voltage at probe-3 */
+
+          if (U1 > CAP_DISCHARGED)      /* minimum exceeded */
+          {
+            /* calculate current: I = U / R */
+            Value = U1;                        /* in mV */
+            Value *= 10000;                    /* scale to 0.1 µV */
+            Value /= (R_HIGH / 1000);          /* 0.1 µV / kOhms = 0.1 nA */
+            Display_Value(Value, -10, 'A');    /* display current */
+          }
+          else                          /* in the noise floor */
+          {
+            Display_Char('-');
+          }
+          break;
+
+        case MODE_DISCHARGE:       /* discharge cap */
+          /* voltage at cap (probe-1) */
+          U1 = ReadU(Probes.ADC_1);          /* read voltage at probe-1 */
+          Display_Value(U1, -3, 'V');        /* display voltage */
+
+          /* check if cap is discharged */
+          if (U1 <= CAP_DISCHARGED)          /* < threshold */
+          {
+            /* start new check cycle */
+            Mode = MODE_NONE;                /* show pinout */
+            Flag |= CHANGED_MODE;            /* set flag for changed mode */
+          }
+          break;
+      }
+
+      /* common display output */
+      if ((Mode == MODE_HIGH) || (Mode == MODE_LOW))
+      {
+        /* display voltage across current shunt (Rl or Rh) */
+        Display_Space();
+        Display_Char('(');
+        Display_Value(U1, -3, 'V');          /* display voltage */
+        Display_Char(')');
+      }
+    }
+
+
+    /*
+     *  user feedback
+     *  - short key press -> next step
+     *  - two short key presses -> exit tool
+     */
+
+    if (! (Flag & CHANGED_MODE))        /* skip when mode has changed */
+    {
+      Test = TestKey(2000, CURSOR_NONE);   /* check for user feedback */
+
+      if (Test == KEY_SHORT)            /* short key press */
+      {
+        MilliSleep(50);                 /* debounce button a little bit longer */
+        Test = TestKey(200, CURSOR_NONE);  /* check for second key press */
+
+        if (Test > KEY_TIMEOUT)         /* second key press */
+        {
+          Flag = 0;                     /* end processing loop */
+        }
+        else                            /* single key press */
+        {
+          Test = 100;                   /* next mode */
+        }
+      }
+      #ifdef HW_KEYS
+      else if (Test == KEY_RIGHT)       /* right key */
+      {
+        Test = 100;                     /* next mode */
+      }
+      #endif
+
+      if (Test == 100)                  /* next mode */
+      {
+        /* change mode */
+        if (Mode == MODE_NONE)          /* pinout mode */
+        {
+          Mode = MODE_HIGH;             /* charge cap with high current */
+          Flag |= CHANGED_MODE;         /* set flag for changed mode */
+        }
+        else                            /* any other mode */
+        {
+          Mode = MODE_DISCHARGE;        /* discharge cap */
+          Flag |= CHANGED_MODE;         /* set flag for changed mode */
+        }
+      }
+    }
+  }
+
+  /* clean up */
+  #undef MODE_NONE
+  #undef MODE_CHARGE
+  #undef MODE_LEAK
+  #undef MODE_DISCHARGE
+
+  #undef RUN_FLAG
+  #undef CHANGED_MODE
 }
 
 #endif

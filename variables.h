@@ -123,12 +123,13 @@
   #include "var_english.h"
   #include "var_german.h"
   #include "var_italian.h"
+  #include "var_polish.h"
   #include "var_spanish.h"
   #include "var_russian.h"
 
   /* language independent */
   const unsigned char Tester_str[] EEMEM = "Component Tester";
-  const unsigned char Version_str[] EEMEM = "v1.33m";
+  const unsigned char Version_str[] EEMEM = "v1.34m";
   const unsigned char MOS_str[] EEMEM = "MOS";
   const unsigned char FET_str[] EEMEM = "FET";
   const unsigned char Channel_str[] EEMEM = "-ch";
@@ -183,7 +184,7 @@
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT)
     const unsigned char Hertz_str[] EEMEM = "Hz";
   #endif
-  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     const unsigned char IR_NEC_str[] EEMEM = "NEC";
     const unsigned char IR_SIRC_str[] EEMEM = "SIRC";
     #ifdef SW_IR_EXTRA
@@ -194,7 +195,7 @@
     const unsigned char IR_uPD1986C_str[] EEMEM = "µPD1986C";
     #endif
   #endif
-  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
     const unsigned char IR_JVC_str[] EEMEM = "JVC";
     const unsigned char IR_Kaseikyo_str[] EEMEM = "Kas";
     const unsigned char IR_Matsushita_str[] EEMEM = "Mat";
@@ -223,6 +224,9 @@
   #endif
   #ifdef SW_UJT
     const unsigned char R_BB_str[] EEMEM = "R_BB";
+  #endif
+  #ifdef SW_DS18B20
+    const unsigned char DS18B20_str[] EEMEM = "DS18B20";
   #endif
 
   /* component symbols */
@@ -545,7 +549,7 @@
   #ifdef SW_CONTRAST
     extern const unsigned char Contrast_str[];
   #endif
-  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     extern const unsigned char IR_Detector_str[];
     extern const unsigned char IR_NEC_str[];
     extern const unsigned char IR_SIRC_str[];
@@ -557,7 +561,7 @@
     extern const unsigned char IR_uPD1986C_str[];
     #endif
   #endif
-  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
     extern const unsigned char IR_JVC_str[];
     extern const unsigned char IR_Kaseikyo_str[];
     extern const unsigned char IR_Matsushita_str[];
@@ -582,12 +586,14 @@
   #endif
   #ifdef SW_OPTO_COUPLER
     extern const unsigned char OptoCoupler_str[];
-    extern const unsigned char Start_str[];
     extern const unsigned char None_str[];
     extern const unsigned char CTR_str[];
     extern const unsigned char If_str[];
     extern const unsigned char t_on_str[];
     extern const unsigned char t_off_str[];
+  #endif
+  #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20)
+    extern const unsigned char Start_str[];
   #endif
   #ifdef SW_UJT
     extern const unsigned char UJT_str[];
@@ -600,6 +606,17 @@
   #ifdef HW_TOUCH
     extern const unsigned char TouchSetup_str[];
   #endif
+  #ifdef SW_DS18B20
+    extern const unsigned char DS18B20_str[];
+  #endif
+  #ifdef SW_CAP_LEAKAGE
+    extern const unsigned char CapLeak_str[];
+    extern const unsigned char CapCharge_str[];
+    extern const unsigned char CapHigh_str[];
+    extern const unsigned char CapLow_str[];
+    extern const unsigned char CapDischarge_str[];
+  #endif
+
 
   /* remote commands */
   #ifdef UI_SERIAL_COMMANDS

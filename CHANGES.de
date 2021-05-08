@@ -8,6 +8,15 @@
 
 ------------------------------------------------------------------------------
 
+v1.34m 2018-10
+- Leckstromtest für Kondensatoren.
+- Standardwert für RH_OFFSET auf 350 Ohm geändert.
+- Problem mit fehlendem Menüeintrag für festes IR-Empfängermodul beseitigt.
+- Polnischer Text (Dank an Szpila).
+- Displaytreiber für Ausgabe auf VT100-Terminal.
+- Unterstützung von Temperatursensor DS18B20.
+- Treiber für OneWire-Bus.
+
 v1.33m 2018-05
 - Orientierung von TRIAC-Symbol in symbols_32x32_hf.h korrigiert.
 - Fernsteuerkommandos zur Automatisierung (über die serielle

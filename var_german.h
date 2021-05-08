@@ -76,7 +76,7 @@
     const unsigned char Contrast_str[] EEMEM = "Kontrast";
   #endif
 
-  #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     const unsigned char IR_Detector_str[] EEMEM = "IR-Detektor";
   #endif
 
@@ -87,8 +87,11 @@
 
   #ifdef SW_OPTO_COUPLER
     const unsigned char OptoCoupler_str[] EEMEM = "Optokoppler";
-    const unsigned char Start_str[] EEMEM = "Start";
     const unsigned char None_str[] EEMEM = "Keiner";
+  #endif
+
+  #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20)
+    const unsigned char Start_str[] EEMEM = "Start";
   #endif
 
   #ifdef SW_UJT
@@ -98,6 +101,14 @@
   #ifdef SW_SERVO
     const unsigned char Servo_str[] EEMEM = "Servo";
     const unsigned char Sweep_str[] EEMEM = "<->";
+  #endif
+
+  #ifdef SW_CAP_LEAKAGE
+    const unsigned char CapLeak_str[] EEMEM = "C Leckstrom";
+    const unsigned char CapCharge_str[] EEMEM = "Laden";
+    const unsigned char CapHigh_str[] EEMEM = "Rl";
+    const unsigned char CapLow_str[] EEMEM = "Rh";
+    const unsigned char CapDischarge_str[] EEMEM = "Entladen";
   #endif
 
   #ifdef HW_TOUCH

@@ -154,7 +154,7 @@
 
 
 /*
- *  fixed IR remote control detection/decoder
+ *  IR remote control detection/decoder (via dedicated MCU pin)
  *  - requires IR receiver module, e.g. TSOP series
  *  - module is connected to fixed I/O pin
  *  - see IR_PORT for port pin (config-<MCU>.h)
@@ -241,7 +241,7 @@
 
 
 /*
- *  IR remote control detection/decoder
+ *  IR remote control detection/decoder (via probes)
  *  - requires IR receiver module, e.g. TSOP series
  *  - module will be connected to probe leads
  *  - uncomment to enable
@@ -261,16 +261,6 @@
 
 
 /*
- *  additional protocols for IR remote control detection/decoder
- *  and sender
- *  - uncommon protocols which increase flash memory usage ;)
- *  - uncomment to enable
- */
-
-//#define SW_IR_EXTRA
-
-
-/*
  *  IR remote control sender
  *  - requires additional keys and display with more than 4 text lines
  *  - also requires an IR LED with a simple driver
@@ -279,6 +269,15 @@
 
 //#define SW_IR_TRANSMITTER
 
+
+/*
+ *  additional protocols for IR remote control detection/decoder
+ *  and sender
+ *  - uncommon protocols which increase flash memory usage ;)
+ *  - uncomment to enable
+ */
+
+//#define SW_IR_EXTRA
 
 
 /*
@@ -316,6 +315,24 @@
 //#define SW_SERVO
 
 
+/*
+ *  DS18B20
+ *  - uncomment to enable
+ *  - also enable ONEWIRE_PROBES or ONEWIRE_IO_PIN (see section 'Busses')
+ */
+
+//#define SW_DS18B20
+
+
+/*
+ *  capacitor leakage check
+ *  - requires display with more than two lines
+ *  - uncomment to enable
+ */
+
+//#define SW_CAP_LEAKAGE
+
+
 
 /* ************************************************************************
  *   Makefile workaround for some IDEs 
@@ -348,6 +365,7 @@
  *  - Czech
  *  - Danish
  *  - German
+ *  - Polish
  *  - Spanish
  *  - Russian (only 8x16 font horizontally aligned)
  */
@@ -357,6 +375,7 @@
 //#define UI_DANISH
 //#define UI_GERMAN
 //#define UI_ITALIAN
+//#define UI_POLISH
 //#define UI_SPANISH
 //#define UI_RUSSIAN
 
@@ -367,6 +386,14 @@
  */
 
 //#define UI_COMMA
+
+
+/*
+ *  Display temperatures in Fahrenheit instead of Celsius.
+ *  - uncomment to enable
+ */
+
+//#define UI_FAHRENHEIT
 
 
 /*
@@ -463,8 +490,6 @@
  *  transistor (in mV):
  *  - Schottky diode about 200mV / PNP BJT about 100mV.
  *  - Get your DMM and measure the voltage drop!
- *  - Could be also used to compensate any offset by the voltage divider
- *    used to measure the battery voltage.
  */  
 
 #define BAT_OFFSET       290
@@ -536,9 +561,11 @@
 /*
  *  Offset for systematic error of resistor measurement with Rh (470k) 
  *  in Ohms.
+ *  - if resistors >20k measure too high or low adjust the offset accordingly
+ *  - standard offset is 350 Ohms
  */
 
-#define RH_OFFSET        700 
+#define RH_OFFSET        350
 
 
 
@@ -680,6 +707,7 @@
 
 /*
  *  TTL serial interface
+ *  - could already be enabled in display section (config_<MCU>.h)
  *  - for bit-bang serial port and pins see SERIAL_PORT (config_<MCU>.h)
  *  - hardware serial uses automatically the proper MCU pins
  *  - uncomment either SERIAL_BITBANG or SERIAL_HARDWARE to enable
@@ -688,6 +716,16 @@
 //#define SERIAL_BITBANG             /* bit-bang serial */
 //#define SERIAL_HARDWARE            /* hardware serial */
 //#define SERIAL_RW                  /* enable serial read support */
+
+
+/*
+ *  OneWire bus
+ *  - for dedicated I/O pin please see ONEWIRE_PORT (config_<MCU>.h)
+ *  - uncomment either ONEWIRE_PROBES or ONEWIRE_ to enable
+ */
+
+//#define ONEWIRE_PROBES             /* via probes */
+//#define ONEWIRE_IO_PIN             /* via dedicated I/O pin */
 
 
 
@@ -861,20 +899,49 @@
   #define HW_SERIAL
 #endif
 
-/* options which require TTL serial */
-#ifndef HW_SERIAL
-  #if defined (UI_SERIAL_COPY)
+/* VT100 display driver disables other options for serial interface */
+#ifdef LCD_VT100
+  #ifdef UI_SERIAL_COPY
     #undef UI_SERIAL_COPY
   #endif
-  #if defined (UI_SERIAL_COMMANDS)
+  #ifdef UI_SERIAL_COMMANDS
+    #undef UI_SERIAL_COMMANDS
+  #endif  
+#endif
+
+/* options which require TTL serial */
+#ifndef HW_SERIAL
+  #ifdef LCD_VT100
+    #undef LCD_VT100
+  #endif
+  #ifdef UI_SERIAL_COPY
+    #undef UI_SERIAL_COPY
+  #endif
+  #ifdef UI_SERIAL_COMMANDS
     #undef UI_SERIAL_COMMANDS
   #endif
 #endif
 
 /* options which require TTL serial RW */
 #ifndef SERIAL_RW
-  #if defined (UI_SERIAL_COMMANDS)
+  #ifdef UI_SERIAL_COMMANDS
     #undef UI_SERIAL_COMMANDS
+  #endif
+#endif
+
+
+/* OneWire: probe leads prevail */
+#ifdef ONEWIRE_PROBES
+  #undef ONEWIRE_IO_PIN
+#endif
+#ifdef ONEWIRE_IO_PIN
+  #undef ONEWIRE_PROBES
+#endif
+
+/* options which require OneWire */
+#if ! defined (ONEWIRE_PROBES) && ! defined (ONEWIRE_IO_PIN)
+  #ifdef SW_DS18B20
+    #undef SW_DS18B20
   #endif
 #endif
 
@@ -915,6 +982,13 @@
   #define SW_SYMBOLS
 #endif
 
+/* symbols require graphic display */
+#ifdef SW_SYMBOLS
+  #ifndef LCD_GRAPHIC
+    #undef SW_SYMBOLS
+  #endif
+#endif
+
 
 /* frequency counter */
 #if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT)
@@ -922,7 +996,7 @@
 #endif
 
 
-/* IR detector/decoder (probe lead based decoder prevails) */
+/* IR detector/decoder: probe lead based decoder prevails */
 #ifdef SW_IR_RECEIVER
   #undef HW_IR_RECEIVER
 #endif

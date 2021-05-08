@@ -107,11 +107,37 @@
     void Serial_Ctrl(uint8_t Control);
     #endif
 
-    #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
     extern void Serial_Char(unsigned char Char);
+
+    #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
     extern void Serial_NewLine(void);
     #endif
 
+  #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from OneWire.c
+ * ************************************************************************ */
+
+#ifndef ONEWIRE_C
+
+  #ifdef ONEWIRE_IO_PIN
+  extern void OneWire_Setup(void);
+  #endif
+
+  #ifdef ONEWIRE_PROBES
+  extern uint8_t OneWire_Probes(const unsigned char *String);
+  #endif
+
+  #if defined (ONEWIRE_IO_PIN) || defined (ONEWIRE_PROBES)
+  extern uint8_t OneWire_ResetBus(void);
+  #endif
+
+  #ifdef SW_DS18B20
+  extern uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale, uint8_t *Bits);
   #endif
 
 #endif
@@ -176,8 +202,12 @@
   extern void Display_HexValue(uint16_t Value, uint8_t Bits);
   #endif
 
-  #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO)
+  #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO) || defined (SW_DS18B20)
   extern void Display_FullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
+  #endif
+
+  #ifdef SW_DS18B20
+  extern void Display_SignedFullValue(int32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
   extern void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit);
@@ -310,6 +340,14 @@
 
   #ifdef SW_OPTO_COUPLER
   extern void OptoCoupler_Tool(void);
+  #endif
+
+  #ifdef SW_DS18B20
+  extern void DS18B20_Tool(void);
+  #endif
+
+  #ifdef SW_CAP_LEAKAGE
+  extern void Cap_Leakage(void);
   #endif
 
 #endif

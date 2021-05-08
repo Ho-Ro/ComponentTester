@@ -1289,7 +1289,7 @@ uint8_t PresentMainMenu(void)
     #define ITEM_12      0
   #endif
 
-  #ifdef SW_IR_RECEIVER
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     #define ITEM_13      1
   #else
     #define ITEM_13      0
@@ -1319,8 +1319,20 @@ uint8_t PresentMainMenu(void)
     #define ITEM_17      0
   #endif
 
-  #define MENU_ITEMS (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17)
-//  #define MENU_ITEMS     18             /* worst case */
+  #ifdef SW_DS18B20
+    #define ITEM_18      1
+  #else
+    #define ITEM_18      0
+  #endif
+
+  #ifdef SW_CAP_LEAKAGE
+    #define ITEM_19      1
+  #else
+    #define ITEM_19      0
+  #endif
+
+  #define MENU_ITEMS (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19)
+//  #define MENU_ITEMS     19             /* worst case */
 
   uint8_t           Item = 0;           /* item number */
   uint8_t           ID;                 /* ID of selected item */
@@ -1353,6 +1365,11 @@ uint8_t PresentMainMenu(void)
   MenuID[Item] = 9;
   Item++;
   #endif
+  #ifdef SW_CAP_LEAKAGE
+  MenuItem[Item] = (void *)CapLeak_str;      /* cap leakage */
+  MenuID[Item] = 19;
+  Item++;
+  #endif
   #ifdef HW_FREQ_COUNTER
   MenuItem[Item] = (void *)FreqCounter_str;  /* frequency counter */
   MenuID[Item] = 10;
@@ -1363,7 +1380,7 @@ uint8_t PresentMainMenu(void)
   MenuID[Item] = 11;
   Item++;
   #endif
-  #ifdef SW_IR_RECEIVER
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
   MenuItem[Item] = (void *)IR_Detector_str;  /* IR RC detection */
   MenuID[Item] = 13;
   Item++;
@@ -1382,6 +1399,11 @@ uint8_t PresentMainMenu(void)
   MenuItem[Item] = (void *)Servo_str;        /* servo check */
   MenuID[Item] = 15;
   Item++;
+  #endif
+  #ifdef SW_DS18B20
+  MenuItem[Item] = (void *)DS18B20_str;      /* temperature sensor DS18B20 */
+  MenuID[Item] = 18;
+  Item++;  
   #endif
 
   /* standard items */
@@ -1523,7 +1545,7 @@ void MainMenu(void)
       break;
     #endif
 
-    #ifdef SW_IR_RECEIVER
+    #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
     case 13:             /* IR RC detector/decoder */
       IR_Detector();
       break;
@@ -1550,6 +1572,18 @@ void MainMenu(void)
     #ifdef SW_IR_TRANSMITTER
     case 17:             /* IR RC transmitter */
       IR_RemoteControl();
+      break;
+    #endif
+
+    #ifdef SW_DS18B20
+    case 18:             /* temperature sensor DS18B20 */
+      DS18B20_Tool();
+      break;
+    #endif
+
+    #ifdef SW_CAP_LEAKAGE
+    case 19:             /* cap leakage */
+      Cap_Leakage();
       break;
     #endif
   }

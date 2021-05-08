@@ -97,18 +97,18 @@ HEX_EEPROM_FLAGS += --set-section-flags=.eeprom="alloc,load"
 HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 # header files
-HEADERS = config.h common.h variables.h functions.h colors.h
-HEADERS += config_328.h config_644.h
-HEADERS += $(wildcard var_*.h)
+HEADERS = config.h config_328.h config_644.h colors.h
+HEADERS += common.h variables.h $(wildcard var_*.h) functions.h
+HEADERS += OneWire.h
 HEADERS += HD44780.h ST7565R.h ILI9341.h PCD8544.h ST7735.h ST7920.h
 HEADERS += SSD1306.h ILI9163.h ADS7843.h
 
 # objects
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o
 OBJECTS_C += resistor.o cap.o semi.o inductor.o tools.o IR.o
-OBJECTS_C += display.o SPI.o I2C.o serial.o commands.o
+OBJECTS_C += display.o SPI.o I2C.o serial.o commands.o OneWire.o
 OBJECTS_C += HD44780.o ST7565R.o ILI9341.o PCD8544.o ST7735.o ST7920.o
-OBJECTS_C += SSD1306.o ILI9163.o ADS7843.o
+OBJECTS_C += SSD1306.o ILI9163.o VT100.o ADS7843.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 

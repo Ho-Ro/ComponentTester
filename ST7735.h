@@ -2,7 +2,7 @@
  *
  *   ST7735 color graphic display controller
  *
- *   (c) 2016-2017 by Markus Reschke
+ *   (c) 2016-2018 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1095,7 +1095,7 @@
 
 
 /*
- *  EEPROM control 1
+ *  EEPROM control 1: EEPROM control status
  *  - 1 byte cmd + 1 byte data
  */
 
@@ -1107,11 +1107,11 @@
 #define FLAG_ID2_ENABLE       0b00010000     /* enable command */
   /* command "VCOM Offset Control": */
 #define FLAG_VMF_DISABLE      0b00000000     /* disable command */
-#define FLAG_VMV_ENABLE       0b00100000     /* enable command */
+#define FLAG_VMF_ENABLE       0b00100000     /* enable command */
 
 
 /*
- *  EEPROM control 2 (read command)
+ *  EEPROM control 2: EEPROM read command
  *  - 1 byte cmd + 1 byte data
  */
 
@@ -1122,7 +1122,7 @@
 
 
 /*
- *  EEPROM control 3 (write command)
+ *  EEPROM control 3: EEPROM write command
  *  - 1 byte cmd + 3 bytes data
  */
 

@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2018-05-25
+Last edit:  2018-10-05
 
 Content
   - About
@@ -19,8 +19,10 @@ Content
   - Whats different?
   - Source Code
   - Building the firmware
-  - I2C/SPI
-  - TTL Serial
+  - Busses & Interfaces
+    - I2C/SPI
+    - TTL Serial
+    - OneWire
   - Displays
     - HD44780
     - ILI9163
@@ -30,6 +32,7 @@ Content
     - ST7565R
     - ST7735
     - ST7920
+    - VT100 Terminal
   - Test push button and other input options
     - Test Key
     - Rotary Encoder
@@ -38,6 +41,7 @@ Content
   - Communication with PC
     - Serial Output
     - Automation
+    - VT100 Output
   - Startup
   - Probing
   - Power Off
@@ -46,6 +50,7 @@ Content
     - Square Wave Generator
     - Zener Tool
     - ESR Tool
+    - Capacitor Leakage Check
     - Frequency Counter
       - Basic Counter
       - Extended Counter
@@ -55,6 +60,7 @@ Content
     - IR RC Transmitter
     - Opto Coupler Tool
     - Servo Check
+    - Temperature Sensor DS18B20
     - Self Test
     - Self Adjustment
     - Save/Load
@@ -130,6 +136,7 @@ official release:
 - user interface
   + No worries! ;)
   + touch screen
+  + remote commands
 - adaptive component discharging function
 - resistance measurement
   + dedicated method for resistances <10 Ohms (instead of using ESR check)
@@ -151,7 +158,7 @@ official release:
 - IR RC transmitter
 - opto coupler check
 - RC servo check
-- MCU clock rates up to 20MHz
+- OneWire (DS18B20)
 - structured source code
 - some more I couldn't think of right now
 
@@ -196,6 +203,7 @@ Hardware options:
 - SPI bus (bit-bang and hardware)
 - I2C bus (bit-bang and hardware)
 - TTL Serial (bit-bang and hardware)
+- OneWire bus (Bit-Bang)
 
 The external 2.5V voltage reference should be only enabled if it's at least
 10 times more precise than the voltage regulator. Otherwise it would make
@@ -214,9 +222,12 @@ And of course the software options:
 - check for opto couplers
 - servo check (requires additional keys, display with >2 lines)
 - detection of UJTs
+- cap leakage check
+- DS18B20 temperature sensor
 - color coding for probes (requires color graphics display)
 - output of components found also via TTL serial, e.g. to a PC
   (requires TTL serial)
+- remote commands for automation via TTL serial
 
 Please choose the options carefully to match your needs and the MCU's
 ressources, i.e. RAM, EEPROM and flash memory. If the firmware exceeds the
@@ -229,6 +240,7 @@ Available UI languages:
 - English (default)
 - German
 - Italian (privided by Gino_09@EEVblog)
+- Polish (provided by Szpila)
 - Spanish (provided by pepe10000@EEVblog)
 - Russian (provided by indman@EEVblog and hapless@@EEVblog)
   just 8x16 font (horizontally aligned) and HD44780 with Cyrillc font
@@ -255,7 +267,9 @@ following additional targets:
 - upload   to upload the firmware to the ATmega
 
 
-* I2C/SPI
+* Busses & Interfaces
+
++ I2C/SPI
 
 Some displays and other hardware might need I2C or SPI for connecting to the
 MCU. Therefore the firmware includes drivers for both bus systems. To cope
@@ -277,7 +291,7 @@ and SPI in config.h, and set ports and pins in dedicated sections in
 config-<MCU>.h (look for I2C_PORT or SPI_PORT).
 
 
-* TTL Serial
++ TTL Serial
 
 The tester can also provide a TTL serial interface. In case it's used for
 communication with a PC it should be combined with a USB to TTL serial
@@ -302,6 +316,20 @@ The default setting for the TTL serial is 9600 8N1:
   - no flow control
 
 
++ OneWire
+
+Another supported bus is OneWire which can use either the probes/test pins (
+ONEWIRE_PROBES) or a dedicated I/O pin (ONEWIRE_IO_PIN). The driver is designed
+for standard bus speed and clients to be powered externally (not parasitic-
+powered).
+
+Pin assignment for probes:
+  Probe #1:  Gnd
+  Probe #2:  Vcc (current limited by 680 ohms resistor)
+  Probe #3:  DQ (data)
+  An external pull-up resistor of 4.7kOhms between DQ and Vcc is required!
+
+
 * Displays
 
 At the moment following LCD controllers are supported:
@@ -313,7 +341,7 @@ At the moment following LCD controllers are supported:
 - ST7565R (graphic display 128x64)
 - ST7735 (color graphic display 128x160)
 - ST7920 (graphic display up to 256x64)
-
+- VT100 Terminal
 
 Take care about the LCD's supply voltage and logic levels! Use a level shifter
 if required. If the display doesn't show anything after double checking the
@@ -503,6 +531,14 @@ used. To cope with the horizontal 16 bit addressing grid I had to add a screen
 buffer for characters.
 
 
++ VT100 Terminal
+
+The VT100 driver replaces a LCD display and outputs everything to a VT100 serial
+terminal. The configuration section for VT100 includes already the activation of
+the TTL serial interface. Be aware that the VT100 driver will disable other
+options related to the serial interface which might interfere with the output.
+
+
 * Test push button and other input options
 
 The tester's primary control is the test key, but additional input options
@@ -596,19 +632,8 @@ This could be a TX-only connection for outputting components found or a
 bidrectional one for automation. In both cases the TTL serial interface needs
 to be enabled in config.h (see section "Busses").
 
-Hints:
-- 9600 8N1
-- newline is <CR><NL>
-
-
-+ Serial Output
-
-The tester outputs components found to a PC running a simple terminal program
-when this feature is enabled (see UI_SERIAL_COPY in section "misc settings"
-in config.h). The serial output follows the output on the LCD display but only
-for the components found. Special characters are replaced with standard ones,
-for example the omega (Ohms) becomes a simple R. There is no serial output for
-menus and tools besides the results of the opto coupler check.
+Special characters are replaced with standard ones, for example the omega (
+Ohms) becomes a simple R.
 
 conversion table:
   diode symbols       |>  <|
@@ -616,6 +641,19 @@ conversion table:
   omega               R
   micro / µ           u
   resistor symbol     []
+
+Hints:
+- 9600 8N1
+- newline is <CR><LF>
+
+
++ Serial Output
+
+The tester outputs components found to a PC running a simple terminal program
+when this feature is enabled (see UI_SERIAL_COPY in section "misc settings"
+in config.h). The serial output follows the output on the LCD display but only
+for the components found. There is no serial output for menus and tools besides
+the results of the opto coupler check.
 
 
 + Automation
@@ -629,11 +667,18 @@ powering on.
 
 The command interface is fairly simply. You send a command and the tester will
 respond. The communication is based on ASCII textlines and the commands are
-case sensitive. Each command line has to be ended by a <CR><NL> or <NL> newline.
+case sensitive. Each command line has to be ended by a <CR><LF> or <LF> newline.
 Be aware that the tester will only accept commands when waiting for user
 feedback after powering on, displaying a component or running a menu function.
-Response lines end with a <CR><NL> newline. See section "Remote Commands" for
+Response lines end with a <CR><LF> newline. See section "Remote Commands" for
 a list of commands and their explanation.
+
+
++ VT100 Output
+
+The tester can output everything to a VT100 terminal instead of a LCD display (
+see VT100 in section "Displays"). To keep the layout of the output undisturbed
+all other options for the serial interface are disabled.
 
 
 * Startup
@@ -783,6 +828,26 @@ capacitor will affect the measurement.
 
 For triggering a measurement please press the test key. Two quick short key
 presses will exit the tool.
+
+How to connect the capacitor:
+   Probe #1: positive
+   Probe #3: negative (Gnd)
+
+
++ Capacitor Leakage Check
+
+The cap leakage check charges a cap and displays the current and the voltage
+across the current shunt. It starts charging the cap using Rl (680 Ohms) and
+switches to Rh (470kOhms) when the current drops below a specific threshold.
+
+Each cycle begins with the display of the pinout. After connecting the cap
+press the test button (or right turn in case of a rotary encoder) to start
+the charging process. To end charging press the test button again and the
+tester will discharge the cap while displaying its voltage until the voltage
+drops below the discharge threshold. To exit the check press the test button
+twice.
+
+Hint: Pay attention to the polarity of polarized caps!
 
 How to connect the capacitor:
    Probe #1: positive
@@ -1094,6 +1159,18 @@ Airtronics     PWM White/Black     Gnd Black           Vcc Red
 Futaba         PWM White           Vcc Red             Gnd Black
 hitec          PWM Yellow          Vcc Red             Gnd Black
 JR Radios      PWM Orange          Vcc Red             Gnd Brown
+
+
++ Temperature Sensor DS18B20
+
+This tool reads the OneWire temperature sensor DS18B20 and displays the
+temperature. Please see section "Busses & Interfaces" for the setup of
+the OneWire bus. When using the probes the tester will inform you about
+the pin assignment and waits until it can detect the external pull-up
+resistor. You can skip this by a key press. After connecting the DS18B20
+as the only client on the OneWire bus push the test button for reading the
+sensor (this may take nearly a second). To exit the tool press the test button
+twice quickly.
 
 
 + Self Test

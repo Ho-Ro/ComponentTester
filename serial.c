@@ -49,7 +49,8 @@
  *  local constants
  */
 
-/* USART based registers, bits and stuff (hardware) */
+/* registers, bits and stuff for hardware USART */
+
 /* USART0 */
 #if SERIAL_USART == 0
   #define REG_UDR        UDR0      /* USART I/O Data Register 0 */
@@ -118,7 +119,9 @@
   #define ISR_USART_RX   USART1_RX_vect      /* ISR */
 #endif
 
-/* PCINT based registers. bits and stuff (bit-bang) */
+
+/* registers, bits and stuff for bit-bang USART */
+
 /* PCINT0-7 */
 #if (SERIAL_PCINT >= 0) && (SERIAL_PCINT <= 7)
   #define BIT_PC_IRQ     PCIE0          /* Pin Change Interrupt Enable 0 */
@@ -494,7 +497,7 @@ void Serial_Setup(void)
   #ifdef SERIAL_RW
     /* enable TX and RX */
     REG_UCSR_B = (1 << BIT_RXEN) | (1 << BIT_TXEN);
-    /* hint: use Serial_Ctrl() to enable interrupt for RX complete later on */
+    /* hint: use Serial_Ctrl() to enable interrupt for RX Complete later on */
   #else
     /* enable TX */
     REG_UCSR_B = (1 << BIT_TXEN);
@@ -625,7 +628,6 @@ ISR(ISR_USART_RX, ISR_BLOCK)
  * ************************************************************************ */
 
 
-#if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
 
 /*
  *  write one char
@@ -676,6 +678,8 @@ void Serial_Char(unsigned char Char)
 }
 
 
+
+#if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
 
 /*
  *  send carriage return and linefeed

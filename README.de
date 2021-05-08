@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2018-05-25
+Letzte Änderung:  2018-10-05
 
 Inhaltsübersicht:
   - Über den Tester
@@ -19,8 +19,10 @@ Inhaltsübersicht:
   - Unterschiede
   - Quellcode
   - Firmware übersetzen
-  - I2C/SPI
-  - Serielle TTL-Schnittstelle
+  - Busse & Schnittstellen
+    - I2C/SPI
+    - Serielle TTL-Schnittstelle
+    - OneWire
   - LCD-Module
     - HD44780
     - ILI9163
@@ -30,6 +32,7 @@ Inhaltsübersicht:
     - ST7565R
     - ST7735
     - ST7920
+    - VT100 Terminal
   - Tasten und Eingabeoptionen
     - Test-Taste
     - Drehencoder
@@ -38,6 +41,7 @@ Inhaltsübersicht:
   - Kommunikation mit PC
     - Serielle Ausgabe
     - Automatisierung
+    - VT100-Ausgabe
   - Einschalten
   - Bauteilesuche
   - Ausschalten
@@ -46,6 +50,7 @@ Inhaltsübersicht:
     - Rechteck-Signalgenerator
     - Zenertest
     - ESR-Messung
+    - Kondensatorleckstrom
     - Frequenzzähler
       - Einfacher Zähler
       - Erweiterter Zähler
@@ -55,6 +60,7 @@ Inhaltsübersicht:
     - IR-Fernbedienung
     - Opto-Koppler-Test
     - Modellbau-Servo-Test
+    - Temperatursensor DS18B20
     - Selbsttest
     - Selbstabgleich
     - Speichern/Laden
@@ -133,6 +139,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - Benutzerschnittstelle
   + Keine Panik! ;)
   + Touch Screen
+  + Automatisierung (Fernsteuerkommandos)
 - Adaptive Entladefunktion
 - Widerstandsmessung
   + zusätliche Methode für Widerstände <10 Ohm (anstatt ESR-Messung)
@@ -154,7 +161,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - IR-Fernbedienung
 - Test von Opto-Kopplern
 - Test von Modellbau-Servos
-- MCU-Taktraten bis zu 20MHz
+- OneWire (DS18B20)
 - Strukturierter Quellcode
 - Und Manches mehr, was mir gerade nicht einfällt.
 
@@ -201,6 +208,7 @@ Hardware-Optionen:
 - SPI-Bus (Bit-Bang und Hardware)
 - I2C-Bus (Bit-Bang und Hardware)
 - TTL-Serielle (Bit-Bang und Hardware)
+- OneWire Bus (Bit-Bang)
 
 Die externe 2,5V Spannungsreferenz sollte nur genutzt werden, wenn sie
 um den Faktor 10 genauer als der Spannungsregler ist. Ansonsten würde
@@ -219,9 +227,12 @@ Und natürlich die Software-Optionen:
 - Test von Opto-Kopplern
 - Test von Modellbau-Servos (braucht zusätzliche Tasten, Display >2 Zeilen)
 - Erkennung von UJTs
+- Test für Kondensatorleckstrom
+- DS18B20 Temperatursensor
 - Farbkodierung für Testpins (benötigt Farbdisplay)
 - Ausgabe der gefundenen Bauteile parallel über TTL-Serielle, z.B auf PC
   (benötigt TTL-Serielle)
+- Fernsteuerkommandos über TTL-Serielle.
 
 Bitte die Optionen entprechend Deinen Wünschen und den begrenzten Ressourcen 
 der MCU, d.h. RAM, EEPROM und Flash-Speicher, auswählen. Sollte die Firmware
@@ -234,6 +245,7 @@ Verfügbare Sprachen:
 - Deutsch
 - Englisch
 - Italienisch (von Gino_09@EEVblog)
+- Polnisch (von Szpila)
 - Russisch (von indman@EEVblog und hapless@EEVblog)
   nur 8x16 Zeichensatz (horizontal ausgerichtet) und HD44780 mit kyrillischem
   Zeichensatz
@@ -261,7 +273,10 @@ Das Makefile bietet folgende zusätzliche Targets:
 - upload   Firmware brennen
 
 
-* I2C/SPI
+* Busse & Schnittstellen
+
+
++ I2C/SPI
 
 Manche LCD-Module and andere Komponenten benötigen I2C oder SPI als Schnitt-
 stelle zur MCU. Daher hat der Firmware Treiber für beide Bussysteme. Um
@@ -284,7 +299,7 @@ Du auch I2C bzw. SPI in config.h aktivieren und Ports & Pins in config-<MCU>.h
 festlegen (schaue nach I2C_PORT bzw. SPI_PORT).
 
 
-* Serielle TTL-Schnittstelle
++ Serielle TTL-Schnittstelle
 
 Der Tester kann auch eine optionale serielle TTL-Schnittstelle haben. Wird
 diese zur Kommunikation mit einem PC genutzt, sollte sie mit einem USB-zu-TTL
@@ -309,6 +324,21 @@ Die Standardeinstellung der seriellen Schnittstele ist 9600 8N1:
   - keine Flussteuerung
 
 
++ OneWire
+
+Ein weiterer untesrstützter Bus ist OneWire, welcher entweder die Test-Pins (
+ONEWIRE_PROBES) oder einen festen MCU-Pin (ONEWIRE_IO_PIN) benutzen kann.
+Der Treiber ist für Standard-Busgeschwindigkeit und Clients mit externer
+Stromversorgung (nicht parasitär versorgt) ausgelegt.
+
+Beschaltung von Test-Pins:
+  Probe #1:  Gnd
+  Probe #2:  Vcc (Strom durch 680 Ohm Widerstand begrenzt)
+  Probe #3:  DQ (Daten)
+  Ein externer Pull-Up-Widerstand von 4,7kOhm zwischen DQ and Vcc wird
+  benötigt!
+
+
 * LCD-Module
 
 Im Augenblick werden folgende LCD-Module bzw. Controller unterstützt:
@@ -320,7 +350,7 @@ Im Augenblick werden folgende LCD-Module bzw. Controller unterstützt:
 - ST7565R (grafisches Display 128x64)
 - ST7735 (grafisches Farb-Display 128x160)
 - ST7920 (grafisches Display bis zu 256x64)
-
+- VT100 Terminal
 
 Beachte die Versorgungsspannung und die Logikpegel des LCD-Moduls! Benutze
 Pegelumsetzer, sofern notwendig. Wenn das Display trotz korrekter Beschaltung
@@ -512,6 +542,15 @@ von 8 Pixeln verwendet werden. Zur Handhabung der horizontalen Addressierung in
 16-Bit Schritten mußte ich einen Bildschirmpuffer für Zeichen einrichten.
 
 
++ VT100 Terminal
+
+Der VT100-Treiber ersetzt ein LCD-Modul, und die komplette Ausgabe erfolgt über
+ein serielles VT100-Terminal. Der Konfigrationsabschnitt für VT100 aktiviert
+die serielle Schnittstelle gleich mit. Bitte beachte, daß der VT100-Treiber
+andere Optionen für die serielle Schnittstelle deaktiviert, welche die Ausgabe
+beeinträchtigen können.
+
+
 * Tasten und Eingabeoptionen
 
 Der Tester wird über primär über die Test-Taste bedient, erlaubt aber
@@ -607,9 +646,19 @@ Ausgabe von gefundenen Bauteilen sein, oder auch eine bidrektionale zur
 Automatisierung. In beiden Fällen muß die serielle Schnittstelle aktiviert
 werden (siehe Abschnitt "Busses" in config.h).
 
+Spezielle Zeichen werden durch Standardzeichen ersetzt, z.B. wird das Omega (
+Ohm) zu einem R.
+
+Konvertierungstabelle:
+  Diodensymbol        |>  <|
+  Kondensatorsymbol   ||
+  Omega               R
+  micro / µ           u
+  Widerstandssymbol   []
+
 Hinweise:
 - 9600 8N1
-- Newline ist <CR><NL>
+- Newline ist <CR><LF>
 
 
 + Serielle Ausgabe
@@ -618,16 +667,8 @@ Der Tester gibt gefundene Bauteile zusätzlich über die serielle Schnitt-
 stelle aus, wenn dies aktviert ist (siehe UI_SERIAL_COPY im Abschnitt "misc
 settings" in config.h). Dazu reicht ein einfaches Terminalprogramm auf dem PC. 
 Die Ausgabe folgt der Ausgabe auf dem LCD-Display, aber nur für gefundene
-Bauteile. Spezielle Zeichen werden durch Standardzeichen ersetzt, z.B. wird das
-Omega (Ohm) zu einem R. Es erfolgt keine Ausgabe von Menüs und Funtionen über
+Bauteile.  Es erfolgt keine Ausgabe von Menüs und Funtionen über
 die Serielle, außer für Ergebnisse vom Opto-Koppler-Test.
-
-Konvertierungstabelle:
-  Diodensymbol        |>  <|
-  Kondensatorsymbol   ||
-  Omega               R
-  micro / µ           u
-  Widerstandssymbol   []
 
 
 +  Automatisierung
@@ -641,11 +682,19 @@ und der Tester sucht nach dem Einschalten nicht automatisch nach einem Bauteil.
 Die Kommandoschnitstelle ist recht einfach. Du sendest ein Komanndo und der
 Tester antwortet. Die Kommunikation basiert auf ASCII-Textzeilen, und bei den
 Kommandos ist auf Groß- und Kleinschreibung zu achten. Jede Kommandozeile
-wird mit einem <CR><NL> oder <NL> Newline abgeschlossen. Der Tester nimmt
+wird mit einem <CR><LF> oder <LF> Newline abgeschlossen. Der Tester nimmt
 Kommandos nur während des Wartens auf den Benutzer nach dem Einschalten, der
 Ausgabe eines Bauteils oder der Ausführung einer Menüfunktion an. Antwort-
-zeilen enden mit einem <CR><NL> Newline. Für die Liste der Kommandos und
+zeilen enden mit einem <CR><LF> Newline. Für die Liste der Kommandos und
 ihrer Beschreibung siehe Abschnitt "Fernsteuerungskommandos"
+
+
++ VT100-Ausgabe
+
+Anstatt einer LCD-Anzeige kann die komplette Ausgabe über ein VT100-Terminal
+erfolgen (siehe VT100 im Abschnitt LCD-Module). Um ein Durcheinander im Layout
+der Ausgabe zu vemeiden, werden die anderen Optionen für die serielle Schnitt-
+stelle deaktiviert.
 
 
 * Einschalten
@@ -801,6 +850,27 @@ parallel geschalteter Bauteile abweichen.
 
 Um die Messung zu starten, kurz die Test-Taste drücken. Zum Beenden die
 Test-Taste zweimal kurz hintereinander drücken.
+
+Beschaltung für Kondensator:
+   Pin #1:  Plus
+   Pin #3:  Minus
+
+
++ Kondensatorleckstrom
+
+Der Test auf Leckstrom lädt einen Kondensator auf und zeigt dabei den Strom
+und die Spannung über den Messwiderstand an. Das Laden beginnt mit Rl (680 Ohm)
+und schaltet auf Rh (470kOhm) um, sobald der Strom einen bestimmten Grenzwert
+unterschreitet.
+
+Jeder Testzyklus beginnt mit der Anzeige der Belegung der Testpins. Nach dem
+Verbinden des Kondensators startet ein Druck der Testtaste das Laden (oder
+Rechtsdrehung bei einem Drehencoder). Ein weiterer Druck beendet das Laden,
+und der Tester entlädt den Kondensator während die Restspannung angezeigt wird.
+Sobald der Entladegrenzwert erreicht ist, startet der Tester einen neuen
+Testzyklus. Zum Verlassen des Tests zweimal kurz die Testtaste drücken.
+
+Hinweis: Auf Polarität von Elkos achten!
 
 Beschaltung für Kondensator:
    Pin #1:  Plus
@@ -1118,6 +1188,17 @@ Airtronics     PWM weiss/schwarz   Gnd schwarz         Vcc rot
 Futaba         PWM weiss           Vcc rot             Gnd schwarz
 hitec          PWM gelb            Vcc rot             Gnd schwarz
 JR Radios      PWM orange          Vcc rot             Gnd braun
+
+
++ Temperatursensor DS18B20
+
+Hiermit wird der OneWire Temperatursensor DS18B20 ausgelesen. Zum Einrichten
+des OneWire-Busses siehe bitte den Abschnitt "Busse & Schnittstellen". Bei
+Benutzung der Test-Pins informiert der Tester über die Beschaltung und wartet
+bis ein externer Pull-Up-Widerstand erkannt wurde. Mit einem Tastendruck läßt
+sich dies überspringen. Nach den Verbinden des DS18B20 als einziger Client am
+Bus startet ein Tastendruck das Auslesen der Temeperatur (kann fast eine
+Sekunde dauen). Zum Beenden zweimal kurz die Test-Taste drücken.
 
 
 + Selbsttest

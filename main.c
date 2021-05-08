@@ -1291,6 +1291,10 @@ int main(void)
   Touch_BusSetup();                     /* set up touch screen */
   #endif
 
+  #ifdef ONEWIRE_IO_PIN
+  OneWire_Setup();                      /* set up OneWire bus */
+  #endif
+
 
   /*
    *  watchdog was triggered (timeout 2s)

@@ -362,7 +362,7 @@ void Display_EEString_NL(const unsigned char *String)
 #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
 
 /*
- *  display single hex digit
+ *  display single hexadecimal digit
  *
  *  requires:
  *  - value to display (0-15)
@@ -371,8 +371,9 @@ void Display_EEString_NL(const unsigned char *String)
 void Display_HexDigit(uint8_t Digit)
 {
   /*
-   *  0-9: ascii 48-57
-   *  A-F: ascii 65-70
+   *  convert value into hex digit:
+   *  - 0-9: ascii 48-57
+   *  - A-F: ascii 65-70
    */
 
   if (Digit < 10) Digit += 48;     /* 0-9 */
@@ -387,7 +388,7 @@ void Display_HexDigit(uint8_t Digit)
 #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
 
 /*
- *  display byte as hex
+ *  display byte as hexadecimal number
  *
  *  requires:
  *  - value to display (0-255)
@@ -413,7 +414,7 @@ void Display_HexByte(uint8_t Value)
 #ifdef SW_IR_TRANSMITTER
 
 /*
- *  output hexadecimal value
+ *  display value as hexadecimal number
  *
  *  requires:
  *  - Value: value to display
@@ -451,10 +452,11 @@ void Display_HexValue(uint16_t Value, uint8_t Bits)
 
 
 
-#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO)
+#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO) || defined (SW_DS18B20)
 
 /*
- *  display unsigned value
+ *  display unsigned value plus unit
+ *  - outputs all digits
  *
  *  requires:
  *  - Value: unsigned value
@@ -520,9 +522,38 @@ void Display_FullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
 
 
 
+#ifdef SW_DS18B20
+
 /*
- *  display unsigned value and unit
- *  - max. 4 digits excluding "." and unit
+ *  display signed value plus unit
+ *  - outputs all digits
+ *
+ *  requires:
+ *  - Value: signed value
+ *  - DecPlaces: decimal places (0 = none)
+ *  - Unit: character for unit (0 = none)
+ */
+
+void Display_SignedFullValue(int32_t Value, uint8_t DecPlaces, unsigned char Unit)
+{
+  /* take care about sign */
+  if (Value < 0)              /* negative value */
+  {
+    Display_Char('-');        /* display: "-" */
+    Value = -Value;           /* make value positive */
+  }
+
+  /* and display unsigned value */
+  Display_FullValue((uint32_t)Value, DecPlaces, Unit);
+}
+
+#endif
+
+
+
+/*
+ *  display unsigned value plus unit
+ *  - scales value to max. 4 digits excluding "." and unit
  *
  *  requires:
  *  - unsigned value
@@ -644,7 +675,7 @@ void Display_SignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
   }
 
   /* and display unsigned value */
-  Display_Value((int32_t)Value, Exponent, Unit);
+  Display_Value((uint32_t)Value, Exponent, Unit);
 }
 
 

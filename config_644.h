@@ -93,7 +93,7 @@
 
 #if 0
 #define LCD_ST7565R
-#define LCD_GRAPHIC                     /* monochrome graphic display */
+#define LCD_GRAPHIC                     /* graphic display */
 #define LCD_SPI                         /* SPI interface */
 #define LCD_PORT         PORTB          /* port data register */
 #define LCD_DDR          DDRB           /* port data direction register */
@@ -122,7 +122,8 @@
 
 //#if 0
 #define LCD_ILI9341
-#define LCD_COLOR                       /* color graphic display */
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_COLOR                       /* color display */
 #define LCD_SPI                         /* SPI interface */
 #define LCD_PORT         PORTB          /* port data register */
 #define LCD_DDR          DDRB           /* port data direction register */
@@ -150,7 +151,8 @@
 
 #if 0
 #define LCD_ST7735
-#define LCD_COLOR                       /* color graphic display */
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_COLOR                       /* color display */
 #define LCD_SPI                         /* SPI interface */
 #define LCD_PORT         PORTB          /* port data register */
 #define LCD_DDR          DDRB           /* port data direction register */
@@ -184,8 +186,8 @@
 
 #if 0
 #define LCD_PCD8544
-#define LCD_GRAPHIC                     /* monochrome graphic display */
-#define LCD_SPI                         /*  SPI interface */
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_SPI                         /* SPI interface */
 #define LCD_PORT         PORTB          /* port data register */
 #define LCD_DDR          DDRB           /* port data direction register */
 #define LCD_RES          PB2            /* port pin used for /RES (optional) */
@@ -214,7 +216,7 @@
 
 #if 0
 #define LCD_ST7920
-#define LCD_GRAPHIC                     /* monochrome graphic display */
+#define LCD_GRAPHIC                     /* graphic display */
 #define LCD_SPI                         /* SPI interface */
 #define LCD_PORT         PORTB          /* port data register */
 #define LCD_DDR          DDRB           /* port data direction register */
@@ -244,7 +246,7 @@
 
 #if 0
 #define LCD_ST7920
-#define LCD_GRAPHIC                     /* monochrome graphic display */
+#define LCD_GRAPHIC                     /* graphic display */
 #define LCD_PAR_4                       /* 4 bit parallel interface */
 #define LCD_PORT         PORTB          /* port data register */
 #define LCD_DDR          DDRB           /* port data direction register */
@@ -272,7 +274,8 @@
 
 #if 0
 #define LCD_ILI9163
-#define LCD_COLOR                       /* color graphic display */
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_COLOR                       /* color display */
 #define LCD_SPI                         /* SPI interface */
 #define LCD_PORT         PORTB          /* port data register */
 #define LCD_DDR          DDRB           /* port data direction register */
@@ -303,7 +306,7 @@
 
 #if 0
 #define LCD_SSD1306
-#define LCD_GRAPHIC                     /* monochrome graphic display */
+#define LCD_GRAPHIC                     /* graphic display */
 #define LCD_SPI                         /* SPI interface */
 #define LCD_PORT         PORTB          /* port data register */
 #define LCD_DDR          DDRB           /* port data direction register */
@@ -325,10 +328,51 @@
 
 
 /*
+ *  SSD1306, I2C interface (hardware)
+ */
+
+#if 0
+#define LCD_SSD1306
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_I2C                         /* I2C interface */
+#define LCD_I2C_ADDR     0x3c           /* SSD1306's I2C address */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RESET        PD4            /* port pin used for /RES (optional) */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       64             /* number of vertical dots */
+#define LCD_FLIP_X                      /* enable horizontal flip */
+#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_CONTRAST     127            /* default contrast (0-255) */
+#define FONT_8X8_VF                     /* 8x8 font, vertically aligned & flipped */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
+#define I2C_HARDWARE                    /* hardware I2C (MCU's TWI) */
+#define I2C_STANDARD_MODE               /* 100kHz bus speed */
+#endif
+
+
+
+/*
+ *  VT100 serial terminal, TTL serial
+ */
+
+#if 0
+#define LCD_VT100
+#define LCD_TEXT                        /* character display */
+#define LCD_COLOR                       /* color display */
+#define LCD_CHAR_X       40             /* characters per line */
+#define LCD_CHAR_Y       24             /* number of lines */
+//#define SERIAL_BITBANG                  /* bit-bang serial */
+#define SERIAL_HARDWARE                 /* hardware serial */
+#endif
+
+
+
+/*
  *  check if a LCD module is specified
  */
 
-#if !defined(LCD_TEXT) && !defined(LCD_GRAPHIC) && !defined(LCD_COLOR)
+#if !defined(LCD_TEXT) && !defined(LCD_GRAPHIC)
   #error <<< No LCD module specified! >>>
 #endif
 
@@ -474,7 +518,7 @@
 
 /*
  *  IR detector/decoder
- *  - fixed module
+ *  - fixed module connected to dedicated I/O pin
  */
 
 #define IR_PORT          PORTC     /* port data register */
@@ -528,8 +572,19 @@
 #define SERIAL_DDR       DDRD      /* port data direction register */
 #define SERIAL_PIN       PIND      /* port input pins register */
 #define SERIAL_TX        PD1       /* pin for Tx (transmit) */
-#define SERIAL_RX        PD0       /* pin for Rx (receive, not supported yet) */
+#define SERIAL_RX        PD0       /* pin for Rx (receive) */
 #define SERIAL_PCINT     24        /* PCINT# for Rx pin */
+
+
+/*
+ *  OneWire
+ *  - dedicated I/O pin
+ */
+
+#define ONEWIRE_PORT     PORTC     /* port data register */
+#define ONEWIRE_DDR      DDRC      /* port data direction register */
+#define ONEWIRE_PIN      PINC      /* port input pins register */
+#define ONEWIRE_DQ       PC2       /* DQ (data line) */
 
 
 /*
