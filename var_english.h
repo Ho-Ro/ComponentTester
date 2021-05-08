@@ -18,7 +18,7 @@
    *  constant strings (stored in EEPROM)
    */
 
-  const unsigned char Running_str[] EEMEM = "Probing...";
+  const unsigned char Probing_str[] EEMEM = "Probing...";
   const unsigned char Timeout_str[] EEMEM = "Timeout";
   const unsigned char Failed1_str[] EEMEM = "No component";
   const unsigned char Failed2_str[] EEMEM = "found!";

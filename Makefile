@@ -59,6 +59,7 @@ PARTNO = m328p
 
 # avrdude: ISP programmer
 #PROGRAMMER = buspirate
+#PROGRAMMER = USBasp
 PROGRAMMER = avrispmkII
 
 # avrdude: port of ISP programmer
@@ -104,8 +105,8 @@ HEADERS += SSD1306.h ILI9163.h ADS7843.h
 
 # objects
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o
-OBJECTS_C += resistor.o cap.o semi.o inductor.o extras.o IR.o
-OBJECTS_C += display.o SPI.o I2C.o serial.o
+OBJECTS_C += resistor.o cap.o semi.o inductor.o tools.o IR.o
+OBJECTS_C += display.o SPI.o I2C.o serial.o commands.o
 OBJECTS_C += HD44780.o ST7565R.o ILI9341.o PCD8544.o ST7735.o ST7920.o
 OBJECTS_C += SSD1306.o ILI9163.o ADS7843.o
 OBJECTS_S = wait.o

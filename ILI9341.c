@@ -586,13 +586,6 @@ void LCD_Char(unsigned char Char)
   uint8_t           Bits;          /* number of bits to be sent */
   uint8_t           n;             /* bitmap bit counter */
 
-  #ifdef UI_SERIAL_COPY
-  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
-  {
-    Serial_Char(Char);             /* send char to serial */
-  }
-  #endif
-
   /* prevent x overflow */
   if (UI.CharPos_X > LCD_CHAR_X) return;
 

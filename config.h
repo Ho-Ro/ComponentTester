@@ -263,7 +263,7 @@
 /*
  *  additional protocols for IR remote control detection/decoder
  *  and sender
- *  - uncommon protocols which will burn flash memory :) 
+ *  - uncommon protocols which increase flash memory usage ;)
  *  - uncomment to enable
  */
 
@@ -345,15 +345,17 @@
 /*
  *  Languange of user interface. Available languages:
  *  - English (default)
- *  - German
  *  - Czech
+ *  - Danish
+ *  - German
  *  - Spanish
  *  - Russian (only 8x16 font horizontally aligned)
  */
 
 #define UI_ENGLISH
-//#define UI_GERMAN
 //#define UI_CZECH
+//#define UI_DANISH
+//#define UI_GERMAN
 //#define UI_ITALIAN
 //#define UI_SPANISH
 //#define UI_RUSSIAN
@@ -377,29 +379,47 @@
 
 
 /*
- *  Output components found also via TTL serial interface. 
+ *  Trigger the menu also by a short circuit of all three probes.
+ *  - former default behaviour
  *  - uncomment to enable
- *    also enable SERIAL_BITBANG or SERIAL_HARDWARE (see section 'Busses')
+ */
+
+//#define UI_SHORT_CIRCUIT_MENU
+
+
+/*
+ *  Output components found also via TTL serial interface.
+ *  - uncomment to enable
+ *  - also enable SERIAL_BITBANG or SERIAL_HARDWARE (see section 'Busses')
  */
 
 //#define UI_SERIAL_COPY
 
 
 /*
- *  Maximum time to wait after a measurement in continous mode (in ms).
- *  - Time between printing the result and starting a new cycle.
+ *  Control tester via TTL serial interface.
+ *  - uncomment to enable
+ *  - also enable SERIAL_BITBANG or SERIAL_HARDWARE, plus SERIAL_RW
+ *    (see section 'Busses') 
+ */
+
+//#define UI_SERIAL_COMMANDS
+
+
+/*
+ *  Maximum time to wait after probing in continous mode (in ms).
+ *  - Time between printing the result and starting a new probing cycle.
  */
 
 #define CYCLE_DELAY      3000
 
 
 /*
- *  Maximum number of measurements without any components found.
- *  - If that number is reached the tester powers off.
+ *  Maximum number of tests without any component found in a row.
+ *  - If this number is reached the tester powers off.
  */
 
 #define CYCLE_MAX        5
-
 
 
 /*
@@ -466,6 +486,14 @@
  */
 
 #define BAT_LOW          6400 
+
+
+/*
+ *  Enter sleep mode when idle to save power.
+ *  - uncomment to enable
+ */
+
+#define SAVE_POWER
 
 
 
@@ -552,6 +580,20 @@
  */
 
 #define CAP_DISCHARGED   2
+
+
+/*
+ *  Correction factors for capacitors (in 0.1%)
+ *  - positive factor increases capacitance value
+ *    negative factor decreases capacitance value
+ *  - CAP_FACTOR_SMALL for caps < 4.7µF
+ *  - CAP_FACTOR_MID for caps 4.7 - 47µF
+ *  - CAP_FACTOR_LARGE for caps > 47µF
+ */
+
+#define CAP_FACTOR_SMALL      0      /* no correction */ 
+#define CAP_FACTOR_MID        -40    /* -4.0% */
+#define CAP_FACTOR_LARGE      -90    /* -9.0% */
 
 
 /*
@@ -645,7 +687,7 @@
 
 //#define SERIAL_BITBANG             /* bit-bang serial */
 //#define SERIAL_HARDWARE            /* hardware serial */
-//#define SERIAL_RW                  /* enable read support (not implemented yet) */
+//#define SERIAL_RW                  /* enable serial read support */
 
 
 
@@ -754,13 +796,13 @@
 
 
 /*
- *  options
+ *  hardware/software options
  */
 
 
 /* additional keys */
 /* rotary encoder, increase/decrease push buttons or touch screen */
-#if defined(HW_ENCODER) || defined(HW_INCDEC_KEYS) | defined(HW_TOUCH)
+#if defined (HW_ENCODER) || defined (HW_INCDEC_KEYS) | defined (HW_TOUCH)
   #define HW_KEYS
 #endif
 
@@ -814,14 +856,26 @@
 #endif
 
 
-/* RS232 */
+/* TTL serial */
 #if defined (SERIAL_BITBANG) || defined (SERIAL_HARDWARE)
   #define HW_SERIAL
 #endif
 
-/* options which require RS232 */
-#if defined (UI_SERIAL_COPY) && ! defined (HW_SERIAL)
-  #undef UI_SERIAL_COPY
+/* options which require TTL serial */
+#ifndef HW_SERIAL
+  #if defined (UI_SERIAL_COPY)
+    #undef UI_SERIAL_COPY
+  #endif
+  #if defined (UI_SERIAL_COMMANDS)
+    #undef UI_SERIAL_COMMANDS
+  #endif
+#endif
+
+/* options which require TTL serial RW */
+#ifndef SERIAL_RW
+  #if defined (UI_SERIAL_COMMANDS)
+    #undef UI_SERIAL_COMMANDS
+  #endif
 #endif
 
 

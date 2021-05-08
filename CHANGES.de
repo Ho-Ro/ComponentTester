@@ -8,6 +8,21 @@
 
 ------------------------------------------------------------------------------
 
+v1.33m 2018-05
+- Orientierung von TRIAC-Symbol in symbols_32x32_hf.h korrigiert.
+- Fernsteuerkommandos zur Automatisierung (über die serielle
+  TTL-Schnittstelle).
+- Der X & Y-Offset für den ST7735-Treiber kann nun verändert werden.
+- Aufrufen des Menüs per Kurzschluß der Testpins ist nun eine Option (
+  UI_SHORT_CIRCUIT_MENU).
+- Problem mit Entlade-Relais in Verbindung mit Drehencoder beseitigt.
+- Konfigurationschalter zum Ausschalten der MCU-Schlafmodi ergänzt.
+- Datenempfang für serielle TTL-Schnittstelle (Bit-Bang & Hardware USART).
+- Fehler in serieller Textausgabe beseitigt, und serielle Ausgabe für
+  Resultate des Opto-Koppler-Tests eingebaut.
+- Dänischer Text (von glenndk@mikrocontroller.net).
+- Einstellungen für Korrekturfaktoren für Kondensatoren.
+
 v1.32m 2018-02
 - Ausgabe von gefundenen Bauteilen zusätzlich über serielle Schnittstelle.
 - Treiber für serielle TTL-Schnittstelle (Hardware & Bit-Bang).

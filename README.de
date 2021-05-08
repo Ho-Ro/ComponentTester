@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2018-02-24
+Letzte Änderung:  2018-05-25
 
 Inhaltsübersicht:
   - Über den Tester
@@ -36,6 +36,8 @@ Inhaltsübersicht:
     - Mehr/Weniger-Tasten
     - Touch-Screen
   - Kommunikation mit PC
+    - Serielle Ausgabe
+    - Automatisierung
   - Einschalten
   - Bauteilesuche
   - Ausschalten
@@ -71,6 +73,7 @@ Inhaltsübersicht:
   - Nicht unterstütze Bauelemente
   - Bekannte Probleme
   - Firmware-Änderungen
+  - Fernsteuerungskommandos
   - Quellenverzeichnis
 
 
@@ -226,6 +229,8 @@ zu groß werden, versuche für Dich nicht so wichtige Optionen wieder zu
 deaktivieren.
 
 Verfügbare Sprachen:
+- Dänisch (von glenndk@mikrocontroller.net)
+  benötigt kleine Änderungen im Font
 - Deutsch
 - Englisch
 - Italienisch (von Gino_09@EEVblog)
@@ -284,22 +289,24 @@ festlegen (schaue nach I2C_PORT bzw. SPI_PORT).
 Der Tester kann auch eine optionale serielle TTL-Schnittstelle haben. Wird
 diese zur Kommunikation mit einem PC genutzt, sollte sie mit einem USB-zu-TTL
 Konverter oder einem RS-232 Treiberbaustein kombiniert werden. Die Firmware
-kann den UART der MCU oder einen Software-UART (Bit-Bang) nutzen. Im Augenblick
-wird nur der TX-Modus unterstützt (Senden zum PC). Die TTL-Serielle wird in
-config.h aktiviert (siehe Abschnitt "Busses"), und Port & Pins sind in
-config-<MCU>.h definiert (schaue nach SERIAL_PORT).
+kann den UART der MCU oder einen Software-UART (Bit-Bang) nutzen. Die TTL-
+Serielle wird in config.h aktiviert (siehe Abschnitt "Busses"), und Port & Pins
+sind in config-<MCU>.h definiert (schaue nach SERIAL_PORT).
 
 Der Software-UART hat den Nachteil, daß das TX-Signal nicht ständig "high"
 ist, wenn die Schnittstelle ruht. Ursache dafür ist benutze Methode wie
 Port-Pins angesteuert werden. Ein Umschreiben der Ansteuerung würde die
 Firmware deutlich vergrößern. Dieses Problem scheint aber keine Auswirkung
-auf die meisten USB-zu-TTL Konverter zu haben.
+auf die meisten USB-zu-TTL Konverter zu haben. Sollte es doch Probleme
+geben, kannst Du einen Pull-up-Widerstand (10-100k) am TX-Pin probieren, um
+den Signalpegel im Ruhemodus auf "high" zu halten. 
 
 Die Standardeinstellung der seriellen Schnittstele ist 9600 8N1:
   - 9600 bps
   - 8 Datenbits
   - keine Parität
   - 1 Stopbit
+  - keine Flussteuerung
 
 
 * LCD-Module
@@ -594,15 +601,51 @@ IO-Pins hat).
 
 * Kommunikation mit PC
 
-Der Tester kann die serielle TTL-Schnittstelle für die Ausgabe von gefundenen
-Bauteilen an ein einfaches Terminalprogramm auf dem PC nutzen. Diese Option
-wird in config.h aktiviert (siehe UI_SERIAL_COPY im Abschnitt "misc settings")
-und benötigt natürlich eine ebenfalls aktivierte serielle TTL-Schnittstelle.
-Die Ausgabe folgt der Ausgabe auf dem LCD-Display, aber nur für gefundene
-Bauteile. Spezielle Zeichen werden durch Standardzeichen ersetzt, z.B. wird
-das Omega (Ohm) zu einem R.
+Der Tester kann eine serielle TTL-Schnittstelle zur Kommunilkation mit einem
+PC nutzen. Dies kann eine unidrektionale Verbindung (nur Senden) zur seriellen
+Ausgabe von gefundenen Bauteilen sein, oder auch eine bidrektionale zur
+Automatisierung. In beiden Fällen muß die serielle Schnittstelle aktiviert
+werden (siehe Abschnitt "Busses" in config.h).
 
-Hinweis: 9600 8N1
+Hinweise:
+- 9600 8N1
+- Newline ist <CR><NL>
+
+
++ Serielle Ausgabe
+
+Der Tester gibt gefundene Bauteile zusätzlich über die serielle Schnitt-
+stelle aus, wenn dies aktviert ist (siehe UI_SERIAL_COPY im Abschnitt "misc
+settings" in config.h). Dazu reicht ein einfaches Terminalprogramm auf dem PC. 
+Die Ausgabe folgt der Ausgabe auf dem LCD-Display, aber nur für gefundene
+Bauteile. Spezielle Zeichen werden durch Standardzeichen ersetzt, z.B. wird das
+Omega (Ohm) zu einem R. Es erfolgt keine Ausgabe von Menüs und Funtionen über
+die Serielle, außer für Ergebnisse vom Opto-Koppler-Test.
+
+Konvertierungstabelle:
+  Diodensymbol        |>  <|
+  Kondensatorsymbol   ||
+  Omega               R
+  micro / µ           u
+  Widerstandssymbol   []
+
+
++  Automatisierung
+
+Die Automatisierung ermöglicht die Fernsteuerung des Testers per Kommandos über
+eine bidrektionale serielle Verbindung. Zum Aktivieren dieser Funktion siehe
+bitte UI_SERIAL_COMMANDS im Abschnitt "misc settings" in config.h. Das Verhalten
+des Testers ändert sich etwas. Die Automatisierung erwingt den Auto-Hold-Modus,
+und der Tester sucht nach dem Einschalten nicht automatisch nach einem Bauteil. 
+
+Die Kommandoschnitstelle ist recht einfach. Du sendest ein Komanndo und der
+Tester antwortet. Die Kommunikation basiert auf ASCII-Textzeilen, und bei den
+Kommandos ist auf Groß- und Kleinschreibung zu achten. Jede Kommandozeile
+wird mit einem <CR><NL> oder <NL> Newline abgeschlossen. Der Tester nimmt
+Kommandos nur während des Wartens auf den Benutzer nach dem Einschalten, der
+Ausgabe eines Bauteils oder der Ausführung einer Menüfunktion an. Antwort-
+zeilen enden mit einem <CR><NL> Newline. Für die Liste der Kommandos und
+ihrer Beschreibung siehe Abschnitt "Fernsteuerungskommandos"
 
 
 * Einschalten
@@ -646,11 +689,12 @@ am Design des Schaltungsteils der Stromversorgung.
 
 * Menü
 
-Durch Kurzschliessen aller drei Testpins gelangt man in das Hauptmenü. Auch
-durch das zweimalige kurze Drücken der Test-Taste nach der Ausgabe des letztes
-Ergebnisses kommt man in das Menü. Einfach zweimal kurz hintereinander drücken.
-Kann vielleicht etwas Übung am Anfang benötigen ;-) Wenn ein Drehencoder
-vorhanden ist, startet zusätzlich eine Linksdrehung das Menü. 
+Durch zweimaliges kurzes Drücken der Test-Taste nach der Ausgabe des letztes
+Ergebnisses gelangt man in das Menü. Einfach zweimal kurz hintereinander drücken.
+Kann vielleicht etwas Übung am Anfang benötigen ;) Wenn ein Drehencoder
+vorhanden ist, startet zusätzlich eine Linksdrehung das Menü. Die alte Methode
+über den Kurzschluß der drei Testpins kann ebensfalls aktiviert werden
+(UI_SHORT_CIRCUIT_MENU).
 
 Im Menü wählt ein kurzer Tastendruck den nächsten Punkt aus und ein langer
 Tastendruck führt den ausgewählten Punkt aus. Bei einem LCD-Modul mit 2 Zeilen
@@ -1196,19 +1240,22 @@ besten dann die Messung einfach wiederholen.
 * Kondensatoren
 
 Die Messung von Kondensatoren ist in drei Methoden aufgeteilt. Große
-Kondensatoren >47µF werden mittels Ladezyklenmethode mit Impulsen von 10ms
+Kondensatoren >47µF werden mittels Ladezyklenmethode mit Pulsen von 10ms
 gemessen. Mittelgroße zwischen 4,7µF and 47µF werden ebenfalls mit der
-Ladezyklenmethode gemessen, aber mit Impulsen von 1ms. Kleine Kondensatoren
+Ladezyklenmethode gemessen, aber mit Pulsen von 1ms. Kleine Kondensatoren
 laufen über den analogen Komparator. Auf dies Weise wird die Genauigkeit der
 Kapazitätsmessung optimiert. 
 
-Für die  Korrektur der Messwerte großer Kondensatoren habe ich eine einfache
-Methode gefunden. Ohne Korrektur wären die Werte zu hoch. Ich denke, daß dies
-durch die Messmethode verursacht wird, da die Analog-Digital-Wandlung nach
-dem Ladepuls etwas Zeit benötigt und der Kondensator in dieser Zeit etwas
-Ladung durch Leckströme verliert. So dauert es dann länger bis der Kondensator
-geladen ist, und die Kapazität erscheint höher. Eine spätere Selbstentlade-
-prüfung versucht dies zu kompensieren, kann es aber nur teilweise.
+Die Messwerte großer Kondensatoren benötigen eine eine Korrektur. Ohne
+Korrektur wären die Werte zu hoch. Ich denke, daß dies durch die Messmethode
+verursacht wird, da die Analog-Digital-Wandlung nach dem Ladepuls eine gewisse
+Zeit benötigt und der Kondensator in dieser Zeit etwas Ladung durch Leckströme
+verliert und natürlich auch durch die Analog-Digital-Wandlung selber. So dauert
+es dann länger bis der Kondensator geladen ist, und die Kapazität erscheint
+höher. Eine spätere Selbstentlademessung versucht dies zu kompensieren, kann es
+aber nur teilweise. Die Korrekturfaktoren (CAP_FACTOR_SMALL, CAP_FACTOR_MID
+und CAP_FACTOR_LARGE in config.c) sind so gewählt, daß sie für die meisten
+Testermodelle passen. In manchen Fällen kann aber eine Änderung notwendig sein. 
 
 Eine Logik zum Verhindern, daß große Kondensatoren als Widerstände erkannt
 werden, wurde hinzugefügt. Widerstände kleiner als 10 Ohm werden zusätzlich
@@ -1385,6 +1432,225 @@ V_BO von 20-200V ist.
 * Firmware-Änderungen
 
 Bitte die Datei CHANGES.de lesen!
+
+
+* Fernsteuerungskommandos
+
+Wenn der Tester ein Kommando akzeptiert, antwortet er mit spezifischen Daten
+oder einem der folgenden Standardtexte: 
+
+  ERR
+  - unbekanntes Kommando
+  - Kommando im aktuellen Komponentenkontext nicht unterstützt
+  - Pufferüberlauf
+
+  OK
+  - Kommando ausgeführt
+    (manche Kommandos benötigen etwas Zeit zum Ausführen)
+
+  N/A
+  - Information/Wert nicht verfügbar
+
+Antworten mit Daten beginnen nie mit einem der obigen Standardtexte, um
+mögliche Unklarheiten zu vermeiden.
+
+
+Basiskommandos:
+
+  VER
+  - gibt Version der Firmware zurück
+  - to verify connectivity and to determine command set based on version
+  - Beispielantwort: "1.33m"
+
+  OFF
+  - schaltet den Tester aus
+  - Tester anwortet mit "OK" vor dem Auschalten
+  - Beispielantwort: "OK" <Tester schaltet ab>
+
+
+Testkommandos:
+
+  PROBE
+  - sucht nach Bauteil und überspringt alle Pausen für Benutzereingaben
+  - Tester antwortet mit einem "OK" nach dem Beenden der Suche
+  - Beispielantwort: <some time elapses for probing> "OK"
+
+  COMP
+  - gibt ID der Bauteilart zurück
+  - für IDs siehe COMP_* in common.h
+  - Beispielantwort für BJT: "30"
+
+  MSG
+  - gibt Fehlermeldung zurück
+  - nur falls ein Fehler aufgetreten ist (COMP: 1)
+  - Antwort kann von der Sprache des Benutzerinterfaces abhängen
+  - Beispielantwort: "Battery? 1:1500mV"
+
+  QTY
+  - gibt Anzahl der gefundenen Bauteile zurück
+  - Beispielantwort für BJT: "1"
+
+  NEXT
+  - wählt zweites Bauteil aus
+  - nur wenn zwei Bauteile gefunden wurden (QTY: 2)
+  - Beispielantwort: "OK"
+
+  TYPE
+  - gibt den Typen eines Bauteils zurück
+  - nur für BJT, FET und IGBT
+  - verfügbare Typen:
+    - NPN      NPN (BJT)
+    - PNP      PNP (BJT)
+    - JFET     JFET (FET)
+    - MOSFET   MOSFET (FET)
+    - N-ch     n-Kanal (FET, IGBT)
+    - P-ch     p-Kanal (FET, IGBT)
+    - enh.     Anreicherungstyp (FET, IGBT)
+    - dep.     Verarmungstyp (FET, IGBT)
+  - Beispielantwort für BJT: "NPN"
+  - Beispielantwort für FET (MOSFET): "MOSFET n-ch enh."
+
+  HINT
+  - gibt Hinweise zu speziellen Merkmalen zurück
+  - nur für Diode, BJT, FET und IGBT
+  - verfügbare Merkmale:
+    - NPN      möglicherweise ein NPN BJT (Diode)
+    - PNP      möglicherweise ein PNP BJT (Diode)
+    - R_BE     Basis-Emitter-Widerstand (Diode, BJT)
+    - BJT+     integrierte Freilaufdiode auf gleichem Substrat
+               erzeugt parasitären zweiten BJT (BJT)
+    - D_FB     Body/Freilauf-Diode (BJT, FET, IGBT)
+    - SYM      Drain und Source symmetrisch (FET) 
+  - Beispielantwort für BJT: "D_FB R_BE"
+  - Beispielantwort für FET (MOSFET): "D_FB"
+
+  PIN
+  - gibt Anschlußbelegung zurück
+  - benutzte Kennungen:
+    - Widerstand   x = verbunden, - = nicht verbunden
+    - Kondensator  x = verbunden, - = nicht verbunden
+    - Diode        A = Anode, C = Kathode, - = nicht verbunden
+    - BJT          B = Basis, C = Kollektor, E = Emitter
+    - FET          G = Gate, S = Source, D = Drain, x = Drain/Source
+    - IGBT         G = Gate, C = Kollektor, E = Emitter
+    - SCR          G = Gate, A = Anode, C = Kathode
+    - TRIAC        G = Gate, 2 = MT2, 1 = MT1
+    - PUT          G = Gate, A = Anode, C = Kathode
+    - UJT          E = Emitter, 2 = B2, 1 = B1
+  - Format der Antwort:
+    <Test-Pin #1 Kennung><Test-Pin #2 Kennung><Test-Pin #3 Kennung>
+  - Beispielantwort für Widerstand: "xx-"
+  - Beispielantwort für Diode: "C-A"
+  - Beispielantwort für BJT: "EBC"
+
+  R
+  - gibt Widerstandswert zurück
+  - nur für Widerstand (beinhaltet auch Induktiviät)
+  - Beispielantwort: "122R"
+
+  C
+  - gibt Kapazitätswert zurück
+  - nur für Kondensator
+  - example responses: "98nF" "462uF"
+
+  L
+  - gibt Induktiviätswert zurück
+  - nur für Widerstand (beinhaltet auch Induktiviät)
+  - Beispielantwort: "115uH"
+
+  ESR
+  - gibt ESR-Wert zurück (Equivalent Series Resistance)
+  - requires ESR measurement to be enabled
+  - nur für Kondensator
+  - Beispielantwort: "0.21R"
+
+  I_l
+  - gibt I_leak zurück (Leckstromequivalent zur Selbstentladung)
+  - nur für Kondensator
+  - Beispielantwort: "3.25uA"
+
+  V_F
+  - gibt V_F zurück (forward voltage)
+  - nur für Diode und PUT
+  - auch für Body-Diode von MOSFET und Freilaufdiode von BJT oder IGBT
+  - Beispielantwort: "654mV"
+
+  V_F2
+  - gibt V_F der Niedrigstrommessung zurück (forward voltage)
+  - nur für Diode
+  - Beispielantwort: "387mV"
+
+  C_D
+  - gibt C_D zurück (Kapazität der Diode)
+  - nur für Diode
+  - Beispielantwort: "8pF"
+
+  I_R
+  - gibt I_R zurück (reverse current)
+  - nur für Diode
+  - Beispielantwort: "4.89uA"
+
+  R_BE
+  - gibt R_BE zurück (Basis-Emitter-Widerstand)
+  - nur für Diode und BJT
+  - Beispielantworten: "38.2R" "5171R"
+
+  h_FE
+  - gibt h_FE zurück (DC-Stromverstärkungsfaktor)
+  - nur für BJT
+  - Beispielantwort: "234"
+
+  V_BE
+  - gibt V_BE zurück (Basis-Emitter-Spannung)
+  - nur für BJT
+  - Beispielantwort: "657mV"
+
+  I_CEO
+  - gibt I_CEO rurück (Kollektor-Emitter-Strom, offene Basis)
+  - nur für BJT
+  - Beispielantwort: "460.0uA"
+
+  V_th
+  - gibt V_th zurück (threshold voltage)
+  - nur für FET (MOSFET) und IGBT
+  - Beispielantwort: "2959mV"
+
+  C_GS
+  - gibt C_GS zurück (Gate-Source-Kapazität)
+  - nur für FET (MOSFET)
+  - Beispielantwort: "3200pF"
+
+  R_DS
+  - gibt R_DS_on zurück (Drain-Source-Widerstand durchgeschaltet)
+  - nur für FET (MOSFET)
+  - Beispielantwort: "1.20R"
+
+  I_DSS
+  - gibt I_DSS zurück (Drain-Source-Strom, kurzgeschlossenes Gate)
+  - nur für Verarmungstyp-FET
+  - Beispielantwort: "6430µA"
+
+  C_GE
+  - gibt C_GE zurück (Gate-Emitter-Kapazität)
+  - nur für IGBT
+  - Beispielantwort: "724pF"
+
+  V_GT
+  - gibt V_GT zurück (Gate-Trigger-Spannung)
+  - nur für Thyristor und TRIAC
+  - Beispielantwort: "865mV"
+
+  V_T
+  - gibt V_T zurück (Offset-Spannung)
+  - nur für PUT
+  - Beispielantwort: "699mV"
+
+  R_BB
+  - gibt R_BB zurück (interbase resistance)
+  - requires UJT detection to be enabled
+  - nur für UJT
+  - Beispielantwort: "4758R"
+
 
 
 * Quellenverzeichnis

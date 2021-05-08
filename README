@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2018-02-24
+Last edit:  2018-05-25
 
 Content
   - About
@@ -36,6 +36,8 @@ Content
     - Increase/Decrease Buttons
     - Touch Screen
   - Communication with PC
+    - Serial Output
+    - Automation
   - Startup
   - Probing
   - Power Off
@@ -71,6 +73,7 @@ Content
   - Unsupported Components
   - Known Issues
   - Change Log
+  - Remote Commands
   - References
 
 
@@ -220,9 +223,11 @@ ressources, i.e. RAM, EEPROM and flash memory. If the firmware exceeds the
 MCU's flash size, try to disable some options you don't need.
 
 Available UI languages:
-- English
-- German
 - Czech (provided by Kapa)
+- Danish (provided by glenndk@mikrocontroller.net)
+  needs minor changes in the font
+- English (default)
+- German
 - Italian (privided by Gino_09@EEVblog)
 - Spanish (provided by pepe10000@EEVblog)
 - Russian (provided by indman@EEVblog and hapless@@EEVblog)
@@ -277,22 +282,24 @@ config-<MCU>.h (look for I2C_PORT or SPI_PORT).
 The tester can also provide a TTL serial interface. In case it's used for
 communication with a PC it should be combined with a USB to TTL serial
 converter or a classic RS-232 driver. The firmware makes use of the MCU's
-hardware UART or a bit-bang software UART. At the moment only the TX mode is
-supported (sending to PC). The TTL serial interface is enabled in config.h (
-see section "Busses") and the port pins are defined in config-<MCU>.h (look
-for SERIAL_PORT).
+hardware UART or a bit-bang software UART. The TTL serial interface is enabled
+in config.h (see section "Busses") and the port pins are defined in
+config-<MCU>.h (look for SERIAL_PORT).
 
 The software UART has the drawback that the TX line will not stay high all
 the time when idle. This happens because of the way the MCU port pin are
 driven. To remedy this the port pin driving would have to be changed causing
-a larger firmware. This issue doesn't seem to cause any trouble with most
-USB to TTL serial converters.
+a larger firmware. But this issue doesn't seem to cause any trouble with most
+USB to TTL serial converters. In case you see any problem you could try to
+add a pull-up resistor (10-100k) to the TX pin to keep the signal at high
+level when idle.
 
 The default setting for the TTL serial is 9600 8N1:
   - 9600 bps
   - 8 data bits
   - no parity
   - 1 stop bit
+  - no flow control
 
 
 * Displays
@@ -584,14 +591,49 @@ IO pins of the 328).
 
 * Communication with PC
 
-The tester can use a TTL serial interface to output components found to a
-PC running a simple terminal program. This feature is enabled in config.h (
-see UI_SERIAL_COPY in the section "misc settings") and requires the TTL serial
-interface also to be enabled. The serial output follows the output on the LCD
-display but only for the components found. Special characters are replaced
-with standard ones, for example the Omega (Ohms) becomes a simple R.
+The tester can support a TTL serial interface for communication with a PC.
+This could be a TX-only connection for outputting components found or a
+bidrectional one for automation. In both cases the TTL serial interface needs
+to be enabled in config.h (see section "Busses").
 
-Hint: 9600 8N1
+Hints:
+- 9600 8N1
+- newline is <CR><NL>
+
+
++ Serial Output
+
+The tester outputs components found to a PC running a simple terminal program
+when this feature is enabled (see UI_SERIAL_COPY in section "misc settings"
+in config.h). The serial output follows the output on the LCD display but only
+for the components found. Special characters are replaced with standard ones,
+for example the omega (Ohms) becomes a simple R. There is no serial output for
+menus and tools besides the results of the opto coupler check.
+
+conversion table:
+  diode symbols       |>  <|
+  capacitor symbol    ||
+  omega               R
+  micro / µ           u
+  resistor symbol     []
+
+
++ Automation
+
+The automation feature allows you to control the tester by remote commands
+via a bidirectional serial connection. For enabling this feature please see
+UI_SERIAL_COMMANDS in section "misc settings" in config.h. The default
+behaviour of the tester will change slightly. The automation enforces the
+auto-hold mode and the tester won't automatically check for a component after
+powering on.
+
+The command interface is fairly simply. You send a command and the tester will
+respond. The communication is based on ASCII textlines and the commands are
+case sensitive. Each command line has to be ended by a <CR><NL> or <NL> newline.
+Be aware that the tester will only accept commands when waiting for user
+feedback after powering on, displaying a component or running a menu function.
+Response lines end with a <CR><NL> newline. See section "Remote Commands" for
+a list of commands and their explanation.
 
 
 * Startup
@@ -634,11 +676,11 @@ implementaion of the power control circuit.
 
 * Menu
 
-By short-circuiting all three probes you'll trigger a menu which allows you
-to run some special functions  You can also enter the menu by two short key
-presses after the display of the last component found or function performed.
-Simply press the test key twice quickly (might need some practice :-). If
-the rotary encoder option is enabled, a left turn will also enter the menu. 
+You'll enter the menu by two short key presses after the display of the last
+component found or function performed. Simply press the test key twice quickly
+(might need some practice :). If the rotary encoder option is enabled, a left
+turn will also enter the menu. The old method by short circuiting all three
+probes can be enabled too (UI_SHORT_CIRCUIT_MENU).
 
 While in the menu, a short key press shows the next item in the menu and a
 long key press runs the shown item. On a 2-line display you'll see a
@@ -1172,18 +1214,20 @@ resistance. In that case simply re-run the test.
 * Capacitors
 
 The measurement of capacitance is split into three methods. Large caps >47µF
-are measured by the charging cycle method with 10ms impulses. Mid-sized
+are measured by the charging cycle method with 10ms pulses. Mid-sized
 caps between 4.7µF and 47µF are processed the same way but with 1ms charging
-impulses. And small caps are done by the analog comparator method. That
+pulses. And small caps are done by the analog comparator method. That
 way the accuracy of the measurement of caps is optimized.
 
-Also I found a simple correction solution for large caps. Without correction
-the measured values are too large. IMHO that is caused by the measurement
-method, since the ADC conversion after the charging impuls needs some time
-during which the cap looses some charge due to internal resistive losses. So
-it takes longer to charge the cap and the cap seems to have a larger
-capacitance. A discharge measurement later on tries to compensate that, but
-the capacitance is still too large.
+Large capacitances require a correction. Without correction the measured values
+are too large. IMHO, that is caused by the measurement method, i.e. the ADC
+conversion after each charging pulse needs some time and the cap looses charge
+due to internal leakage during the same time. Also the ADC conversion itself
+needs some charge to operate. So it takes longer to charge the cap, and the cap
+seems to have a larger capacitance. A discharge measurement later on tries to
+compensate this, but is able to do it just partially. The correction factors (
+CAP_FACTOR_SMALL, CAP_FACTOR_MID and CAP_FACTOR_LARGE in config.c) are choosen
+to work with most tester models. In some cases you might have to change them.
 
 A logic for preventing large caps to be detected as resistors was added.
 Resistors < 10 Ohms are checked for being large caps.
@@ -1347,12 +1391,230 @@ a V_BO of 20-200V.
   an acceptable value either.
 - When using a SMPS or DC-DC converter as power supply the tester will
   sometimes detect a capacitor around 50µF even if no component is connected.
-- The ESR of a cap with 180 - 220nF may vary with the MCU clock.
+- The ESR of a cap with a low capacitance may vary with the MCU clock.
 
 
 * Change Log
 
 Please see the CHANGES file!
+
+
+* Remote Commands
+
+When the tester accepts remote commands it will respond with following
+text strings besides command specific answers containing data:
+
+  ERR
+  - unknown command
+  - command unsupported in component specific context
+  - buffer overflow
+
+  OK
+  - command executed
+    (some commands may need some time for processing)
+
+  N/A
+  - information/value not available
+
+Responses with data will never start with any of the standard text strings
+above to prevent possible confusion.
+
+
+Basic Commands:
+
+  VER
+  - returns firmware version
+  - to verify connectivity and to determine command set based on version
+  - example response: "1.33m"
+
+  OFF
+  - powers off tester
+  - tester responds with an "OK" before powering off
+  - example response: "OK" <tester powers off>
+
+
+Probing Commands:
+
+  PROBE
+  - probes component and skips any pauses waiting for user feedback
+  - tester responds with an "OK" after probing is finished
+  - example response: <some time elapses for probing> "OK"
+
+  COMP
+  - returns component type ID
+  - see COMP_* in common.h for IDs
+  - example response for BJT: "30"
+
+  MSG
+  - returns error message
+  - applies only when an error has occured (COMP: 1)
+  - response may vary with the language of the user interface
+  - example response: "Battery? 1:1500mV"
+
+  QTY
+  - returns component quantity
+  - example response for BJT: "1"
+
+  NEXT
+  - selects second component
+  - applies if two components are found (QTY: 2)
+  - example response: "OK"
+
+  TYPE
+  - returns more specific type of component
+  - applies to BJT, FET and IGBT
+  - types available:
+    - NPN      NPN (BJT)
+    - PNP      PNP (BJT)
+    - JFET     JFET (FET)
+    - MOSFET   MOSFET (FET)
+    - N-ch     n-channel (FET, IGBT)
+    - P-ch     p-channel (FET, IGBT)
+    - enh.     enhancement mode (FET, IGBT)
+    - dep.     depletion mode (FET, IGBT)
+  - example response for BJT: "NPN"
+  - example response for FET (MOSFET): "MOSFET n-ch enh."
+
+  HINT
+  - returns hints on special features
+  - applies to diode, BJT, FET and IGBT
+  - hints available:
+    - NPN      possibly a NPN BJT (diode)
+    - PNP      possibly a PNP BJT (diode)
+    - R_BE     base-emitter resistor (diode, BJT)
+    - BJT+     integrated flyback diode on same substrate
+               creating a parasitic second BJT (BJT)
+    - D_FB     body/flyback diode (BJT, FET, IGBT)
+    - SYM      symmetrical drain and source (FET) 
+  - example response for BJT: "D_FB R_BE"
+  - example response for FET (MOSFET): "D_FB"
+
+  PIN
+  - returns pinout of component
+  - identifiers used:
+    - resistor    x = connected, - = not connected
+    - capacitor   x = connected, - = not connected
+    - diode       A = anode, C = cathode, - = not connected
+    - BJT         B = base, C = collector, E = emitter
+    - FET         G = gate, S = source, D = drain, x = drain/source
+    - IGBT        G = gate, C = collector, E = emitter
+    - SCR         G = gate, A = anode, C = cathode
+    - TRIAC       G = gate, 2 = MT2, 1 = MT1
+    - PUT         G = gate, A = anode, C = cathode
+    - UJT         E = emitter, 2 = B2, 1 = B1
+  - format of response:
+    <probe #1 identifier><probe #2 identifier><probe #3 identifier>
+  - example response for resistor: "xx-"
+  - example response for diode: "C-A"
+  - example response for BJT: "EBC"
+
+  R
+  - returns resistance value
+  - applies to resistor (includes inductor)
+  - example response: "122R"
+
+  C
+  - returns capacitance value
+  - applies to capacitor
+  - example responses: "98nF" "462uF"
+
+  L
+  - returns inductance value
+  - applies to resistor (includes inductor)
+  - example response: "115uH"
+
+  ESR
+  - returns ESR value (Equivalent Series Resistance)
+  - requires ESR measurement to be enabled
+  - applies to capacitor
+  - example response: "0.21R"
+
+  I_l
+  - returns I_leak value (self-discharge equivalent leakage current)
+  - applies to capacitor
+  - example response: "3.25uA"
+
+  V_F
+  - returns V_F value (forward voltage)
+  - applies to diode and PUT
+  - also applies to body diode of MOSFET and flyback diode of BJT or IGBT
+  - example response: "654mV"
+
+  V_F2
+  - returns V_F value of low current measurement (forward voltage)
+  - applies to diode
+  - example response: "387mV"
+
+  C_D
+  - returns C_D value (diode capacitance)
+  - applies to diode
+  - example response: "8pF"
+
+  I_R
+  - returns I_R value (reverse current)
+  - applies to diode
+  - example response: "4.89uA"
+
+  R_BE
+  - returns R_BE value (base-emitter resistor)
+  - applies to diode and BJT
+  - example responses: "38.2R" "5171R"
+
+  h_FE
+  - returns h_FE value (DC current gain)
+  - applies to BJT
+  - example response: "234"
+
+  V_BE
+  - returns V_BE value (base-emitter voltage)
+  - applies to BJT
+  - example response: "657mV"
+
+  I_CEO
+  - returns I_CEO value (collector-emitter current, open base)
+  - applies to BJT
+  - example response: "460.0uA"
+
+  V_th
+  - returns V_th value (threshold voltage)
+  - applies to FET (MOSFET) and IGBT
+  - example response: "2959mV"
+
+  C_GS
+  - returns C_GS value (gate-source capacitance)
+  - applies to FET (MOSFET)
+  - example response: "3200pF"
+
+  R_DS
+  - returns R_DS_on value (drain-source on-resistance)
+  - applies to FET (MOSFET)
+  - example response: "1.20R"
+
+  I_DSS
+  - returns I_DSS value (drain-source current, zero bias / shorted gate)
+  - applies to FET (depletion mode)
+  - example response: "6430µA"
+
+  C_GE
+  - returns C_GE value (gate-emitter capacitance)
+  - applies to IGBT
+  - example response: "724pF"
+
+  V_GT
+  - returns V_GT value (gate trigger voltage)
+  - applies to SCR and TRIAC
+  - example response: "865mV"
+
+  V_T
+  - returns V_T value (offset voltage)
+  - applies to PUT
+  - example response: "699mV"
+
+  R_BB
+  - returns R_BB value (interbase resistance)
+  - requires UJT detection to be enabled
+  - applies to UJT
+  - example response: "4758R"
 
 
 * References

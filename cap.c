@@ -2,7 +2,7 @@
  *
  *   capacitor measurements
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -36,7 +36,7 @@
 
 /*
  *  set up timer for delay
- *  - uses timer0 as MCU cycle timer
+ *  - uses Timer0 as MCU cycle timer
  *
  *  requires:
  *  - number of MCU cycles
@@ -69,12 +69,12 @@ uint8_t SetUpDelayTimer(uint8_t Cycles)
 
 
   /*
-   *  set up timer0:
+   *  set up Timer0:
    *  - CTC mode (count up to OCR0A) 
    *  - prescaler 1 to match MCU cycles
    */
 
-  TCCR0B = 0;                      /* disable timer */
+  TCCR0B = 0;                      /* stop timer */
   TCCR0A = (1 << WGM01);           /* set CTC mode, disable output compare pins */
   OCR0A = Cycles;                  /* set number of MCU cycles */
   /* todo: check if we have to substract one cycle for setting the flag */
@@ -132,6 +132,12 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   /* check for a capacitor >= 10nF */
   if ((Cap == NULL) ||
       (CmpValue(Cap->Value, Cap->Scale, 10, -9) < 0)) return ESR;
+
+  /*
+   *  Hint: 
+   *  - When we would use MilliSleep here we'd have to change the MCU
+   *    sleep mode to idle to keep the timer running in sleep mode.
+   */
 
 
   /*
@@ -411,7 +417,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 #ifdef SW_OLD_ESR
 
 /*
- *  set up timer0 as MCU cycle timer
+ *  set up Timer0 as MCU cycle timer
  *
  *  requires:
  *  - number of MCU cycles
@@ -449,7 +455,7 @@ uint8_t SetupDelayTimer(uint8_t Cycles)
    *  - prescaler 1 to match MCU cycles
    */
 
-  TCCR0B = 0;                      /* disable timer */
+  TCCR0B = 0;                      /* stop timer */
   TCCR0A = (1 << WGM01);           /* set CTC mode, disable output compare pins */
   OCR0A = Cycles;                  /* set number of MCU cycles */
   /* todo: check if we have to substract one cycle for setting the flag */
@@ -1003,18 +1009,26 @@ large_cap:
 
     /*
      *  We got a systematic error which needs to be compensated.
+     *  The compensation factor can vary with the tester model.
      */
- 
-    Value *= 100;
-    if (Mode & PULL_10MS) Value /= 109;   /* -9% for large cap */
-    else Value /= 104;                    /* -4% for mid-sized cap */
+
+    Value *= 1000;                        /* scale for 0.1% resolution */
+    if (Mode & PULL_10MS)          /* cap >47µF */
+    {
+      Value /= (1000 - CAP_FACTOR_LARGE);    /* apply factor (in 0.1%) */
+    }
+    else                           /* cap 4.7-47µF */
+    {
+      Value /= (1000 - CAP_FACTOR_MID);      /* apply factor (in 0.1%) */
+    }
 
     /* copy data */
     Cap->A = Probes.ID_2;     /* pull-down probe pin */
     Cap->B = Probes.ID_1;     /* pull-up probe pin */
-    Cap->Scale = Scale;       /* -9 or -6 */
-    Cap->Raw = Raw;
-    Cap->Value = Value;       /* max. 4.3*10^6nF or 100*10^3µF */ 
+    Cap->Scale = Scale;       /* -9 (nF) or -6 (µF) */
+    Cap->Raw = Raw;           /* uncompensated value */
+    Cap->Value = Value;       /* compensated value */
+                              /* max. 4.3*10^6nF or 100*10^3µF */
 
 
     /*
@@ -1106,7 +1120,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
   /* set up analog comparator */
   ADCSRB = (1 << ACME);                 /* use ADC multiplexer as negative input */
-  ACSR =  (1 << ACBG) | (1 << ACIC);    /* use bandgap as positive input, trigger timer1 */
+  ACSR =  (1 << ACBG) | (1 << ACIC);    /* use bandgap as positive input, trigger Timer1 */
   ADMUX = ADC_REF_VCC | Probes.ADC_1;   /* switch ADC multiplexer to probe 1 */
                                         /* and set AREF to Vcc */
   ADCSRA = ADC_CLOCK_DIV;               /* disable ADC, but keep clock dividers */
@@ -1145,7 +1159,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
    while (1)
    {
-     TempByte = TIFR1;                  /* get timer1 flags */
+     TempByte = TIFR1;                  /* get Timer1 flags */
 
      /* end loop if input capture flag is set (= same voltage) */
      if (TempByte & (1 << ICF1)) break;
@@ -1219,6 +1233,18 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
     /* divide by CPU frequency to get the time and multiply with table scale */
     Raw /= (CPU_FREQ / 10000);
+
+    #if CAP_FACTOR_SMALL != 0
+    /*
+     *  Optional compensation
+     *  - we have to apply the compensation to the raw value because of
+     *    the zero-offset (keeping the relation matched)
+     */
+
+    Raw *= 1000;                          /* scale for 0.1% resolution */
+    Raw /= (1000 - CAP_FACTOR_SMALL);     /* apply factor (in 0.1%) */
+    #endif
+
     Value = Raw;                          /* take raw value */
 
     /* take care about zero offset if feasable */
@@ -1519,7 +1545,7 @@ uint8_t RefCap(void)
 
   /* set up analog comparator */
   ADCSRB = (1 << ACME);                 /* use ADC multiplexer as negative input */
-  ACSR =  (1 << ACBG) | (1 << ACIC);    /* use bandgap as positive input, trigger timer1 */
+  ACSR =  (1 << ACBG) | (1 << ACIC);    /* use bandgap as positive input, trigger Timer1 */
   ADMUX = ADC_REF_VCC | TP_CAP;         /* switch ADC multiplexer to cap pin */
                                         /* and set AREF to Vcc */
   ADCSRA = ADC_CLOCK_DIV;               /* disable ADC, but keep clock dividers */
@@ -1546,7 +1572,7 @@ uint8_t RefCap(void)
 
    while (1)
    {
-     TempByte = TIFR1;                  /* get timer1 flags */
+     TempByte = TIFR1;                  /* get Timer1 flags */
 
      /* end loop if input capture flag is set (= same voltage) */
      if (TempByte & (1 << ICF1)) break;

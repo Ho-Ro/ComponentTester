@@ -19,7 +19,7 @@
    *  constant strings (stored in EEPROM)
    */
 
-  const unsigned char Running_str[] EEMEM = "Тестирование...";
+  const unsigned char Probing_str[] EEMEM = "Тестирование...";
   const unsigned char Timeout_str[] EEMEM = "Время истекло";
   const unsigned char Failed1_str[] EEMEM = "Компонент не";
   const unsigned char Failed2_str[] EEMEM = "найден!";

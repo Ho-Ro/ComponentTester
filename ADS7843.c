@@ -528,7 +528,7 @@ uint8_t Touch_AdjustPos(uint8_t Char_X, uint8_t Char_Y)
 
   /* clear marker */
   LCD_CharPos(Char_X, Char_Y);
-  LCD_Space();
+  LCD_Char(' ');
 
   /* check for matching char position */
   if (Flag == 1)                   /* touch event */
@@ -541,10 +541,10 @@ uint8_t Touch_AdjustPos(uint8_t Char_X, uint8_t Char_Y)
     /* feedback for user */
     LCD_ClearLine2();
     LCD_Char('x');
-    DisplayFullValue(UI.TouchRaw_X, 0, 0);
-    LCD_Space();
+    Display_FullValue(UI.TouchRaw_X, 0, 0);
+    LCD_Char(' ');
     LCD_Char('y');
-    DisplayFullValue(UI.TouchRaw_Y, 0, 0);
+    Display_FullValue(UI.TouchRaw_Y, 0, 0);
 
     MilliSleep(500);               /* delay */
   }
@@ -575,7 +575,8 @@ uint8_t Touch_Adjust(void)
   /* tell user */
   LCD_Clear();                     /* clear display */
   LCD_CharPos(1, 1);
-  LCD_EEString(TouchSetup_str);
+  // todo: make sure we output string only to display
+  Display_EEString(TouchSetup_str);
 
 
   /*

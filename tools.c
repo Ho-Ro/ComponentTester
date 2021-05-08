@@ -1,6 +1,6 @@
 /* ************************************************************************
  *
- *   extras / additional features
+ *   tools / hardware options / software options
  *
  *   (c) 2012-2018 by Markus Reschke
  *
@@ -38,16 +38,16 @@
  */
 
 #ifdef HW_FREQ_COUNTER_BASIC
-uint16_t               FreqPulses;      /* number of pulses */
+volatile uint16_t      FreqPulses;      /* number of pulses */
 #endif
 
 #ifdef HW_FREQ_COUNTER_EXT
-uint32_t               FreqPulses;      /* number of pulses */
+volatile uint32_t      FreqPulses;      /* number of pulses */
 #endif
 
 #ifdef SW_SERVO
 uint8_t                SweepStep;       /* sweep step */
-uint8_t                SweepDir;        /* sweep direction */
+volatile uint8_t       SweepDir;        /* sweep direction */
 #endif
 
 
@@ -110,6 +110,7 @@ void ProbePinout(uint8_t Mode)
  *    and probe #1 & probe #3 as ground
  *  - alternative: dedicated signal output via OC1B
  *  - max. reasonable PWM frequency for 8MHz MCU clock is 40kHz
+ *  - requires idle sleep mode to keep timer running when MCU is sleeping
  *
  *  requires:
  *  - Freqency in Hz
@@ -125,6 +126,7 @@ void PWM_Tool(uint16_t Frequency)
   uint32_t          Value;              /* temporary value */
 
   /*
+   *  Timer1:
    *  - phase correct PWM:    f_PWM = f_MCU / (2 * prescaler * top)
    *  - available prescalers: 1, 8, 64, 256, 1024
    *  - range of top:         (2^2 - 1) up to (2^16 - 1)
@@ -140,9 +142,9 @@ void PWM_Tool(uint16_t Frequency)
 
   ShortCircuit(0);                    /* make sure probes are not shorted */
   LCD_Clear();
-  LCD_EEString_Space(PWM_str);        /* display: PWM */
-  DisplayValue(Frequency, 0, 'H');    /* display frequency */
-  LCD_Char('z');                      /* make it Hz :-) */
+  Display_EEString_Space(PWM_str);    /* display: PWM */
+  Display_Value(Frequency, 0, 'H');   /* display frequency */
+  Display_Char('z');                  /* make it Hz :-) */
   #ifndef HW_FIXED_SIGNAL_OUTPUT
   ProbePinout(PROBES_PWM);            /* show probes used */
   #endif
@@ -198,10 +200,7 @@ void PWM_Tool(uint16_t Frequency)
    *  - OC1B non-inverted output
    */
 
-  /* power save mode would disable timer1 */
-  Cfg.SleepMode = SLEEP_MODE_IDLE;           /* change sleep mode to Idle */
-
-  TCCR1B = 0;                                /* disable timer */
+  TCCR1B = 0;                                /* stop timer */
   /* enable OC1B pin and set timer mode */
   TCCR1A = (1 << WGM11) | (1 << WGM10) | (1 << COM1B1);
   TCCR1B = (1 << WGM13);
@@ -209,7 +208,7 @@ void PWM_Tool(uint16_t Frequency)
   OCR1A = Top;                               /* set top value (-1) */
   OCR1B = Toggle;                            /* set value to compare with */
 
-  /* enable counter by setting clock prescaler */
+  /* start counter by setting clock prescaler */
   TCCR1B = (1 << WGM13) | Prescaler;
 
 
@@ -221,7 +220,7 @@ void PWM_Tool(uint16_t Frequency)
   {
     /* show current ratio */
     LCD_ClearLine2();
-    DisplayValue(Ratio, 0, '%');        /* show ratio in % */
+    Display_Value(Ratio, 0, '%');       /* show ratio in % */
     #ifdef HW_KEYS
     if (Test <= KEY_LONG)               /* just for test button usage */
     #endif
@@ -300,6 +299,7 @@ void PWM_Tool(uint16_t Frequency)
  *  - max. reasonable PWM frequency for 8MHz MCU clock is 40kHz
  *  - requires additional keys (e.g. rotary encoder) and
  *    display with more than 2 text lines
+ *  - requires idle sleep mode to keep timer running when MCU is sleeping
  */
 
 void PWM_Tool(void)
@@ -330,6 +330,7 @@ void PWM_Tool(void)
 
 
   /*
+   *  Timer1:
    *  - phase & frequency correct PWM:  f_PWM = f_MCU / (2 * prescaler * top)
    *  - available prescalers:           1, 8, 64, 256, 1024
    *  - range of top:                   (2^2 - 1) up to (2^16 - 1)
@@ -345,7 +346,7 @@ void PWM_Tool(void)
 
   ShortCircuit(0);                    /* make sure probes are not shorted */
   LCD_Clear();
-  LCD_EEString_Space(PWM_str);        /* display: PWM */
+  Display_EEString_Space(PWM_str);    /* display: PWM */
   #ifndef HW_FIXED_SIGNAL_OUTPUT
   ProbePinout(PROBES_PWM);            /* show probes used */
   #endif
@@ -371,9 +372,6 @@ void PWM_Tool(void)
    *  - top value by OCR1A
    *  - OC1B non-inverted output
    */
-
-  /* power save mode would disable timer1 */
-  Cfg.SleepMode = SLEEP_MODE_IDLE;      /* change sleep mode to Idle */
 
   TCNT1 = 0;                            /* set counter to 0 */
 
@@ -412,7 +410,7 @@ void PWM_Tool(void)
       /* check if we should change the range */
       if (Top > 0x7FFF)            /* more than 15 bits */
       {
-        if (Index < 4)             /* don't exceed upper prescaler limit */
+        if (Index < (NUM_TIMER1 - 1))   /* don't exceed upper prescaler limit */
         {
           Index++;                 /* increase prescaler */
         }
@@ -496,8 +494,8 @@ void PWM_Tool(void)
 
       Value /= Top;
 
-      DisplayFullValue(Value, Step, 'H');
-      LCD_Char('z');                    /* add z for Hz */
+      Display_FullValue(Value, Step, 'H');
+      Display_Char('z');                /* add z for Hz */
 
       Flag &= ~DISPLAY_FREQ;            /* clear flag */
     }
@@ -509,7 +507,7 @@ void PWM_Tool(void)
       LCD_CharPos(1, 3);
       MarkItem(MODE_RATIO, Mode);       /* mark mode if selected */
 
-      DisplayValue(Ratio, 0, '%');      /* show ratio in % */
+      Display_Value(Ratio, 0, '%');     /* show ratio in % */
 
       Flag &= ~DISPLAY_RATIO;           /* clear flag */
     }
@@ -701,11 +699,12 @@ void PWM_Tool(void)
  *  - alternative: dedicated signal output via OC1B
  *  - requires additional keys (e.g. rotary encoder) and
  *    display with more than 2 lines
+ *  - requires idle sleep mode to keep timers running when MCU is sleeping
  */
 
 void Servo_Check(void)
 {
-  uint8_t           Flag = 1;           /* loop control */
+  uint8_t           Flag;               /* loop control */
   uint8_t           Mode;               /* UI */
   uint8_t           Test = 0;           /* user feedback */
   uint8_t           Index;              /* PWM index */
@@ -760,7 +759,7 @@ void Servo_Check(void)
 
   ShortCircuit(0);                    /* make sure probes are not shorted */
   LCD_Clear();
-  LCD_EEString_Space(Servo_str);      /* display: Servo */
+  Display_EEString_Space(Servo_str);  /* display: Servo */
   #ifndef HW_FIXED_SIGNAL_OUTPUT
   ProbePinout(PROBES_PWM);            /* show probes used */
   #endif
@@ -838,18 +837,12 @@ void Servo_Check(void)
    *  - fixed prescaler 1:8
    */
 
-  /* power save mode would disable timer1 */
-  Cfg.SleepMode = SLEEP_MODE_IDLE;      /* change sleep mode to Idle */
-
   TCNT1 = 0;                       /* reset counter to 0 */
   TIMSK1 = 0;                      /* disable all interrupts for Timer1 */
 
   /* enable OC1B pin and set timer mode */
   TCCR1A = (1 << WGM11) | (1 << WGM10) | (1 << COM1B1);
-  TCCR1B = (1 << WGM13) | (1 << CS11);  /* enable timer1 by setting prescaler */
-
-  sei();                           /* enable interrupts */
-
+  TCCR1B = (1 << WGM13) | (1 << CS11);  /* start Timer1 by setting prescaler */
 
   /* set start values */
   Toggle = SERVO_MID;              /* toggle value (1.5ms) */
@@ -863,7 +856,7 @@ void Servo_Check(void)
    *  todo:
    *  - since the pulse length is displayed with a resolution of 0.01ms
    *    a visible change might need several steps
-   *  - improve UI to give visual response for each step
+   *  - improve UI to give visual feedback for each step
    */
 
   while (Flag > 0)       /* processing loop */
@@ -928,8 +921,8 @@ void Servo_Check(void)
       }
 
       /* display value */
-      DisplayFullValue(Value, 3, 'm');
-      LCD_Char('s');
+      Display_FullValue(Value, 3, 'm');
+      Display_Char('s');
 
       Flag &= ~DISPLAY_PULSE;           /* clear flag */
     }
@@ -943,13 +936,13 @@ void Servo_Check(void)
 
       Test = Period[Index];             /* get period */
       Value = 10000 / Test;             /* calculate frequency */
-      DisplayValue(Value, 0, 'H');      /* display frequency */
-      LCD_Char('z');
+      Display_Value(Value, 0, 'H');     /* display frequency */
+      Display_Char('z');
 
       if (Flag & SWEEP_MODE)            /* in sweep mode */
       {
-        LCD_Space();
-        LCD_EEString(Sweep_str);        /* display: sweep */
+        Display_Space();
+        Display_EEString(Sweep_str);    /* display: sweep */
       }
 
       Flag &= ~DISPLAY_FREQ;            /* clear flag */
@@ -1176,9 +1169,8 @@ void Servo_Check(void)
 
   TCCR0B = 0;                 /* disable Timer0 */
   TIMSK0 = 0;                 /* disable all interrupts for Timer0 */
-  TCCR1B = 0;                 /* disable timer #1 */
+  TCCR1B = 0;                 /* disable Timer1 */
   TCCR1A = 0;                 /* reset flags (also frees PB2) */
-  cli();                      /* disable interrupts */
 
   #ifndef HW_FIXED_SIGNAL_OUTPUT
   R_DDR = 0;                            /* set HiZ mode */
@@ -1227,6 +1219,7 @@ ISR(TIMER0_COMPA_vect, ISR_BLOCK)
    *  hints:
    *  - the OCF0A interrupt flag is cleared automatically
    *  - interrupt processing is disabled while this ISR runs
+   *    (no nested interrupts)
    */
 
   /* toggle values for PWM */
@@ -1284,6 +1277,7 @@ ISR(TIMER0_COMPA_vect, ISR_BLOCK)
  *    and probe #1 & probe #3 as ground
  *  - alternative: dedicated signal output via OC1B
  *  - requires additional keys (e.g. rotary encoder)
+ *  - requires idle sleep mode to keep timer running when MCU is sleeping
  */
 
 void SquareWave_SignalGenerator(void)
@@ -1314,7 +1308,7 @@ void SquareWave_SignalGenerator(void)
 
   ShortCircuit(0);                      /* make sure probes are not shorted */
   LCD_Clear();
-  LCD_EEString_Space(SquareWave_str);   /* display: Square Wave */
+  Display_EEString_Space(SquareWave_str);    /* display: Square Wave */
   #ifndef HW_FIXED_SIGNAL_OUTPUT
   ProbePinout(PROBES_PWM);              /* show probes used */
   #endif
@@ -1340,9 +1334,6 @@ void SquareWave_SignalGenerator(void)
    *  - top value by OCR1A
    *  - OC1B non-inverted output
    */
-
-  /* power save mode would disable timer1 */
-  Cfg.SleepMode = SLEEP_MODE_IDLE;      /* change sleep mode to Idle */
 
   /* enable OC1B pin and set timer mode */
   TCCR1A = (1 << WGM11) | (1 << WGM10) | (1 << COM1B1) | (1 << COM1B0);
@@ -1370,7 +1361,7 @@ void SquareWave_SignalGenerator(void)
     /* check if we should change the range */
     if (Top > 0x7FFF)              /* more than 15 bits */
     {
-      if (Index < 4)               /* don't exceed upper prescaler limit */
+      if (Index < (NUM_TIMER1 - 1))     /* don't exceed upper prescaler limit */
       {
         Index++;                   /* increase prescaler */
       }
@@ -1445,8 +1436,8 @@ void SquareWave_SignalGenerator(void)
 
     Value /= Top + 1;
     LCD_ClearLine2();
-    DisplayFullValue(Value, Test, 'H');
-    LCD_Char('z');                 /* add z for Hz */
+    Display_FullValue(Value, Test, 'H');
+    Display_Char('z');                  /* add z for Hz */
 
 
     /*
@@ -1558,9 +1549,9 @@ void ESR_Tool(void)
 
   /* show tool info */
   LCD_Clear();
-  LCD_EEString(ESR_str);           /* display: ESR */
+  Display_EEString(ESR_str);       /* display: ESR */
   ProbePinout(PROBES_ESR);         /* show probes used */
-  LCD_Char('-');                   /* display "no value" */
+  Display_Char('-');               /* display "no value" */
 
   while (Run > 0)
   {
@@ -1588,30 +1579,30 @@ void ESR_Tool(void)
       #endif
 
       LCD_ClearLine2();                 /* update line #2 */
-      LCD_EEString(Running_str);        /* display: probing... */
+      Display_EEString(Probing_str);    /* display: probing... */
       MeasureCap(PROBE_1, PROBE_3, 0);  /* probe-1 = Vcc, probe-3 = Gnd */
       LCD_ClearLine2();                 /* update line #2 */
       
       if (Check.Found == COMP_CAPACITOR)     /* found capacitor */
       {
         /* show capacitance */
-        DisplayValue(Cap->Value, Cap->Scale, 'F');
+        Display_Value(Cap->Value, Cap->Scale, 'F');
 
         /* show ESR */
-        LCD_Space();
+        Display_Space();
         ESR = MeasureESR(Cap);
         if (ESR < UINT16_MAX)           /* got valid ESR */
         {
-          DisplayValue(ESR, -2, LCD_CHAR_OMEGA);
+          Display_Value(ESR, -2, LCD_CHAR_OMEGA);
         }
         else                            /* no ESR */
         {
-          LCD_Char('-');
+          Display_Char('-');
         }
       }
       else                                   /* no capacitor */
       {
-        LCD_Char('-');
+        Display_Char('-');
       }
 
       #ifdef HW_DISCHARGE_RELAY
@@ -1652,9 +1643,9 @@ void Zener_Tool(void)
 
   /* show info */
   LCD_Clear();
-  LCD_EEString(Zener_str);         /* display: Zener */
-  LCD_NextLine();
-  LCD_Char('-');                   /* display "no value" */
+  Display_EEString(Zener_str);     /* display: Zener */
+  Display_NextLine();
+  Display_Char('-');               /* display "no value" */
 
   while (Run > 0)             /* processing loop */
   {
@@ -1678,7 +1669,7 @@ void Zener_Tool(void)
       if (Counter % 8 == 0)        /* every 8 loop runs (240ms) */
       {
         LCD_ClearLine2();        
-        DisplayValue(Value, -1, 'V');
+        Display_Value(Value, -1, 'V');
       }
 
       /* data hold */
@@ -1729,13 +1720,13 @@ void Zener_Tool(void)
 
       if (Min != UINT16_MAX)       /* got updated value */
       {
-        DisplayValue(Min, -1, 'V');     /* display minimum */
-        LCD_Space();
-        LCD_EEString(Min_str);          /* display: Min */
+        Display_Value(Min, -1, 'V');    /* display minimum */
+        Display_Space();
+        Display_EEString(Min_str);      /* display: Min */
       }
       else                         /* unchanged default */
       {
-        LCD_Char('-');                  /* display "no value" */
+        Display_Char('-');              /* display "no value" */
       }
 
       Counter2 = 0;           /* reset delay time */
@@ -1757,11 +1748,12 @@ void Zener_Tool(void)
 /*
  *  basic frequency counter
  *  - frequency input: T0
+ *  - requires idle sleep mode to keep timers running when MCU is sleeping
  */
 
 void FrequencyCounter(void)
 {
-  uint8_t           Flag = 1;           /* loop control flag */
+  uint8_t           Flag;               /* loop control flag */
   uint8_t           Old_DDR;            /* old DDR state */
   uint8_t           Index;              /* prescaler table index */
   uint8_t           Bitmask;            /* prescaler bitmask */
@@ -1769,9 +1761,15 @@ void FrequencyCounter(void)
   uint16_t          Top;                /* top value for timer */
   uint32_t          Value;              /* temporary value */
 
+  /* control flags */
+  #define EXIT_ALL       0         /* end loop(s) and exit */
+  #define PROCEED        1         /* proceed with next step */
+  #define WAIT_LOOP      2         /* enter/run waiting loop */
+  #define SHOW_FREQ      3         /* display frequency */
+
   /* show info */
-  LCD_Clear();                     /* clear display */
-  LCD_EEString(FreqCounter_str);   /* display: Freq. Counter */
+  LCD_Clear();                          /* clear display */
+  Display_EEString(FreqCounter_str);    /* display: Freq. Counter */
 
 
   /*
@@ -1779,6 +1777,7 @@ void FrequencyCounter(void)
    *  unknown signal. Max. frequency for Timer0 is 1/4 of the MCU clock.
    */
 
+  Flag = PROCEED;             /* enter measurement loop */
 
   /*
       auto ranging
@@ -1801,10 +1800,6 @@ void FrequencyCounter(void)
       100kHz-            10ms          8  all        1k-(50k)
    */
 
-
-  /* power save mode would disable timer0 and timer1 */
-  Cfg.SleepMode = SLEEP_MODE_IDLE;      /* change sleep mode to Idle */
-
   /* start values for autoranging (assuming high frequency) */
   GateTime = 10;                   /* gate time 10ms */
   Index = 1;                       /* prescaler table index (prescaler 8:1) */
@@ -1820,10 +1815,13 @@ void FrequencyCounter(void)
   TIMSK1 = (1 << OCIE1A);          /* enable output compare A match interrupt */
 
 
-  /* measurement loop */
-  while (Flag > 0)
+  /*
+   *  measurement loop
+   */
+
+  while (Flag > EXIT_ALL)
   {
-    /* set up T0 as input */
+    /* set up T0 as input (pin might be shared with display) */
     Old_DDR = COUNTER_DDR;              /* save current settings */
     COUNTER_DDR &= ~(1 << COUNTER_IN);  /* signal input */
     wait500us();                        /* settle time */
@@ -1842,20 +1840,19 @@ void FrequencyCounter(void)
 
     /* start timers */
     FreqPulses = 0;                     /* reset pulse counter */
-    Flag = 2;                           /* enter waiting loop */
+    Flag = WAIT_LOOP;                   /* enter waiting loop */
     TCNT0 = 0;                          /* Timer0: reset pulse counter */
     TCNT1 = 0;                          /* Timer1: reset gate time counter */
     OCR1A = Top;                        /* Timer1: set gate time */
-    sei();                              /* enable interrupts */
     TCCR1B = Bitmask;                   /* start Timer1, prescaler */
     TCCR0B = (1 << CS02) | (1 << CS01); /* start Timer0, clock source: T0 falling edge */
 
     /* wait for timer1 or key press */
-    while (Flag == 2)
+    while (Flag == WAIT_LOOP)
     {
       if (TCCR1B == 0)                  /* Timer1 stopped by ISR */
       {
-        Flag = 1;                       /* end waiting loop and signal Timer1 event */
+        Flag = PROCEED;                 /* end loop and signal Timer1 event */
       }
       else                              /* Timer1 still running */
       {
@@ -1863,19 +1860,25 @@ void FrequencyCounter(void)
         while (!(CONTROL_PIN & (1 << TEST_BUTTON)))    /* pressed */
         {
           MilliSleep(50);          /* take a nap */
-          Flag = 0;                /* end all loops */
+          Flag = EXIT_ALL;         /* end all loops */
         }
 
-        if (Flag > 0) MilliSleep(100);    /* sleep for 100ms */
+        if (Flag > EXIT_ALL)       /* smooth UI */
+        {
+          MilliSleep(100);         /* sleep for 100ms */
+        }
       }
     }
 
-    cli();                              /* disable interrupts */
-
-    /* process measurement */
+    /* T0 pin might be shared with display */
     COUNTER_DDR = Old_DDR;              /* restore old settings */
 
-    if (Flag == 1)                      /* got measurement */
+
+    /*
+     *  process measurement
+     */
+
+    if (Flag == PROCEED)                /* got measurement */
     {
       FreqPulses += TCNT0;              /* add counter of Timer0 */
 
@@ -1889,7 +1892,7 @@ void FrequencyCounter(void)
       Value = FreqPulses;               /* number of pulses */
       Value *= 1000;                    /* scale to ms */
       Value /= GateTime;                /* divide by gatetime (in ms) */
-      Flag = 3;                         /* display frequency */
+      Flag = SHOW_FREQ;                 /* display frequency */
 
       /* autoranging */
       if (FreqPulses > 10000)           /* range overrun */
@@ -1901,7 +1904,7 @@ void FrequencyCounter(void)
           #if CPU_FREQ > 16000000 
           if (Index == 3) Index--;      /* skip 256, use 64 */
           #endif
-          Flag = 1;                     /* don't display frequency */
+          Flag = PROCEED;               /* don't display frequency */
         }
       }
       else if (FreqPulses < 1000)       /* range underrun */
@@ -1913,7 +1916,7 @@ void FrequencyCounter(void)
           #if CPU_FREQ > 16000000 
           if (Index == 3) Index++;      /* skip 256, use 1024 */
           #endif
-          Flag = 1;                     /* don't display frequency */
+          Flag = PROCEED;               /* don't display frequency */
         }
       }
     }
@@ -1924,18 +1927,18 @@ void FrequencyCounter(void)
      */
 
     LCD_ClearLine2();                   /* clear line #2 */
-    LCD_Char('f');                      /* display: f */
-    LCD_Space();
+    Display_Char('f');                  /* display: f */
+    Display_Space();
 
-    if (Flag == 3)                      /* valid frequency */
+    if (Flag == SHOW_FREQ)              /* valid frequency */
     {
-      DisplayValue(Value, 0, 'H');      /* display frequency */
-      LCD_Char('z');                    /* append "z" for Hz */
+      Display_Value(Value, 0, 'H');     /* display frequency */
+      Display_Char('z');                /* append "z" for Hz */
       Flag = 1;                         /* clear flag */
     }
     else                                /* invalid frequency */
     {
-      LCD_Char('-');                    /* display: no value */
+      Display_Char('-');                /* display: no value */
     }    
   }
 
@@ -1944,8 +1947,14 @@ void FrequencyCounter(void)
    *  clean up
    */
 
-  TIMSK0 = 0;                           /* disable all interrupts for Timer0 */
-  TIMSK1 = 0;                           /* disable all interrupts for Timer1 */
+  TIMSK0 = 0;                 /* disable all interrupts for Timer0 */
+  TIMSK1 = 0;                 /* disable all interrupts for Timer1 */
+
+  /* local constants */
+  #undef EXIT_ALL
+  #undef PROCEED
+  #undef WAIT_LOOP
+  #undef SHOW_FREQ
 }
 
 
@@ -1961,6 +1970,7 @@ ISR(TIMER0_OVF_vect, ISR_BLOCK)
    *  hints:
    *  - the TOV0 interrupt flag is cleared automatically
    *  - interrupt processing is disabled while this ISR runs
+   *    (no nested interrupts)
    */
 
   FreqPulses += 256;          /* add overflow to global counter */
@@ -1979,6 +1989,7 @@ ISR(TIMER1_COMPA_vect, ISR_BLOCK)
    *  hints:
    *  - the OCF1A interrupt flag is cleared automatically
    *  - interrupt processing is disabled while this ISR runs
+   *    (no nested interrupts)
    */
 
   /* gate time has passed */
@@ -2007,6 +2018,7 @@ ISR(TIMER1_COMPA_vect, ISR_BLOCK)
  *    01 - unused
  *    10 - HF crystal oscillator
  *    11 - LF crystal oscillator
+ *  - requires idle sleep mode to keep timers running when MCU is sleeping
  */
 
 void FrequencyCounter(void)
@@ -2036,8 +2048,8 @@ void FrequencyCounter(void)
   #define SHOW_FREQ           0b00100000     /* display frequency */
 
   /* show info */
-  LCD_Clear();                     /* clear display */
-  LCD_EEString(FreqCounter_str);   /* display: Freq. Counter */
+  LCD_Clear();                          /* clear display */
+  Display_EEString(FreqCounter_str);    /* display: Freq. Counter */
 
 
   /*
@@ -2068,9 +2080,6 @@ void FrequencyCounter(void)
       1MHz-          100ms         64  all            16:1  6250-(500k)
                      100ms         64  all            32:1  3125-(500k)
    */
-
-  /* power save mode would disable timer0 and timer1 */
-  Cfg.SleepMode = SLEEP_MODE_IDLE;      /* change sleep mode to Idle */
 
   /* set up control lines */
   CtrlDir = COUNTER_CTRL_DDR;      /* get current direction */
@@ -2201,9 +2210,9 @@ void FrequencyCounter(void)
       /* display source channel (in line #3) */ 
       LCD_ClearLine(3);
       LCD_CharPos(1, 3);
-      LCD_EEString(CounterChannel_str); /* display: "Ch" */
-      LCD_Space();
-      LCD_EEString(String);             /* display channel name */
+      Display_EEString(CounterChannel_str);  /* display: "Ch" */
+      Display_Space();
+      Display_EEString(String);              /* display channel name */
 
       Flag &= ~UPDATE_CHANNEL;          /* clear flag */
     }
@@ -2221,7 +2230,6 @@ void FrequencyCounter(void)
     TCNT0 = 0;                          /* Timer0: reset pulse counter */
     TCNT1 = 0;                          /* Timer1: reset gate time counter */
     OCR1A = Top;                        /* Timer1: set gate time */
-    sei();                              /* enable interrupts */
     TCCR1B = Bitmask;                   /* start Timer1, prescaler */
     TCCR0B = (1 << CS02) | (1 << CS01); /* start Timer0, clock source: T0 falling edge */
 
@@ -2279,14 +2287,12 @@ void FrequencyCounter(void)
      *  process measurement
      */
 
-    cli();                         /* disable interrupts */
-
     if (InDir)                     /* restore old setting for T0 */
     {
       COUNTER_DDR |= (1 << COUNTER_IN);      /* set to output mode */
     }
 
-    UI.OP_Mode &= ~OP_BREAK_KEY;        /* clear break signal (just in case) */
+    Cfg.OP_Control &= ~OP_BREAK_KEY;    /* clear break signal (just in case) */
 
     if (Flag & GATE_FLAG)               /* got measurement */
     {
@@ -2344,8 +2350,8 @@ void FrequencyCounter(void)
      */
 
     LCD_ClearLine2();                 /* clear line #2 */
-    LCD_Char('f');                    /* display: f */
-    LCD_Space();
+    Display_Char('f');                /* display: f */
+    Display_Space();
 
     if (Flag & SHOW_FREQ)               /* valid frequency */
     {
@@ -2363,14 +2369,14 @@ void FrequencyCounter(void)
         Index = 'k';          /* k for kilo */
       }
 
-      DisplayFullValue(FreqPulses, Test, Index);
-      LCD_EEString(Hertz_str);          /* display: "Hz" */
+      Display_FullValue(FreqPulses, Test, Index);
+      Display_EEString(Hertz_str);      /* display: "Hz" */
 
       Flag &= ~SHOW_FREQ;               /* clear flag */
     }
     else                                /* invalid frequency */
     {
-      LCD_Char('-');                    /* display: no value */
+      Display_Char('-');                /* display: no value */
     }
   }
 
@@ -2379,8 +2385,8 @@ void FrequencyCounter(void)
    *  clean up
    */
 
-  TIMSK0 = 0;                           /* disable all interrupts for Timer0 */
-  TIMSK1 = 0;                           /* disable all interrupts for Timer1 */
+  TIMSK0 = 0;                 /* disable all interrupts for Timer0 */
+  TIMSK1 = 0;                 /* disable all interrupts for Timer1 */
 
   /* filter control lines which were in input mode */ 
   CtrlDir ^= (1 << COUNTER_CTRL_DIV) | (1 << COUNTER_CTRL_CH0) | (1 << COUNTER_CTRL_CH1);
@@ -2408,6 +2414,7 @@ ISR(TIMER0_OVF_vect, ISR_BLOCK)
    *  hints:
    *  - the TOV0 interrupt flag is cleared automatically
    *  - interrupt processing is disabled while this ISR runs
+   *    (no nested interrupts)
    */
 
   FreqPulses += 256;          /* add overflow to global counter */
@@ -2426,13 +2433,14 @@ ISR(TIMER1_COMPA_vect, ISR_BLOCK)
    *  hints:
    *  - the OCF1A interrupt flag is cleared automatically
    *  - interrupt processing is disabled while this ISR runs
+   *    (no nested interrupts)
    */
 
   /* gate time has passed */
   TCCR1B = 0;                 /* disable Timer1 */
   TCCR0B = 0;                 /* disable Timer0 */
 
-  UI.OP_Mode |= OP_BREAK_KEY;      /* break TestKey() processing */
+  Cfg.OP_Control |= OP_BREAK_KEY;       /* break TestKey() processing */
 }
 
 #endif
@@ -2597,7 +2605,7 @@ void Encoder_Tool(void)
 
   /* show info */
   LCD_Clear();
-  LCD_EEString(Encoder_str);       /* display: Rotary Encoder */
+  Display_EEString(Encoder_str);   /* display: Rotary Encoder */
 
   /* init array */
   for (Flag = 0; Flag <= 2; Flag++)
@@ -2614,8 +2622,8 @@ void Encoder_Tool(void)
     if (Flag == 5)                 /* ask user to turn */
     {
       LCD_ClearLine2();
-      LCD_EEString(TurnRight_str);     /* display: Turn right! */
-      Flag = 0;                        /* reset flag */
+      Display_EEString(TurnRight_str);    /* display: Turn right! */
+      Flag = 0;                           /* reset flag */
     }
 
     UpdateProbes(PROBE_1, PROBE_2, PROBE_3);      /* check first pinout */
@@ -2635,7 +2643,7 @@ void Encoder_Tool(void)
 
     if (Flag > 0)             /* detected encoder */
     {
-      TestKey(3000, CURSOR_STEADY | CURSOR_OP_MODE);  /* let the user read */
+      TestKey(3000, CURSOR_STEADY | UI_OP_MODE);  /* let the user read */
       Flag = 5;                    /* reset flag */
     }
     else                      /* nothing found yet */
@@ -2720,12 +2728,13 @@ void OptoCoupler_Tool(void)
   uint32_t          CTR = 0;            /* CTR in % */
 
   /* init */
-  LCD_NextLine_Mode(LINE_KEEP | LINE_KEY);   /* set line mode */
+  /* next-line mode: keep first line and wait for key/timeout */
+  UI.LineMode = LINE_KEEP | LINE_KEY;
 
   /* display info */
   LCD_Clear();
-  LCD_EEString(OptoCoupler_str);        /* display: Opto Coupler */
-  LCD_NextLine_EEString(Start_str);     /* display: Start */
+  Display_EEString(OptoCoupler_str);    /* display: Opto Coupler */
+  Display_NL_EEString(Start_str);       /* display: Start */
 
   while (Run)
   {
@@ -2743,8 +2752,11 @@ void OptoCoupler_Tool(void)
     if (Run)                       /* check opto coupler */
     {
       LCD_Clear();
-      LCD_EEString(OptoCoupler_str);    /* display: Opto Coupler */
-      LCD_NextLine();
+      #ifdef UI_SERIAL_COPY
+      SerialCopy_On();             /* enable serial output & NL */
+      #endif
+      Display_EEString(OptoCoupler_str);     /* display: Opto Coupler */
+      Display_NextLine();
       Test = 0;
 
       /*
@@ -2962,50 +2974,54 @@ void OptoCoupler_Tool(void)
 
       if (Test == 100)          /* got BJT type */
       {
-        LCD_EEString(BJT_str);          /* display: BJT */
+        Display_EEString(BJT_str);      /* display: BJT */
 
-        LCD_NextLine_EEString_Space(CTR_str);     /* display: CTR */
-        DisplayValue(CTR, 0, '%');                /* display CTR */
+        Display_NL_EEString_Space(CTR_str);       /* display: CTR */
+        Display_Value(CTR, 0, '%');               /* display CTR */
 
-        LCD_NextLine_EEString_Space(If_str);      /* display: If */
-        DisplayValue(U3, -6, 'A');                /* display If */
+        Display_NL_EEString_Space(If_str);        /* display: If */
+        Display_Value(U3, -6, 'A');               /* display If */
 
         if (U1 < UINT16_MAX)       /* valid t_on */
         {
-          LCD_NextLine_EEString_Space(t_on_str);   /* display: t_on */
+          Display_NL_EEString_Space(t_on_str);    /* display: t_on */
           if (U1 < 10)        /* < 1탎 */
           {
-            LCD_Char('<');
+            Display_Char('<');
             U1 = 10;          /* 1탎 */
           }
-          DisplayValue(U1, -7, 's');
+          Display_Value(U1, -7, 's');
         }
 
         if (U2 < UINT16_MAX)       /* valid t_off */
         {
-          LCD_NextLine_EEString_Space(t_off_str);  /* display: t_off */
+          Display_NL_EEString_Space(t_off_str);   /* display: t_off */
           if (U2 < 10)        /* < 1탎 */
           {
-            LCD_Char('<');
+            Display_Char('<');
             U2 = 10;          /* 1탎 */
           }
-          DisplayValue(U2, -7, 's');
+          Display_Value(U2, -7, 's');
         }
 
-        LCD_NextLine_EEString_Space(Vf_str);      /* display: Vf */
-        DisplayValue(Diodes[0].V_f, -3, 'V');     /* display Vf */
+        Display_NL_EEString_Space(Vf_str);        /* display: Vf */
+        Display_Value(Diodes[0].V_f, -3, 'V');    /* display Vf */
       }
       else if (Test == 101)     /* got TRIAC type */
       {
-        LCD_EEString(Triac_str);        /* display: TRIAC */
+        Display_EEString(Triac_str);    /* display: TRIAC */
 
-        LCD_NextLine_EEString_Space(Vf_str);      /* display: Vf */
-        DisplayValue(Diodes[0].V_f, -3, 'V');     /* display Vf */
+        Display_NL_EEString_Space(Vf_str);        /* display: Vf */
+        Display_Value(Diodes[0].V_f, -3, 'V');    /* display Vf */
       }
       else                      /* none found */
       {
-        LCD_EEString(None_str);         /* display: None */
+        Display_EEString(None_str);     /* display: None */
       }
+
+      #ifdef UI_SERIAL_COPY
+      SerialCopy_Off();            /* disable serial output & NL */
+      #endif
     }
   }
 }

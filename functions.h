@@ -39,12 +39,17 @@
   extern void LCD_Cursor(uint8_t Mode);
   extern void LCD_Char(unsigned char Char);
 
+  #if ! defined (UI_SERIAL_COPY) && ! defined (UI_SERIAL_COMMANDS)
+    /* make Display_Char() an alias for LCD_Char() */
+    #define Display_Char LCD_Char
+  #endif
+
   #ifdef SW_CONTRAST
-    extern void LCD_Contrast(uint8_t Contrast);
+  extern void LCD_Contrast(uint8_t Contrast);
   #endif
 
   #ifdef SW_SYMBOLS
-    extern void LCD_Symbol(uint8_t ID);
+  extern void LCD_Symbol(uint8_t ID);
   #endif
 
 #endif
@@ -58,12 +63,12 @@
 
   #ifdef HW_SPI
     #ifdef SPI_HARDWARE
-      extern void SPI_Clock(void);
+    extern void SPI_Clock(void);
     #endif
-    extern void SPI_Setup(void);
-    extern void SPI_Write_Byte(uint8_t Byte);
+  extern void SPI_Setup(void);
+  extern void SPI_Write_Byte(uint8_t Byte);
     #ifdef SPI_RW
-      extern uint8_t SPI_WriteRead_Byte(uint8_t Byte);
+    extern uint8_t SPI_WriteRead_Byte(uint8_t Byte);
     #endif
   #endif
 
@@ -77,12 +82,12 @@
 #ifndef I2C_C
 
   #ifdef HW_I2C
-    extern uint8_t I2C_Setup(void);
-    extern uint8_t I2C_Start(uint8_t Type);
-    extern uint8_t I2C_WriteByte(uint8_t Type);
-    extern void I2C_Stop(void);
+  extern uint8_t I2C_Setup(void);
+  extern uint8_t I2C_Start(uint8_t Type);
+  extern uint8_t I2C_WriteByte(uint8_t Type);
+  extern void I2C_Stop(void);
     #ifdef I2C_RW
-      extern uint8_t I2C_ReadByte(uint8_t Type);
+    extern uint8_t I2C_ReadByte(uint8_t Type);
     #endif
   #endif
 
@@ -96,15 +101,17 @@
 #ifndef SERIAL_C
 
   #ifdef HW_SERIAL
-    extern void Serial_Setup(void);
-    extern void Serial_WriteByte(uint8_t Byte);
+  extern void Serial_Setup(void);
+  extern void Serial_WriteByte(uint8_t Byte);
     #ifdef SERIAL_RW
+    void Serial_Ctrl(uint8_t Control);
     #endif
 
-    #ifdef UI_SERIAL_COPY
+    #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
     extern void Serial_Char(unsigned char Char);
     extern void Serial_NewLine(void);
     #endif
+
   #endif
 
 #endif
@@ -117,10 +124,10 @@
 #ifndef TOUCH_DRIVER_C
 
   #ifdef HW_TOUCH
-    extern void Touch_BusSetup(void);
-    extern void Touch_Init(void);
-    extern uint8_t Touch_Check(void);
-    extern uint8_t Touch_Adjust(void);
+  extern void Touch_BusSetup(void);
+  extern void Touch_Init(void);
+  extern uint8_t Touch_Check(void);
+  extern uint8_t Touch_Adjust(void);
   #endif
 
 #endif
@@ -132,20 +139,52 @@
 
 #ifndef DISPLAY_C
 
-  extern void LCD_EEString(const unsigned char *String);
-  extern void LCD_EEString_Space(const unsigned char *String);
-  extern void LCD_ProbeNumber(uint8_t Probe);
+  extern void Display_NextLine(void);
+  #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
+  extern void Display_Char(unsigned char Char);
+  #endif
+  extern void Display_EEString(const unsigned char *String);
+
+  extern void Display_ProbeNumber(uint8_t Probe);
+  extern void Display_Space(void);
+  extern void Display_EEString_Space(const unsigned char *String);
+  extern void Display_NL_EEString(const unsigned char *String);
+  extern void Display_NL_EEString_Space(const unsigned char *String);
 
   extern void LCD_ClearLine2(void);
-  extern void LCD_Space(void);
 
-  extern void LCD_NextLine(void);
-  extern void LCD_NextLine_Mode(uint8_t Mode);
-  extern void LCD_NextLine_EEString(const unsigned char *String);
-  extern void LCD_NextLine_EEString_Space(const unsigned char *String);
+  #ifdef UI_SERIAL_COPY
+  extern void SerialCopy_On(void);
+  extern void SerialCopy_Off(void);
+  #endif
+
+  #ifdef UI_SERIAL_COMMANDS
+  extern void Display_LCD2Serial(void);
+  extern void Display_Serial2LCD(void);
+  extern void Display_EEString_NL(const unsigned char *String);
+  #endif
+
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
+  extern void Display_HexDigit(uint8_t Digit);
+  #endif
+
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+  extern void Display_HexByte(uint8_t Value);
+  #endif
+
+  #ifdef SW_IR_TRANSMITTER
+  extern void Display_HexValue(uint16_t Value, uint8_t Bits);
+  #endif
+
+  #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO)
+  extern void Display_FullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
+  #endif
+
+  extern void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit);
+  extern void Display_SignedValue(int32_t Value, int8_t Exponent, unsigned char Unit);
 
   #ifdef SW_SYMBOLS
-    extern void LCD_FancySemiPinout(uint8_t Line);
+  extern void LCD_FancySemiPinout(uint8_t Line);
   #endif
 
 #endif
@@ -180,6 +219,20 @@
 
 
 /* ************************************************************************
+ *   functions from commands.c
+ * ************************************************************************ */
+
+#ifndef COMMANDS_C
+
+  #ifdef UI_SERIAL_COMMANDS
+  extern uint8_t GetCommand(void);
+  extern uint8_t RunCommand(uint8_t ID);
+  #endif
+
+#endif
+
+
+/* ************************************************************************
  *   functions from user.c
  * ************************************************************************ */
 
@@ -188,25 +241,6 @@
   extern int8_t CmpValue(uint32_t Value1, int8_t Scale1,
     uint32_t Value2, int8_t Scale2);
   extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
-
-  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
-    extern void DisplayHexDigit(uint8_t Digit);
-  #endif
-
-  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
-    extern void DisplayHexByte(uint8_t Value);
-  #endif
-
-  #ifdef SW_IR_TRANSMITTER
-    extern void DisplayHexValue(uint16_t Value, uint8_t Bits);
-  #endif
-
-  #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO)
-    extern void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
-  #endif
-
-  extern void DisplayValue(uint32_t Value, int8_t Exponent, unsigned char Unit);
-  extern void DisplaySignedValue(int32_t Value, int8_t Exponent, unsigned char Unit);
 
   extern uint8_t TestKey(uint16_t Timeout, uint8_t Mode);
   extern void WaitKey(void);
@@ -226,48 +260,56 @@
 #ifndef IR_C
 
   #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
-    extern void IR_Detector(void);
+  extern void IR_Detector(void);
   #endif
 
   #ifdef SW_IR_TRANSMITTER
-    extern void IR_RemoteControl(void);
+  extern void IR_RemoteControl(void);
   #endif
 
 #endif
 
 
 /* ************************************************************************
- *   functions from extras.c
+ *   functions from tools.c
  * ************************************************************************ */
 
-#ifndef EXTRAS_C
+#ifndef TOOLS_C
 
   #ifdef SW_PWM_SIMPLE
-    extern void PWM_Tool(uint16_t Frequency);
+  extern void PWM_Tool(uint16_t Frequency);
   #endif
+
   #ifdef SW_PWM_PLUS
-    extern void PWM_Tool(void);
+  extern void PWM_Tool(void);
   #endif
+
   #ifdef SW_SERVO
-    extern void Servo_Check(void);
+  extern void Servo_Check(void);
   #endif
+
   #ifdef SW_SQUAREWAVE
-    extern void SquareWave_SignalGenerator(void);
+  extern void SquareWave_SignalGenerator(void);
   #endif
+
   #if defined (SW_ESR) || defined (SW_OLD_ESR)
-    extern void ESR_Tool(void);
+  extern void ESR_Tool(void);
   #endif
+
   #ifdef HW_ZENER
-    extern void Zener_Tool(void);
+  extern void Zener_Tool(void);
   #endif
+
   #ifdef HW_FREQ_COUNTER
-    extern void FrequencyCounter(void);
+  extern void FrequencyCounter(void);
   #endif
+
   #ifdef SW_ENCODER
-    extern void Encoder_Tool(void);
+  extern void Encoder_Tool(void);
   #endif
+
   #ifdef SW_OPTO_COUPLER
-    extern void OptoCoupler_Tool(void);
+  extern void OptoCoupler_Tool(void);
   #endif
 
 #endif
@@ -294,7 +336,7 @@
   extern void CheckPUT(void);
 
   #ifdef SW_UJT
-    extern void CheckUJT(void);
+  extern void CheckUJT(void);
   #endif
 
 #endif
@@ -320,7 +362,7 @@
 #ifndef INDUCTOR_C
 
   #ifdef SW_INDUCTOR
-    extern uint8_t MeasureInductor(Resistor_Type *Resistor);
+  extern uint8_t MeasureInductor(Resistor_Type *Resistor);
   #endif
 
 #endif
@@ -333,13 +375,13 @@
 #ifndef CAP_C
 
   #if defined (SW_ESR) || defined (SW_OLD_ESR)
-    extern uint16_t MeasureESR(Capacitor_Type *Cap);
+  extern uint16_t MeasureESR(Capacitor_Type *Cap);
   #endif
 
   extern void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID);
 
   #ifdef HW_ADJUST_CAP
-    extern uint8_t RefCap(void);
+  extern uint8_t RefCap(void);
   #endif
 
 #endif
@@ -355,8 +397,7 @@
   extern void RestoreProbes(void);
   extern void BackupProbes(void);
   extern uint8_t GetThirdProbe(uint8_t Probe1, uint8_t Probe2);
-  extern uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2);
-  extern uint8_t AllProbesShorted(void);
+  extern uint8_t ShortedProbes(void);
   extern void DischargeProbes(void);
   extern void PullProbe(uint8_t Probe, uint8_t Mode);
   extern uint16_t GetFactor(uint16_t U_in, uint8_t ID);

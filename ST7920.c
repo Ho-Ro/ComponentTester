@@ -909,13 +909,6 @@ void LCD_Char(unsigned char Char)
   uint8_t           y;             /* bitmap y byte counter */
   uint8_t           Row;           /* screen row */
 
-  #ifdef UI_SERIAL_COPY
-  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
-  {
-    Serial_Char(Char);             /* send char to serial */
-  }
-  #endif
-
   /* prevent x overflow */
   if (UI.CharPos_X > LCD_CHAR_X) return;
 
@@ -1037,13 +1030,6 @@ void LCD_Char(unsigned char Char)
   uint8_t           StepFlag;      /* offset control flag */
   uint8_t           y;             /* bitmap y byte counter */
   uint8_t           Row;           /* screen row */
-
-  #ifdef UI_SERIAL_COPY
-  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
-  {
-    Serial_Char(Char);             /* send char to serial */
-  }
-  #endif
 
   /* prevent x overflow */
   if (UI.CharPos_X > LCD_CHAR_X) return;

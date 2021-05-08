@@ -45,7 +45,15 @@
    */
 
   /* buffers */
-  char              OutBuffer[12];           /* output buffer */
+  char              OutBuffer[OUT_BUFFER_SIZE];   /* output buffer */
+  #ifdef SERIAL_RW
+  char              RX_Buffer[RX_BUFFER_SIZE];    /* serial RX buffer */
+  uint8_t           RX_Pos = 0;                   /* position in buffer */
+    #ifdef SERIAL_BITBANG
+    uint8_t         RX_Char;                 /* RX char (bit buffer) */
+    uint8_t         RX_Bits;                 /* bit counter for RX char */
+    #endif
+  #endif
 
   /* configuration */
   UI_Type           UI;                      /* user interface */
@@ -53,7 +61,7 @@
   Adjust_Type       NV;                      /* basic adjustment offsets and values */
 
   #ifdef HW_TOUCH
-    Touch_Type      Touch;                   /* touch screen adjustment offsets */
+  Touch_Type        Touch;                   /* touch screen adjustment offsets */
   #endif
 
   /* probing */
@@ -68,20 +76,24 @@
   AltSemi_Type      AltSemi;                 /* special semiconductor */
 
   #ifdef SW_INDUCTOR
-    Inductor_Type   Inductor;                /* inductor */
+  Inductor_Type     Inductor;                /* inductor */
+  #endif
+
+  #ifdef UI_SERIAL_COMMANDS
+  Info_Type         Info;                    /* additional component data */
   #endif
 
   #ifdef SW_PROBE_COLORS
-    /* probe color coding */
-    uint16_t        ProbeColors[3] = {COLOR_PROBE_1, COLOR_PROBE_2, COLOR_PROBE_3};
+  /* probe color coding */
+  uint16_t          ProbeColors[3] = {COLOR_PROBE_1, COLOR_PROBE_2, COLOR_PROBE_3};
   #endif
 
   #ifdef HW_SPI
-    SPI_Type        SPI;                     /* SPI */
+  SPI_Type          SPI;                     /* SPI */
   #endif
 
   #ifdef HW_I2C
-    I2C_Type        I2C;                     /* I2C */
+  I2C_Type          I2C;                     /* I2C */
   #endif
 
 
@@ -96,8 +108,8 @@
   const Adjust_Type     NV_Adjust_2 EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
 
   #ifdef HW_TOUCH
-    /* touch screen adjustment offsets */
-    const Touch_Type    NV_Touch EEMEM = {0, 0, 0, 0, 0};
+  /* touch screen adjustment offsets */
+  const Touch_Type      NV_Touch EEMEM = {0, 0, 0, 0, 0};
   #endif
 
 
@@ -107,6 +119,7 @@
 
   /* language specific */
   #include "var_czech.h"
+  #include "var_danish.h"
   #include "var_english.h"
   #include "var_german.h"
   #include "var_italian.h"
@@ -115,13 +128,14 @@
 
   /* language independent */
   const unsigned char Tester_str[] EEMEM = "Component Tester";
+  const unsigned char Version_str[] EEMEM = "v1.33m";
   const unsigned char MOS_str[] EEMEM = "MOS";
   const unsigned char FET_str[] EEMEM = "FET";
   const unsigned char Channel_str[] EEMEM = "-ch";
   const unsigned char Enhancement_str[] EEMEM = "enh.";
   const unsigned char Depletion_str[] EEMEM = "dep.";
   const unsigned char IGBT_str[] EEMEM = "IGBT";
-  const unsigned char GateCap_str[] EEMEM = "Cgs";
+  const unsigned char Cgs_str[] EEMEM = "Cgs";
   const unsigned char NPN_str[] EEMEM = "NPN";
   const unsigned char PNP_str[] EEMEM = "PNP";
   const unsigned char h_FE_str[] EEMEM ="hFE";
@@ -217,47 +231,131 @@
   const unsigned char Diode_CA_str[] EEMEM = {'-', LCD_CHAR_DIODE_CA, '-', 0};
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
-  /* version */
-  const unsigned char Version_str[] EEMEM = "v1.32m";
+  /* remote commands */
+  #ifdef UI_SERIAL_COMMANDS
+    /* feedback */ 
+    const unsigned char Cmd_ERR_str[] EEMEM = "ERR";
+    const unsigned char Cmd_OK_str[] EEMEM = "OK";
+    const unsigned char Cmd_NA_str[] EEMEM = "N/A";
+    const unsigned char Cmd_R_be_str[] EEMEM = "R_BE";
+    const unsigned char Cmd_D_fb_str[] EEMEM = "D_FB";
+    const unsigned char Cmd_BJT_str[] EEMEM = "BJT";
+    const unsigned char Cmd_SYM_str[] EEMEM = "SYM";
+
+    /* commands */
+    const unsigned char Cmd_VER_str[] EEMEM = "VER";
+    const unsigned char Cmd_PROBE_str[] EEMEM = "PROBE";
+    const unsigned char Cmd_OFF_str[] EEMEM = "OFF";
+    const unsigned char Cmd_COMP_str[] EEMEM = "COMP";
+    const unsigned char Cmd_MSG_str[] EEMEM = "MSG";
+    const unsigned char Cmd_QTY_str[] EEMEM = "QTY";
+    const unsigned char Cmd_NEXT_str[] EEMEM = "NEXT";
+    const unsigned char Cmd_TYPE_str[] EEMEM = "TYPE";
+    const unsigned char Cmd_HINT_str[] EEMEM = "HINT";
+    const unsigned char Cmd_PIN_str[] EEMEM = "PIN";
+    const unsigned char Cmd_R_str[] EEMEM = "R";
+    const unsigned char Cmd_C_str[] EEMEM = "C";
+    #ifdef SW_INDUCTOR
+    const unsigned char Cmd_L_str[] EEMEM = "L";
+    #endif
+    #if defined (SW_ESR) || defined (SW_OLD_ESR)
+    const unsigned char Cmd_ESR_str[] EEMEM = "ESR";
+    #endif
+    const unsigned char Cmd_V_F_str[] EEMEM = "V_F";
+    const unsigned char Cmd_V_F2_str[] EEMEM = "V_F2";
+    const unsigned char Cmd_C_D_str[] EEMEM = "C_D";
+    const unsigned char Cmd_R_BE_str[] EEMEM = "R_BE";
+    const unsigned char Cmd_h_FE_str[] EEMEM = "h_FE";
+    const unsigned char Cmd_V_BE_str[] EEMEM = "V_BE";
+    const unsigned char Cmd_I_CEO_str[] EEMEM = "I_CEO";
+    const unsigned char Cmd_V_TH_str[] EEMEM = "V_th";
+    const unsigned char Cmd_C_GS_str[] EEMEM = "C_GS";
+    const unsigned char Cmd_R_DS_str[] EEMEM = "R_DS";
+    const unsigned char Cmd_I_DSS_str[] EEMEM = "I_DSS";
+    const unsigned char Cmd_C_GE_str[] EEMEM = "C_GE";
+    const unsigned char Cmd_V_T_str[] EEMEM = "V_T";
+
+    /* command reference table */
+    const Cmd_Type Cmd_Table[] EEMEM = {
+      {CMD_VER, Cmd_VER_str},
+      {CMD_PROBE, Cmd_PROBE_str},
+      {CMD_OFF, Cmd_OFF_str},
+      {CMD_COMP, Cmd_COMP_str},
+      {CMD_MSG, Cmd_MSG_str},
+      {CMD_QTY, Cmd_QTY_str},
+      {CMD_NEXT, Cmd_NEXT_str},
+      {CMD_TYPE, Cmd_TYPE_str},
+      {CMD_HINT, Cmd_HINT_str},
+      {CMD_PIN, Cmd_PIN_str},
+      {CMD_R, Cmd_R_str},
+      {CMD_C, Cmd_C_str},
+      #ifdef SW_INDUCTOR
+      {CMD_L, Cmd_L_str},
+      #endif
+      #if defined (SW_ESR) || defined (SW_OLD_ESR)
+      {CMD_ESR, Cmd_ESR_str},
+      #endif
+      {CMD_I_L, I_leak_str},
+      {CMD_V_F, Cmd_V_F_str},
+      {CMD_V_F2, Cmd_V_F2_str},
+      {CMD_C_D, Cmd_C_D_str},
+      {CMD_I_R, I_R_str},
+      {CMD_R_BE, Cmd_R_BE_str},
+      {CMD_H_FE, Cmd_h_FE_str},
+      {CMD_V_BE, Cmd_V_BE_str},
+      {CMD_I_CEO, Cmd_I_CEO_str},
+      {CMD_V_TH, Cmd_V_TH_str},
+      {CMD_C_GS, Cmd_C_GS_str},
+      {CMD_R_DS, Cmd_R_DS_str},
+      {CMD_I_DSS, Cmd_I_DSS_str},
+      {CMD_C_GE, Cmd_C_GE_str},
+      {CMD_V_GT, V_GT_str},
+      {CMD_V_T, Cmd_V_T_str},
+      #ifdef SW_UJT
+      {CMD_R_BB, R_BB_str},
+      #endif
+      {0, 0}
+    };
+  #endif
 
 
   /*
-   *  contant tables (stored in EEPROM)
+   *  constant tables (stored in EEPROM)
    */
 
   /* unit prefixes: p, n, µ, m, 0, k, M (used by value display) */
-  const unsigned char Prefix_table[] EEMEM = {'p', 'n', LCD_CHAR_MICRO, 'm', 0, 'k', 'M'};
+  const unsigned char Prefix_table[NUM_PREFIXES] EEMEM = {'p', 'n', LCD_CHAR_MICRO, 'm', 0, 'k', 'M'};
 
   /* voltage based factors for large caps (using Rl) */
-  /* voltage in mV:                          300    325    350    375    400    425    450    475    500    525    550    575    600    625    650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400 */
-  const uint16_t LargeCap_table[] EEMEM = {23022, 21195, 19629, 18272, 17084, 16036, 15104, 14271, 13520, 12841, 12224, 11660, 11143, 10668, 10229, 9822, 9445, 9093, 8765, 8458, 8170, 7900, 7645, 7405, 7178, 6963, 6760, 6567, 6384, 6209, 6043, 5885, 5733, 5589, 5450, 5318, 5191, 5069, 4952, 4839, 4731, 4627, 4526, 4430, 4336};
+  /* voltage in mV:                                       300    325    350    375    400    425    450    475    500    525    550    575    600    625    650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400 */
+  const uint16_t LargeCap_table[NUM_LARGE_CAP] EEMEM = {23022, 21195, 19629, 18272, 17084, 16036, 15104, 14271, 13520, 12841, 12224, 11660, 11143, 10668, 10229, 9822, 9445, 9093, 8765, 8458, 8170, 7900, 7645, 7405, 7178, 6963, 6760, 6567, 6384, 6209, 6043, 5885, 5733, 5589, 5450, 5318, 5191, 5069, 4952, 4839, 4731, 4627, 4526, 4430, 4336};
 
   /* voltage based factors for small caps (using Rh) */
-  /* voltages in mV:                      1000 1050 1100 1150 1200 1250 1300 1350 1400 */
-  const uint16_t SmallCap_table[] EEMEM = {954, 903, 856, 814, 775, 740, 707, 676, 648};
-//const uint16_t SmallCap_table[] EEMEM = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
+  /* voltages in mV:                                   1000 1050 1100 1150 1200 1250 1300 1350 1400 */
+  const uint16_t SmallCap_table[NUM_SMALL_CAP] EEMEM = {954, 903, 856, 814, 775, 740, 707, 676, 648};
+//const uint16_t SmallCap_table[NUM_SMALL_CAP] EEMEM = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
 
   #ifdef SW_PWM_SIMPLE
-    /* PWM menu: frequencies */    
-    const uint16_t PWM_Freq_table[] EEMEM = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
+  /* PWM menu: frequencies */    
+  const uint16_t PWM_Freq_table[NUM_PWM_FREQ] EEMEM = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
   #endif
 
   #ifdef SW_INDUCTOR
-    /* ratio based factors for inductors */
-    /* ratio:                                 200   225   250   275   300   325   350   375   400   425   450   475   500   525   550   575   600   625  650  675  700  725  750  775  800  825  850  875  900  925  950  975 */
-    const uint16_t Inductor_table[] EEMEM = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
+  /* ratio based factors for inductors */
+  /* ratio:                                             200   225   250   275   300   325   350   375   400   425   450   475   500   525   550   575   600   625  650  675  700  725  750  775  800  825  850  875  900  925  950  975 */
+  const uint16_t Inductor_table[NUM_INDUCTOR] EEMEM = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
   #endif
 
   #if defined (HW_FREQ_COUNTER) || defined (SW_SQUAREWAVE)
-    /* Timer1 prescalers and corresponding bitmasks */
-    const uint16_t T1_Prescaler_table[] EEMEM = {1, 8, 64, 256, 1024};
-    const uint8_t T1_Bitmask_table[] EEMEM = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
+  /* Timer1 prescalers and corresponding bitmasks */
+  const uint16_t T1_Prescaler_table[NUM_TIMER1] EEMEM = {1, 8, 64, 256, 1024};
+  const uint8_t T1_Bitmask_table[NUM_TIMER1] EEMEM = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
   #endif
 
 
   /*
    *  bitmask tables for probe settings (stored in EEPROM)
-   *  - they save some bytes in the firmware.
+   *  - this saves some bytes in the firmware
    */
 
   /* bitmasks for Rl probe resistors based on probe ID */
@@ -290,7 +388,15 @@
    */
 
   /* buffers */
-  extern char            OutBuffer[12];      /* output buffer */
+  extern char            OutBuffer[];        /* output buffer */
+  #ifdef SERIAL_RW
+  extern char            RX_Buffer[];        /* serial RX buffer */
+  extern uint8_t         RX_Pos;             /* position in buffer */
+    #ifdef SERIAL_BITBANG
+    extern uint8_t       RX_Char;            /* RX char (bit buffer) */
+    extern uint8_t       RX_Bits;            /* bit counter for RX char */
+    #endif
+  #endif
 
   /* configuration */
   extern UI_Type         UI;                 /* user interface */
@@ -298,7 +404,7 @@
   extern Adjust_Type     NV;                 /* basic adjustment offsets and values */
 
   #ifdef HW_TOUCH
-    extern Touch_Type    Touch;              /* touch screen adjustment offsets */
+  extern Touch_Type      Touch;              /* touch screen adjustment offsets */
   #endif
 
   /* probing */
@@ -306,26 +412,30 @@
   extern Check_Type      Check;              /* checking/testing */
 
   /* components */
-  extern Resistor_Type   Resistors[3];       /* resistors */
-  extern Capacitor_Type  Caps[3];            /* capacitors */
-  extern Diode_Type      Diodes[6];          /* diodes */
+  extern Resistor_Type   Resistors[];        /* resistors */
+  extern Capacitor_Type  Caps[];             /* capacitors */
+  extern Diode_Type      Diodes[];           /* diodes */
   extern Semi_Type       Semi;               /* common semiconductor */
   extern AltSemi_Type    AltSemi;            /* special semiconductor */
 
   #ifdef SW_INDUCTOR
-    extern Inductor_Type Inductor;           /* inductor */
+  extern Inductor_Type   Inductor;           /* inductor */
+  #endif
+
+  #ifdef UI_SERIAL_COMMANDS
+  extern Info_Type       Info;               /* additional component data */
   #endif
 
   #ifdef SW_PROBE_COLORS
-    extern uint16_t      ProbeColors[3];     /* probe color coding */
+  extern uint16_t        ProbeColors[];      /* probe color coding */
   #endif
 
   #ifdef HW_SPI
-    extern SPI_Type      SPI;                /* SPI */
+  extern SPI_Type        SPI;                /* SPI */
   #endif
 
   #ifdef HW_I2C
-    extern I2C_Type      I2C;                /* I2C */
+  extern I2C_Type        I2C;                /* I2C */
   #endif
 
 
@@ -340,8 +450,8 @@
   extern const Adjust_Type    NV_Adjust_2;
 
   #ifdef HW_TOUCH
-    /* touch screen adjustment offsets */
-    extern const Touch_Type    NV_Touch;
+  /* touch screen adjustment offsets */
+  extern const Touch_Type     NV_Touch;
   #endif
 
 
@@ -349,7 +459,8 @@
    *  constant strings (stored in EEPROM)
    */
 
-  extern const unsigned char Running_str[];
+  extern const unsigned char Version_str[];
+  extern const unsigned char Probing_str[];
   extern const unsigned char Done_str[];
   extern const unsigned char Select_str[];
   extern const unsigned char Selftest_str[];
@@ -363,11 +474,23 @@
   extern const unsigned char DischargeFailed_str[];
   extern const unsigned char Error_str[];
   extern const unsigned char Exit_str[];
-  extern const unsigned char Vf_str[];
   extern const unsigned char BJT_str[];
   extern const unsigned char Triac_str[];
   extern const unsigned char PUT_str[];
 
+  extern const unsigned char MOS_str[];
+  extern const unsigned char FET_str[];
+  extern const unsigned char Channel_str[];
+  extern const unsigned char Enhancement_str[];
+  extern const unsigned char Depletion_str[];
+  extern const unsigned char Cgs_str[];
+  extern const unsigned char NPN_str[];
+  extern const unsigned char PNP_str[];
+  extern const unsigned char h_FE_str[];
+  extern const unsigned char V_BE_str[];
+  extern const unsigned char I_CEO_str[];
+  extern const unsigned char Vf_str[];
+  extern const unsigned char Vth_str[];
   extern const unsigned char URef_str[];
   extern const unsigned char RhLow_str[];
   extern const unsigned char RhHigh_str[];
@@ -383,6 +506,7 @@
   extern const unsigned char Checksum_str[];
   extern const unsigned char Profile1_str[];
   extern const unsigned char Profile2_str[];
+
 
   #ifdef BAT_EXT_UNMONITORED
     extern const unsigned char External_str[];
@@ -467,6 +591,7 @@
   #endif
   #ifdef SW_UJT
     extern const unsigned char UJT_str[];
+    extern const unsigned char R_BB_str[];
   #endif
   #ifdef SW_SERVO
     extern const unsigned char Servo_str[];
@@ -475,6 +600,55 @@
   #ifdef HW_TOUCH
     extern const unsigned char TouchSetup_str[];
   #endif
+
+  /* remote commands */
+  #ifdef UI_SERIAL_COMMANDS
+    /* feedback */
+    extern const unsigned char Cmd_ERR_str[];
+    extern const unsigned char Cmd_OK_str[];
+    extern const unsigned char Cmd_NA_str[];
+    extern const unsigned char Cmd_R_be_str[];
+    extern const unsigned char Cmd_D_fb_str[];
+    extern const unsigned char Cmd_BJT_str[];
+    extern const unsigned char Cmd_SYM_str[];
+
+    /* commands */
+    extern const unsigned char Cmd_VER_str[];
+    extern const unsigned char Cmd_PROBE_str[];
+    extern const unsigned char Cmd_OFF_str[];
+    extern const unsigned char Cmd_COMP_str[];
+    extern const unsigned char Cmd_MSG_str[];
+    extern const unsigned char Cmd_QTY_str[];
+    extern const unsigned char Cmd_NEXT_str[];
+    extern const unsigned char Cmd_TYPE_str[];
+    extern const unsigned char Cmd_HINT_str[];
+    extern const unsigned char Cmd_PIN_str[];
+    extern const unsigned char Cmd_R_str[];
+    extern const unsigned char Cmd_C_str[];
+    #ifdef SW_INDUCTOR
+    extern const unsigned char Cmd_L_str[];
+    #endif
+    #if defined (SW_ESR) || defined (SW_OLD_ESR)
+    extern const unsigned char Cmd_ESR_str[];
+    #endif
+    extern const unsigned char Cmd_V_F_str[];
+    extern const unsigned char Cmd_V_F2_str[];
+    extern const unsigned char Cmd_C_D_str[];
+    extern const unsigned char Cmd_R_BE_str[];
+    extern const unsigned char Cmd_h_FE_str[];
+    extern const unsigned char Cmd_V_BE_str[];
+    extern const unsigned char Cmd_I_CEO_str[];
+    extern const unsigned char Cmd_V_TH_str[];
+    extern const unsigned char Cmd_C_GS_str[];
+    extern const unsigned char Cmd_R_DS_str[];
+    extern const unsigned char Cmd_I_DSS_str[];
+    extern const unsigned char Cmd_C_GE_str[];
+    extern const unsigned char Cmd_V_T_str[];
+
+    /* command reference table */
+    extern const Cmd_Type Cmd_Table[];
+  #endif
+
 
 
   /*
@@ -491,19 +665,19 @@
   extern const uint16_t SmallCap_table[];
 
   #ifdef SW_PWM_SIMPLE
-    /* PWM menu: frequencies */
-    extern const uint16_t PWM_Freq_table[];
+  /* PWM menu: frequencies */
+  extern const uint16_t PWM_Freq_table[];
   #endif
 
   #ifdef SW_INDUCTOR
-    /* voltage based factors for inductors */
-    extern const uint16_t Inductor_table[];
+  /* voltage based factors for inductors */
+  extern const uint16_t Inductor_table[];
   #endif
 
   #if defined (HW_FREQ_COUNTER) || defined (SW_SQUAREWAVE)
-    /* Timer1 prescalers and corresponding bitmasks */
-    extern const uint16_t T1_Prescaler_table[];
-    extern const uint8_t T1_Bitmask_table[];
+  /* Timer1 prescalers and corresponding bitmasks */
+  extern const uint16_t T1_Prescaler_table[];
+  extern const uint8_t T1_Bitmask_table[];
   #endif
 
 

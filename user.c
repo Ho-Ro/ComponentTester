@@ -2,7 +2,7 @@
  *
  *   user interface functions
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -159,298 +159,6 @@ uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
   }
 
   return NewValue;
-}
-
-
-
-/* ************************************************************************
- *   display of values and units
- * ************************************************************************ */
-
-
-#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
-
-/*
- *  display single hex digit
- *
- *  requires:
- *  - value to display (0-15)
- */
-
-void DisplayHexDigit(uint8_t Digit)
-{
-  /*
-   *  0-9: ascii 48-57
-   *  A-F: ascii 65-70
-   */
-
-  if (Digit < 10) Digit += 48;     /* 0-9 */
-  else Digit += (65 - 10);         /* A-F */
-  LCD_Char(Digit);  
-}
-
-#endif
-
-
-
-#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
-
-/*
- *  display byte as hex
- *
- *  requires:
- *  - value to display (0-255)
- */
-
-void DisplayHexByte(uint8_t Value)
-{
-  uint8_t           Digit;
-
-  /* first digit */
-  Digit = Value / 16;
-  DisplayHexDigit(Digit);
-
-  /* second digit */
-  Digit = Value % 16;
-  DisplayHexDigit(Digit);
-}
-
-#endif
-
-
-
-#ifdef SW_IR_TRANSMITTER
-
-/*
- *  output hexadecimal value
- *
- *  requires:
- *  - Value: value to display
- *  - Bits: max. bit depth of value (1-16)
- */
-
-void DisplayHexValue(uint16_t Value, uint8_t Bits)
-{
-  uint8_t           Nibble[4];     /* nibbles */
-  uint8_t           n;             /* counter */
-
-  /* calculate number of nibbles/digits */
-  Bits += 3;                  /* for a partial nibble */
-  Bits /= 4;                  /* number of nibbles */
-
-  /* get nibbles (from LSB to MSB) */
-  n = 0;
-  while (n < Bits)
-  {
-    Nibble[n] = Value & 0x000F;    /* get LSB nibble */
-    Value >>= 4;                   /* shift one nibble */
-    n++;                           /* next nibble */
-  }
-
-  /* output nibbles (from MSB to LSB) */
-  n = Bits;
-  while (n > 0)
-  {
-    DisplayHexDigit(Nibble[n - 1]);
-    n--;                           /* next nibble */
-  }
-}
-
-#endif
-
-
-
-#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO)
-
-/*
- *  display unsigned value
- *
- *  requires:
- *  - Value: unsigned value
- *  - DecPlaces: decimal places (0 = none)
- *  - Unit: character for unit (0 = none)
- */
-
-void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
-{
-  uint8_t           n;                  /* counter */
-  uint8_t           Length;             /* string length */
-  uint8_t           Pos = 0;            /* position of dot */
-
-  /* convert value into string */
-  ultoa(Value, OutBuffer, 10);
-  Length = strlen(OutBuffer);
-
-  /* determine position of dot */
-  if (DecPlaces == 0)                   /* no dot requested */
-  {
-    Pos = 100;                          /* disable dot */
-  }
-  else if (Length >= DecPlaces)         /* position within string */
-  {
-    Pos = Length - DecPlaces;           /* position of dot */
-    DecPlaces = 0;                      /* no additional zeros needed */
-  }
-  else                                  /* position outside string */
-  {
-    DecPlaces = DecPlaces - Length;     /* number of zeros after dot */
-  }
-
-  /* leading zero (followed by dot) */
-  if (Pos == 0) LCD_Char('0');          /* display: 0 */
-
-  /* display digits */
-  n = 0;
-  while (n < Length)                    /* process string */
-  {
-    if (n == Pos)                       /* at position of dot */
-    {
-      #ifdef UI_COMMA
-      LCD_Char(',');                    /* display: , */
-      #else
-      LCD_Char('.');                    /* display: . */
-      #endif
-      while (DecPlaces > 0)             /* fill in more zeros if needed */
-      {
-        LCD_Char('0');                  /* display: 0 */
-        DecPlaces--;
-      }
-    }
-
-    LCD_Char(OutBuffer[n]);             /* display digit */
-    n++;                                /* next digit */
-  }
-
-  /* display unit */
-  if (Unit) LCD_Char(Unit);
-}
-
-#endif
-
-
-
-/*
- *  display unsigned value and unit
- *  - max. 4 digits excluding "." and unit
- *
- *  requires:
- *  - unsigned value
- *  - exponent of factor related to base unit (value * 10^x)
- *    e.g: p = 10^-12 -> -12
- *  - unit character (0 = none)
- */
-
-void DisplayValue(uint32_t Value, int8_t Exponent, unsigned char Unit)
-{
-  unsigned char     Prefix = 0;         /* prefix character */
-  uint8_t           Offset = 0;         /* exponent offset to next 10^3 step */
-  uint8_t           Index;              /* index ID */
-  uint8_t           Length;             /* string length */
-
-  /* scale value down to 4 digits */
-  while (Value >= 10000)
-  {
-    Value += 5;                       /* for automagic rounding */
-    Value = Value / 10;               /* scale down by 10^1 */
-    Exponent++;                       /* increase exponent by 1 */
-  } 
-
-
-  /*
-   *  determine prefix and offset (= number of digits right of dot)
-   */
-
-  if (Exponent >= -12)                  /* prevent index underflow */
-  {
-    Exponent += 12;                     /* shift exponent to be >= 0 */ 
-    Index = Exponent / 3;               /* number of 10^3 steps */
-    Offset = Exponent % 3;              /* offset to lower 10^3 step */
-
-    if (Offset > 0)                     /* dot required */
-    {
-      Index++;                          /* upscale prefix */ 
-      Offset = 3 - Offset;              /* reverse value (1 or 2) */
-    }    
-
-    /* look up prefix in table (also prevent array overflow) */
-    if (Index <= 6) Prefix = eeprom_read_byte(&Prefix_table[Index]);
-  }
-
-
-  /*
-   *  display value
-   */
-
-  /* convert value into string */
-  utoa((uint16_t)Value, OutBuffer, 10);
-  Length = strlen(OutBuffer);
-
-  /* we misuse Exponent for the dot position */
-  Exponent = Length - Offset;           /* calculate position */
-
-  if (Exponent <= 0)                    /* we have to prepend "0." */
-  {
-    /* 0: factor 10 / -1: factor 100 */
-    LCD_Char('0');                      /* display: 0 */
-    #ifdef UI_COMMA
-    LCD_Char(',');                      /* display: , */
-    #else
-    LCD_Char('.');                      /* display: . */
-    #endif
-    if (Exponent < 0) LCD_Char('0');    /* extra 0 for factor 100 */
-  }
-
-  if (Offset == 0) Exponent = -1;       /* disable dot if not needed */
-
-  /* adjust position to match array or disable dot if set to 0 */ 
-  Exponent--;
-
-  /* display value and add dot if requested */
-  Index = 0;
-  while (Index < Length)                /* loop through string */
-  {
-    LCD_Char(OutBuffer[Index]);         /* display char/digit */
-    if (Index == Exponent)              /* starting point of decimal fraction */
-    {
-      #ifdef UI_COMMA
-      LCD_Char(',');                    /* display: , */
-      #else
-      LCD_Char('.');                    /* display: . */
-      #endif
-    }
-
-    Index++;                            /* next one */
-  }
-
-  /* display prefix and unit */
-  if (Prefix) LCD_Char(Prefix);
-  if (Unit) LCD_Char(Unit);
-}
-
-
-
-/*
- *  display signed value and unit
- *  - max. 4 digits excluding sign, "." and unit
- *
- *  requires:
- *  - signed value
- *  - exponent of factor related to base unit (value * 10^x)
- *    e.g: p = 10^-12 -> -12
- *  - unit character (0 = none)
- */
-
-void DisplaySignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
-{
-  /* take care about sign */
-  if (Value < 0)              /* negative value */
-  {
-    LCD_Char('-');            /* display: "-" */
-    Value = -Value;           /* make value positive */
-  }
-
-  /* and display unsigned value */
-  DisplayValue((int32_t)Value, Exponent, Unit);
 }
 
 
@@ -817,7 +525,7 @@ uint8_t ReadTouchScreen(void)
  *  - optional rotary encoder incl. detection of turning velocity
  *  - optional increase/decrease push buttons
  *  - optional touch screen
- *  - processing can be terminated by signaling OP_BREAK_KEY via UI.OP_Mode
+ *  - processing can be terminated by signaling OP_BREAK_KEY via Cfg.OP_Mode
  *    (e.g. set by an interrupt handler to deal with an infinite timeout)
  *
  *  requires:
@@ -827,7 +535,7 @@ uint8_t ReadTouchScreen(void)
  *    CURSOR_NONE     no cursor
  *    CURSOR_STEADY   steady cursor
  *    CURSOR_BLINK    blinking cursor
- *    CURSOR_OP_MODE  consider tester operation mode (UI.OP_Mode)
+ *    UI_OP_MODE      consider tester operation mode (Cfg.OP_Mode)
  *
  *  returns:
  *  - KEY_TIMEOUT     reached timeout
@@ -850,9 +558,6 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   uint8_t           Steps = 0;     /* step counter */
   uint8_t           MinSteps = 2;  /* required steps */
   uint16_t          Temp;          /* temp value */
-  #endif
-  #ifdef UI_SERIAL_COPY
-  uint8_t           SerialFlag = 0;     /* control flag for serial */
   #endif
 
 
@@ -882,25 +587,17 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   UI.KeyStep = 1;             /* default level #1 */
   #endif
 
-  #ifdef UI_SERIAL_COPY
-  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
+  if (Mode & UI_OP_MODE)           /* consider operation mode */
   {
-    /* prevent copy of cursor to serial interface */
-    UI.OP_Mode &= ~OP_SER_COPY;    /* disable copy to serial */
-    SerialFlag = 1;                /* enable again later on */
-  }
-  #endif
-
-  if (Mode & CURSOR_OP_MODE)       /* consider operation mode */
-  {
-    if (UI.OP_Mode & OP_AUTOHOLD)       /* auto hold mode */
+    if (Cfg.OP_Mode & OP_AUTOHOLD)      /* auto hold mode */
     {
       Timeout = 0;                 /* disable timeout */
-                                   /* but keep cursor mode */
+                                   /* and keep cursor mode */
     }
-    else                                     /* continous mode */
+    else                                /* continous mode */
     {
       Mode = CURSOR_NONE;          /* disable cursor */
+                                   /* and keep timeout */
     }
   }
 
@@ -1039,6 +736,19 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
       }
       #endif
 
+      /*
+       *  TTL serial
+       */
+
+      #ifdef SERIAL_RW
+      if (Cfg.OP_Control & OP_RX_LOCKED)     /* buffer locked */
+      {
+        /* we received a command via the serial interface */
+        Key = KEY_COMMAND;         /* remote command */
+        break;                     /* exit loop */
+      }
+      #endif
+
       MilliSleep(DELAY_TICK);           /* wait a little bit */
 
       /*
@@ -1070,9 +780,9 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
     }
 
     /* check if we should exit anyway */
-    if (UI.OP_Mode & OP_BREAK_KEY)      /* got break signal */
+    if (Cfg.OP_Control & OP_BREAK_KEY)  /* got break signal */
     {
-      UI.OP_Mode &= ~OP_BREAK_KEY;      /* clear break signal */
+      Cfg.OP_Control &= ~OP_BREAK_KEY;  /* clear break signal */
       break;                            /* exit loop */
     }
   }
@@ -1091,13 +801,6 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   UI.KeyOld = Key;            /* update former key */
   #endif
 
-  #ifdef UI_SERIAL_COPY
-  if (SerialFlag)             /* restore former setting */
-  {
-    UI.OP_Mode |= OP_SER_COPY;     /* enable copy to serial */
-  }
-  #endif
-
   #undef DELAY_500
   #undef DELAY_TICK
 
@@ -1114,7 +817,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 void WaitKey(void)
 {
   /* wait for key press or 3000ms timeout */
-  TestKey(3000, CURSOR_STEADY | CURSOR_OP_MODE);
+  TestKey(3000, CURSOR_STEADY | UI_OP_MODE);
 }
 
 
@@ -1159,7 +862,7 @@ uint8_t ShortCircuit(uint8_t Mode)
   } 
 
   /* check if already done */
-  Test = AllProbesShorted();            /* get current status */
+  Test = ShortedProbes();               /* get current status */
   if (Test == Comp)                     /* already done */
   {
     Flag = 1;                           /* skip loop */
@@ -1168,22 +871,22 @@ uint8_t ShortCircuit(uint8_t Mode)
   {
     /* tell user what to do */
     LCD_Clear();
-    LCD_EEString(String);               /* display: Remove/Create */
-    LCD_NextLine();
-    LCD_EEString(ShortCircuit_str);     /* display: short circuit! */
+    Display_EEString(String);             /* display: Remove/Create */
+    Display_NextLine();
+    Display_EEString(ShortCircuit_str);   /* display: short circuit! */
   }  
 
   /* wait until all probes are dis/connected */
   while (Flag == 2)
   {
-    Test = AllProbesShorted();     /* check for shorted probes */
+    Test = ShortedProbes();        /* check for shorted probes */
 
-    if (Test == Comp)         /* job done */
+    if (Test == Comp)              /* job done */
     {
-       Flag = 1;              /* end loop */
-       MilliSleep(200);       /* delay to smooth UI */
+       Flag = 1;                   /* end loop */
+       MilliSleep(200);            /* delay to smooth UI */
     }
-    else                      /* job not done yet */
+    else                           /* job not done yet */
     {
       Test = TestKey(100, CURSOR_NONE);      /* wait 100ms or for any key press */
       if (Mode == 1)                         /* short circuit expected */
@@ -1220,15 +923,15 @@ void ChangeContrast(void)
    */
 
   LCD_Clear();
-  LCD_EEString_Space(Contrast_str);     /* display: Contrast */
+  Display_EEString_Space(Contrast_str);      /* display: Contrast */
 
   Contrast = NV.Contrast;          /* get current value */
-  Max = UI.MaxContrast;
+  Max = UI.MaxContrast;            /* get maximum value */
 
   while (Flag)
   {
     LCD_ClearLine2();
-    DisplayValue(Contrast, 0, 0);
+    Display_Value(Contrast, 0, 0);
 
     #ifdef HW_KEYS
     if (Flag < KEY_RIGHT)               /* just for test button usage */
@@ -1286,16 +989,16 @@ void MarkItem(uint8_t Item, uint8_t Selected)
   if (Selected == Item)       /* current item selected */
   {
     #ifdef LCD_COLOR
-    UI.PenColor = COLOR_MARKER;       /* change color */
+    UI.PenColor = COLOR_MARKER;    /* change color */
     #endif
-    LCD_Char('*');                    /* display asterisk */
+    Display_Char('*');             /* display asterisk */
     #ifdef LCD_COLOR
-    UI.PenColor = COLOR_PEN;          /* reset color */
+    UI.PenColor = COLOR_PEN;       /* reset color */
     #endif
   }
   else                        /* current item not selected */
   {
-    LCD_Space();                      /* display space */
+    Display_Space();               /* display space */
   }
 }
 
@@ -1329,7 +1032,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
   Items--;                    /* to match array counter */
   Lines = UI.CharMax_Y;       /* max. number of lines */
   Lines--;                    /* adjust to match item counter */
-  LCD_Char(':');              /* whatever: */
+  Display_Char(':');          /* whatever: */
 
 
   while (Run)
@@ -1363,18 +1066,18 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
         /* display item or value */
         if (Type == 1)                  /* fixed string */
         {
-          LCD_EEString(*(unsigned char **)Address);
+          Display_EEString(*(unsigned char **)Address);
         }
         else                            /* uint16_t in EEPROM */
         {
           Value = eeprom_read_word(Address); /* read value at eeprom address */
-          DisplayValue(Value, 0, 0);
+          Display_Value(Value, 0, 0);
         }     
 
         /* display optional fixed string */
         if (Unit)
         {
-          LCD_EEString(Unit);
+          Display_EEString(Unit);
         }  
 
         LCD_ClearLine(0);     /* clear rest of this line */
@@ -1394,7 +1097,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
       LCD_CharPos(UI.CharMax_X, UI.CharMax_Y);    /* set position to bottom right */
       if (Selected < Items) n = '>';      /* another item follows */
       else n = '<';                       /* last item */
-      LCD_Char(n);
+      Display_Char(n);
     }
 
     #ifndef HW_KEYS
@@ -1516,11 +1219,11 @@ void AdjustmentMenu(uint8_t Mode)
   LCD_Clear();
   if (Mode == STORAGE_SAVE)        /* write mode */
   {
-    LCD_EEString(Save_str);
+    Display_EEString(Save_str);
   }
   else                             /* read mode */
   {
-    LCD_EEString(Load_str);
+    Display_EEString(Load_str);
   }
 
   /* run menu */
@@ -1716,7 +1419,7 @@ uint8_t PresentMainMenu(void)
    */
 
   LCD_Clear();
-  LCD_EEString(Select_str);                  /* display "Select" */
+  Display_EEString(Select_str);              /* display "Select" */
   Item++;                                    /* add 1 for item #0 */
   ID = MenuTool(Item, 1, MenuItem, NULL);    /* menu dialog */
   ID = MenuID[ID];                           /* get item ID */
@@ -1735,7 +1438,7 @@ uint8_t PresentMainMenu(void)
 void MainMenu(void)
 {
   uint8_t           ID;                 /* ID of selected item */
-  uint8_t           Flag = 1;           /* control flag */
+  uint8_t           Flag = 1;           /* feedback flag */
   #ifdef SW_PWM_SIMPLE
   uint16_t          Frequency;          /* PWM frequency */  
   #endif
@@ -1771,8 +1474,8 @@ void MainMenu(void)
     case 6:              /* PWM tool with simple UI */
       /* run PWM menu */
       LCD_Clear();
-      LCD_EEString(PWM_str);
-      ID = MenuTool(8, 2, (void *)PWM_Freq_table, (unsigned char *)Hertz_str);
+      Display_EEString(PWM_str);
+      ID = MenuTool(NUM_PWM_FREQ, 2, (void *)PWM_Freq_table, (unsigned char *)Hertz_str);
       Frequency = eeprom_read_word(&PWM_Freq_table[ID]);    /* get selected frequency */
       PWM_Tool(Frequency);                                  /* and run PWM tool */
       break;
@@ -1854,9 +1557,9 @@ void MainMenu(void)
   /* display result */
   LCD_Clear();
   if (Flag == 0)
-    LCD_EEString(Error_str);       /* display: error! */
+    Display_EEString(Error_str);   /* display: error! */
   else
-    LCD_EEString(Done_str);        /* display: done! */
+    Display_EEString(Done_str);    /* display: done! */
 }
 
 

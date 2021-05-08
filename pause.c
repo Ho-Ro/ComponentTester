@@ -2,7 +2,7 @@
  *
  *   pause functions
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -43,8 +43,10 @@ void MilliSleep(uint16_t Time)
 {
   uint32_t               Cycles;        /* timer cycles */
   uint8_t                Timeout;       /* compare value */
-  uint8_t                Mode;          /* sleep mode */
   uint8_t                Flag = 0;      /* interrupt flag */
+  #ifdef SAVE_POWER
+  uint8_t                Mode;          /* sleep mode */
+  #endif
 
   /*
    *  calculate stuff
@@ -60,22 +62,18 @@ void MilliSleep(uint16_t Time)
       complicated and we don't need exact timing here.
   */
 
-  Mode = Cfg.SleepMode;                 /* get requested sleep mode */
+  #ifdef SAVE_POWER
+  Mode = Cfg.SleepMode;                 /* get current sleep mode */
+  #endif
 
   /* calculate required timer cycles (prescaler 1024) */
-  Cycles = Time;
+  Cycles = Time;                        /* ms * 1024 -> µs */
   Cycles *= MCU_CYCLES_PER_US;          /* timer cycles based on MCU frequency */
 
+  #ifdef SAVE_POWER
   if (Mode == SLEEP_MODE_PWR_SAVE)      /* power save mode */
   {
     uint32_t        Value;
-
-    /*
-     *  Based on the datasheet the main clock source is disabled in power save
-     *  mode and timer2 needs a watch crystal as clock source (asychronous
-     *  clock). Fortunately the main clock keeps running in power save mode and
-     *  will clock timer2 (synchronous clock). Undocumented feature?
-     */
 
     /*
      *  After returning from the power down or power save sleep modes the
@@ -97,22 +95,26 @@ void MilliSleep(uint16_t Time)
     }
     else                           /* no way to compensate */
     {
-      /* idle mode doesn't require oscillator start-up after wake-up */ 
+      /* idle mode doesn't require oscillator start-up after wake-up */
+      /* just 6 cycles delay */ 
       Mode = SLEEP_MODE_IDLE;           /* change sleep mode to Idle */
     }
   }
+  #endif
 
 
   /*
    *  set up timer
    */
 
-  TCCR2B = 0;                      /* disable timer */
+  TCCR2B = 0;                      /* stop timer */
   TCNT2 = 0;                       /* set counter to 0 */
   TCCR2A = (1 << WGM21);           /* set CTC mode */
   TIMSK2 = (1 << OCIE2A);          /* enable interrupt for OCR2A match */
 
+  #ifdef SAVE_POWER
   set_sleep_mode(Mode);            /* set sleep mode */
+  #endif
 
   if (SREG & (1 << SREG_I))        /* if interrupts are already enabled */
   {
@@ -153,23 +155,33 @@ void MilliSleep(uint16_t Time)
     /* update timer */
     OCR2A = Timeout;               /* set compare value (timeout) */
 
+    /* start timer by setting clock prescaler to 1024 */
+    TCCR2B = (1 << CS22) | (1 << CS21) | (1 << CS20);
+
     /*
      *  sleep
      *  - since any interrupt would wake up the MCU we have to make sure
      *    that we track the right interrupt
      */
 
-    /* enable timer by setting clock prescaler to 1024 */
-    TCCR2B = (1 << CS22) | (1 << CS21) | (1 << CS20);
-
     while (TCCR2B != 0)       /* as long as Timer2 is running */
     {
-      sleep_mode();                     /* sleep (again) */    
-      /* woken up */
+      #ifdef SAVE_POWER
+        /* enter sleep mode to save power */
+        sleep_mode();              /* sleep (again) */
+        /* woken up */
+      #else
+        /* burn MCU cycles while waiting for Timer2 */
+        asm volatile(
+          "nop\n\t"
+          "nop\n\t"
+          ::
+        );
+      #endif
     }
   }
 
-  if (Flag == 0)              /* we should disable interrupts */
+  if (Flag == 0)              /* restore former interrupt setting */
   {
     cli();                    /* disable interrupts */
   }
@@ -187,9 +199,10 @@ ISR(TIMER2_COMPA_vect, ISR_BLOCK)
    *  hints:
    *  - the OCF2A interrupt flag is cleared automatically
    *  - interrupt processing is disabled while this ISR runs
+   *    (no nested interrupts)
    */
 
-  TCCR2B = 0;                 /* disable Timer2 */
+  TCCR2B = 0;                 /* stop Timer2 */
 }
 
 

@@ -64,7 +64,7 @@
 void SPI_Setup(void)
 {
   /* set up bus only once */
-  if (Cfg.BusState & BUS_SPI) return;
+  if (Cfg.OP_Mode & OP_SPI) return;
 
   /*
    *  set up bitbang SPI:
@@ -82,7 +82,7 @@ void SPI_Setup(void)
   /* preset lines to 0 */
   SPI_PORT &= ~((1 << SPI_SCK) | (1 << SPI_MOSI));
 
-  Cfg.BusState |= BUS_SPI;         /* bus is set up */
+  Cfg.OP_Mode |= OP_SPI;      /* bus is set up */
 }
 
 
@@ -249,7 +249,7 @@ void SPI_Setup(void)
   uint8_t           Bits;     /* bits/bitmask */
 
   /* set up bus only once */
-  if (Cfg.BusState & BUS_SPI) return;
+  if (Cfg.OP_Mode & OP_SPI) return;
 
   /* set SCK and MOSI to output mode */
   /* using variable Bits to keep compiler happy */
@@ -277,7 +277,7 @@ void SPI_Setup(void)
   Bits = SPSR;           /* read flag */
   Bits = SPDR;           /* clear flag by reading data */
 
-  Cfg.BusState |= BUS_SPI;         /* bus is set up */
+  Cfg.OP_Mode |= OP_SPI;      /* bus is set up */
 }
 
 

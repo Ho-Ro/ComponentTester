@@ -599,10 +599,10 @@ uint8_t PxM_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t tS, uint8_t t0, ui
   /* debugging output */
   if (Counter == 0)           /* error */
   {
-    LCD_NextLine();
-    DisplayValue(Counter, 0, 0);   /* display pulse number */
-    LCD_Char(':');
-    DisplayValue(Time, 0, 0);      /* display pulse duration */
+    Display_NextLine();
+    Display_Value(Counter, 0, 0);  /* display pulse number */
+    Display_Char(':');
+    Display_Value(Time, 0, 0);     /* display pulse duration */
   }
   #endif
 
@@ -872,7 +872,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
       if (Bits == 32)              /* we expect 32 bits for NEC */
       {
-        LCD_NextLine_EEString_Space(IR_NEC_str);  /* display protocol */
+        Display_NL_EEString_Space(IR_NEC_str);    /* display protocol */
 
         Address = GetBits(1, 8, IR_LSB);     /* get address */
         Extras = GetBits(9, 8, IR_LSB);      /* get inverted address */
@@ -883,7 +883,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
         if (Address != Temp)            /* address is not inverted */
         {
           /* extended format with 16 bit address */
-          DisplayHexByte(Extras);       /* display high address */
+          Display_HexByte(Extras);      /* display high address */
         }
 
         Flag = PACKET_DISPLAY;          /* packet ok & default output */
@@ -892,13 +892,13 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
       #ifdef SW_IR_EXTRA
       else if (Bits == 42)         /* we expect 42 bits for Sanyo */
       {
-        LCD_NextLine_EEString_Space(IR_Sanyo_str);   /* display protocol */
+        Display_NL_EEString_Space(IR_Sanyo_str);  /* display protocol */
 
         Address = GetBits(1, 8, IR_LSB);     /* get custom code LSB */
         Extras = GetBits(9, 5, IR_LSB);      /* get custom code MSB */
         Command = GetBits(27, 8, IR_LSB);    /* get key data */
 
-        DisplayHexByte(Extras);              /* display custom code MSB */
+        Display_HexByte(Extras);        /* display custom code MSB */
         Flag = PACKET_DISPLAY;          /* packet ok & default output */
         goto result;                    /* skip other checks */
       }
@@ -911,8 +911,8 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
       {
         if (PulseCheck(*Pulse, 11, IR_STD_TOLER))      /* pulse 560탎 */
         {
-          LCD_NextLine_EEString_Space(IR_NEC_str);     /* display protocol */
-          LCD_Char('R');                     /* display: R (for repeat) */
+          Display_NL_EEString_Space(IR_NEC_str);       /* display protocol */
+          Display_Char('R');                 /* display: R (for repeat) */
           Flag = PACKET_OK;                  /* packet ok */
           goto result;                       /* skip other checks */
         }
@@ -946,7 +946,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
           *Pulse = 11;                  /* change sync into "0" */
           Pulse -= 17;                  /* back to second pulse */
 
-          LCD_NextLine_EEString_Space(IR_Proton_str);   /* display protocol */
+          Display_NL_EEString_Space(IR_Proton_str);    /* display protocol */
           Flag = PROTO_DETECTED;                  /* detected protocol */
 
           Bits = PxM_Demod(Pulse, PulsesLeft, 11, 11, 30, IR_STD_TOLER);
@@ -990,7 +990,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
       if (Bits == 16)              /* we expect 16 bits */
       {
-        LCD_NextLine_EEString_Space(IR_JVC_str);   /* display protocol */
+        Display_NL_EEString_Space(IR_JVC_str);    /* display protocol */
 
         Address = GetBits(1, 8, IR_LSB);     /* get address */
         Command = GetBits(9, 8, IR_LSB);     /* get command */
@@ -1039,8 +1039,8 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
     /* Matsushita (Panasonic) */ 
     if (PulseCheck(Time2, 70, IR_STD_TOLER))      /* pause 3.5ms */
     {
-      LCD_NextLine();                             /* new line */
-      LCD_EEString(IR_Matsushita_str);            /* display protocol */
+      Display_NextLine();                         /* new line */
+      Display_EEString(IR_Matsushita_str);        /* display protocol */
       Flag = PROTO_DETECTED;                      /* detected protocol */
 
       /* try to demodulate Matsushita */
@@ -1072,18 +1072,18 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
       if (Temp > 0)                /* display version */
       {
-        LCD_Char('-');
-        LCD_Char(Temp);            /* display: 5 or 6 */
+        Display_Char('-');
+        Display_Char(Temp);        /* display: 5 or 6 */
       }
 
-      LCD_Space();                 /* display space */
+      Display_Space();             /* display space */
       goto result;                 /* skip other checks */
     }
 
     /* Kaseikyo */
     if (PulseCheck(Time2, 34, IR_STD_TOLER))      /* pause 1728탎 */
     {
-      LCD_NextLine_EEString_Space(IR_Kaseikyo_str);    /* display protocol */
+      Display_NL_EEString_Space(IR_Kaseikyo_str);      /* display protocol */
       Flag = PROTO_DETECTED;                      /* detected protocol */
 
       /* try to demodulate Kaseikyo */
@@ -1094,19 +1094,19 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
         Address = GetBits(1, 8, IR_LSB);     /* get manufacturer LSB */
         Extras = GetBits(9, 8, IR_LSB);      /* get manufacturer MSB */
 
-        DisplayHexByte(Extras);    /* display manufacturer MSB */
-        DisplayHexByte(Address);   /* display manufacturer LSB */
-        LCD_Char(':');
+        Display_HexByte(Extras);        /* display manufacturer MSB */
+        Display_HexByte(Address);       /* display manufacturer LSB */
+        Display_Char(':');
 
         Extras = GetBits(21, 4, IR_LSB);     /* get system */
         Address = GetBits(25, 8, IR_LSB);    /* get product (address) */
         Command = GetBits(33, 8, IR_LSB);    /* get function (command) */      
 
-        DisplayHexDigit(Extras);   /* display system */
-        LCD_Char('-');
-        DisplayHexByte(Address);   /* display product */
-        LCD_Char(':');
-        DisplayHexByte(Command);   /* display function */
+        Display_HexDigit(Extras);  /* display system */
+        Display_Char('-');
+        Display_HexByte(Address);  /* display product */
+        Display_Char(':');
+        Display_HexByte(Command);  /* display function */
 
         Flag = PACKET_OK;          /* packet ok */
       }
@@ -1159,7 +1159,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
       if (Bits == 24)              /* we expect 24 bits */
       {
-        LCD_NextLine_EEString_Space(IR_RCA_str);   /* display protocol */  
+        Display_NL_EEString_Space(IR_RCA_str);    /* display protocol */  
 
         Address = GetBits(1, 4, IR_MSB);     /* get address */
         Command = GetBits(5, 8, IR_MSB);     /* get command */
@@ -1245,9 +1245,9 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
         else                            /* command packet */
         {
           /* command packet */
-          LCD_NextLine_EEString_Space(IR_Motorola_str);   /* display protocol */
-          DisplayHexDigit(Extras);      /* display command MSB */
-          DisplayHexByte(Command);      /* display command LSB */
+          Display_NL_EEString_Space(IR_Motorola_str);  /* display protocol */
+          Display_HexDigit(Extras);     /* display command MSB */
+          Display_HexByte(Command);     /* display command LSB */
 
           IR_State = 2;                 /* we have a command packet */
         }
@@ -1281,8 +1281,8 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
         }
         else                            /* command packet */
         {
-          LCD_NextLine_EEString_Space(IR_IR60_str);    /* display protocol */
-          DisplayHexByte(Command);                /* display command */
+          Display_NL_EEString_Space(IR_IR60_str);   /* display protocol */
+          Display_HexByte(Command);                 /* display command */
 
           IR_State = 2;                 /* we have a command packet */
         }
@@ -1321,7 +1321,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
       if (Bits == 12)                   /* we expect 12 bits */
       {
-        LCD_NextLine_EEString_Space(IR_Thomson_str);   /* display protocol */
+        Display_NL_EEString_Space(IR_Thomson_str);     /* display protocol */
 
         Address = GetBits(1, 4, IR_LSB);     /* get device (address) */
         Command = GetBits(6, 7, IR_LSB);     /* get function (command) */
@@ -1352,7 +1352,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
   {
     if (PulseCheck(Time2, 89, IR_STD_TOLER))      /* pause 4.5ms */
     {
-      LCD_NextLine_EEString_Space(IR_Samsung_str);   /* display protocol */
+      Display_NL_EEString_Space(IR_Samsung_str);  /* display protocol */
       Flag = PROTO_DETECTED;                      /* detected protocol */
 
       /* try to demodulate Samsung */
@@ -1388,8 +1388,8 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
   {
     if (PulseCheck(Time2, 12, IR_STD_TOLER))      /* pause 600탎 */
     {
-      LCD_NextLine();                   /* new line */
-      LCD_EEString(IR_SIRC_str);        /* display protocol */
+      Display_NextLine();               /* new line */
+      Display_EEString(IR_SIRC_str);    /* display protocol */
       Flag = PROTO_DETECTED;            /* detected protocol */
 
       /* try to demodulate SIRC */
@@ -1419,25 +1419,25 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
       /* display format */
       if (Flag == PACKET_OK)       /* valid packet */
       {
-        DisplayValue(Bits, 0, 0);  /* display number of bits */
+        Display_Value(Bits, 0, 0); /* display number of bits */
       }
 
       /* we accept the first code and don't wait for another 2 repeats */
 
-      LCD_Space();                 /* display space */
+      Display_Space();             /* display space */
 
       /* display data */
       if (Flag == PACKET_OK)       /* valid packet */
       {
-        DisplayHexByte(Address);   /* display address */
-        LCD_Char(':');
-        DisplayHexByte(Command);   /* display command */
+        Display_HexByte(Address);  /* display address */
+        Display_Char(':');
+        Display_HexByte(Command);  /* display command */
 
         if (Bits == 20)            /* 20 bit format */
         {
-          LCD_Char(':');
+          Display_Char(':');
           Extras = GetBits(13, 8, IR_LSB);   /* get extended */
-          DisplayHexByte(Extras);            /* display extended data */
+          Display_HexByte(Extras);           /* display extended data */
         }
       }
 
@@ -1484,7 +1484,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
       if (Bits == 11)                   /* we expect 11 bits */
       {
-        LCD_NextLine_EEString_Space(IR_RECS80_str);   /* display protocol */
+        Display_NL_EEString_Space(IR_RECS80_str);      /* display protocol */
 
         Address = GetBits(3, 3, IR_MSB);     /* get subsystem address */
         Command = GetBits(6, 6, IR_MSB);     /* get command */
@@ -1508,9 +1508,9 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
         if (Bits == 11)                   /* we expect 11 bits */
         {
-          LCD_NextLine_EEString_Space(IR_RECS80_str);   /* display protocol */
-          LCD_Char('x');                          /* display: x */
-          LCD_Space();
+          Display_NL_EEString_Space(IR_RECS80_str);    /* display protocol */
+          Display_Char('x');                      /* display: x */
+          Display_Space();
 
           Address = GetBits(2, 4, IR_MSB);        /* get subsystem address */
           Command = GetBits(6, 6, IR_MSB);        /* get command */
@@ -1563,10 +1563,10 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
           Command = GetBits(6, 8, IR_LSB);     /* get command */
           /* todo: mask & type bits */
 
-          LCD_NextLine_EEString_Space(IR_Sharp_str);    /* display protocol */
-          DisplayHexByte(Address);                /* display address */
-          LCD_Char(':');
-          DisplayHexByte(Command);                /* display command */
+          Display_NL_EEString_Space(IR_Sharp_str);  /* display protocol */
+          Display_HexByte(Address);                 /* display address */
+          Display_Char(':');
+          Display_HexByte(Command);                 /* display command */
 
           IR_State = 1;                 /* got packet #1 */
           Flag = PACKET_MULTI;          /* multi packet */
@@ -1615,7 +1615,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
   {
     if (PulseCheck(Time2, 17, IR_STD_TOLER))      /* pause 889탎 */
     {
-      LCD_NextLine_EEString_Space(IR_RC5_str);    /* display protocol */
+      Display_NL_EEString_Space(IR_RC5_str);      /* display protocol */
       Flag = PROTO_DETECTED;                 /* detected protocol */
 
       /* try to demodulate RC-5 */
@@ -1659,11 +1659,11 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
       if (Bits == 8)                    /* we expect 8 bits */
       {
-        LCD_NextLine_EEString_Space(IR_uPD1986C_str);   /* display protocol */
+        Display_NL_EEString_Space(IR_uPD1986C_str);    /* display protocol */
 
         /* todo: check header? */
-        Command = GetBits(4, 5, IR_LSB);          /* get command */
-        DisplayHexByte(Command);                  /* display command */
+        Command = GetBits(4, 5, IR_LSB);     /* get command */
+        Display_HexByte(Command);            /* display command */
 
         Flag = PACKET_OK;          /* packet ok */
         goto result;               /* skip other checks */
@@ -1694,7 +1694,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
   {
     if (PulseCheck(Time2, 17, IR_STD_TOLER))      /* pause 888탎 */
     {
-      LCD_NextLine_EEString_Space(IR_RC6_str);    /* display protocol */
+      Display_NL_EEString_Space(IR_RC6_str);      /* display protocol */
       Flag = PROTO_DETECTED;                 /* detected protocol */
 
       /* convert toggle bit to standard timing */
@@ -1726,43 +1726,43 @@ result:
 
   if (Flag == PROTO_UNKNOWN)       /* unknown protocol */
   {
-    LCD_NextLine();                /* new line */
-    DisplayValue(Pulses, 0, 0);    /* display number of pulses */
-    LCD_Char(':');
-    DisplayValue(Time1, 0, 0);     /* display time units of first pulse */
-    LCD_Char('-');
-    DisplayValue(Time2, 0, 0);     /* display time units of first pause */
+    Display_NextLine();            /* new line */
+    Display_Value(Pulses, 0, 0);   /* display number of pulses */
+    Display_Char(':');
+    Display_Value(Time1, 0, 0);    /* display time units of first pulse */
+    Display_Char('-');
+    Display_Value(Time2, 0, 0);    /* display time units of first pause */
 
     #if 0
     /* debugging output */
-    LCD_NextLine();
+    Display_NextLine();
     Pulse++;
-    DisplayValue(*Pulse, 0, 0);
-    LCD_Space();
+    Display_Value(*Pulse, 0, 0);
+    Display_Space();
     Pulse++;
-    DisplayValue(*Pulse, 0, 0);
-    LCD_Space();
+    Display_Value(*Pulse, 0, 0);
+    Display_Space();
     Pulse++;
-    DisplayValue(*Pulse, 0, 0);
-    LCD_Space();
+    Display_Value(*Pulse, 0, 0);
+    Display_Space();
     Pulse++;
-    DisplayValue(*Pulse, 0, 0);
-    LCD_Space();
+    Display_Value(*Pulse, 0, 0);
+    Display_Space();
     Pulse++;
-    DisplayValue(*Pulse, 0, 0);
+    Display_Value(*Pulse, 0, 0);
     #endif
   }
 
   if (Flag == PROTO_DETECTED)      /* bad packet */
   {
-    LCD_Char('?');                 /* display: ? */
+    Display_Char('?');             /* display: ? */
   }
 
   if (Flag == PACKET_DISPLAY)      /* known protocol & standard output */
   {
-    DisplayHexByte(Address);       /* display address */
-    LCD_Char(':');
-    DisplayHexByte(Command);       /* display command */
+    Display_HexByte(Address);      /* display address */
+    Display_Char(':');
+    Display_HexByte(Command);      /* display command */
   }
 
   if (Flag < PACKET_MULTI)         /* no packets to follow (protocol done) */
@@ -1816,11 +1816,11 @@ void IR_Detector(void)
   /* inform user */
   ShortCircuit(0);                      /* make sure probes are not shorted */
   LCD_Clear();
-  LCD_EEString(IR_Detector_str);        /* display: IR detector */
-  LCD_NextLine_Mode(LINE_KEEP);         /* line mode: keep first line */
+  Display_EEString(IR_Detector_str);    /* display: IR detector */
+  UI.LineMode = LINE_KEEP;              /* next-line mode: keep first line */
   #ifdef SW_IR_RECEIVER
     /* display module pinout (1: Gnd / 2: Vcc / 3: Data) */
-    LCD_NextLine();
+    Display_NextLine();
     Show_SimplePinout('-', '+', 'd');
   #endif
 
@@ -1831,20 +1831,20 @@ void IR_Detector(void)
 
   #ifdef SW_IR_RECEIVER
     #ifdef SW_IR_DISABLE_RESISTOR
-    /* unsafe mode without current limiting resistor for Vs */
-    /* set probes: probe-1 -- Gnd / probe-2 -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
-    ADC_PORT = (1 << TP2);                /* pull down probe-1, pull up probe-2 */
-    ADC_DDR = (1 << TP1) | (1 << TP2);    /* enable direct pull down/up */
-    R_DDR = (1 << R_RH_3);                /* enable Rh for probe-3 */
-    R_PORT = 0;                           /* pull down probe-3 */
+      /* unsafe mode without current limiting resistor for Vs */
+      /* set probes: probe-1 -- Gnd / probe-2 -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
+      ADC_PORT = (1 << TP2);                /* pull down probe-1, pull up probe-2 */
+      ADC_DDR = (1 << TP1) | (1 << TP2);    /* enable direct pull down/up */
+      R_DDR = (1 << R_RH_3);                /* enable Rh for probe-3 */
+      R_PORT = 0;                           /* pull down probe-3 */
     #else
-    /* safe mode with current limiting resistor for Vs */
-    /* set probes: probe-1 -- Gnd / probe-2 -- Rl -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
-    ADC_PORT = 0;                         /* pull down directly: */
-    ADC_DDR = (1 << TP1);                 /* probe-1 */
-    /* pull up probe-2 via Rl, pull down probe-3 via Rh */
-    R_DDR = (1 << R_RL_2) | (1 << R_RH_3);     /* enable resistors */
-    R_PORT = (1 << R_RL_2);                    /* pull up probe-2, pull down probe-3 */
+      /* safe mode with current limiting resistor for Vs */
+      /* set probes: probe-1 -- Gnd / probe-2 -- Rl -- Vcc / probe-3 (HiZ) -- Rh -- Gnd */
+      ADC_PORT = 0;                         /* pull down directly: */
+      ADC_DDR = (1 << TP1);                 /* probe-1 */
+      /* pull up probe-2 via Rl, pull down probe-3 via Rh */
+      R_DDR = (1 << R_RL_2) | (1 << R_RH_3);     /* enable resistors */
+      R_PORT = (1 << R_RL_2);                    /* pull up probe-2, pull down probe-3 */
     #endif
   #endif
 
@@ -3028,14 +3028,14 @@ void IR_Send_Code(uint8_t Proto, uint16_t *Data)
   /* debugging */
   LCD_ClearLine(6);
   LCD_CharPos(1, 6);
-  DisplayHexByte(IR_Code[0]);
-  LCD_Space();
-  DisplayHexByte(IR_Code[1]);
-  LCD_Space();
-  DisplayHexByte(IR_Code[2]);
-  LCD_Space();
-  DisplayHexByte(IR_Code[3]);
-  LCD_Space();
+  Display_HexByte(IR_Code[0]);
+  Display_Space();
+  Display_HexByte(IR_Code[1]);
+  Display_Space();
+  Display_HexByte(IR_Code[2]);
+  Display_Space();
+  Display_HexByte(IR_Code[3]);
+  Display_Space();
   #endif
 }
 
@@ -3048,7 +3048,7 @@ void IR_Send_Code(uint8_t Proto, uint16_t *Data)
  *  - alternative: dedicated signal output via OC1B
  *  - requires additional keys (e.g. rotary encoder)
  *    and display with more than ? lines
- *  - 
+ *  - requires idle sleep mode to keep timer running when MCU is sleeping
  */
 
 void IR_RemoteControl(void)
@@ -3089,11 +3089,11 @@ void IR_RemoteControl(void)
 
   ShortCircuit(0);                      /* make sure probes are not shorted */
   LCD_Clear();
-  LCD_EEString_Space(IR_Transmitter_str);    /* display: IR sender */
+  Display_EEString_Space(IR_Transmitter_str);     /* display: IR sender */
 
   #ifndef HW_FIXED_SIGNAL_OUTPUT
   /* display pinout (1: Gnd / 2: LED / 3: Gnd) */
-  LCD_NextLine();
+  Display_NextLine();
   Show_SimplePinout('-', 's', '-');
   TestKey(3000, CURSOR_NONE);        /* wait 3s / for key press */
   #endif
@@ -3123,10 +3123,6 @@ void IR_RemoteControl(void)
    *  - top = (f_MCU / (prescaler * f_PWM)) - 1
    *    range: (2^2 - 1) up to (2^16 - 1)
    */
-
-
-  /* power save mode would disable timer1 */
-  Cfg.SleepMode = SLEEP_MODE_IDLE;      /* change sleep mode to Idle */
 
   /* enable OC1B pin and set timer mode */
   /* TCCR1A is set by IR_Send_Pulse() */
@@ -3312,7 +3308,7 @@ void IR_RemoteControl(void)
     {
       LCD_ClearLine2();                 /* line #2 */
       MarkItem(MODE_PROTO, Mode);       /* mark mode if selected */
-      LCD_EEString(ProtoStr);
+      Display_EEString(ProtoStr);
 
       Flag &= ~DISPLAY_PROTO;           /* clear flag */
     }
@@ -3326,14 +3322,14 @@ void IR_RemoteControl(void)
       LCD_ClearLine(3);                 /* line #3 */
       LCD_CharPos(1, 3);
       MarkItem(MODE_FREQ, Mode);        /* mark mode if selected */
-      DisplayValue(Carrier, 3, 'H');
-      LCD_Char('z');
+      Display_Value(Carrier, 3, 'H');
+      Display_Char('z');
 
       /* display duty cycle */
       MarkItem(MODE_DUTYCYCLE, Mode);   /* mark mode if selected */
-      LCD_Char('1');
-      LCD_Char('/');
-      LCD_Char('0' + DutyCycle);
+      Display_Char('1');
+      Display_Char('/');
+      Display_Char('0' + DutyCycle);
 
       /* calculate top value for Timer1 (carrier) */
       /* top = (f_MCU / (prescaler * f_PWM)) - 1 */
@@ -3360,7 +3356,7 @@ void IR_RemoteControl(void)
         MarkItem(n + MODE_DATA, Mode);  /* mark mode if selected */
 
         /* display data field */
-        DisplayHexValue(Data[n], Bits[n]);
+        Display_HexValue(Data[n], Bits[n]);
 
         n++;             /* next field */
       }
@@ -3535,7 +3531,7 @@ void IR_RemoteControl(void)
       {
         /* send code */
         LCD_CharPos(1, 5);              /* line #5 */
-        LCD_EEString(IR_Send_str);      /* display: sending... */
+        Display_EEString(IR_Send_str);  /* display: sending... */
 
         IR_Send_Code(Proto_ID, &Data[0]);
 

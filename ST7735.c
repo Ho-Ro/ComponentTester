@@ -66,20 +66,20 @@
   #define LCD_PIXELS_X        LCD_DOTS_Y
   #define LCD_PIXELS_Y        LCD_DOTS_X
   #ifdef LCD_OFFSET_X
-    #define LCD_SHIFT_Y       4     /* shift y by 4 dots */
+    #define LCD_SHIFT_Y       LCD_OFFSET_X   /* shift y by 2 or 4 dots */
   #endif
   #ifdef LCD_OFFSET_Y
-    #define LCD_SHIFT_X       2     /* shift x by 2 dots */
+    #define LCD_SHIFT_X       LCD_OFFSET_Y   /* shift x by 1 or 2 dots */
   #endif
 #else
   /* keep X and Y */
   #define LCD_PIXELS_X        LCD_DOTS_X
   #define LCD_PIXELS_Y        LCD_DOTS_Y
   #ifdef LCD_OFFSET_X
-    #define LCD_SHIFT_X       4    /* shift x by 4 dots */
+    #define LCD_SHIFT_X       LCD_OFFSET_X   /* shift x by 2 or 4 dots */
   #endif
   #ifdef LCD_OFFSET_Y
-    #define LCD_SHIFT_Y       2    /* shift y by 2 dots */
+    #define LCD_SHIFT_Y       LCD_OFFSET_Y   /* shift y by 1 or 2 dots */
   #endif
 #endif
 
@@ -326,7 +326,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   }
 
   /* horizontal position (column) */
-  x--;                        /* columns starts at 0 */
+  x--;                        /* columns start at 0 */
   Mask = x;                   /* expand to 16 bit */
   Mask *= FONT_SIZE_X;        /* offset for character */
   #ifdef LCD_SHIFT_X
@@ -561,13 +561,6 @@ void LCD_Char(unsigned char Char)
   uint8_t           y = 1;         /* bitmap y byte counter */
   uint8_t           Bits;          /* number of bits to be sent */
   uint8_t           n;             /* bitmap bit counter */
-
-  #ifdef UI_SERIAL_COPY
-  if (UI.OP_Mode & OP_SER_COPY)    /* copy to serial enabled */
-  {
-    Serial_Char(Char);             /* send char to serial */
-  }
-  #endif
 
   /* prevent x overflow */
   if (UI.CharPos_X > LCD_CHAR_X) return;

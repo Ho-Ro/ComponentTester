@@ -8,6 +8,20 @@
 
 ------------------------------------------------------------------------------
 
+v1.33m 2018-05
+- Fixed orientation of TRIAC symbol in symbols_32x32_hf.h.
+- Added remote commands for automation (via TTL serial).
+- The x & y offsets for the ST7735 driver can be changed now.
+- Entering the menu by a short circuit of the probes is an option now 
+  (UI_SHORT_CIRCUIT_MENU).
+- Fixed problem with discharge relay when using rotary encoder.
+- Added configuration switch to disable MCU sleep modes.
+- Added RX support to TTL serial driver (bit-bang & hardware USART).
+- Fixed error in serial text output and added serial output for results of
+  the optocoupler check.
+- Danish texts (provided by glenndk@mikrocontroller.net) 
+- Settings for capacitor correction factors.
+
 v1.32m 2018-02
 - Additional output of components found to TTL serial interface.
 - Driver for TTL serial interface (hardware and bit-bang).

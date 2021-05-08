@@ -2,7 +2,7 @@
  *
  *   probing testpins
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2018 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -139,7 +139,7 @@ uint8_t GetThirdProbe(uint8_t Probe1, uint8_t Probe2)
  *  - 1 if shorted
  */
 
-uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
+uint8_t ShortedPair(uint8_t Probe1, uint8_t Probe2)
 {
   uint8_t           Flag = 0;      /* return value */
   uint16_t          U1;            /* voltage at probe #1 in mV */
@@ -194,14 +194,14 @@ uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
  *  - number of probe pairs short-circuited (3 = all)
  */
 
-uint8_t AllProbesShorted(void)
+uint8_t ShortedProbes(void)
 {
   uint8_t           Flag = 0;      /* return value */
 
   /* check all possible combinations */
-  Flag = ShortedProbes(PROBE_1, PROBE_2);
-  Flag += ShortedProbes(PROBE_1, PROBE_3);
-  Flag += ShortedProbes(PROBE_2, PROBE_3);
+  Flag = ShortedPair(PROBE_1, PROBE_2);
+  Flag += ShortedPair(PROBE_1, PROBE_3);
+  Flag += ShortedPair(PROBE_2, PROBE_3);
 
   return Flag;  
 }
@@ -354,7 +354,7 @@ void PullProbe(uint8_t Mask, uint8_t Mode)
 
 /*
  *  lookup a voltage/ratio based factor in a table and interpolate it's value
- *  - value decreases over index position
+ *  - value decreases with index position
  *
  *  requires:
  *  - voltage (in mV) or ratio
@@ -382,25 +382,25 @@ uint16_t GetFactor(uint16_t U_in, uint8_t ID)
 
   if (ID == TABLE_SMALL_CAP)
   {
-    TabStart = 1000;               /* table starts at 1000mV */
-    TabStep = 50;                  /* 50mV steps between entries */
-    TabIndex = 7;                  /* entries in table - 2 */
-    Table = (uint16_t *)&SmallCap_table[0];    /* pointer to table start */
+    TabStart = 1000;                         /* table starts at 1000mV */
+    TabStep = 50;                            /* 50mV steps between entries */
+    TabIndex = (NUM_SMALL_CAP - 2);          /* entries in table - 2 */
+    Table = (uint16_t *)&SmallCap_table[0];  /* pointer to table start */
   }
   else if (ID == TABLE_LARGE_CAP)
   {
-    TabStart = 300;                /* table starts at 1000mV */
-    TabStep = 25;                  /* 25mV steps between entries */
-    TabIndex = 42;                 /* entries in table - 2 */
-    Table = (uint16_t *)&LargeCap_table[0];    /* pointer to table start */
+    TabStart = 300;                          /* table starts at 1000mV */
+    TabStep = 25;                            /* 25mV steps between entries */
+    TabIndex = (NUM_LARGE_CAP - 2);          /* entries in table - 2 */
+    Table = (uint16_t *)&LargeCap_table[0];  /* pointer to table start */
   }
   #ifdef SW_INDUCTOR
   else if (ID == TABLE_INDUCTOR)
   {
-    TabStart = 200;                /* table starts at 200 */
-    TabStep = 25;                  /* steps between entries */
-    TabIndex = 30;                 /* entries in table - 2 */
-    Table = (uint16_t *)&Inductor_table[0];    /* pointer to table start */
+    TabStart = 200;                          /* table starts at 200 */
+    TabStep = 25;                            /* steps between entries */
+    TabIndex = (NUM_INDUCTOR - 2);           /* entries in table - 2 */
+    Table = (uint16_t *)&Inductor_table[0];  /* pointer to table start */
   }
   #endif
   else
