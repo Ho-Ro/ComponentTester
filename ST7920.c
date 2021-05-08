@@ -73,6 +73,15 @@
 #include "symbols_24x24_h.h"
 
 
+#ifdef LCD_ROT180
+  /*
+   *  fonts and symbols, horizontally aligned, horizontal bit order flipped
+   */
+
+  #include "font_8x8_hf.h"
+  #include "symbols_24x24_hf.h"
+#endif
+
 
 /*
  *  derived constants
@@ -408,8 +417,8 @@ void LCD_Cmd(uint8_t Byte)
   uint8_t           Start;
 
   #ifdef LCD_CS
-  /* select chip */
-  LCD_PORT |= (1 << LCD_CS);       /* set CS high */
+    /* select chip */
+    LCD_PORT |= (1 << LCD_CS);     /* set CS high */
   #endif
 
   /* start byte */
@@ -419,8 +428,8 @@ void LCD_Cmd(uint8_t Byte)
   LCD_Send(Byte);                  /* write command */
 
   #ifdef LCD_CS
-  /* deselect chip */
-  LCD_PORT &= ~(1 << LCD_CS);      /* set CS low */
+    /* deselect chip */
+    LCD_PORT &= ~(1 << LCD_CS);    /* set CS low */
   #endif
 }
 
@@ -438,8 +447,8 @@ void LCD_Data(uint8_t Byte)
   uint8_t           Start;
 
   #ifdef LCD_CS
-  /* select chip */
-  LCD_PORT |= (1 << LCD_CS);       /* set CS high */
+    /* select chip */
+    LCD_PORT |= (1 << LCD_CS);     /* set CS high */
   #endif
 
   /* start byte */
@@ -449,8 +458,8 @@ void LCD_Data(uint8_t Byte)
   LCD_Send(Byte);                  /* write data */
 
   #ifdef LCD_CS
-  /* deselect chip */
-  LCD_PORT &= ~(1 << LCD_CS);      /* set CS low */
+    /* deselect chip */
+    LCD_PORT &= ~(1 << LCD_CS);    /* set CS low */
   #endif
 
   /* todo: do we need a 72µs delay for LCD processing? */
@@ -519,6 +528,7 @@ void LCD_DotPos(uint8_t x, uint8_t y)
  *  - y:  vertical position (1-)
  */
 
+#ifndef LCD_ROT180
 void LCD_CharPos(uint8_t x, uint8_t y)
 {
   /* update UI */
@@ -536,11 +546,45 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   y *= FONT_SIZE_Y;                /* offset for character */
   Y_Start = y;                     /* update start position */
 
+
   /*
    *  we don't call LCD_DotPos() here
    *  - see LCD_DotPos() for explaination
    */
 }
+#endif
+
+#ifdef LCD_ROT180
+/* display rotated by 180° */
+void LCD_CharPos(uint8_t x, uint8_t y)
+{
+  /* update UI */
+  UI.CharPos_X = x;
+  UI.CharPos_Y = y;
+
+  /*
+   *  We reverse the dot position, i.e. the start address is the right
+   *  top (180° view) of the character's X step. Or left bottom for 0° view.
+   */
+
+  /* horizontal position (column in 16 bit steps), flipped */
+  x--;                             /* columns start at 0 */
+  x *= FONT_SIZE_X;                /* offset for character */
+  x /= 16;                         /* convert into 16 bit steps */
+  X_Start = (LCD_STEPS_X - 1) - x; /* update start position */
+
+  /* vertical position (row), flipped */
+  y--;                             /* rows start at 0 */
+  y *= FONT_SIZE_Y;                /* offset for character */
+  Y_Start = (LCD_DOTS_Y - 1) - y;  /* update start position */
+
+
+  /*
+   *  we don't call LCD_DotPos() here
+   *  - see LCD_DotPos() for explaination
+   */
+}
+#endif
 
 
 
@@ -552,6 +596,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
  *    special case line 0: clear remaining space in current line
  */ 
 
+#ifndef LCD_ROT180
 void LCD_ClearLine(uint8_t Line)
 {
   uint8_t           n = 1;              /* counter */
@@ -585,30 +630,31 @@ void LCD_ClearLine(uint8_t Line)
   Buffer += Temp;                       /* add offset for position */
 
   /* init row range */
-  n = Y_Start;                     /* starting row */
   if (Line <= LCD_CHAR_Y)          /* within character lines */
   {
     /* clear character line */
-    Line = n + FONT_SIZE_Y;        /* ending row + 1 */
+    n = FONT_SIZE_Y;               /* number of rows to clear */
   }
   else                             /* remaining rows */
   {
     /* clear up to last row */
-    Line = LCD_DOTS_Y;             /* ending row + 1 */
+    n = LCD_DOTS_Y - Y_Start;      /* number of rows to clear */
     MatrixFlag = 0;                /* don't clear chars in matrix (overflow) */
   }
 
   /* clear line */
-  while (n < Line)                 /* loop for rows */
-  {
-    LCD_DotPos(X_Start, n);        /* set new dot position */
-    Temp = X_Start;                /* starting step for columns */
+  Line = Y_Start;                  /* starting row */
 
-    while (Temp < LCD_STEPS_X)     /* loop for columns -*/
+  while (n > 0)                    /* loop for rows */
+  {
+    LCD_DotPos(X_Start, Line);     /* set new dot position */
+    Temp = LCD_STEPS_X - X_Start;  /* number of columns */
+
+    while (Temp > 0)               /* loop for columns */
     {
       LCD_Data(0);                 /* clear 8 pixels */
       LCD_Data(0);                 /* clear another 8 pixels */
-      Temp++;                      /* next 16 bit step */
+      Temp--;                      /* next 16 bit step */
 
       if (MatrixFlag)              /* clear char in char matrix */
       {
@@ -620,9 +666,93 @@ void LCD_ClearLine(uint8_t Line)
     }
 
     MatrixFlag = 0;                /* reset flag */
-    n++;                           /* next row */
+    Line++;                        /* next row */
+    n--;                           /* next row */
   }
 }
+#endif
+
+#ifdef LCD_ROT180
+/* display rotated by 180° */
+void LCD_ClearLine(uint8_t Line)
+{
+  uint8_t           n = 1;              /* counter */
+  uint8_t           Temp;               /* temp. value */
+  uint8_t           MatrixFlag = 1;     /* flag for matrix update */
+  unsigned char     *Buffer;            /* char matrix */
+
+  if (Line == 0)         /* special case: rest of current line */
+  {
+    Line = UI.CharPos_Y;      /* get current line */
+    n = UI.CharPos_X;         /* get current character position */
+  }
+
+  /* check for row overflow */
+  Temp = Line - 1;            /* rows start at 0 */
+  Temp *= FONT_SIZE_Y;        /* offset for line */
+  if (Temp > (LCD_DOTS_Y - 1)) return;  /* overflow */
+
+  /*
+   *  Because of the ST7920's fixed X address logic, we clear each line 
+   *  starting at the end of the textline. Also we clear lines starting
+   *  with the bottom one to follow the vertical text direction. 
+   */
+
+  LCD_CharPos(n, Line);            /* set char position */
+
+  if ((n % 2) == 0)           /* left neighbor */
+  {
+    LCD_Char(' ');            /* display space and keep neighbor */
+  }
+
+  /* set start position in char matrix (end of line) */
+  Buffer = (unsigned char *)&Matrix;    /* start of matrix */
+  Temp = Line * LCD_CHAR_X;             /* offset for next line */
+  Temp -= 1;                            /* offset for end of current line */
+  Buffer += Temp;                       /* add offset for position */
+
+  /* init row range (starting at bottom) */
+  if (Line <= LCD_CHAR_Y)          /* within character lines */
+  {
+    /* clear character line */
+    n = FONT_SIZE_Y;               /* number of rows to clear */
+  }
+  else                             /* remaining rows */
+  {
+    /* clear up to last row */
+    n = Y_Start + 1;               /* number of rows to clear */
+    MatrixFlag = 0;                /* don't clear chars in matrix (overflow) */
+  }
+
+  /* clear line */
+  Line = Y_Start;                  /* starting row */
+
+  while (n > 0)                    /* loop for rows */
+  {
+    LCD_DotPos(0, Line);           /* set new dot position */
+    Temp = X_Start + 1;            /* number of column steps */
+
+    while (Temp > 0)               /* loop for columns */
+    {
+      LCD_Data(0);                 /* clear 8 pixels */
+      LCD_Data(0);                 /* clear another 8 pixels */
+      Temp--;                      /* next 16 bit step */
+
+      if (MatrixFlag)              /* clear char in char matrix */
+      {
+        *Buffer = ' ';             /* set space */
+        Buffer--;                  /* next char */
+        *Buffer = ' ';             /* set space */
+        Buffer--;                  /* next char */
+      }
+    }
+
+    MatrixFlag = 0;                /* reset flag */
+    Line--;                        /* next row */
+    n--;                           /* next row */
+  }
+}
+#endif
 
 
 
@@ -635,7 +765,7 @@ void LCD_Clear(void)
   uint8_t           n = 1;    /* counter */
 
   /* we have to clear all dots manually :( */
-  /* loop for all lines plus possible remaining rows */
+  /* loop for all lines plus possible remaining row */
   while (n <= (LCD_CHAR_Y + 1))
   {
     LCD_ClearLine(n);         /* clear line */
@@ -734,6 +864,7 @@ void LCD_Init(void)
  *  - Char: character to display
  */
 
+#ifndef LCD_ROT180
 void LCD_Char(unsigned char Char)
 {
   uint8_t           *Table1;       /* pointer to table */
@@ -774,7 +905,7 @@ void LCD_Char(unsigned char Char)
   Index = (UI.CharPos_Y - 1) * LCD_CHAR_X;   /* offset for line */
   Index += UI.CharPos_X;                     /* offset for column (right neighbor) */
 
-  if ((UI.CharPos_X % 2) == 0)     /* left neighbor */
+  if ((UI.CharPos_X % 2) == 0)     /* got left neighbor */
   {
     StepFlag = 1;                  /* set flag */
     Index -= 2;                    /* adjust buffer offset */
@@ -841,6 +972,118 @@ void LCD_Char(unsigned char Char)
   UI.CharPos_X++;                  /* next character in current line */
   if (StepFlag) X_Start++;         /* also update X dot position */
 }
+#endif
+
+#ifdef LCD_ROT180
+/* display rotated by 180° */
+void LCD_Char(unsigned char Char)
+{
+  uint8_t           *Table1;       /* pointer to table */
+  uint8_t           *Table2;       /* pointer to table */
+  unsigned char     *Buffer;
+  uint8_t           Index;         /* font index */
+  uint16_t          Offset;        /* address offset */
+  uint8_t           Neighbor;      /* neighboring character */
+  uint8_t           StepFlag;      /* offset control flag */
+  uint8_t           y;             /* bitmap y byte counter */
+  uint8_t           Row;           /* screen row */
+
+  /* prevent x overflow */
+  if (UI.CharPos_X > LCD_CHAR_X) return;
+
+  /*
+   *  get bitmap of character
+   */
+
+  /* get font index number from lookup table */
+  Table1 = (uint8_t *)&FontTable;       /* start address */
+  Table1 += Char;                       /* add offset for character */
+  Index = pgm_read_byte(Table1);        /* get index number */
+  if (Index == 0xff) return;            /* no character bitmap available */
+
+  /* calculate start address of character bitmap */
+  Table1 = (uint8_t *)&FontData;        /* start address of font data */
+  Offset = FONT_BYTES_N * Index;        /* offset for character */
+  Table1 += Offset;
+
+
+  /*
+   *  get bitmap of neighbor
+   */
+
+  /* get neighboring character from char matrix */
+  StepFlag = 0;                              /* right by default */
+  Index = (UI.CharPos_Y - 1) * LCD_CHAR_X;   /* offset for line */
+  Index += UI.CharPos_X;                     /* offset for column (right neighbor) */
+
+  if ((UI.CharPos_X % 2) == 0)     /* got left neighbor */
+  {
+    StepFlag = 1;                  /* set flag */
+    Index -= 2;                    /* adjust buffer offset */
+  }
+
+  Buffer = (unsigned char *)&Matrix;    /* start of matrix */
+  Buffer += Index;                      /* add offset for position */
+  Neighbor = *Buffer;                   /* get neighbor from matrix */
+
+  /* get font index number from lookup table */
+  Table2 = (uint8_t *)&FontTable;       /* start address */
+  Table2 += Neighbor;                   /* add offset for character */
+  Index = pgm_read_byte(Table2);        /* get index number */
+  if (Index == 0xff) return;            /* no character bitmap available */  
+
+  /* calculate start address of character bitmap */
+  Table2 = (uint8_t *)&FontData;        /* start address of font data */
+  Offset = FONT_BYTES_N * Index;        /* offset for character */
+  Table2 += Offset;                     /* address of character data */
+
+
+  /*
+   *  display bitmaps of new and neighboring char
+   */
+
+  /* read character bitmap and send it to display */
+  y = FONT_BYTES_Y;                     /* number of bytes for Y */
+  Row = Y_Start;                        /* get start row for screen */
+
+  while (y > 0)                         /* loop for Y */
+  {
+    LCD_DotPos(X_Start, Row);           /* set start position */
+
+    /* new char */
+    Index = pgm_read_byte(Table1);      /* read byte */
+    Table1++;                           /* address for next byte */
+
+    /* neighboring char */
+    Neighbor = pgm_read_byte(Table2);   /* read byte */
+    Table2++;                           /* address for next byte */
+
+    /* send bytes */
+    if (StepFlag)                       /* neighbor at the left */
+    {
+      LCD_Data(Index);                  /* right half */
+      LCD_Data(Neighbor);               /* left half */
+    }
+    else                                /* neighbor at the right */
+    {
+      LCD_Data(Neighbor);               /* right half */
+      LCD_Data(Index);                  /* left half */
+    }
+
+    y--;                                /* next row */
+    Row--;                              /* next row */
+  }
+
+  /* update char matrix */
+  if (StepFlag) Buffer++;          /* move one char to the right */
+  else Buffer--;                   /* move one char to the left */
+  *Buffer = Char;                  /* set new char */
+
+  /* update character position */
+  UI.CharPos_X++;                  /* next character in current line */
+  if (StepFlag) X_Start--;         /* also update X dot position */
+}
+#endif
 
 
 
@@ -883,13 +1126,17 @@ void LCD_Cursor(uint8_t Mode)
  *  - ID: symbol to display
  */
 
+#ifndef LCD_ROT180
 void LCD_Symbol(uint8_t ID)
 {
+  #define OFFSET_LEFT   0b00000001
+  #define OFFSET_RIGHT  0b00000010
+
   uint8_t           *Table;        /* pointer to symbol table */
   uint8_t           Data;          /* symbol data */
   uint16_t          Offset;        /* address offset */
   uint8_t           x;             /* bitmap x byte counter */
-  uint8_t           y = 1;         /* bitmap y byte counter */
+  uint8_t           y;             /* bitmap y byte counter */
   uint8_t           Row;           /* screen row */
   uint8_t           StepFlag = 0;  /* offset control flag */
 
@@ -900,40 +1147,150 @@ void LCD_Symbol(uint8_t ID)
 
   Row = Y_Start;                        /* get start row for screen */
 
-  if ((SYMBOL_BYTES_X % 2) != 0)        /* right byte of 16 bit step */
+  /* take care about 16 bit X steps */
+  x = UI.CharPos_X;                /* save current X char pos (start) */
+  if ((x % 2) == 0)                /* right byte of 16 bit step */
   {
-    StepFlag = 1;                  /* set flag */
+    StepFlag |= OFFSET_LEFT;       /* add empty byte at the left */
+  }
+  y = x + (SYMBOL_BYTES_X - 1);    /* char end position for symbol */
+  if ((y % 2) != 0)                /* left byte of 16 bit step */
+  {
+    StepFlag |= OFFSET_RIGHT;      /* add empty byte at the right */
   }
 
-  /* read character bitmap and send it to display */
-  while (y <= SYMBOL_BYTES_Y)
+  /*
+   *  read bitmap and send it to display
+   */
+
+  y = SYMBOL_BYTES_Y;              /* number of Y bytes */
+
+  while (y > 0)                    /* loop for Y */
   {
     LCD_DotPos(X_Start, Row);           /* set start position */    
 
     /* offset symbol to match 16 bit addressing step */
-    if (StepFlag)
+    if (StepFlag & OFFSET_LEFT)         /* start offset */
     {
       LCD_Data(0);                      /* send empty byte */
     }
 
     /* read and send all bytes for this row */
-    x = 1;
-    while (x <= SYMBOL_BYTES_X)
+    x = SYMBOL_BYTES_X;                 /* number of X bytes */
+    while (x > 0)                       /* loop for X */
     {
       Data = pgm_read_byte(Table);      /* read byte */
       LCD_Data(Data);                   /* send byte */
 
       Table++;                          /* address for next byte */
-      x++;                              /* next byte */
+      x--;                              /* next byte */
     }
 
-    y++;                                /* next row */
+    /* offset symbol to match 16 bit addressing step */
+    if (StepFlag & OFFSET_RIGHT)        /* end offset */
+    {
+      LCD_Data(0);                      /* send empty byte */
+    }
+
+    y--;                                /* next row */
     Row++;                              /* next row */
   }
 
   /* hint: we don't update the char position */
-}
 
+  #undef OFFSET_RIGHT
+  #undef OFFSET_LEFT
+}
+#endif
+
+#ifdef LCD_ROT180
+/* display rotated by 180° */
+void LCD_Symbol(uint8_t ID)
+{
+  #define OFFSET_LEFT   0b00000001
+  #define OFFSET_RIGHT  0b00000010
+
+  uint8_t           *Table;        /* pointer to symbol table */
+  uint8_t           Data;          /* symbol data */
+  uint16_t          Offset;        /* address offset */
+  uint8_t           x;             /* bitmap x byte counter */
+  uint8_t           y;             /* bitmap y byte counter */
+  uint8_t           Row;           /* screen row */
+  uint8_t           StepFlag = 0;  /* offset control flag */
+
+  /* calculate start address of character bitmap */
+  Table = (uint8_t *)&SymbolData;       /* start address of symbol data */
+  Offset = SYMBOL_BYTES_N * ID;         /* offset for symbol */
+  Table += Offset;                      /* address of symbol data */
+
+  Row = Y_Start;                        /* get start row for screen */
+
+  /*
+   *  Offset the symbol by its width because of the reversed x direction.
+   *  Also take care about 16 bit X steps.
+   */
+
+  x = UI.CharPos_X;                /* save current X char pos (start) */
+  if ((x % 2) == 0)                /* left byte of 16 bit step */
+  {
+    StepFlag |= OFFSET_RIGHT;      /* add empty byte at the right */
+  }
+
+  y = x + (SYMBOL_BYTES_X - 1);    /* char end position for symbol */
+  if ((y % 2) != 0)                /* right byte of 16 bit step */
+  {
+    StepFlag |= OFFSET_LEFT;       /* add empty byte at the left */
+  }
+
+  LCD_CharPos(y, UI.CharPos_Y);    /* update char position for X_Start */
+
+  /*
+   *  read bitmap and send it to display
+   */
+
+  y = SYMBOL_BYTES_Y;                   /* number of bytes for Y */
+
+  while (y > 0)                         /* loop for Y */
+  {
+    LCD_DotPos(X_Start, Row);           /* set start position */    
+
+    /* offset symbol to match 16 bit addressing step */
+    if (StepFlag & OFFSET_LEFT)         /* start offset */
+    {
+      LCD_Data(0);                      /* send empty byte */
+    }
+
+    /* read and send all bytes for this row in reversed order */
+    x = 1;
+    Table += (SYMBOL_BYTES_X - 1);      /* last X byte of this row */
+
+    while (x <= SYMBOL_BYTES_X)         /* loop for X */
+    {
+      Data = pgm_read_byte(Table);      /* read byte */
+      LCD_Data(Data);                   /* send byte */
+
+      Table--;                          /* address for next byte */
+      x++;                              /* next byte */
+    }
+
+    Table += (SYMBOL_BYTES_X + 1);      /* first X byte of next row */
+
+    /* offset symbol to match 16 bit addressing step */
+    if (StepFlag & OFFSET_RIGHT)        /* end offset */
+    {
+      LCD_Data(0);                      /* send empty byte */
+    }
+
+    y--;                                /* next row */
+    Row--;                              /* next row */
+  }
+
+  /* hint: we don't update the char position */
+
+  #undef OFFSET_RIGHT
+  #undef OFFSET_LEFT
+}
+#endif
 
 
 /*

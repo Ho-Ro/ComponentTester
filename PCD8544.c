@@ -306,7 +306,7 @@ void LCD_ClearLine(uint8_t Line)
   {
     LCD_DotPos(X_Start, Line);     /* set dot position */
 
-    /* clear page */
+    /* clear bank */
     n = X_Start;              /* reset counter */
     while (n < 84)            /* up to internal RAM size */
     {
@@ -460,13 +460,13 @@ void LCD_Char(unsigned char Char)
   Bank = Y_Start;                  /* get start bank */
 
   /* read character bitmap and send it to display */
-  while (y <= FONT_BYTES_Y)
+  while (y <= FONT_BYTES_Y)             /* loop for Y */
   {
     LCD_DotPos(X_Start, Bank);          /* set start position */
 
-    /* read and send all column bytes for this row */
+    /* read and send all column bytes for this bank */
     x = 1;
-    while (x <= FONT_BYTES_X)
+    while (x <= FONT_BYTES_X)           /* loop for X */
     {
       Index = pgm_read_byte(Table);     /* read byte */
       LCD_Data(Index);                  /* send byte */

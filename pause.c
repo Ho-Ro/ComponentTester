@@ -35,6 +35,7 @@
 /*
  *  enter MCU sleep mode for a specific time in ms
  *  - valid time 0 - 65535ms
+ *  - uses timer2
  *  - don't use this function for time critical stuff!
  */
 
@@ -113,12 +114,14 @@ void MilliSleep(uint16_t Time)
 
   set_sleep_mode(Mode);            /* set sleep mode */
 
-  if (SREG & (1 << SREG_I))        /* interrupts are enabled already */
+  if (SREG & (1 << SREG_I))        /* if interrupts are already enabled */
   {
     Flag = 1;                      /* keep that in mind */
   }
-
-  sei();                           /* enable interrupts anyway */
+  else                             /* otherwise */
+  {
+    sei();                         /* enable interrupts */
+  }
 
 
   /*

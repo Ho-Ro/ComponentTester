@@ -168,14 +168,14 @@ uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
  * ************************************************************************ */
 
 
-#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (SW_SERVO)
+#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO)
 
 /*
  *  display unsigned value
  *
  *  requires:
  *  - Value: unsigned value
- *  - DecPlaces: decimal places
+ *  - DecPlaces: decimal places (0 = none)
  *  - Unit: character for unit (0 = none)
  */
 
@@ -190,13 +190,13 @@ void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
   Length = strlen(OutBuffer);
 
   /* determine position of dot */
-  if (DecPlaces == 0)                   /* no dot needed */
+  if (DecPlaces == 0)                   /* no dot requested */
   {
     Pos = 100;                          /* disable dot */
   }
   else if (Length >= DecPlaces)         /* position within string */
   {
-    Pos = Length - DecPlaces;           /* position od dot */
+    Pos = Length - DecPlaces;           /* position of dot */
     DecPlaces = 0;                      /* no additional zeros needed */
   }
   else                                  /* position outside string */
@@ -204,7 +204,7 @@ void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
     DecPlaces = DecPlaces - Length;     /* number of zeros after dot */
   }
 
-  /* leading zero */
+  /* leading zero (followed by dot) */
   if (Pos == 0) LCD_Char('0');          /* display: 0 */
 
   /* display digits */
@@ -213,7 +213,11 @@ void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
   {
     if (n == Pos)                       /* at position of dot */
     {
+      #ifdef UI_COMMA
+      LCD_Char(',');                    /* display: , */
+      #else
       LCD_Char('.');                    /* display: . */
+      #endif
       while (DecPlaces > 0)             /* fill in more zeros if needed */
       {
         LCD_Char('0');                  /* display: 0 */
@@ -295,8 +299,12 @@ void DisplayValue(uint32_t Value, int8_t Exponent, unsigned char Unit)
   if (Exponent <= 0)                    /* we have to prepend "0." */
   {
     /* 0: factor 10 / -1: factor 100 */
-    LCD_Char('0');
-    LCD_Char('.');
+    LCD_Char('0');                      /* display: 0 */
+    #ifdef UI_COMMA
+    LCD_Char(',');                      /* display: , */
+    #else
+    LCD_Char('.');                      /* display: . */
+    #endif
     if (Exponent < 0) LCD_Char('0');    /* extra 0 for factor 100 */
   }
 
@@ -309,9 +317,17 @@ void DisplayValue(uint32_t Value, int8_t Exponent, unsigned char Unit)
   Index = 0;
   while (Index < Length)                /* loop through string */
   {
-    LCD_Char(OutBuffer[Index]);              /* display char */
-    if (Index == Exponent) LCD_Char('.');    /* display dot */
-    Index++;                                 /* next one */
+    LCD_Char(OutBuffer[Index]);         /* display char/digit */
+    if (Index == Exponent)              /* starting point of decimal fraction */
+    {
+      #ifdef UI_COMMA
+      LCD_Char(',');                    /* display: , */
+      #else
+      LCD_Char('.');                    /* display: . */
+      #endif
+    }
+
+    Index++;                            /* next one */
   }
 
   /* display prefix and unit */
@@ -708,23 +724,25 @@ uint8_t ReadTouchScreen(void)
  *  - test push button
  *  - optional rotary encoder incl. detection of turning velocity
  *  - optional increase/decrease push buttons
- *  - 
+ *  - optional touch screen
+ *  - processing can be terminated by signaling OP_BREAK_KEY via UI.OP_Mode
+ *    (e.g. set by an interrupt handler to deal with an infinite timeout)
  *
  *  requires:
  *  - Timeout in ms 
- *    0 = no timeout, wait for key press or rotary encoder
+ *    0 = no timeout, wait for key press or any other feedback
  *  - Mode (bitmask):
  *    CURSOR_NONE     no cursor
  *    CURSOR_STEADY   steady cursor
  *    CURSOR_BLINK    blinking cursor
- *    CURSOR_OP_MODE  consider tester operation mode (UI.TesterMode)
+ *    CURSOR_OP_MODE  consider tester operation mode (UI.OP_Mode)
  *
  *  returns:
  *  - KEY_TIMEOUT     reached timeout
  *  - KEY_SHORT       short press of test key
  *  - KEY_LONG        long press of test key
- *  - KEY_RIGHT       rotary encoder turned right or increase key pressed 
- *  - KEY_LEFT        rotary encoder turned left or decrease key pressed
+ *  - KEY_RIGHT       right key (e.g. rotary encoder turned right)
+ *  - KEY_LEFT        left key (e.g. rotary encoder turned left)
  *  - KEY_INCDEC      increase and decrease keys both pressed
  *  The turning velocity (speed-up) is returned via UI.KeyStep (1-7).
  */
@@ -771,7 +789,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 
   if (Mode & CURSOR_OP_MODE)       /* consider operation mode */
   {
-    if (UI.TesterMode == MODE_AUTOHOLD)      /* auto hold mode */
+    if (UI.OP_Mode & OP_AUTOHOLD)       /* auto hold mode */
     {
       Timeout = 0;                 /* disable timeout */
                                    /* but keep cursor mode */
@@ -789,7 +807,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 
 
   /*
-   *  wait for key press (test push button) or timeout
+   *  wait for user feedback or timeout
    */
  
   while (Run)
@@ -946,6 +964,13 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
         }
       }
     }
+
+    /* check if we should exit anyway */
+    if (UI.OP_Mode & OP_BREAK_KEY)      /* got break signal */
+    {
+      UI.OP_Mode &= ~OP_BREAK_KEY;      /* clear break signal */
+      break;                            /* exit loop */
+    }
   }
 
 
@@ -1024,11 +1049,13 @@ uint8_t ShortCircuit(uint8_t Mode)
 
   /* check if already done */
   Test = AllProbesShorted();            /* get current status */
-  if (Test == Comp) Flag = 1;           /* skip loop if job already done */
-
-  /* if necessary tell user what to do */
-  if (Flag == 2)
+  if (Test == Comp)                     /* already done */
   {
+    Flag = 1;                           /* skip loop */
+  }
+  else                                  /* not done yet */
+  {
+    /* tell user what to do */
     LCD_Clear();
     LCD_EEString(String);               /* display: Remove/Create */
     LCD_NextLine();
@@ -1043,13 +1070,15 @@ uint8_t ShortCircuit(uint8_t Mode)
     if (Test == Comp)         /* job done */
     {
        Flag = 1;              /* end loop */
-       MilliSleep(200);       /* time to debounce */
+       MilliSleep(200);       /* delay to smooth UI */
     }
     else                      /* job not done yet */
     {
-      Test = TestKey(100, CURSOR_NONE);   /* wait 100ms or detect key press */
-      if (Mode == 0) Test = 0;            /* ignore key for un-short mode */
-      if (Test > KEY_TIMEOUT) Flag = 0;   /* abort on key press */
+      Test = TestKey(100, CURSOR_NONE);      /* wait 100ms or for any key press */
+      if (Mode == 1)                         /* short circuit expected */
+      {
+        if (Test > KEY_TIMEOUT) Flag = 0;    /* abort on key press */
+      }
     }
   }
 
@@ -1353,7 +1382,7 @@ void AdjustmentMenu(uint8_t Mode)
 
   /* display mode */
   LCD_Clear();
-  if (Mode == MODE_SAVE)           /* write mode */
+  if (Mode == STORAGE_SAVE)        /* write mode */
   {
     LCD_EEString(Save_str);
   }
@@ -1368,7 +1397,7 @@ void AdjustmentMenu(uint8_t Mode)
 
   if (ID > 0)                 /* valid profile ID */
   {
-    AdjustStorage(Mode, ID);
+    ManageAdjustmentStorage(Mode, ID);
   }
 
   #undef MENU_ITEMS
@@ -1401,7 +1430,7 @@ uint8_t PresentMainMenu(void)
     #define ITEM_8       0
   #endif
 
-  #ifdef SW_ESR
+  #if defined (SW_ESR) || defined (SW_OLD_ESR)
     #define ITEM_9       1
   #else
     #define ITEM_9       0
@@ -1478,7 +1507,7 @@ uint8_t PresentMainMenu(void)
   MenuID[Item] = 8;  
   Item++;
   #endif
-  #ifdef SW_ESR
+  #if defined (SW_ESR) || defined (SW_OLD_ESR)
   MenuItem[Item] = (void *)ESR_str;          /* in-circuit ESR */
   MenuID[Item] = 9;
   Item++;
@@ -1580,19 +1609,19 @@ void MainMenu(void)
       break;
 
     case 2:              /* self-adjustment */
-      Flag = SelfAdjust();
+      Flag = SelfAdjustment();
       break;
 
     case 3:              /* save adjustment values */
-      AdjustmentMenu(MODE_SAVE);
+      AdjustmentMenu(STORAGE_SAVE);
       break;
 
     case 4:              /* load adjustment values */
-      AdjustmentMenu(MODE_LOAD);
+      AdjustmentMenu(STORAGE_LOAD);
       break;
 
     case 5:              /* show basic adjustment values */
-      ShowBasicAdjust();
+      ShowAdjustmentValues();
       break;
 
     #ifdef SW_PWM_SIMPLE
@@ -1624,7 +1653,7 @@ void MainMenu(void)
       break;
     #endif
 
-    #ifdef SW_ESR
+    #if defined (SW_ESR) || defined (SW_OLD_ESR)
     case 9:              /* ESR tool */
       ESR_Tool();
       break;

@@ -14,7 +14,7 @@ Hardware Options:
 #define ENCODER_STEPS    20        /* not confirmed yet */
 #define HW_REF25
 #define HW_ZENER
-#define HW_FREQ_COUNTER
+#define HW_FREQ_COUNTER_BASIC
 
 LCD module:
 #define LCD_ST7735

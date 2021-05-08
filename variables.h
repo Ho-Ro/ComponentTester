@@ -153,11 +153,13 @@
   const unsigned char I_leak_str[] EEMEM = "I_l";
   const unsigned char R_DS_str[] EEMEM = "Rds";
 
-  #ifdef SW_ESR
+  #if defined (SW_ESR) || defined (SW_OLD_ESR)
     const unsigned char ESR_str[] EEMEM = "ESR";
   #endif
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
     const unsigned char PWM_str[] EEMEM = "PWM";
+  #endif
+  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT)
     const unsigned char Hertz_str[] EEMEM = "Hz";
   #endif
   #if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
@@ -190,7 +192,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.29m";
+  const unsigned char Version_str[] EEMEM = "v1.30m";
 
 
   /*
@@ -357,11 +359,13 @@
   extern const unsigned char Profile2_str[];
 
   /* options */
-  #ifdef SW_ESR
+  #if defined (SW_ESR) || defined (SW_OLD_ESR)
     extern const unsigned char ESR_str[];
   #endif
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
     extern const unsigned char PWM_str[];    
+  #endif
+  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT)
     extern const unsigned char Hertz_str[];
   #endif
   #ifdef SW_SQUAREWAVE
@@ -373,6 +377,12 @@
   #endif
   #ifdef HW_FREQ_COUNTER
     extern const unsigned char FreqCounter_str[];
+  #endif
+  #ifdef HW_FREQ_COUNTER_EXT
+    extern const unsigned char CounterChannel_str[];
+    extern const unsigned char FreqInput_str[];
+    extern const unsigned char LF_Crystal_str[];
+    extern const unsigned char HF_Crystal_str[];
   #endif
   #ifdef SW_ENCODER
     extern const unsigned char Encoder_str[];

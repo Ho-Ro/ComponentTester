@@ -220,6 +220,9 @@
 
 /*
  *  ST7920, SPI interface (bit-bang)
+ *  - for a 180° rotated display (LCD_ROT180)
+ *    - comment out "_H" font and symbol
+ *    - uncomment "_HF" font and symbol
  */
 
 #if 0
@@ -236,6 +239,9 @@
 #define LCD_DOTS_Y       64             /* number of vertical dots */
 #define FONT_8X8_H                      /* 8x8 font, horizonally aligned */
 #define SYMBOLS_24X24_H                 /* 24x24 symbols, horizonally aligned */
+//#define LCD_ROT180                      /* rotate output by 180° */
+//#define FONT_8X8_HF                     /* 8x8 font, horizonally aligned & flipped */
+//#define SYMBOLS_24X24_HF                /* 24x24 symbols, horizonally aligned & flipped */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
 #define SPI_DDR          LCD_DDR        /* SPI port data direction register */
@@ -248,6 +254,9 @@
 /*
  *  ST7920, 4 bit parallel interface
  *  - if you change LCD_DB4/5/6/7 comment out LCD_DB_STD!
+ *  - for a 180° rotated display (LCD_ROT180)
+ *    - comment out "_H" font and symbol
+ *    - uncomment "_HF" font and symbol
  */
 
 #if 0
@@ -266,6 +275,10 @@
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */
 #define FONT_8X8_H                      /* 8x8 font, horizonally aligned */
+#define SYMBOLS_24X24_H                 /* 24x24 symbols, horizonally aligned */
+//#define LCD_ROT180                      /* rotate output by 180° */
+//#define FONT_8X8_HF                     /* 8x8 font, horizonally aligned & flipped */
+//#define SYMBOLS_24X24_HF                /* 24x24 symbols, horizonally aligned & flipped */
 #endif
 
 
@@ -354,7 +367,7 @@
 
 /*
  *  frequency counter
- *  - must be pin PD4/T0
+ *  - input must be pin PD4/T0
  */
 
 #define COUNTER_PORT     PORTD     /* port data register */

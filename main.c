@@ -324,7 +324,7 @@ void Show_Capacitor(void)
 {
   Capacitor_Type    *MaxCap;       /* pointer to largest cap */
   Capacitor_Type    *Cap;          /* pointer to cap */
-  #ifdef SW_ESR
+  #if defined (SW_ESR) || defined (SW_OLD_ESR)
   uint16_t          ESR;           /* ESR (in 0.01 Ohms) */
   #endif
   uint8_t           Counter;       /* loop counter */
@@ -352,10 +352,10 @@ void Show_Capacitor(void)
   LCD_NextLine();                  /* move to next line */
   DisplayValue(MaxCap->Value, MaxCap->Scale, 'F');
 
-  #ifdef SW_ESR
+  #if defined (SW_ESR) || defined (SW_OLD_ESR)
   /* show ESR */
   ESR = MeasureESR(MaxCap);        /* measure ESR */
-  if (ESR > 0)                     /* if successfull */
+  if (ESR < UINT16_MAX)            /* if successfull */
   {
     LCD_Space();
     DisplayValue(ESR, -2, LCD_CHAR_OMEGA);   /* display ESR */
@@ -605,8 +605,8 @@ void Show_Diode(void)
 void Show_BJT(void)
 {
   Diode_Type        *Diode;        /* pointer to diode */
-  unsigned char     *String;       /* display string pointer */
-  uint8_t           Char;          /* display character */
+  unsigned char     *String;       /* string pointer (EEPROM) */
+  uint8_t           Char;          /* character */
   uint8_t           BE_A;          /* V_BE: pin acting as anode */
   uint8_t           BE_C;          /* V_BE: pin acting as cathode */
   uint8_t           CE_A;          /* flyback diode: pin acting as anode */
@@ -1176,7 +1176,7 @@ int main(void)
    */
 
   Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* default: power save */
-  UI.TesterMode = MODE_CONTINOUS;       /* set default mode: continous */
+  UI.OP_Mode = OP_CONTINOUS;            /* set default mode: continous */
   Test = 0;                             /* key press */
 
   /* catch long key press */
@@ -1201,11 +1201,11 @@ int main(void)
   }
 
   /* key press >300ms sets autohold mode */
-  if (Test > 1) UI.TesterMode = MODE_AUTOHOLD;
+  if (Test > 1) UI.OP_Mode = OP_AUTOHOLD;
 
   /* init LCD module */
   LCD_Init();                           /* initialize LCD */
-  LCD_NextLine_Mode(MODE_NONE);         /* reset line mode */
+  LCD_NextLine_Mode(LINE_STD);          /* reset line mode */
   #ifdef LCD_COLOR
     UI.PenColor = COLOR_TITLE;          /* set pen color */
   #endif
@@ -1220,11 +1220,12 @@ int main(void)
 
   if (Test == 3)              /* key press >2s resets to defaults */
   {
-    AdjustDefaults();              /* set default values */
+    SetAdjustmentDefaults();       /* set default values */
   }
   else                        /* normal mode */
   {
-    AdjustStorage(MODE_LOAD, 1);   /* load adjustment values: profile #1 */
+    /* load adjustment values: profile #1 */
+    ManageAdjustmentStorage(STORAGE_LOAD, 1);
   }
 
   /* set extra stuff */
@@ -1307,7 +1308,7 @@ start:
      /* this also switches the discharge relay to remove the short circuit */
   #endif
 
-  LCD_NextLine_Mode(MODE_KEEP);    /* line mode: keep first line */
+  LCD_NextLine_Mode(LINE_KEEP);    /* line mode: keep first line */
   LCD_Clear();                     /* clear LCD */
 
 
@@ -1431,7 +1432,7 @@ start:
 result:
 
   LCD_Clear();                     /* clear LCD */
-  LCD_NextLine_Mode(MODE_KEEP | MODE_KEY);
+  LCD_NextLine_Mode(LINE_KEEP | LINE_KEY);
 
   /* call output function based on component type */
   switch (Check.Found)
@@ -1503,7 +1504,7 @@ end:
   ADC_DDR = (1 << TP_REF);            /* short circuit probes */
   #endif
 
-  LCD_NextLine_Mode(MODE_NONE);       /* reset next line mode */
+  LCD_NextLine_Mode(LINE_STD);        /* reset next line mode */
 
   /* get key press or timeout */
   Test = TestKey((uint16_t)CYCLE_DELAY, CURSOR_BLINK | CURSOR_OP_MODE);

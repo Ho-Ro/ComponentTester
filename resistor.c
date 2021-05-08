@@ -103,7 +103,6 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
     while (ADCSRA & (1 << ADSC));    /* wait until conversion is done */
 
 
-
     /*
      *  measurement loop (about 0.5ms per cycle)
      */
@@ -165,8 +164,14 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
 
     if (ZeroFlag == 1)        /* auto-zero */
     {
-      if (R > NV.RZero) R -= NV.RZero;
-      else R = 0;
+      if (R > NV.RZero)       /* should be larger than offset */
+      {
+        R -= NV.RZero;        /* subtract offset */
+      }
+      else                    /* can't be less then zero */
+      {
+        R = 0;
+      }
     }
   }
 

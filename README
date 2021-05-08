@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2017-07-07
+Last edit:  2017-10-18
 
 Content
   - About
@@ -41,6 +41,8 @@ Content
     - Zener Tool
     - ESR Tool
     - Frequency Counter
+      - Basic Counter
+      - Extended Counter
     - Rotary Encoder
     - Contrast
     - IR RC detector
@@ -118,7 +120,8 @@ to read it. Therefore I'll tell you just about the major differences to the
 official release:
 
 - user interface
-  No worries! ;)
+  + No worries! ;)
+  + touch screen
 - adaptive component discharging function
 - resistance measurement
   + dedicated method for resistances <10 Ohms (instead of using ESR check)
@@ -139,6 +142,7 @@ official release:
 - IR RC detector and decoding
 - opto coupler check
 - RC servo check
+- MCU clock rates up to 20MHz
 - structured source code
 - some more I couldn't think of right now
 
@@ -172,7 +176,7 @@ Hardware options:
 - 2.5V voltage reference
 - relay based cap discharger
 - Zener voltage measurement
-- frequency counter
+- frequency counter (basic and extendend version)
 - IR detector/decoder for remote controls
   (fixed IR receiver module)
 - fixed cap for self adjustment of voltage offsets
@@ -198,7 +202,7 @@ And of course the software options:
 
 Please choose the options carefully to match your needs and the MCU's
 ressources, i.e. RAM, EEPROM and flash memory. If the firmware exceeds the
-MCU's flash size, try to disable some options.
+MCU's flash size, try to disable some options you don't need.
 
 Available UI languages:
 - English
@@ -209,8 +213,10 @@ Available UI languages:
 - Russian (provided by indman@EEVblog and hapless@@EEVblog)
   just 8x16 font (horizontally aligned) and HD44780 with Cyrillc font
 
-There's an alternative Russian text file (var_russian_2.h). If you prefer
-that one, simply rename it to var_russian.h.
+There's also an alternative Russian text file (var_russian_2.h). If you prefer
+that one, simply rename it to var_russian.h. A decimal fraction is indicated
+by a dot, but you can change that to a comma if you like by enabling the
+corresponding setting.
 
 For MCU specific settings, like pin assignments and display, edit 
 config-<MCU>.h:
@@ -644,11 +650,34 @@ How to connect the capacitor:
 
 + Frequency Counter (hardware option)
 
-With the frequency counter hardware option installed you can measure
+There are two versions of the frequency counter. The basic one is a simple
+passive input to the T0 pin of the MCU. The extended version has an input
+buffer, two oscillators for testing crystals (low and high frequency) and
+an additional prescaler. The circuit diagrams for both are depicted in
+Karl-Heinz' documentation.
+
+
+- Basic Counter
+
+With the basic frequency counter hardware option installed you can measure
 frequencies from about 10Hz up to 1/4 of the MCU clock with a resolution
 of 1Hz for frequencies below 10kHz. The frequency is measured and displayed
 continously until you end the measurement by a key press. The autoranging
 algorithm selects a gate time between 1ms and 1000ms based on the frequency.
+
+
+- Extended Counter
+
+The extended frequency counter has an additional prescaler and allows to
+measure higher frequencies. The theoretical upper limit is 1/4 of the MCU's
+clock rate multiplied by the prescaler (16:1 or 32:1). The control lines
+are configured in config_<mcu>.h, and don't forget to set the correct
+prescaler in config.h.
+
+The input channel (buffered input, low frequency crystal oscillator, high
+frequency crystal oscillator) is changed by pressing the test push button or
+turning the rotary encoder. And as always, two short button presses will exit
+the frequency counter.
 
 
 + Rotary Encoder
@@ -819,9 +848,16 @@ you can abort that by a key press. That will also skip the complete selftest.
 The selftest function runs each test just 5 times. You can skip a test by a
 short key press or skip the entire selfttest by a long key press.
 
-In test #4 you have to remove the short circuit of the probes which triggered
-the selftest mode. The tester will wait until you really removed the short
-circuit.
+In test #4 you have to remove the short circuit of the probes. The tester will
+wait until you removed the short circuit.
+
+The test steps are:
+- T1 internal bandgap reference (in mV)
+- T2 comparison of Rl resistors (offset in mV)
+- T3 comparison of Rh resistors (offset in mV)
+- T4 remove short circuit of probes
+- T5 leakage check for probes in pull-down mode (voltage in mV)
+- T6 leakage check for probes in pull-up mode (voltage in mV)
 
 
 + Self Adjustment
@@ -854,9 +890,21 @@ that.
 The self adjustments is very similar to the selftest regarding the procedure
 and user interface.
 
+The adjustments steps are:
+- A1 offsets for bandgap reference and analog comparator
+     (only for fixed cap option)
+- A2 resistance of probe leads/pins (in 10mOhms)
+- A3 remove short circuit of probes
+- A4 MCU's internal pin resistance for Gnd (voltage across RiL)
+- A5 MCU's internal pin resistance for Vcc (voltage across RiH)
+- A6 capacitance of probe leads/pins (in pF)
+
 Expected limits:
-- probe resistance   < 1.00 Ohms for two probes in series
+- probe resistance   < 1.50 Ohms for two probes in series
 - probe capacitance  < 100pF
+
+Hint: When the resistance values for the probe leads/pins vary too much,
+there could be a contact problem.
 
 Remember: Adjustment is not calibration! Calibration is the procedure to
 compare measurement results with a known traceable standard and noting the
@@ -928,12 +976,15 @@ A measured capacitance value more than 5pF (incl. the zero offset) is
 considered valid. Lower values are too uncertain and could be caused by
 placing the probe leads a little bit differently and things like that.
 
-The tester tries to measure the ESR for capacitors with more than 180nF. But
-since the ESR measurement isn't done via an AC signal with a specific
-frequency, please don't expect a solid result. The method used might be
-comparable with a 1kHz test. Anyway, the results are good enough to check
+The tester tries to measure the ESR for capacitors with more than 10nF.
+Alternatively you an also enable the old ESR measurement method starting
+at 180nF. But since the ESR measurement isn't done via an AC signal with a
+specific frequency, please don't expect a solid result. The method used might
+be comparable with a 1kHz test. Anyway, the results are good enough to check
 electrolytic caps. For low value film caps you could get different results
-based on the MCU clock rate. I'd guess Mr. Fourier is able to explain this.  
+based on the MCU clock rate. I'd guess Mr. Fourier is able to explain this.
+
+Alternatively you an also enable the old ESR measurement method
 
 Another measurement taken is the self-discharge leakage current for
 capacitors larger than 4.7µF. It gives a hint about the state of an 

@@ -155,11 +155,12 @@ uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
    *  - third probe: HiZ
    */
 
+  ADC_DDR = 0;                          /* set ADC port to HiZ */
   R_PORT = Probes.Rl_1;                 /* pull up probe-1 via Rl */
   R_DDR = Probes.Rl_1 | Probes.Rl_2;    /* and pull down probe-2 via Rl */
 
   /* read voltages */
-  U1 = ReadU(Probes.ADC_1);
+  U1 = ReadU_5ms(Probes.ADC_1);
   U2 = ReadU(Probes.ADC_2);
 
   /*
@@ -178,8 +179,7 @@ uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
     }    
   }
 
-  /* reset port */
-  R_DDR = 0;
+  R_DDR = 0;             /* reset port */
 
   return Flag;
 }

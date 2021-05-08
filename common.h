@@ -126,19 +126,22 @@
 
 
 /* tester operation modes */
-#define MODE_CONTINOUS        0    /* continous */
-#define MODE_AUTOHOLD         1    /* auto hold */
+#define OP_NONE               0b00000000     /* undefined mode */
+#define OP_CONTINOUS          0b00000001     /* continous mode */
+#define OP_AUTOHOLD           0b00000010     /* auto hold mode */
+/* operation signaling flags */
+#define OP_BREAK_KEY          0b00000100     /* exit key processing */
 
 
-/* line modes */
-#define MODE_NONE             0b00000000     /* no mode */
-#define MODE_KEY              0b00000001     /* wait for key press */
-#define MODE_KEEP             0b00000010     /* keep first line */
+/* UI line modes */
+#define LINE_STD              0b00000000     /* standard mode */
+#define LINE_KEY              0b00000001     /* wait for key press */
+#define LINE_KEEP             0b00000010     /* keep first line */
 
 
 /* storage modes */
-#define MODE_LOAD             1    /* load adjustment values */
-#define MODE_SAVE             2    /* save adjustment values */
+#define STORAGE_LOAD          1    /* load adjustment values */
+#define STORAGE_SAVE          2    /* save adjustment values */
 
 
 /* custom chars/symbols */
@@ -260,7 +263,7 @@ typedef struct
 typedef struct
 {
   /* UI mode */
-  uint8_t           TesterMode;    /* tester operation mode */
+  uint8_t           OP_Mode;       /* tester operation mode */
 
   /* display */
   uint8_t           LineMode;      /* line mode for LCD_NextLine() */
@@ -442,13 +445,6 @@ typedef struct
   U_1     V_f
   U_2     V_T
 */
-
-
-/* frequency counter */
-typedef struct
-{
-  uint16_t          Pulses;        /* number of pulses of input signal */
-} FreqCounter_Type;
 
 
 /* SPI */

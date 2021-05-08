@@ -10,13 +10,11 @@
 /*
  *  hints:
  *  - pin assignment
- *    DCLK          TOUCH_DCLK
- *    DIN           TOUCH_DIN
- *    DOUT          TOUCH_DOUT
+ *    DCLK          SPI: SCK
+ *    DIN           SPI: MOSI
+ *    DOUT          SPI: MISO
  *    /CS           TOUCH_CS
  *    /PENIRQ       TOUCH_PEN
- *    For hardware SPI DCLK, DIN and DOUT have to be the MCU's
- *    SCK, MOSI and MSO pins.
  *  - max. SPI clock: 2 MHz
  */
 

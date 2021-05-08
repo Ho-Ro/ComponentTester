@@ -191,7 +191,7 @@
 #define LCD_DOTS_X       84             /* number of horizontal dots */
 #define LCD_DOTS_Y       48             /* number of vertical dots */
 #define LCD_CONTRAST     66             /* default contrast (1-127) */
-#define FONT_6X8_VF                     /* 6x8 font, vertically aligned & flipped*/
+#define FONT_6X8_VF                     /* 6x8 font, vertically aligned & flipped */
 #define SPI_HARDWARE                    /* hardware SPI */
 #endif
 
@@ -199,6 +199,9 @@
 
 /*
  *  ST7920, SPI interface (hardware)
+ *  - for a 180° rotated display (LCD_ROT180)
+ *    - comment out "_H" font and symbol
+ *    - uncomment "_HF" font and symbol
  */
 
 #if 0
@@ -214,6 +217,10 @@
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */
 #define FONT_8X8_H                      /* 8x8 font, horizonally aligned */
+#define SYMBOLS_24X24_H                 /* 24x24 symbols, horizonally aligned */
+//#define LCD_ROT180                      /* rotate output by 180° */
+//#define FONT_8X8_HF                     /* 8x8 font, horizonally aligned & flipped */
+//#define SYMBOLS_24X24_HF                /* 24x24 symbols, horizonally aligned & flipped */
 #define SPI_HARDWARE                    /* hardware SPI */
 #endif
 
@@ -222,6 +229,9 @@
 /*
  *  ST7920, 4 bit parallel interface
  *  - enable LCD_DB_STD when using port pins 0-3 for LCD_DB4/5/6/7
+ *  - for a 180° rotated display (LCD_ROT180)
+ *    - comment out "_H" font and symbol
+ *    - uncomment "_HF" font and symbol
  */
 
 #if 0
@@ -240,6 +250,10 @@
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */
 #define FONT_8X8_H                      /* 8x8 font, horizonally aligned */
+#define SYMBOLS_24X24_H                 /* 24x24 symbols, horizonally aligned */
+//#define LCD_ROT180                      /* rotate output by 180° */
+//#define FONT_8X8_HF                     /* 8x8 font, horizonally aligned & flipped */
+//#define SYMBOLS_24X24_HF                /* 24x24 symbols, horizonally aligned & flipped */
 #endif
 
 
@@ -281,9 +295,6 @@
 #define TOUCH_PIN        PINB      /* port input pins register */
 #define TOUCH_CS         PB0       /* port pin used for /CS */
 #define TOUCH_PEN        PB1       /* port pin used for /PENIRQ */
-//#define TOUCH_DCLK       PB7       /* port pin used for DCLK */
-//#define TOUCH_DOUT       PB6       /* port pin used for DOUT */
-//#define TOUCH_DIN        PB5       /* port pin used for DIN */
 //#define TOUCH_FLIP_X               /* enable horizontal flip */
 //#define TOUCH_FLIP_Y               /* enable vertical flip */
 //#define TOUCH_ROTATE               /* switch X and Y (rotate by 90°) */
@@ -368,12 +379,20 @@
 
 /*
  *  frequency counter
- *  - must be pin PB0/T0
+ *  - basic and extented version
+ *  - input must be pin PB0/T0
  */
 
-#define COUNTER_PORT     PORTB     /* port data register */ 
-#define COUNTER_DDR      DDRB      /* port data direction register */
-#define COUNTER_IN       PB0       /* signal input T0 */
+#define COUNTER_PORT          PORTB     /* port data register */
+#define COUNTER_DDR           DDRB      /* port data direction register */
+#define COUNTER_IN            PB0       /* signal input T0 */
+
+/* control for extended frequency counter */
+#define COUNTER_CTRL_PORT     PORTC     /* port data register */ 
+#define COUNTER_CTRL_DDR      DDRC      /* port data direction register */
+#define COUNTER_CTRL_DIV      PC0       /* prescaler */
+#define COUNTER_CTRL_CH0      PC1       /* channel addr #0 */
+#define COUNTER_CTRL_CH1      PC2       /* channel addr #1 */
 
 
 /*

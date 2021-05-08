@@ -37,11 +37,11 @@
  *  - controlled by global variable UI.LineMode
  *
  *  Flags:
- *  - MODE_NONE  move to next line,
+ *  - LINE_STD   move to next line,
  *               clear display when last line is exceeded
- *  - MODE_KEY   same as MODE_NONE,
- *               but also wait for testkey/timeout
- *  - MODE_KEEP  keep first line when clearing the display
+ *  - LINE_KEY   same as LINE_STD,
+ *               but also wait for test key/timeout
+ *  - LINE_KEEP  keep first line when clearing the display
  */
 
 void LCD_NextLine(void)
@@ -55,10 +55,10 @@ void LCD_NextLine(void)
   /* check if we reached the last line */
   if (Line == UI.CharMax_Y)
   {
-    if (Mode & MODE_KEY) WaitKey();     /* wait for key press */
+    if (Mode & LINE_KEY) WaitKey();     /* wait for key press */
 
     /* clear screen */
-    if (Mode & MODE_KEEP)          /* keep first line */
+    if (Mode & LINE_KEEP)          /* keep first line */
     {
       Line = UI.CharMax_Y;         /* start at the last line */
       while (Line > 1)

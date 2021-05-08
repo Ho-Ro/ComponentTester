@@ -58,6 +58,13 @@
     const unsigned char FreqCounter_str[] EEMEM = "Frequenzimetro";
   #endif
 
+  #ifdef HW_FREQ_COUNTER_EXT
+    const unsigned char CounterChannel_str[] EEMEM = "Ch";
+    const unsigned char FreqInput_str[] EEMEM = "BNC";
+    const unsigned char LF_Crystal_str[] EEMEM = "LF crystal";
+    const unsigned char HF_Crystal_str[] EEMEM = "HF crystal";
+  #endif
+
   #ifdef SW_ENCODER
     const unsigned char Encoder_str[] EEMEM = "Encoder Rotativo";
     const unsigned char TurnRight_str[] EEMEM = "Gira a destra";

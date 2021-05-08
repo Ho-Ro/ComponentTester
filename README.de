@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2017-07-07
+Letzte Änderung:  2017-10-18
 
 Inhaltsübersicht:
   - Über den Tester
@@ -41,6 +41,8 @@ Inhaltsübersicht:
     - Zenertest
     - ESR-Messung
     - Frequenzzähler
+      - Einfacher Zähler
+      - Erweiterter Zähler
     - Drehencoder
     - Kontrast
     - IR-Fernbedienungsdetektor
@@ -121,7 +123,8 @@ Karl-Heinz hat eine richtig gute Doumentation für den Tester geschrieben.
 Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 
 - Benutzerschnittstelle
-  Keine Panik! ;)
+  + Keine Panik! ;)
+  + Touch Screen
 - Adaptive Entladefunktion
 - Widerstandsmessung
   + zusätliche Methode für Widerstände <10 Ohm (anstatt ESR-Messung)
@@ -142,6 +145,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - Detektor/Dekoder für IR-Fernsteuerungen
 - Test von Opto-Kopplern
 - Test von Modellbau-Servos
+- MCU-Taktraten bis zu 20MHz
 - Strukturierter Quellcode
 - Und Manches mehr, was mir gerade nicht einfällt.
 
@@ -178,7 +182,7 @@ Hardware-Optionen:
 - externe 2,5V Spannungsreferenz
 - Schutz-Relais zur Kondensatorentladung
 - Messung von Zenerdioden (DC-DC-Konverter)
-- Frequenzzähler
+- Frequenzzähler (einfache und erweiterte Version)
 - Test von IR-Fernbedienungen (festes IR-Empfängermodul)
 - fester Kondensator für Selbstabgleich von Spannungsoffsets
 - I2C-Bus (Bit-Bang und Hardware)
@@ -192,7 +196,7 @@ hast, brauchst Du eigentlich keine zusätzliche Spannungsreferenz mehr.
 Und natürlich die Software-Optionen:
 - PWM Generator (2 Varianten)
 - Messung von Induktivität
-- ESR-Messung und In-Circuit-ESR
+- ESR-Messung und In-Circuit ESR
 - Test von Drehencodern
 - Rechtecksignalgenerator (braucht zusätzliche Tasten)
 - Test von IR-Fernbedienungen (IR-Empfängermodul an Testpins)
@@ -201,9 +205,10 @@ Und natürlich die Software-Optionen:
 - Erkennung von UJTs
 - Farbkodierung für Testpins (benötigt Farbdisplay)
 
-Bitte die Optionen entprechend deinen Wünschen und den begrenzten Ressourcen 
+Bitte die Optionen entprechend Deinen Wünschen und den begrenzten Ressourcen 
 der MCU, d.h. RAM, EEPROM und Flash-Speicher, auswählen. Sollte die Firmware
-zu groß werden, versuche nicht so wichtige Optionen wieder zu deaktivieren.
+zu groß werden, versuche für Dich nicht so wichtige Optionen wieder zu
+deaktivieren.
 
 Verfügbare Sprachen:
 - Deutsch
@@ -215,8 +220,10 @@ Verfügbare Sprachen:
 - Spanisch (von pepe10000@EEVblog)
 - Tschechisch (von Kapa)
 
-Es gibt für Russisch eine alternative Textdatei (var_russian_2.h). Wenn Du
-diese nehmen möchtest, einfach nach var_russian.h umbenennen.
+Es gibt für Russisch zusätzlich eine alternative Textdatei (var_russian_2.h).
+Wenn Du diese nehmen möchtest, einfach nach var_russian.h umbenennen. Ist Dir
+ein Komma statt einem Punkt für die Kennzeichnung von Dezimalstellen lieber, 
+gibt es dafür eine Einstellungsoption (Standard: Punkt).
 
 Für die MCU-spezifischen Einstellungen, wie Pin-Zuordnungen und Display,
 editiere config-<MCU>.h:
@@ -664,12 +671,34 @@ Beschaltung für Kondensator:
 
 + Frequenzzähler (Hardware-Option)
 
-Ist die Zusatzschaltung für den Frequenzzähler eingebaut, kannst Du damit
-Frequenzen von ca. 10Hz bis zu 1/4 der MCU-Taktfrequenz mit einer Auflösung
-von 1Hz bei Frequenzen unterhalb von 10kHz messen. Die Frequenz wird ständig
-gemessen und angezeigt. Ein Tastendruck beendet die Messung. Die automatische
-Bereichswahl setzt die Torzeit auf Werte zwischen 1ms und 1000ms, je nach
-Frequenz.
+Den Frequenzzähler gibt es in zwei Versionen. Der Einfache besteht aus einem
+passiven Eingang auf den T0-Pin der MCU. Und der Erweiterte hat neben einem
+Eingangspuffer auch zwei Oszillatoren zum Testen von Quartzen (für niedrige
+und hohe Frequenzen) und einen zusätzlichen Frequenzvorteiler. Beide
+Schaltungen sind in der Dokumentation von Karl-Heinz beschrieben.
+
+
+- Einfacher Zähler
+
+Ist die Zusatzschaltung für den einfachen Frequenzzähler eingebaut, kannst Du
+damit Frequenzen von ca. 10Hz bis zu 1/4 der MCU-Taktfrequenz mit einer
+Auflösung von 1Hz bei Frequenzen unterhalb von 10kHz messen. Die Frequenz wird
+ständig gemessen und angezeigt. Ein Tastendruck beendet die Messung. Die
+automatische Bereichswahl setzt die Torzeit auf Werte zwischen 10ms und 1000ms,
+je nach Frequenz.
+
+
+- Erweiterter Zähler
+
+Der erweiterte Frequenzzähler hat einen zusätzlichen Vorteiler, welcher die
+Messung höherer Frequenzen erlaubt. Das theoretische Maximum liegt bei 
+1/4 des MCU-Taktes multipliziert mit dem Vorteiler (16:1 or 32:1). Die Steuer-
+signale werden in config_<mcu>.h definiert, und bitte nicht vergessen, in
+config.h den korrekten Vorteiler auszuwählen.
+
+Der Signaleingang (gepufferter Eingang, Quartz-Oszillator für niedrige
+Frequenzen, Quartz-Oszillator für hohe Frequenzen) wird über die Testtaste oder
+den Drehencoder geändert. Zwei kurze Tastendrücke beenden den Frequenzzähler.
 
 
 + Drehencoder
@@ -846,6 +875,14 @@ Test.
 In Test #4 ist der Kurzschluß wieder zu entfernen. Der Tester wartet dann
 so lange.
 
+Die Testschritte sind:
+- T1 interne Spannungsreferenz (in mV)
+- T2 Vergleich der Rl-Widerstände (Offset in mV)
+- T3 Vergleich der Rh-Widerstände (Offset in mV)
+- T4 Entfernen des Kurzschlusses der Testpins/kabel
+- T5 Leckstromtest für Testpins mit Gnd-Pegel (Spannung in mV)
+- T6 Leckstromtest für Testpins mit Vcc-Pegel (Spannung in mV)
+
 
 + Selbstabgleich
 
@@ -877,9 +914,21 @@ einen Folienkondensator zu messen.
 Der Selbstabgleich ist dem Selbsttest vom Ablauf und der Bedienung her sehr
 ähnlich.
 
+Die Schritte des Selbstabgleichs sind:
+- A1 Offsets für interne Spannungsreferenz und Analogkomparator
+     (nur bei festem Abgleichkondensator)
+- A2 Widerstand der Testpins/kabel (in 10mOhm)
+- A3 Entfernen des Kurzschlusses der Testpins/kabel
+- A4 interner Widerstand der Portspins für Gnd (Spannung über RiL)
+- A5 interner Widerstand der Portspins für Vcc (Spannung über RiH)
+- A6 Kapazität der Testpins/kabel (in pF)
+
 Erlaubte Maximalwerte:
-- Widerstand Testpin/Kabel < 1,00 Ohm (zwei in Reihe)
+- Widerstand Testpin/Kabel < 1,50 Ohm (zwei in Reihe)
 - Kapazität Testpin/Kabel < 100pF
+
+Hinweis: Wenn der Widerstandswerte der Testpins zu sehr variieren, könnte ein
+Kontaktproblem vorliegen.
 
 Merke: Abgleich ist nicht Kalibrierung! Kalibrierung ist die Prozedur, 
 Messergebnisse mit verfolgbaren Standards zu vergleichen und die Abweichungen
@@ -950,13 +999,14 @@ Eine Logik zum Verhindern, daß große Kondensatoren als Widerstände erkannt
 werden, wurde hinzugefügt. Widerstände kleiner als 10 Ohm werden zusätzlich
 auf Kapazität geprüft.
 
-Der Tester versucht den ESR bei Kondensatoren größer als 180nF zu messen.
-Da aber die Messung nicht per Wechselstrom mit einer bestimmten Frequenz
-durchgefüghrt wird, bitte keine supergenauen Ergebnisse erwarten. Die
-benutzte Methode entspricht vielleicht der Messung mit 1kHz. Für die
-Prüfung von Elkos ist die Messung mehr als ausreichend. Bei Filmkondensatoren
-mit kleinen Werten, können je nach MCU-Taktrate unterschiedliche Werte
-zustande kommen. Ich denke, Herr Fourier könnte dies erklären.
+Der Tester versucht den ESR bei Kondensatoren größer als 18nF zu messen.
+Alternativ kannst Du auch die alte Messmethode aktivieren, welche ab 180nF
+mißt. Da aber die Messung nicht per Wechselstrom mit einer bestimmten Frequenz
+durchgefüghrt wird, bitte keine supergenauen Ergebnisse erwarten. Die benutzte
+Methode entspricht vielleicht der Messung mit 1kHz. Für die Prüfung von Elkos
+ist die Messung mehr als ausreichend. Bei Filmkondensatoren mit kleinen Werten,
+können je nach MCU-Taktrate unterschiedliche Werte zustande kommen. Ich denke,
+Herr Fourier könnte dies erklären.
 
 Ein gemessener Kapazitätswert von mehr als 5pF (incl. Nulloffset) wird
 als gültig angesehen. Niedrigere Werte sind zu ungenau und könnten durch

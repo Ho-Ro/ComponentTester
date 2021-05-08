@@ -26,7 +26,7 @@
   const unsigned char Failed1_str[] EEMEM = "Zadna soucastka";
   const unsigned char Failed2_str[] EEMEM = "neznama - vadna";
   const unsigned char Done_str[] EEMEM = "hotovo!";
-  const unsigned char Select_str[] EEMEM = "Vyber:";
+  const unsigned char Select_str[] EEMEM = "Vyber";
   const unsigned char Selftest_str[] EEMEM = "Autotest";
   const unsigned char Adjustment_str[] EEMEM = "Kalibrace";
   const unsigned char Save_str[] EEMEM = "Ulozit";
@@ -56,6 +56,13 @@
 
   #ifdef HW_FREQ_COUNTER
     const unsigned char FreqCounter_str[] EEMEM = "Citac";
+  #endif
+
+  #ifdef HW_FREQ_COUNTER_EXT
+    const unsigned char CounterChannel_str[] EEMEM = "Ch";
+    const unsigned char FreqInput_str[] EEMEM = "BNC";
+    const unsigned char LF_Crystal_str[] EEMEM = "LF crystal";
+    const unsigned char HF_Crystal_str[] EEMEM = "HF crystal";
   #endif
 
   #ifdef SW_ENCODER

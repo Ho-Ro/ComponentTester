@@ -140,11 +140,11 @@
 
 #ifndef ADJUST_C
 
-  extern void AdjustDefaults(void);
-  extern void AdjustStorage(uint8_t Mode, uint8_t ID);
+  extern void SetAdjustmentDefaults(void);
+  extern void ManageAdjustmentStorage(uint8_t Mode, uint8_t ID);
 
-  extern void ShowBasicAdjust(void);
-  extern uint8_t SelfAdjust(void);
+  extern void ShowAdjustmentValues(void);
+  extern uint8_t SelfAdjustment(void);
 
   extern uint8_t SelfTest(void);
 
@@ -161,7 +161,7 @@
     uint32_t Value2, int8_t Scale2);
   extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
 
-  #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS)
+  #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO)
     extern void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
@@ -207,7 +207,7 @@
   #ifdef SW_SQUAREWAVE
     extern void SquareWave_SignalGenerator(void);
   #endif
-  #ifdef SW_ESR
+  #if defined (SW_ESR) || defined (SW_OLD_ESR)
     extern void ESR_Tool(void);
   #endif
   #ifdef HW_ZENER
@@ -285,7 +285,7 @@
 
 #ifndef CAP_C
 
-  #ifdef SW_ESR
+  #if defined (SW_ESR) || defined (SW_OLD_ESR)
     extern uint16_t MeasureESR(Capacitor_Type *Cap);
   #endif
 
@@ -340,7 +340,7 @@
 
 #ifndef WAIT_S
 
-  /* clock frequency 1 MHz */
+  /* clock frequency >= 1 MHz */
   extern void wait5s(void);
   extern void wait4s(void);
   extern void wait3s(void);
@@ -373,15 +373,15 @@
   extern void wait20us(void);
   extern void wait10us(void);
 
-  /* clock frequency 2 MHz */
+  /* clock frequency >= 2 MHz */
   extern void wait5us(void);
 
-  /* clock frequency 4 MHz */
+  /* clock frequency >= 4 MHz */
   extern void wait4us(void);
   extern void wait3us(void);
   extern void wait2us(void);
 
-  /* clock frequency 8 MHz */
+  /* clock frequency >= 8 MHz */
   extern void wait1us(void);
 
 #endif

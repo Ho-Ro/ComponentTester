@@ -116,13 +116,31 @@
 
 
 /*
- *  frequency counter
+ *  basic frequency counter
  *  - default pin: T0 (PD4 ATmega 328)
+ *  - uses T0 directly as frequency input
+ *  - counts up to 1/4 of MCU clock rate
  *  - might be in parallel with LCD module
  *  - uncomment to enable
  */
 
-//#define HW_FREQ_COUNTER
+//#define HW_FREQ_COUNTER_BASIC
+
+
+/*
+ *  extended frequency counter
+ *  - low and high frequency crystal oscillators
+ *    and buffered frequency input
+ *  - prescalers 1:1 and 16:1 (32:1)
+ *  - see COUNTER_PORT for port pins (config-<MCU>.h)
+ *  - requires a display with more than 2 text lines
+ *  - uncomment to enable (not supported yet)
+ *  - select the circuit's prescaler setting: either 16:1 or 32:1 
+ */
+
+//#define HW_FREQ_COUNTER_EXT
+#define FREQ_COUNTER_PRESCALER   16   /* 16:1 */
+//#define FREQ_COUNTER_PRESCALER   32   /* 32:1 */
 
 
 /*
@@ -186,14 +204,17 @@
 
 /*
  *  ESR measurement and in-circuit ESR measurement
+ *  - requires MCU clock >= 8 MHz
+ *  - choose SW_OLD_ESR for old method starting at 180nF
  *  - uncomment to enable
  */
 
 #define SW_ESR
+//#define SW_OLD_ESR
 
 
 /*
- *  Check for rotary encoders
+ *  check for rotary encoders
  *  - uncomment to enable
  */
 
@@ -242,7 +263,7 @@
  *  - uncomment to enable
  */
 
-#define SW_UJT
+//#define SW_UJT
 
 
 /*
@@ -305,6 +326,14 @@
 //#define UI_ITALIAN
 //#define UI_SPANISH
 //#define UI_RUSSIAN
+
+
+/*
+ *  use comma instead of dot to indicate a decimal fraction
+ *  - uncomment to enable
+ */
+
+//#define UI_COMMA
 
 
 /*
@@ -622,7 +651,7 @@
 
 
 /* ************************************************************************
- *   ressource management
+ *   options management
  * ************************************************************************ */
 
 
@@ -657,15 +686,6 @@
     #undef SW_SERVO
   #endif
 
-#endif
-
-
-/* IR detector/decoder (probe lead based decoder prevails) */
-#ifdef SW_IR_RECEIVER
-  #undef HW_IR_RECEIVER
-#endif
-#ifdef HW_IR_RECEIVER
-  #undef SW_IR_RECEIVER
 #endif
 
 
@@ -713,6 +733,36 @@
 #if defined (SYMBOLS_24X24_VFP)
   #define SW_SYMBOLS
 #endif
+
+
+/* frequency counter */
+#if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT)
+  #define HW_FREQ_COUNTER
+#endif
+
+
+/* IR detector/decoder (probe lead based decoder prevails) */
+#ifdef SW_IR_RECEIVER
+  #undef HW_IR_RECEIVER
+#endif
+#ifdef HW_IR_RECEIVER
+  #undef SW_IR_RECEIVER
+#endif
+
+
+/* ESR requires MCU clock >= 8MHz */
+#ifdef SW_ESR
+  #if CPU_FREQ < 8000000
+    #undef SW_ESR
+  #endif
+#endif
+#ifdef SW_OLD_ESR
+  #if CPU_FREQ < 8000000
+    #undef SW_OLD_ESR
+  #endif
+#endif
+
+
 
 
 /* ************************************************************************

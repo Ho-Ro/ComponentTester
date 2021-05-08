@@ -8,6 +8,19 @@
 
 ------------------------------------------------------------------------------
 
+v1.30m 2017-10
+- Option für Komma statt Punkt für Dezimalstellen.
+- Unterstützung für den erweiterten Frequenzzähler mit Eingangspuffer, LF und
+  HF-Quarzoszillator.
+- Kleinere Verbesserungen beim einfachen Frequenzzähler.
+- Problem mit Torzeit in Frequenzzähler für Frequenzen unter 10kHz bei MCU-Takt
+  von 20MHz beseitigt. 
+- ESR-Messung für kürzere Lade-Pulse modifiziert, d.h. der ESR kann nun für
+  Kondesatoren ab 10nF gemesssen werden. Wer die alte Messmethode bevorzugt, kann
+  diese alternativ aktivieren. 
+- Fehler in der Kurzschlußerkennung der Testpins beseitigt.
+- LCD-Treiber für ST7920 um 180° rotierte Ausgabe erweitert.
+
 v1.29m 2017-07
 - Unterstützung von Touch-Screens und Treiber für ADS7843 kompatible
   Controller.

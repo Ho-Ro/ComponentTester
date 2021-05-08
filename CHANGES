@@ -8,6 +8,19 @@
 
 ------------------------------------------------------------------------------
 
+v1.30m 2017-10
+- Option to use comma instead of dot to indicate a decimal fraction.
+- Support for extented frequency counter (buffered frequency input, LF
+  crystal, and HF crystal).
+- Minor improvements for basic frequency counter.
+- Fixed gate time issue in frequency counter for frequencies below 10kHz when
+  the MCU runs at 20MHz. 
+- Modified ESR measurement to support a shorter charging pulse, i.e. ESR can
+  be measured for caps starting at 10nF. If you prefer the old method, you can
+  enable that one alternatively.
+- Fixed bug in the probes' short circuit detection.
+- Added supported for 180° rotated output to ST7920 LCD driver.
+
 v1.29m 2017-07
 - Added touch screen support and driver for ADS7843 compatible touch
   controllers.

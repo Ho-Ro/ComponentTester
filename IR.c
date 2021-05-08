@@ -1272,7 +1272,7 @@ void IR_Detector(void)
   ShortCircuit(0);                      /* make sure probes are not shorted */
   LCD_Clear();
   LCD_EEString(IR_Detector_str);        /* display: IR detector */
-  LCD_NextLine_Mode(MODE_KEEP);         /* line mode: keep first line */
+  LCD_NextLine_Mode(LINE_KEEP);         /* line mode: keep first line */
   #ifdef SW_IR_RECEIVER
     /* display module pinout (1: Gnd / 2: Vcc / 3: Data) */
     LCD_NextLine();
