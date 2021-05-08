@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2012-10-21
+Last edit:  2012-11-4
 
 
 * About
@@ -29,7 +29,8 @@ just English and German, but can be changed or extended easily.
 The Component Tester is no DMM! It's a simple tester for components capable
 of measuring several things. The probes aren't protected in any way and
 won't survive higher voltages than 5V. Don't use the tester for live circuits!
-Just use it for unsoldered electronic components! This isn't just the Safety
+Just use it for unsoldered electronic components! If you test a capacitor make
+sure it's discharged before connecting the probes. This isn't just the Safety
 Sally, your life may be at risk if you connect the probes to a live circuit
 or a power supply (or even mains). 
 
@@ -219,10 +220,17 @@ In theory the tester could measure inductance by monitoring how the current
 increases over time. Tests showed that this works only in a quite limited way,
 so we won't support inductors. A better way is to add a signal source (sinus
 AC), meassuring frequency, current and voltage, and calculating the inductance
-by the frequency and the complex resistance.
+by the frequency and the complex resistance. But that's something for a new
+hardware version of the tester. 
 
 
 * Change Log
+v1.02m 2012-11
+- Added upper limit for resistance of probe leads in the self calibration
+  function (1.00 Ohms).
+- Selftest and calibration functions perform a short circuit test before
+  running the main part and return feedback now.
+- The mainmenu gives feedback about success/failure of the selected action.
 
 v1.01m 2012-10
 - Added a checksum for calibration values stored in the EEPROM and wrote a

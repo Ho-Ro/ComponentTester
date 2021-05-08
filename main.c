@@ -338,15 +338,13 @@ void RemoveShortCircuit(void)
   while (TempByte1 == 1)
   {
     /* check for short circuits */
-    TempByte2 = ShortedProbes(TP1, TP2);
-    TempByte2 += ShortedProbes(TP1, TP3);
-    TempByte2 += ShortedProbes(TP2, TP3);
+    TempByte2 = AllProbesShorted();
 
-    if (TempByte2 == 0)                 /* if all removed */
+    if (TempByte2 == 0)            /* if all removed */
     {
       TempByte1 = 0;                    /* end loop */
     }
-    else                                /* otherwise wait */
+    else                           /* otherwise wait */
     {
       wdt_reset();                      /* reset watchdog */
       wait1ms();                        /* wait a little bit */
@@ -360,14 +358,22 @@ void RemoveShortCircuit(void)
  *  selftest
  *  - display several internal values and measurements
  *  - self-calibration of RiL, RiH and C-Zero
+ *
+ *  returns:
+ *  - 0 on error
+ *  - 1 on success
  */
 
-void SelfTest(void)
+uint8_t SelfTest(void)
 {
+  uint8_t           Flag = 0;           /* return value */
   uint8_t           Test = 1;           /* test counter */
   uint8_t           Counter;            /* loop counter */
-  uint8_t           Flag;               /* control flag */
+  uint8_t           DisplayFlag;        /* display flag */
   signed int        Val1, Val2, Val3;   /* voltages/values */
+
+  /* check for short-circuited probes */
+  if (AllProbesShorted() != 3) return Flag;
 
   /* loop through all tests */
   while (Test <= 6)
@@ -383,7 +389,7 @@ void SelfTest(void)
       lcd_data('0' + Test);             /* display test number */
       lcd_space();
 
-      Flag = 1;                         /* display values by default */
+      DisplayFlag = 1;                  /* display values by default */
 
       /*
        *  tests
@@ -399,7 +405,7 @@ void SelfTest(void)
           lcd_line(2);
           DisplayValue(TempWord, -3, 'V');   /* display voltage in mV */
 
-          Flag = 0;                          /* reset flag */
+          DisplayFlag = 0;                   /* reset flag */
           break;
 
         case 2:     /* compare Rl resistors (probes still connected) */
@@ -458,7 +464,7 @@ void SelfTest(void)
         case 4:     /* disconnect probes */
           RemoveShortCircuit();
           Counter = 100;                        /* skip test */
-          Flag = 0;                             /* reset flag */
+          DisplayFlag = 0;                      /* reset flag */
           break;
 
         case 5:     /* Rh resistors pulled down */
@@ -505,7 +511,7 @@ void SelfTest(void)
       R_PORT = 0;                            /* all pins low */
 
       /* display voltages/values of all probes */
-      if (Flag)
+      if (DisplayFlag)
       {
         lcd_line(2);                         /* move to line #2 */
         DisplaySignedValue(Val1, 0 , 0);     /* display TP1 */
@@ -532,6 +538,9 @@ void SelfTest(void)
 
     Test++;                             /* next one */
   }
+
+  Flag = 1;         /* signal success */
+  return Flag;
 } 
 
 
@@ -588,13 +597,18 @@ void ShowCal(void)
 
 /*
  *  self calibration
+ *
+ *  returns:
+ *  - 0 on error
+ *  - 1 on success
  */
 
-void SelfCal(void)
+uint8_t SelfCal(void)
 {
+  uint8_t           Flag = 0;           /* return value */
   uint8_t           Test = 1;           /* test counter */
   uint8_t           Counter;            /* loop counter */
-  uint8_t           Flag;               /* control flag */
+  uint8_t           DisplayFlag;        /* display flag */
   unsigned int      Val1, Val2, Val3;   /* voltages */
   uint8_t           CapCounter = 0;     /* number of C_Zero measurements */
   unsigned int      CapSum = 0;         /* sum of C_Zero values */
@@ -605,6 +619,9 @@ void SelfCal(void)
   uint8_t           RiH_Counter = 0;    /* number of U_RiH measurements */
   unsigned int      U_RiH = 0;          /* sum of U_RiL values */
   unsigned long     Val0;               /* temp. value */
+
+  /* check for short-circuited probes */
+  if (AllProbesShorted() != 3) return Flag;
 
   /*
    *  measurements
@@ -623,7 +640,7 @@ void SelfCal(void)
       lcd_data('0' + Test);             /* display cal number */
       lcd_space();
 
-      Flag = 1;        /* display values by default */
+      DisplayFlag = 1;        /* display values by default */
 
       /*
        *  tests
@@ -638,21 +655,34 @@ void SelfCal(void)
 
           UpdateProbes(TP2, TP1, 0);
           Val1 = SmallResistor();
-          RSum += Val1;
+          if (Val1 < 100)                    /* < 1.00 Ohms */
+          {
+            RSum += Val1;
+            RCounter++;
+          }
+
           UpdateProbes(TP3, TP1, 0);
           Val2 = SmallResistor();
-          RSum += Val2;
+          if (Val2 < 100)                    /* < 1.00 Ohms */
+          {
+            RSum += Val2;
+            RCounter++;
+          }
+
           UpdateProbes(TP3, TP2, 0);
           Val3 = SmallResistor();
-          RSum += Val3;
+          if (Val3 < 100)                    /* < 1.00 Ohms */
+          {
+            RSum += Val3;
+            RCounter++;
+          }
 
-          RCounter += 3;
           break;
 
         case 2:     /* disconnect probes */
           RemoveShortCircuit();
           Counter = 100;                        /* skip test */
-          Flag = 0;                             /* reset display flag */
+          DisplayFlag = 0;                      /* reset display flag */
           break;
 
         case 3:     /* internal resistance of µC in pull-down mode */
@@ -753,7 +783,7 @@ void SelfCal(void)
       R_PORT = 0;                       /* all pins low */
 
       /* display values */
-      if (Flag)
+      if (DisplayFlag)
       {
         lcd_line(2);                    /* move to line #2 */
         DisplayValue(Val1, 0 , 0);      /* display TP1 */
@@ -791,6 +821,7 @@ void SelfCal(void)
   {
     /* calculate average offset (pF) */
     Config.CapZero = CapSum / CapCounter;
+    Flag++;
   }
 
   /* resistance auto-zero */
@@ -798,6 +829,7 @@ void SelfCal(void)
   { 
     /* calculate average offset (0.01 Ohms) */
     Config.RZero = RSum / RCounter;
+    Flag++;
   }
 
   /* RiL & RiH */
@@ -818,17 +850,29 @@ void SelfCal(void)
     Val0 = ((unsigned long)R_LOW * 100 * U_RiL) / Val1; /* Rl * U_Ri / U_Rl in 0.01 Ohm */
     Val0 += 5;                                          /* for automagic rounding */
     Val0 /= 10;                                         /* scale down to 0.1 Ohm */
-    if (Val0 < 250UL) Config.RiL = (unsigned int)Val0;
+    if (Val0 < 250UL)         /* < 25 Ohms */
+    {
+      Config.RiL = (unsigned int)Val0;
+      Flag++;
+    }
 
     /* RiH */
     Val0 = ((unsigned long)R_LOW * 100 * U_RiH) / Val1; /* Rl * U_Ri / U_Rl in 0.01 Ohm */
     Val0 += 5;                                          /* for automagic rounding */
     Val0 /= 10;                                         /* scale down to 0.1 Ohm */
-    if (Val0 < 280UL) Config.RiH = (unsigned int)Val0;
+    if (Val0 < 280UL)         /* < 29 Ohms */
+    {
+      Config.RiH = (unsigned int)Val0;
+      Flag++;
+    }
   }
 
   /* show values and offsets */
   ShowCal();
+
+  if (Flag == 4) Flag = 1;         /* all calibrations done -> success */
+  else Flag = 0;                   /* signal error */
+  return Flag;
 }
 
 
@@ -936,6 +980,9 @@ void LoadCal(void)
     /* tell user */
     lcd_clear();
     lcd_fix_string(Checksum_str);
+    lcd_space();
+    lcd_fix_string(Error_str);
+    lcd_data('!');
     wait2s();
 
     /* set default values */
@@ -957,7 +1004,8 @@ void LoadCal(void)
 
 void MainMenu(void)
 {
-  uint8_t           Run = 0;
+  uint8_t           Flag = 1;           /* control flag */
+  uint8_t           Run = 0;            /* loop control flag */
   uint8_t           Selected = 1;       /* ID of selected item */
   uint8_t           Top = 1;            /* ID of top item */
   uint8_t           n;                  /* counter */
@@ -1035,11 +1083,11 @@ void MainMenu(void)
   switch (Run)
   {
     case 1:
-      SelfTest();
+      Flag = SelfTest();
       break;
 
     case 2:
-      SelfCal();
+      Flag = SelfCal();
       break;
 
     case 3:
@@ -1054,8 +1102,12 @@ void MainMenu(void)
   /* display end of item */
   lcd_clear();
   lcd_fix_string(String2);              /* display: <item> */
-  lcd_line(2);  
-  lcd_fix_string(Done_str);             /* display: done */
+  lcd_line(2);
+  if (Flag == 1)
+    lcd_fix_string(Done_str);           /* display: done */
+  else
+    lcd_fix_string(Error_str);          /* display: error */
+  lcd_data('!');
 
 #undef MAX_ITEMS
 }
@@ -1626,6 +1678,9 @@ int main(void)
   {
     lcd_clear();                        /* display was initialized before */
     lcd_fix_string(Timeout_str);        /* display: timeout */
+    lcd_line(2);
+    lcd_fix_string(Error_str);          /* display: error */
+    lcd_data('!');
     wait2s();                           /* give user some time to read */
     CONTROL_PORT = 0;                   /* power off myself */
     return 0;                           /* exit program */
@@ -1777,10 +1832,7 @@ start:
   }
 
   /* enter main menu if requested by short-circuiting all probes */
-  TempByte1 = ShortedProbes(TP1, TP2);
-  TempByte1 += ShortedProbes(TP1, TP3);
-  TempByte1 += ShortedProbes(TP2, TP3);
-  if (TempByte1 == 3)              /* all probes are short-circuited */
+  if (AllProbesShorted() == 3)
   {
     MainMenu();                    /* enter mainmenu */;
     goto end;                      /* new cycle after job is is done */

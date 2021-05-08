@@ -111,6 +111,28 @@ uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
 
 
 /*
+ *  check for a short circuit between all probes
+ *
+ *  returns:
+ *  - 0 if no probes are short-circuited
+ *  - number of probe pairs short-circuited (3 = all)
+ */
+
+uint8_t AllProbesShorted(void)
+{
+  uint8_t           Flag = 0;      /* return value */
+
+  /* check all possible combinations */
+  Flag = ShortedProbes(TP1, TP2);
+  Flag += ShortedProbes(TP1, TP3);
+  Flag += ShortedProbes(TP2, TP3);
+
+  return Flag;  
+}
+
+
+
+/*
  *  try to discharge any connected components, e.g. capacitors
  *  - detect batteries
  *  - sometimes large caps are detected as a battery
@@ -1213,6 +1235,9 @@ unsigned int SmallResistor(void)
 
 #undef MODE_LOW
 #undef MODE_HIGH
+
+  /* update Uref flag for next ADC run */
+  Config.RefFlag = (1 << REFS1);        /* set REFS1 bit flag */
 
   return R;
 }

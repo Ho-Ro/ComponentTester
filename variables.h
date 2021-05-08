@@ -82,7 +82,7 @@
     const unsigned char Thyristor_str[] MEM_TEXT = "Thyristor";
     const unsigned char Triac_str[] MEM_TEXT = "Triac";
     const unsigned char GAK_str[] MEM_TEXT = "GAK=";
-    const unsigned char Done_str[] MEM_TEXT = "fertig!";
+    const unsigned char Done_str[] MEM_TEXT = "fertig";
     const unsigned char Selftest_str[] MEM_TEXT = "Selbsttest";
     const unsigned char Calibration_str[] MEM_TEXT = "Kalibrierung";
     const unsigned char Save_str[] MEM_TEXT = "Speichern";
@@ -90,6 +90,7 @@
     const unsigned char Remove_str[] MEM_TEXT = "Entferne";
     const unsigned char ShortCircuit_str[] MEM_TEXT = "Kurzschluss!";
     const unsigned char DischargeFailed_str[] MEM_TEXT = "Batterie?";
+    const unsigned char Error_str[] MEM_TEXT = "Fehler";
   #endif
 
   /* language specific: English */
@@ -105,7 +106,7 @@
     const unsigned char Thyristor_str[] MEM_TEXT = "SCR";
     const unsigned char Triac_str[] MEM_TEXT = "Triac";
     const unsigned char GAK_str[] MEM_TEXT = "GAC=";
-    const unsigned char Done_str[] MEM_TEXT = "done!";
+    const unsigned char Done_str[] MEM_TEXT = "done";
     const unsigned char Selftest_str[] MEM_TEXT = "Selftest";
     const unsigned char Calibration_str[] MEM_TEXT = "Calibration";
     const unsigned char Save_str[] MEM_TEXT = "Save";
@@ -113,6 +114,7 @@
     const unsigned char Remove_str[] MEM_TEXT = "Remove";
     const unsigned char ShortCircuit_str[] MEM_TEXT = "Short Circuit!";
     const unsigned char DischargeFailed_str[] MEM_TEXT = "Battery?";
+    const unsigned char Error_str[] MEM_TEXT = "Error";
   #endif
 
   /* language independent */
@@ -133,7 +135,7 @@
   const unsigned char Vf_str[] MEM_TEXT = "Vf=";
   const unsigned char DiodeCap_str[] MEM_TEXT = "C=";
   const unsigned char Vth_str[] MEM_TEXT = "Vth=";
-  const unsigned char Timeout_str[] MEM_TEXT = "Timeout!";
+  const unsigned char Timeout_str[] MEM_TEXT = "Timeout";
   const unsigned char URef_str[] MEM_TEXT = "Vref";
   const unsigned char RhLow_str[] MEM_TEXT = "Rh-";
   const unsigned char RhHigh_str[] MEM_TEXT = "Rh+";
@@ -145,7 +147,7 @@
   const unsigned char CapOffset_str[] MEM_TEXT = "C0";
   const unsigned char ROffset_str[] MEM_TEXT = "R0";
   const unsigned char CompOffset_str[] MEM_TEXT = "AComp";
-  const unsigned char Checksum_str[] MEM_TEXT = "ChkSum Err!";
+  const unsigned char Checksum_str[] MEM_TEXT = "ChkSum";
 
   const unsigned char Cap_str[] MEM_TEXT = {'-',LCD_CHAR_CAP, '-',0};
   const unsigned char Diode_AC_str[] MEM_TEXT = {'-', LCD_CHAR_DIODE1, '-', 0};
@@ -153,7 +155,7 @@
   const unsigned char Diodes_str[] MEM_TEXT = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
   const unsigned char Resistor_str[] MEM_TEXT = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
 
-  const unsigned char Version_str[] MEM_TEXT = "v1.01m";
+  const unsigned char Version_str[] MEM_TEXT = "v1.02m";
 
 
   /*
