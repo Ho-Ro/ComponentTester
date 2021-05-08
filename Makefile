@@ -24,6 +24,19 @@ FREQ = 8
 # - external low power crystal  : LowPower
 OSCILLATOR = Crystal
 
+# oscillator start-up cycles
+# - Crystal and LowPower could also be 1024 or 256 based on fuse settings
+ifeq (${OSCILLATOR},RC)
+  OSC_STARTUP = 6
+endif
+ifeq (${OSCILLATOR},Crystal)
+  OSC_STARTUP = 16384
+endif
+ifeq (${OSCILLATOR},LowPower)
+  OSC_STARTUP = 16384
+endif
+
+
 # avrdude: part number of MCU
 # - ATmega168  : m168
 # - ATmega168P : m168p
@@ -53,6 +66,7 @@ CC = avr-gcc
 CPP = avr-g++
 CFLAGS = -mmcu=${MCU} -Wall -I.
 CFLAGS += -DF_CPU=${FREQ}000000UL
+CFLAGS += -DOSC_STARTUP=${OSC_STARTUP}
 CFLAGS += -gdwarf-2 -std=gnu99 -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d
 
@@ -69,7 +83,7 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 HEADERS = config.h common.h variables.h LCD.h functions.h
 
 # objects
-OBJECTS_C = main.o ADC.o probes.o LCD.o
+OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o LCD.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 
@@ -151,56 +165,56 @@ clean:
 
 # ATmega168 / ATmega168P 
 ifeq (${MCU},atmega168)
-ifeq (${FREQ},1)
-# internal RC oscillator and /8 clock divider
-FUSES_RC = -U lfuse:w:0x62:m -U hfuse:w:0xdc:m
-# external 8MHz full swing crystal and /8 clock divider
-FUSES_CRYSTAL = -U lfuse:w:0x77:m -U hfuse:w:0xdc:m
-# external 8MHz low power crystal and /8 clock divider
-FUSES_LOWPOWER = -U lfuse:w:0x7f:m -U hfuse:w:0xdc:m
-endif
-ifeq (${FREQ},8)
-# internal RC oscillator and /1 clock divider
-FUSES_RC = -U lfuse:w:0xe2:m -U hfuse:w:0xdc:m
-# external 8MHz full swing crystal and /1 clock divider
-FUSES_CRYSTAL = -U lfuse:w:0xf7:m -U hfuse:w:0xdc:m
-# external 8MHz low power crystal and /1 clock divider
-FUSES_LOWPOWER = -U lfuse:w:0xff:m -U hfuse:w:0xdc:m
-endif
+  ifeq (${FREQ},1)
+    # internal RC oscillator and /8 clock divider
+    FUSES_RC = -U lfuse:w:0x62:m -U hfuse:w:0xdc:m
+    # external 8MHz full swing crystal and /8 clock divider
+    FUSES_CRYSTAL = -U lfuse:w:0x77:m -U hfuse:w:0xdc:m
+    # external 8MHz low power crystal and /8 clock divider
+    FUSES_LOWPOWER = -U lfuse:w:0x7f:m -U hfuse:w:0xdc:m
+  endif
+  ifeq (${FREQ},8)
+    # internal RC oscillator and /1 clock divider
+    FUSES_RC = -U lfuse:w:0xe2:m -U hfuse:w:0xdc:m
+    # external 8MHz full swing crystal and /1 clock divider
+    FUSES_CRYSTAL = -U lfuse:w:0xf7:m -U hfuse:w:0xdc:m
+    # external 8MHz low power crystal and /1 clock divider
+    FUSES_LOWPOWER = -U lfuse:w:0xff:m -U hfuse:w:0xdc:m
+  endif
 endif
 
 # ATmega328 / ATmega328P
 ifeq (${MCU},atmega328)
-ifeq (${FREQ},1)
-# internal RC oscillator and /1 clock divider
-FUSES_RC = -U lfuse:w:0x62:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
-# external 8MHz full swing crystal and /8 clock divider
-FUSES_CRYSTAL = -U lfuse:w:0x77:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
-# external 8MHz low power crystal and /8 clock divider
-FUSES_LOWPOWER = -U lfuse:w:0x7f:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
-endif
-ifeq (${FREQ},8)
-# internal RC oscillator and /1 clock divider
-FUSES_RC = -U lfuse:w:0xe2:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
-# external 8MHz full swing crystal and /1 clock divider
-FUSES_CRYSTAL = -U lfuse:w:0xf7:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
-# external 8MHz low power crystal and /1 clock divider
-FUSES_LOWPOWER = -U lfuse:w:0xff:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
-endif
+  ifeq (${FREQ},1)
+    # internal RC oscillator and /1 clock divider
+    FUSES_RC = -U lfuse:w:0x62:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
+    # external 8MHz full swing crystal and /8 clock divider
+    FUSES_CRYSTAL = -U lfuse:w:0x77:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
+    # external 8MHz low power crystal and /8 clock divider
+    FUSES_LOWPOWER = -U lfuse:w:0x7f:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
+  endif
+  ifeq (${FREQ},8)
+    # internal RC oscillator and /1 clock divider
+    FUSES_RC = -U lfuse:w:0xe2:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
+    # external 8MHz full swing crystal and /1 clock divider
+    FUSES_CRYSTAL = -U lfuse:w:0xf7:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
+    # external 8MHz low power crystal and /1 clock divider
+    FUSES_LOWPOWER = -U lfuse:w:0xff:m -U hfuse:w:0xd9:m -U efuse:w:0xfc:m
+  endif
 endif
 
 # select fuses
 ifeq (${OSCILLATOR},RC)
-FUSES = ${FUSES_RC}
+  FUSES = ${FUSES_RC}
 endif
 ifeq (${OSCILLATOR},Crystal)
-FUSES = ${FUSES_CRYSTAL}
+  FUSES = ${FUSES_CRYSTAL}
 endif
 ifeq (${OSCILLATOR},LowPower)
-FUSES = ${FUSES_LOWPOWER}
+  FUSES = ${FUSES_LOWPOWER}
 endif
 
 # set fuses
 fuses:
-	avrdude -c ${PROGRAMMER} -B 10.0 -p ${PARTNO} -P ${PORT} ${FUSES}
+	echo avrdude -c ${PROGRAMMER} -B 10.0 -p ${PARTNO} -P ${PORT} ${FUSES}
 

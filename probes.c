@@ -82,8 +82,8 @@ uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
    *  - third probe: HiZ
    */
 
-  R_PORT = MEM_read_byte(&Rl_table[Probe1]);
-  R_DDR = MEM_read_byte(&Rl_table[Probe1]) | MEM_read_byte(&Rl_table[Probe2]);
+  R_PORT = eeprom_read_byte(&Rl_table[Probe1]);
+  R_DDR = eeprom_read_byte(&Rl_table[Probe1]) | eeprom_read_byte(&Rl_table[Probe2]);
 
   /* read voltages */
   U1 = ReadU(Probe1);
@@ -91,12 +91,12 @@ uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
 
   /*
    *  We expect both probe voltages to be about the same and
-   *  to be half of Vcc (allowed difference +/- 20mV).
+   *  to be half of Vcc (allowed difference +/- 30mV).
    */
 
-  if ((U1 > UREF_VCC/2 - 20) && (U1 < UREF_VCC/2 + 20))
+  if ((U1 > UREF_VCC/2 - 30) && (U1 < UREF_VCC/2 + 30))
   { 
-    if ((U2 > UREF_VCC/2 - 20) && (U2 < UREF_VCC/2 + 20))
+    if ((U2 > UREF_VCC/2 - 30) && (U2 < UREF_VCC/2 + 30))
     {
       Flag = 1;
     }    
@@ -141,11 +141,12 @@ uint8_t AllProbesShorted(void)
 void DischargeProbes(void)
 {
   uint8_t           Counter;            /* loop control */
-  uint8_t           Limit = 40;         /* sliding timeout */
+  uint8_t           Limit = 40;         /* sliding timeout (2s) */
   uint8_t           ID;                 /* test pin */
   uint8_t           DischargeMask;      /* bitmask */
   unsigned int      U_c;                /* current voltage */
   unsigned int      U_old[3];           /* old voltages */
+
 
   /*
    *  set probes to a save discharge mode (pull-down via Rh) 
@@ -203,7 +204,10 @@ void DischargeProbes(void)
     }
     else                                /* voltage not decreased */
     {
-      Counter++;              /* increase no-changes counter for battery detection */
+      /* increase limit if we start at a low voltage */
+      if ((U_c < 10) && (Limit <= 40)) Limit = 80;
+
+      Counter++;              /* increase no-changes counter */
     }
 
     if (U_c <= CAP_DISCHARGED)          /* seems to be discharged */
@@ -213,7 +217,7 @@ void DischargeProbes(void)
     else if (U_c < 800)                 /* extra pull-down */
     {
       /* it's save now to pull-down probe pin directly */
-      ADC_DDR |= MEM_read_byte(&ADC_table[ID]);
+      ADC_DDR |= eeprom_read_byte(&ADC_table[ID]);
     }
 
     if (DischargeMask == 0b00000111)    /* all probes discharged */
@@ -223,17 +227,16 @@ void DischargeProbes(void)
     else if (Counter > Limit)             /* no decrease for some time */
     {
       /* might be a battery or a super cap */
-      CompFound = COMP_CELL;              /* report battery */
+      CompFound = COMP_ERROR;             /* report error */
+      CompType = TYPE_DISCHARGE;          /* discharge problem */
+      Error.Probe = ID;                   /* save probe */
+      Error.U = U_c;                      /* save voltage */
       Counter = 0;                        /* end loop */
-
-      /* tell user */
-      lcd_clear();
-      lcd_fix_string(DischargeFailed_str);
     }
     else                                /* go for another round */
     {
       wdt_reset();                        /* reset watchdog */
-      wait50ms();                         /* wait for 50ms */
+      MilliSleep(50);                     /* wait for 50ms */
     }
   }
 
@@ -285,13 +288,13 @@ void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   Probe3_Pin = Probe3;
 
   /* setup masks using bitmask tables */
-  Probe1_Rl = MEM_read_byte(&Rl_table[Probe1]);
+  Probe1_Rl = eeprom_read_byte(&Rl_table[Probe1]);
   Probe1_Rh = Probe1_Rl + Probe1_Rl;
-  Probe1_ADC = MEM_read_byte(&ADC_table[Probe1]);
-  Probe2_Rl = MEM_read_byte(&Rl_table[Probe2]);
+  Probe1_ADC = eeprom_read_byte(&ADC_table[Probe1]);
+  Probe2_Rl = eeprom_read_byte(&Rl_table[Probe2]);
   Probe2_Rh = Probe2_Rl + Probe2_Rl;
-  Probe2_ADC = MEM_read_byte(&ADC_table[Probe2]);
-  Probe3_Rl = MEM_read_byte(&Rl_table[Probe3]);
+  Probe2_ADC = eeprom_read_byte(&ADC_table[Probe2]);
+  Probe3_Rl = eeprom_read_byte(&Rl_table[Probe3]);
   Probe3_Rh = Probe3_Rl + Probe3_Rl;
 }
 
@@ -362,9 +365,9 @@ unsigned int GetFactor(unsigned int U_in, uint8_t ID)
 
   /* get values for index and next entry */
   Table += Index;                       /* advance to index */
-  Fact1 = pgm_read_word(Table);
+  Fact1 = MEM_read_word(Table);
   Table++;                              /* next entry */
-  Fact2 = pgm_read_word(Table);
+  Fact2 = MEM_read_word(Table);
 
   /* interpolate values based on difference */
   Factor = Fact1 - Fact2;
@@ -474,7 +477,7 @@ large_cap:
 
   /* prepare probes */
   DischargeProbes();                    /* try to discharge probes */
-  if (CompFound == COMP_CELL) return 0;
+  if (CompFound == COMP_ERROR) return 0;     /* skip on error */
 
   /* setup probes: Gnd -- probe 1 / probe 2 -- Rl -- Vcc */
   ADC_PORT = 0;                    /* set ADC port to low */
@@ -640,7 +643,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
   /* prepare probes */
   DischargeProbes();                    /* try to discharge probes */
-  if (CompFound == COMP_CELL) return 0;
+  if (CompFound == COMP_ERROR) return 0;     /* skip on error */
 
   /* set probes: Gnd -- all probes / Gnd -- Rh -- probe-1 */
   R_PORT = 0;                           /* set resistor port to low */
@@ -677,7 +680,8 @@ uint8_t SmallCap(Capacitor_Type *Cap)
     TempByte = Probe2_ADC;              /* keep just probe-1 pulled down */
   }
 
-  TCCR1B |= (1 << CS10);                /* start timer (1/1 clock divider) */
+  /* start timer by setting clock prescaler (1/1 clock divider) */
+  TCCR1B = (1 << CS10);
   ADC_DDR = TempByte;                   /* start charging DUT */
 
 
@@ -788,9 +792,10 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
 
     /*
-     *  Self-calibrate voltage offset of the analog comparator and
-     *  internal bandgap reference if C is 100nF - 20µF.
-     *  Changed offsets will we used in next test run.
+     *  Self-adjust the voltage offset of the analog comparator and internal
+     *  bandgap reference if C is 100nF up to 20µF. The minimum of 100nF
+     *  should keep the voltage stable long enough for the measurements. 
+     *  Changed offsets will be used in next test run.
      */
 
     if (((Scale == -12) && (Value >= 100000)) ||
@@ -800,7 +805,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
       signed long        TempLong;
 
       /*
-       *  We can self-calibrate the offset of the internal bandgap reference
+       *  We can self-adjust the offset of the internal bandgap reference
        *  by measuring a voltage lower than the bandgap reference, one time
        *  with the bandgap as reference and a second time with Vcc as
        *  reference. The common voltage source is the cap we just measured.
@@ -889,6 +894,8 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
   Cap->Raw = 0;
   Cap->Value = 0;
 
+  if (CompFound == COMP_ERROR) return;    /* skip check on any error */
+
 
   /*
    *  Skip resistors
@@ -950,10 +957,7 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
   {
     TempByte = SmallCap(Cap);
   }
-//else if (TempByte == 3)
-//{
-//  MeasureESR(Cap);
-//}
+
 
   /*
    *  check for plausibility
@@ -982,7 +986,7 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
    *  clean up
    */
 
-  DischargeProbes();                                   /* discharge DUT */
+  DischargeProbes();               /* discharge DUT */
 
   /* reset all ports and pins */
   ADC_DDR = 0;                     /* set ADC port to input */
@@ -1005,26 +1009,43 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
 void CheckDiode(void)
 {
   Diode_Type        *Diode;             /* pointer to diode */
-  unsigned int      U1_Rl;              /* voltage #1 */
-  unsigned int      U2_Rl;              /* voltage #2 */
-  unsigned int      U1_Rh;              /* voltage #3 */
-  unsigned int      U2_Rh;              /* voltage #4 */
+  unsigned int      U1_Rl;              /* Vf #1 with Rl pull-up */
+  unsigned int      U2_Rl;              /* Vf #2 with Rl pull-up */
+  unsigned int      U1_Rh;              /* Vf #1 with Rh pull-up */
+  unsigned int      U2_Rh;              /* Vf #2 with Rh pull-up */
 
   wdt_reset();                          /* reset watchdog */
 
+  DischargeProbes();                    /* try to discharge probes */
+  if (CompFound == COMP_ERROR) return;  /* skip on error */
+
   /*
-   *  How-To:
-   *  - Measure voltages with Rl and Rh to distinguish anti-parallel
-   *    diodes from a resistor. Diodes got nearly the same voltage for
-   *    low and high currents. Resistors cause U = I * R.
+   *  DUT could be:
+   *  - simple diode
+   *  - protection diode of a MOSFET or another device
+   *  - intrinsic diode junction of a BJT
+   *  - resistor
+   *  - capacitor
+   *
+   *  Solution:
+   *  - Vf of a diode rises with the current within some limits (about twice
+   *    mostly).
+   *  - Resistor?
+   *  - The voltage of a capacitor rises while charging. Since Vf is higher
+   *    for a high current, measure first with a high test current, then with
+   *    a low one. For a capacitor the second measurement results in a higher
+   *    voltage (charged longer). A low capacitance is fully charged to Vcc
+   *    quickly. So we have to check for voltages near Vcc also.
+   *  - For a MOSFET pretection diode we have to make sure that the MOSFET
+   *    in not conducting, to be able to get Vf of the protection diode.
+   *    So we discharge the gate and run the measurements twice for p and n
+   *    channel FETs.
    *  - Take care about the internal voltage drop of the µC at the cathode
-   *    for high currents.
-   *  - Take care about a possible MOSFET, since we might just found
-   *    an internal protection diode.
+   *    for a high test current.
    *
    *  Problem:
-   *  - Rl drives a current of about 7mA. That's not the best current to
-   *    use for measuring Vf. The current for Rh is about 10.6µA. 
+   *  - Rl drives a current of about 7mA. That's not the best current
+   *    for measuring Vf. The current for Rh is about 10.6µA.
    */
 
   /* we assume: probe-1 = A / probe2 = C */
@@ -1034,54 +1055,54 @@ void CheckDiode(void)
 
 
   /*
-   *  measurements for possible p-channel MOSFET
+   *  Vf #1, supporting a possible p-channel MOSFET
    */
 
   /* measure voltage across DUT (Vf) with Rl */
   R_DDR = Probe1_Rl;               /* enable Rl for probe-1 */
   R_PORT = Probe1_Rl;              /* pull up anode via Rl */
-  /* discharge possible gate of a p-channel MOSFET */
-  PullProbe(Probe3_Rl, FLAG_10MS | FLAG_PULLUP);
+  PullProbe(Probe3_Rl, FLAG_10MS | FLAG_PULLUP);       /* discharge gate */
   U1_Rl = ReadU_5ms(Probe1_Pin);   /* get voltage at anode */
   U1_Rl -= ReadU(Probe2_Pin);      /* substract voltage at cathode */
 
   /* measure voltage across DUT (Vf) with Rh */
   R_DDR = Probe1_Rh;               /* enable Rh for probe-1 */
   R_PORT = Probe1_Rh;              /* pull up anode via Rh */
+  PullProbe(Probe3_Rl, FLAG_10MS | FLAG_PULLUP);       /* discharge gate */
   U1_Rh = ReadU_5ms(Probe1_Pin);   /* get voltage at anode */
-
+                                   /* neglect voltage at cathode */
 
   /*
-   *  measurements for possible n-channel MOSFET
+   *  Vf #2, supporting a possible n-channel MOSFET
    */
 
   /* measure voltage across DUT (Vf) with Rl */
   R_DDR = Probe1_Rl;               /* enable Rl for probe-1 */
   R_PORT = Probe1_Rl;              /* pull up anode via Rl */   
-  /* discharge possible gate of a n-channel MOSFET */
-  PullProbe(Probe3_Rl, FLAG_10MS | FLAG_PULLDOWN);
+  PullProbe(Probe3_Rl, FLAG_10MS | FLAG_PULLDOWN);     /* discharge gate */
   U2_Rl = ReadU_5ms(Probe1_Pin);   /* get voltage at anode */
   U2_Rl -= ReadU(Probe2_Pin);      /* substract voltage at cathode */
 
   /* measure voltage across DUT (Vf) with Rh */
   R_DDR = Probe1_Rh;               /* enable Rh for probe-1 */
   R_PORT = Probe1_Rh;              /* pull up anode via Rh */
+  PullProbe(Probe3_Rl, FLAG_10MS | FLAG_PULLDOWN);     /* discharge gate */
   U2_Rh = ReadU_5ms(Probe1_Pin);   /* get voltage at anode */
-
+                                   /* neglect voltage at cathode */
 
   /*
    *  process results
    */
 
-  /* choose between measurements in p or n channel setup */
-  if (U1_Rl >U2_Rl)        /* the higher voltage wins */
+  /* choose between measurements of p and n channel setup */
+  if (U1_Rl > U2_Rl)          /* the higher voltage wins */
   {
     U2_Rl = U1_Rl;
     U2_Rh = U1_Rh;
   }
 
-  /* voltage is between 0.15V and 4.64V */
-  /* and we don't got resistors */
+  /* Vf is between 0.15V and 4.64V
+     and within limits for high and low test currents */
   if ((U2_Rl > 150) &&
       (U2_Rl < 4640) &&
       (U2_Rl > (U2_Rh + (U2_Rh / 8))) &&
@@ -1107,7 +1128,7 @@ void CheckDiode(void)
 
 
 /*
- *  measure small resistors (< 100 Ohms)
+ *  measure a resistor with low resistance (< 100 Ohms)
  *
  *  returns:
  *  - resistance in 0.01 Ohm
@@ -1124,7 +1145,7 @@ unsigned int SmallResistor(void)
   unsigned long     Value2 = 0;         /* U_R_i_L temp. value */
 
   DischargeProbes();                    /* try to discharge probes */
-  if (CompFound == COMP_CELL) return R;
+  if (CompFound == COMP_ERROR) return R;  /* skip on error */
 
   /* charge: GND -- probe 2 / probe 1 -- Rl -- 5V */
   /* discharge: GND -- probe 2 / probe 1 -- Rl -- GND */
@@ -1334,7 +1355,8 @@ void CheckResistor(void)
     {
       if (U_Rh_H < 4972)            /* R < 83.4M & prevent division by zero */
       {
-        /* voltage breaks down with low test current and it is not nearly shorted  => resistor */
+        /* voltage breaks down with low test current and it is not nearly 
+           shorted => resistor */
 
         Value = 0;                      /* reset value of resistor */
 
@@ -2273,6 +2295,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   unsigned int      U_1;                /* voltage #1 */
 
   /* init */
+  if (CompFound == COMP_ERROR) return;     /* skip check on any error */
   wdt_reset();                             /* reset watchdog */
   UpdateProbes(Probe1, Probe2, Probe3);    /* update bitmasks */
 
@@ -2366,7 +2389,8 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 
   else              /* load current > 1.4mA */
   {
-    /* We check for a diode even if we already found a component to get Vf. */
+    /* We check for a diode even if we already found a component to get Vf. 
+       There might be a body/protection diode of a semiconductor, */
     CheckDiode();
   }
 

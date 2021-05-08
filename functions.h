@@ -16,14 +16,6 @@
 
 #ifndef MAIN_C
 
-  extern int8_t CmpValue(unsigned long Value1, int8_t Scale1,
-    unsigned long Value2, int8_t Scale2);
-
-  extern void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit);
-  extern void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit);
-
-  extern uint8_t TestKey(unsigned int Timeout, uint8_t Mode);
-
 #endif
 
 
@@ -48,6 +40,54 @@
   extern void lcd_testpin(unsigned char Probe);
 //  extern void lcd_string(char *String);
   extern void lcd_fix_string(const unsigned char *String);
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from pause.c
+ * ************************************************************************ */
+
+#ifndef PAUSE_C
+
+  extern void MilliSleep(uint16_t Time);
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from adjust.c
+ * ************************************************************************ */
+
+#ifndef ADJUST_C
+
+  extern uint8_t CheckSum(void);
+  extern void SafeAdjust(void);
+  extern void LoadAdjust(void);
+
+  extern void ShowAdjust(void);
+  extern uint8_t SelfAdjust(void);
+
+  extern uint8_t SelfTest(void);
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from user.c
+ * ************************************************************************ */
+
+#ifndef USER_C
+
+  extern int8_t CmpValue(unsigned long Value1, int8_t Scale1,
+    unsigned long Value2, int8_t Scale2);
+
+  extern void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit);
+  extern void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit);
+
+  extern void ShortCircuit(uint8_t Mode);
+  extern uint8_t TestKey(uint16_t Timeout, uint8_t Mode);
+  extern void MainMenu(void);
 
 #endif
 

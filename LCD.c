@@ -113,8 +113,8 @@ void lcd_command(unsigned char Cmd)
 
 void lcd_data(unsigned char Data)
 {
- LCD_PORT |= (1 << LCD_RS);        /* set RS to 1 (data mode) */ 
- lcd_send(Data);                   /* send data */
+  LCD_PORT |= (1 << LCD_RS);       /* set RS to 1 (data mode) */ 
+  lcd_send(Data);                  /* send data */
 }
 
 
@@ -131,13 +131,13 @@ void lcd_data(unsigned char Data)
 void lcd_clear(void)
 {
   lcd_command(CMD_CLEAR_DISPLAY);  /* send command */
-  wait2ms();                       /* LCD needs some time for processing */
+  MilliSleep(2);                   /* LCD needs some time for processing */
 }
 
 
 
 /*
- *  move cursor to specified line
+ *  move cursor to the first position of a specified line
  *
  *  requires:
  *  - line number [1-2]
@@ -147,23 +147,13 @@ void lcd_line(unsigned char Line)
 {
   uint8_t           Cmd;
 
-  /* set command and address 0x00 for line #1 */
-  Cmd = CMD_SET_DD_RAM_ADDR;
-
-  switch (Line)          /* set address based on line */
+  if (Line == 1)              /* line #1 */
   {
-    case 2:
-      Cmd |= 0x40;
-      break;
-#if 0
-    case 3:
-      Cmd |= 0x14;
-      break;
-
-    case 4:
-      Cmd |= 0x54;
-      break;
-#endif
+    Cmd = CMD_SET_DD_RAM_ADDR | 0x00;
+  }
+  else                        /* line #2 */
+  {
+    Cmd = CMD_SET_DD_RAM_ADDR | 0x40;
   }
 
   lcd_command(Cmd);           /* send command */
@@ -209,16 +199,16 @@ void lcd_init(void)
    */
 
    /* round #1 */
-   wait30ms();
+   MilliSleep(30);
    LCD_PORT = (LCD_PORT & 0xF0 & ~(1 << LCD_RS)) | 0x03;
    lcd_enable();
 
    /* round #2 */
-   wait5ms();
+   MilliSleep(5);
    lcd_enable();
 
    /* round #3 */
-   wait1ms();
+   MilliSleep(1);
    lcd_enable();
 
 
@@ -227,11 +217,11 @@ void lcd_init(void)
     */
 
    /* init 4 bit mode  */
-   wait1ms();
+   MilliSleep(1);
    LCD_PORT = (LCD_PORT & 0xF0 & ~(1 << LCD_RS)) | 0x02;
-   wait1ms();
+   MilliSleep(1);
    lcd_enable();
-   wait1ms();
+   MilliSleep(1);
 
    /* function set: 4 bit interface / 2 rows / font 5x7 */
    lcd_command(CMD_FUNCTION_SET | 0x08);
@@ -249,7 +239,7 @@ void lcd_init(void)
 
 
 /*
- *  load custom character from PGM or EEPROM and upload it to the LCD
+ *  load custom character from EEPROM and upload it to the LCD
  *
  *  requires:
  *  - pointer of fixed character data
@@ -273,8 +263,8 @@ void lcd_fix_customchar(const unsigned char *CharData, uint8_t ID)
   /* write custom character */
   for (i = 0; i < 8; i++)               /* do 8 times */
   {
-    lcd_data(MEM_read_byte(CharData));    /* send byte */
-    CharData++;                           /* next one */
+    lcd_data(eeprom_read_byte(CharData));    /* send byte */
+    CharData++;                              /* next one */
   }
 }
 
@@ -335,7 +325,7 @@ void lcd_string(char *String)
 
 
 /*
- *  load string from PGM or EEPROM and send it to the LCD
+ *  load string from EEPROM and send it to the LCD
  *
  *  requires:
  *  - pointer to fixed string
@@ -347,7 +337,7 @@ void lcd_fix_string(const unsigned char *String)
 
   while (1)
   {
-    Char = MEM_read_byte(String);       /* read character */
+    Char = eeprom_read_byte(String);    /* read character */
 
     /* check for end of string */
     if ((Char == 0) || (Char == 128)) break;

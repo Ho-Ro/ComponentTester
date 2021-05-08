@@ -3,13 +3,13 @@
 
 ------------------------------------------------------------------------------
 
-                          ReadMe for the Component Tester
+                   ReadMe for the Component Tester firmware
 
-           (c) 2012 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2013 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit:  2012-11-14
+Last edit:  2013-03-22
 
 
 * About
@@ -59,84 +59,124 @@ re-structured functions, large functions splitted up into several smaller
 ones and what have you. I hope the code is easy to read and maintain now.
 
 
+* Test Key
+
+The test key starts the tester and also controls the user interface. For that
+purpose the tester differentiates between a short and a long key press (0.3s).
+The short key press is typically used to proceed with something or to select
+a menu item. The long key press performs a context specific action.   
+
+If the tester expects you to press a key it will tell you that by displaying
+a cursor at the last position in the second row of the LCD (bottom right).
+A steady cursor signals that you have to press the test key to proceed.
+The cursor is supressed for menus and the PWM tool, because it's obvious that
+a key press is neccessary.  
+
+
 * Startup
 
-A long key press (0.3s) while starting the tester selects the auto-hold mode.
-In that mode the tester waits for a short key press after displaying a result
-before it continues. Otherwise the tester chooses the continous (looping) mode
-by default. After powering on the tester displays the mode selected.
+A long key press while starting the tester selects the auto-hold mode. In that
+mode the tester waits for a short key press after displaying a result before
+it continues. Otherwise the tester chooses the continous (looping) mode by
+default. After powering on the tester displays the mode selected.
 
 After that the tester may display a checksum error, when it loads the saved
-calibration values from the EEPROM and detects an error. That error indicates
+adjustment values from the EEPROM and detects an error. That error indicates
 a corrupted EEPROM, i.e. caused by too much write operations. In that case
-the default calibration values from config.h will be used.
+the default adjustment values from config.h will be used.
 
 
 * Probing Loop 
 
-While displaying the result of the last test a long key press (0.3s) powers
-the tester off. The tester will display a short goodbye message. As long as
-you press the key the tester stays powered on and displays the message. That
-is caused by the implementaion of the power control circuit.
+While displaying the result of the last test a long key press powers the
+tester off. The tester will display a short goodbye message and then power
+off. As long as you press the key the tester stays powered on and displays the
+message. That is caused by the implementaion of the power control circuit.
 
 
-* Selftest / Self Calibration
+* Menu
 
 By short-circuiting all three probes you'll trigger a menu which allows you
-to select some special functions. A short key press selects the next item in
-the menu and a long key press (0.3s) runs the selected item. The selected
-item is marked by an asterisk.
+to select some special functions (see below). A short key press selects the
+next item in the menu and a long key press runs the selected item. The 
+selected item is marked by an asterisk.
+
+You can also enter the menu by two short key presses after the display of the
+last component found. Simply press the test key twice quickly (might need
+some practice :-).
+
+
++ PWM Tool
+
+This does what you would expect :-) First you have to select the desired PWM
+frequency in a simple menu. Short key press selects next item (marked by an
+asterisk) and a long key press starts the PWM output for the selected
+frequency.
+
+The duty ratio of the PWM starts at 50%. A short key press of the test button
+increases the ratio by 5%, a long key press decreases the ratio by 5%. If you
+hit 0% or 100% the next key press exceeding the limits will exit the PWM tool.
+Configuration of the probes:
+
+  Probe #2:         PWM output (with 680 Ohms series resistor)
+  Probe #1 and #3:  Ground
 
 
 + Selftest
 
 The selftest function runs each test just 5 times. You can skip a test by a
-short key press or skip the entire selfttest by a long key press (0.3s).
+short key press or skip the entire selfttest by a long key press.
 
 In test #4 you have to remove the short circuit of the probes which triggered
 the selftest mode. The tester will wait until you really removed the short
 circuit.
 
 
-+ Self Calibration
++ Self Adjustment
 
-The self calibration measures the resistance and the capacitance of the
-probe leads, e.g. the PCB, internal wiring and probe leads as a sum, for
-creating a zero offset. It also measures the internal resistance of the MCU
-port pins in pull-down and pull-up mode. If the tests are skipped or strange
-values are measured the default values defined in config.h are used. If
-everything went fine the tester will display and use the new values gained
-by the self calibration.
+The self adjustment measures the resistance and the capacitance of the probe
+leads, e.g. the PCB, internal wiring and probe leads as a sum, for creating
+a zero offset. It also measures the internal resistance of the MCU port pins
+in pull-down and pull-up mode. If the tests are skipped or strange values are
+measured the default values defined in config.h are used. If everything went
+fine the tester will display and use the new values gained by the self
+adjustment (they will be not stored, see "Save" below).
 
-The voltage offset of the analog comparator is automatically calibrated in
+The voltage offset of the analog comparator is automatically adjusted in
 the capacitance measurement if the capacitor is in the range of 100nF up
 to 20µF. Also the offset of the internal bandgap reference is determined
 in the same way. Both offsets are displayed at the end of the self
-calibration.
+adjustment.
+
+Remember: adjustment is not calibration! Calibration is the procedure to
+compare measurement results with a known traceable standard and noting the
+differences. The goal is to monitor the drift over time. Adjustment is the
+procedure to adjust a device to meet specific specs.
 
 
 + Save
 
 By flashing the firmware the pre-defined values given in config.h are stored
-in the EEPROM of the MCU. After running the self calibration you may update
+in the EEPROM of the MCU. After running the self adjustment you may update
 those default values using the the "Save" function. The next time you power
 on the tester the updated values will be loaded and used.
 
 If you run the tester the first time or changed the hardware setup, i.e. using
-other probe leads, I recommend to measure a capacitor (100nF - 20µF) to
-trigger the voltage offset calibrations, then run the selftest and save the
-new values.
+other probe leads, I recommend to measure a capacitor (100nF - 2µF) to trigger
+the voltage offset adjustments first. In some situations you might need to
+repeat that two or three times. Then run the self adjustment and save the new
+values.
 
-The idea of the save function is to prevent automatic saving of calibration
+The idea of the save function is to prevent automatic saving of adjustment
 values. If you need to use other probe leads for some tests, you'll simply
-calibrate the tester for the temporary probe leads and perform the tests.
-If you switch back to the standard probe leads you don't need to re-calibrate
-because the old values are still stored. Just powercycle the tester.
+adjust the tester for the temporary probe leads and perform the tests. If you
+switch back to the standard probe leads you don't need to re-adjust because
+the old values are still stored. Just powercycle the tester.
 
 
-+ Values
++ Show Values
 
-This displays the current calibrations values and offsets used. 
+This displays the current adjustments values and offsets used. 
 
 
 * Resistors
@@ -180,7 +220,8 @@ The discharge function isn't based on a fixed timeout, it adapts itself
 to the discharging rate. That way a battery will be identified faster (about
 2s) and large caps got more time to discharge. If a large cap is identified
 as a battery please repeat the check. In a noisy environment you might need
-to adjust CAP_DISCHARGED to about 3mV.
+to adjust CAP_DISCHARGED to about 3mV. The display of the remaining voltage
+will help you to choose an appropriate value.
 
 
 * ADC Oversampling
@@ -225,7 +266,28 @@ by the frequency and the complex resistance. But that's something for a new
 hardware version of the tester. 
 
 
+* Issues
+
+Known issues:
+- A storage cap (like Panasonic NF series) is detected as a diode or two
+  anti-parallel diodes. The capacitance measurement isn't able to determine  
+  an acceptable value either.
+
+
 * Change Log
+
+v1.06m 2013-03
+- Several minor improvements and cleanups.
+- Expanded TestKey() to inform the user about an expected key press.  
+- Improved TestKey() function to be more responsive for short key presses.
+- Added a PWM tool to generate a PWM signal with different frequencies and
+  duty ratios.
+- Implemented a sleep function to reduce power usage of the tester.
+  On average the power usage is nearly halfed (excluding the LCD backlight).
+- Improved discharge function. If the discharge of a component fails, the
+  concerned probe pin and the remaining voltage are displayed. That will help
+  to detect a too low value for CAP_DISCHARGED.
+- Added the capability to set error types
 
 v1.05m 2012-11
 - Moved LargeCap_table[] and SmallCap_table[] from EEPROM to flash to reduce
@@ -243,25 +305,25 @@ v1.03m 2012-11
   increased the firmware size by about 44 bytes :-(
 
 v1.02m 2012-11
-- Added upper limit for resistance of probe leads in the self calibration
+- Added upper limit for resistance of probe leads in the self adjustment
   function (1.00 Ohms).
-- Selftest and calibration functions perform a short circuit test before
+- Selftest and adjustment functions perform a short circuit test before
   running the main part and return feedback now.
 - The mainmenu gives feedback about success/failure of the selected action.
 
 v1.01m 2012-10
-- Added a checksum for calibration values stored in the EEPROM and wrote a
+- Added a checksum for adjustment values stored in the EEPROM and wrote a
   function to validate the checksum.
 - Added a measurement function for small resistors (resolution: 0.01 Ohms).
-- Extended self calibration to support an auto-zero for the resistance of the
+- Extended self adjustment to support an auto-zero for the resistance of the
   probe leads.
 - CheckResistor() runs an extra measurement for small resistors (<10 Ohms).
 - Added a function to compare two scaled values. 
 - Adapted several functions to support variable scaling of values.
 
 v1.00m 2012-09
-- Added a simple menu for selection of self test, self calibration, update of
-  the calibration values in the EEPROM and display of values.
+- Added a simple menu for selection of self test, self adjustment, update of
+  the adjustment values in the EEPROM and display of values.
 - Changed hfe from 16 bit to 32 bit value (no 65k limit anymore).
 
 v0.99m 2012-09

@@ -65,22 +65,14 @@
  * ************************************************************************ */
 
 
-
-/* 
- *  Use µCs internal EEPROM to store fixed text and tables.
- */
-
-#define USE_EEPROM
-
-
 /*
  *  Languange of user interface. Available languages:
- *  - English
+ *  - English (default)
  *  - German
  */
 
-#define UI_ENGLISH       1
-//#define UI_GERMAN        1
+#define UI_ENGLISH
+//#define UI_GERMAN
 
 
 /*
@@ -211,7 +203,7 @@
  *  discharged (in mV)
  */
 
-#define CAP_DISCHARGED   1
+#define CAP_DISCHARGED   2
 
 
 /*
@@ -220,28 +212,6 @@
  */
 
 #define ADC_SAMPLES      25
-
-
-
-/* ************************************************************************
- *   memory layout
- * ************************************************************************ */
-
-
-/*
- *  the following definitions specify where to load external data from:
- *   EEPROM or flash
- */
-
-#ifdef USE_EEPROM
-  #define MEM_TEXT EEMEM
-  #define MEM_read_word(a)  eeprom_read_word(a)
-  #define MEM_read_byte(a)  eeprom_read_byte(a)
-#else
-  #define MEM_TEXT PROGMEM
-  #define MEM_read_word(a)  pgm_read_word(a)
-  #define MEM_read_byte(a)  pgm_read_byte(a)
-#endif
 
 
 
@@ -255,9 +225,6 @@
  */
 
 #if defined(__AVR_ATmega168__)
-
-  /* ReadADC.S */
-  #define ACALL               call
 
   /* estimated internal resistance of port to GND (in 0.1 Ohms) */
   #define R_MCU_LOW           196
@@ -279,15 +246,17 @@
   /* total default capacitance (in pF): max. 255 */
   #define C_ZERO              CAP_PCB + CAP_WIRES + CAP_PROBELEADS
 
+  /* memory layout: put stuff exceeding 512 bytes of the EEPROM into flash */
+  #define MEM_TEXT          PROGMEM
+  #define MEM_read_word(a)  pgm_read_word(a)
+  #define MEM_read_byte(a)  pgm_read_byte(a)
+
 
 /*
  *  ATmega328
  */
 
 #elif defined(__AVR_ATmega328__)
-
-  /* ReadADC.S */
-  #define ACALL               call
 
   /* estimated internal resistance of port to GND (in 0.1 Ohms) */
   #define R_MCU_LOW           200  /* 209 */
@@ -303,6 +272,11 @@
 
   /* total default capacitance (in pF): max. 255 */
   #define C_ZERO              CAP_PCB + CAP_WIRES + CAP_PROBELEADS
+
+  /* memory layout: put stuff into EEPROM (1kB) */
+  #define MEM_TEXT          EEMEM
+  #define MEM_read_word(a)  eeprom_read_word(a)
+  #define MEM_read_byte(a)  eeprom_read_byte(a)
 
 
 /*
@@ -327,10 +301,10 @@
 
 
 /*
- *  selection of ADC-Clock 
- *  - will match for 1MHz, 2MHz, 4MHz, 8MHz and 16MHz
- *  - ADC-Clock can be 125000 or 250000 
- *  - 250 kHz is out of the full accuracy specification!
+ *  selection of ADC clock 
+ *  - supports 1MHz, 2MHz, 4MHz, 8MHz and 16MHz MCU clock
+ *  - ADC clock can be 125000 or 250000 
+ *  - 250kHz is out of the full accuracy specification!
  */
 
 #define ADC_FREQ    125000

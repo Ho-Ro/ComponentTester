@@ -35,15 +35,20 @@
 
 /* component IDs */
 #define COMP_NONE             0
-#define COMP_CELL             1
-#define COMP_RESISTOR         2
-#define COMP_CAPACITOR        3
-#define COMP_DIODE           10
-#define COMP_BJT             11
-#define COMP_FET             12
-#define COMP_IGBT            13
-#define COMP_TRIAC           14
-#define COMP_THYRISTOR       15
+#define COMP_ERROR            1
+#define COMP_MENU             2
+#define COMP_RESISTOR        10
+#define COMP_CAPACITOR       11
+#define COMP_DIODE           20
+#define COMP_BJT             21
+#define COMP_FET             22
+#define COMP_IGBT            23
+#define COMP_TRIAC           24
+#define COMP_THYRISTOR       25
+
+
+/* error type IDs */
+#define TYPE_DISCHARGE        1    /* discharge error */
 
 
 /* FET type bit masks (also used for IGBTs) */
@@ -80,6 +85,8 @@
 /* offsets and values */
 typedef struct
 {
+  uint8_t           TesterMode;    /* tester operation mode */
+  uint8_t           SleepMode;     /* MCU sleep mode */
   uint8_t           Samples;       /* number of ADC samples */
   uint8_t           AutoScale;     /* flag to disable/enable ADC auto scaling */
   uint8_t           RefFlag;       /* internal control flag for ADC */
@@ -144,6 +151,14 @@ typedef struct
   uint8_t           S;             /* test pin connected to source */
   uint16_t          V_th;          /* threshold voltage of gate in mV */
 } FET_Type;
+
+
+/* Error (failed discharge */
+typedef struct
+{
+  uint8_t           Probe;         /* probe pin */ 
+  uint16_t          U;             /* voltage left in mV */
+} Error_Type;
 
 
 
