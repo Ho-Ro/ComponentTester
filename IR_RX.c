@@ -2,7 +2,7 @@
  *
  *   IR remote control: receiver
  *
- *   (c) 2015-2019 by Markus Reschke
+ *   (c) 2015-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -142,11 +142,13 @@ uint8_t PulseCheck(uint8_t PulseWidth, uint8_t Ref, uint8_t Control)
 
 /*
  *  Bi-Phase demodulation
+ *  - similar to Manchester encoding
+ *  - special case of BPSK (binary phase-shift keying)
  *
  *  requires:
  *  - pointer to pulse/pause duration data
  *    first item has to be a pulse
- *  - number of pulses
+ *  - number of pulses/pauses
  *  - mode: Thomas or IEEE, heading pause
  *    IR_IEEE      - decoding based on IEEE 802.3
  *    IR_THOMAS    - decoding based on G.E. Thomas
@@ -178,13 +180,16 @@ uint8_t BiPhase_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t Mode, uint8_t 
   Code = &IR_Code[0];              /* set start address */
 
   /*
-   *  Bi-Phase Modulation / Manchester encoding
-   *  - G.E. Thomas
-   *    0: pause pulse
-   *    1: pulse pause
-   *  - IEEE 802.3
-   *    0: pulse pause 
-   *    1: pause pulse
+   *  Bi-Phase Modulation:
+   *  - fixed time slot for each bit
+   *  - bit is encoded as a phase shift (H-L or L-H transition)
+   *  - two encoding conventions
+   *    - G.E. Thomas (Manchester II or Biphase-L)
+   *      pause - pulse -> 0
+   *      pulse - pause -> 1
+   *    - IEEE 802.3
+   *      pulse - pause -> 0
+   *      pause - pulse -> 1
    */
 
   /* take care about heading pause */
@@ -215,7 +220,7 @@ uint8_t BiPhase_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t Mode, uint8_t 
     {
       if (PrePulse == 2)      /* prior pulse */
       {
-        Dir = 1;              /* H/L change */
+        Dir = 1;              /* H-L change */
 
         if (Width == 1)       /* second half of clock cycle */
         {
@@ -243,7 +248,7 @@ uint8_t BiPhase_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t Mode, uint8_t 
     {
       if (PrePulse == 1)      /* prior pause */
       {
-        Dir = 2;              /* L/H change */
+        Dir = 2;              /* L-H change */
 
         if (Width == 1)       /* second half of clock cycle */
         {
@@ -277,14 +282,14 @@ uint8_t BiPhase_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t Mode, uint8_t 
 
       if (Mode & IR_THOMAS)        /* Thomas */
       {
-        if (Dir == 1)              /* H/L is 1 */
+        if (Dir == 1)              /* H-L is 1 */
         {
           Data |= 0b00000001;      /* set bit */
         }
       }
       else                         /* IEEE */
       {
-        if (Dir == 2)              /* L/H is 1 */
+        if (Dir == 2)              /* L-H is 1 */
         {
           Data |= 0b00000001;      /* set bit */
         }
@@ -342,11 +347,12 @@ uint8_t BiPhase_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t Mode, uint8_t 
 
 /*
  *  PPM demodulation
+ *  - Pulse Position Modulation
  *
  *  requires:
  *  - pointer to pulse/pause duration data
  *    (first one has to be a pulse)
- *  - number of pulses (pauses/pulses)
+ *  - number of pulses/pauses
  *  - time units of pulse/pause
  *    should be lower end of valid range
  *  - number of time slots (= bits) expected
@@ -374,7 +380,7 @@ uint8_t PPM_Demod(uint8_t *PulseData, uint8_t Pulses, int8_t tP, uint8_t Slots, 
   Code = &IR_Code[0];              /* set start address */
 
   /*
-   *  PPM (Pulse Position Modulation)
+   *  PPM:
    *  - fixed time slot for each bit
    *  - pause -> 0
    *  - pulse -> 1
@@ -466,11 +472,13 @@ uint8_t PPM_Demod(uint8_t *PulseData, uint8_t Pulses, int8_t tP, uint8_t Slots, 
 
 /*
  *  PDM/PWM demodulation
+ *  - PDM - Pulse Distance Modulation
+ *  - PWM - Pulse Width Modulation
  *
  *  requires:
  *  - pointer to pulse/pause duration data
  *    first item has to be a pulse for PDM or a pause for PWM
- *  - number of pulses (pauses/pulses)
+ *  - number of pulses/pauses
  *  - time units of spacer
  *  - time units of 0
  *  - time units of 1
@@ -497,12 +505,12 @@ uint8_t PxM_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t tS, uint8_t t0, ui
   Code = &IR_Code[0];              /* set start address */
 
   /*
-   *  PWM (Pulse Width Modulation) / pulse encoding:
+   *  PWM / pulse encoding:
    *  - fixed pause time
    *  - two different pulse times to encode 0/1
    *  - even number of data items
    *
-   *  PDM (Pulse Distance Modulation)) / space encoding
+   *  PDM / space encoding:
    *  - fixed pulse time
    *  - two different pause times to encode 0/1
    *  - last item is pulse (stop bit)
@@ -566,7 +574,7 @@ uint8_t PxM_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t tS, uint8_t t0, ui
   {
     Display_NextLine();
     Display_Value(Counter, 0, 0);  /* display pulse number */
-    Display_Char(':');             /* display; : */
+    Display_Colon();               /* display; : */
     Display_Value(Time, 0, 0);     /* display pulse duration */
   }
   #endif
@@ -1037,7 +1045,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
       if (Temp > 0)                /* display version */
       {
-        Display_Char('-');         /* display: - */
+        Display_Minus();           /* display: - */
         Display_Char(Temp);        /* display: 5 or 6 */
       }
 
@@ -1061,16 +1069,16 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
         Display_HexByte(Extras);        /* display manufacturer MSB */
         Display_HexByte(Address);       /* display manufacturer LSB */
-        Display_Char(':');              /* display: : */
+        Display_Colon();                /* display: : */
 
         Extras = GetBits(21, 4, IR_LSB);     /* get system */
         Address = GetBits(25, 8, IR_LSB);    /* get product (address) */
         Command = GetBits(33, 8, IR_LSB);    /* get function (command) */      
 
         Display_HexDigit(Extras);  /* display system */
-        Display_Char('-');         /* display: - */
+        Display_Minus();           /* display: - */
         Display_HexByte(Address);  /* display product */
-        Display_Char(':');         /* display: : */
+        Display_Colon();           /* display: : */
         Display_HexByte(Command);  /* display function */
 
         Flag = PACKET_OK;          /* packet ok */
@@ -1395,12 +1403,12 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
       if (Flag == PACKET_OK)       /* valid packet */
       {
         Display_HexByte(Command);  /* display command */
-        Display_Char(':');         /* display: : */
+        Display_Colon();           /* display: : */
         Display_HexByte(Address);  /* display address */
 
         if (Bits == 20)            /* 20 bit format */
         {
-          Display_Char(':');                 /* display: : */
+          Display_Colon();                   /* display: : */
           Extras = GetBits(13, 8, IR_LSB);   /* get extended */
           Display_HexByte(Extras);           /* display extended data */
         }
@@ -1530,7 +1538,7 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
 
           Display_NL_EEString_Space(IR_Sharp_str);  /* display protocol */
           Display_HexByte(Address);                 /* display address */
-          Display_Char(':');                        /* display: : */
+          Display_Colon();                          /* display: : */
           Display_HexByte(Command);                 /* display command */
 
           IR_State = 1;                 /* got packet #1 */
@@ -1694,9 +1702,9 @@ result:
   {
     Display_NextLine();            /* new line */
     Display_Value(Pulses, 0, 0);   /* display number of pulses */
-    Display_Char(':');             /* display: : */
+    Display_Colon();               /* display: : */
     Display_Value(Time1, 0, 0);    /* display time units of first pulse */
-    Display_Char('-');             /* display: - */
+    Display_Minus();               /* display: - */
     Display_Value(Time2, 0, 0);    /* display time units of first pause */
 
     #if 0
@@ -1727,7 +1735,7 @@ result:
   if (Flag == PACKET_DISPLAY)      /* known protocol & standard output */
   {
     Display_HexByte(Address);      /* display address */
-    Display_Char(':');             /* display: : */
+    Display_Colon();               /* display: : */
     Display_HexByte(Command);      /* display command */
   }
 
@@ -1779,10 +1787,16 @@ void IR_Detector(void)
   uint8_t           *Pulse = NULL;      /* pointer to pulse data */
   uint8_t           PulseData[MAX_PULSES];  /* pulse duration data */     
 
-  /* inform user */
   ShortCircuit(0);                      /* make sure probes are not shorted */
+
+  /* inform user */
   LCD_Clear();
-  Display_EEString(IR_Detector_str);    /* display: IR detector */
+  #ifdef UI_COLORED_TITLES
+    /* display: IR detector */
+    Display_ColoredEEString(IR_Detector_str, COLOR_TITLE);
+  #else
+    Display_EEString(IR_Detector_str);  /* display: IR detector */
+  #endif
   UI.LineMode = LINE_KEEP;              /* next-line mode: keep first line */
   #ifdef SW_IR_RECEIVER
     /* display module pinout (1: Gnd / 2: Vcc / 3: Data) */

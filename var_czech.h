@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Czech (ISO 8859-1)
  *
- *   (c) 2015-2020 by Markus Reschke
+ *   (c) 2015-2021 by Markus Reschke
  *   translation by Kapa and Bohu
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
@@ -79,8 +79,11 @@
     const unsigned char SquareWave_str[] MEM_TYPE = "Gen. obdelniku";
   #endif
 
-  #ifdef HW_ZENER
+  #if defined (HW_ZENER) || defined (HW_PROBE_ZENER)
     const unsigned char Zener_str[] MEM_TYPE = "Zenerka";
+  #endif
+
+  #if defined (HW_ZENER) && ! defined (ZENER_UNSWITCHED)
     const unsigned char Min_str[] MEM_TYPE = "Min";
   #endif
 

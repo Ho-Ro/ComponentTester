@@ -2,15 +2,40 @@
 
             Change Log for the Component Tester firmware (m-firmware)
 
-                       (c) 2012-2020 by Markus Reschke
+                       (c) 2012-2021 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.43m 2021-?
+- Added R&D display driver for identifying display controllers.
+- LCD_RD control signal is now optional for ILI9341, ILI9481, ILI9486 and
+  ILI9488.
+- Added modified driver for ST7735 semi-compatible displays (suggested by
+  b0hoon4@gmail.com).
+- Option to run Zener check during normal probing (HW_PROBE_ZENER, suggested
+  by indman@EEVblog). Requires ZENER_UNSWITCHED. Also added corresponding
+  remote control command (V_Z).
+- Added option to specify a custom voltage divider for the Zener check (
+  ZENER_DIVIDER_CUSTOM, ZENER_R1 and ZENER_R2).
+- Removed option for low resolution in Zener check and also the ZENER_HIGH_RES
+  configuration switch.
+- Updated Russian texts (thanks to indman@EEVblog).
+- Optional display of pulse duration for PWM generators (PWM_SHOW_DURATION,
+  suggested by guest "hamburger" @mikrocontroller.net).
+- Source archive includes "dep" directory to make some IDEs happy (suggested
+  by DAIRVINE@EEVblog).
+- Renamed configuration switch SW_PROBE_COLORS to UI_PROBE_COLORS.
+- New feature to color titles differently (UI_COLORED_TITLES) and also cursor
+  and key hints (UI_COLORED_CURSOR).
+- Updated Romanian texts (thanks to Dumidan@EEVblog).
+- Updated alternative Polish texts (thanks to Jacon@EEVblog).
+- Updated Spanish texts (thanks to pepe10000@EEVblog).
 
 v1.42m 2020-12
 - Updated 6x8 fonts (thanks to Bohu).
 - New ISO8859-2 based 6x8 font (FONT_6X8_ISO8859_2_HF, thanks to Bohu).
 - Added LC meter hardware option (HW_LC_METER). It's based on a simple LC
-  oscillator circuit, similar to some inexensive LC meter kits.
+  oscillator circuit, similar to some inexpensive LC meter kits.
 - Changed Display_Value() to support also fempto (f).
 - When CYCLE_MAX is set to 255 the automatic power-off is disabled and the
   tester keeps running until it's powered off manually.
@@ -29,7 +54,7 @@ v1.42m 2020-12
 - Changed text output of E series norm values to also display unit (suggested
   by indman@EEVblog).
 - Updated alternative Polish texts (thanks to Jacon@EEVblog).
-- Last textline on display was simply overwritten when UI_KEY_HINTS is
+- Last text line on display was simply overwritten when UI_KEY_HINTS is
   enabled (reported by Obelix2007@EEVblog). Added function to wait for user
   feedback before clearing last line.
 - Updated Spanish texts (thanks to pepe10000@EEVblog).

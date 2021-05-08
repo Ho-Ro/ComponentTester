@@ -2,7 +2,7 @@
  *
  *   self-adjustment functions
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -543,8 +543,14 @@ uint8_t SelfAdjustment(void)
     {
       /* display step number */
       LCD_Clear();
+      #ifdef UI_COLORED_TITLES
+      Display_UseTitleColor();          /* use title color */
+      #endif
       Display_Char('A');                /* display: A (for Adjust) */
       Display_Char('0' + Step);         /* display number */
+      #ifdef UI_COLORED_TITLES
+      Display_UsePenColor();            /* use pen color */
+      #endif
       Display_Space();
 
       DisplayFlag = 1;        /* display values by default */
@@ -923,8 +929,14 @@ uint8_t SelfTest(void)
     {
       /* display test number */
       LCD_Clear();
+      #ifdef UI_COLORED_TITLES
+      Display_UseTitleColor();          /* use title color */
+      #endif
       Display_Char('T');                /* display: T */
       Display_Char('0' + Test);         /* display test number */
+      #ifdef UI_COLORED_TITLES
+      Display_UsePenColor();            /* use pen color */
+      #endif
       Display_Space();
 
       DisplayFlag = 1;                  /* display values by default */

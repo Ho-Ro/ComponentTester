@@ -2,7 +2,7 @@
  *
  *   common header file
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -225,6 +225,7 @@
 #define CMD_R_BB              42   /* return R_BB */
 #define CMD_I_C               43   /* return I_C */
 #define CMD_I_E               44   /* return I_E */
+#define CMD_V_Z               45   /* return V_Z */
 
 
 
@@ -280,6 +281,7 @@
 #define COMP_INDUCTOR        12
 /* 2 pin semiconductors */
 #define COMP_DIODE           20
+#define COMP_ZENER           21
 /* 3 pin semiconductors */
 #define COMP_BJT             30
 #define COMP_FET             31
@@ -649,6 +651,10 @@ typedef struct
   I_scale  I_CEO        I_DSS
   C_value  C_EB/BE
   C_scale  C_EB/BE
+
+           Zener
+  ----------------------------------------------------------------------
+  U_1      V_Z (mV)
 */
 
 

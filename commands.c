@@ -2,7 +2,7 @@
  *
  *   automation / remote commands via serial interface 
  *
- *   (c) 2018-2020 by Markus Reschke
+ *   (c) 2018-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -295,7 +295,7 @@ uint8_t Cmd_MSG(void)
     {
       Display_EEString_Space(DischargeFailed_str);   /* send: Battery? */
       Display_ProbeNumber(Check.Probe);              /* send probe ID */
-      Display_Char(':');
+      Display_Colon();
       Display_Space();
       Display_Value(Check.U, -3, 'V');               /* send voltage */
 
@@ -1444,6 +1444,8 @@ uint8_t Cmd_V_T(void)
 
 
 
+#ifdef SW_HFE_CURRENT
+
 /*
  *  command: I_C / I_E
  *  - return test current for hFE measurement
@@ -1495,6 +1497,41 @@ uint8_t Cmd_I_C(uint8_t Cmd)
 
   return Flag;
 }
+
+#endif
+
+
+
+#ifdef HW_PROBE_ZENER
+
+/*
+ *  command: V_Z
+ *  - return V_Z value
+ *
+ *  returns:
+ *  - SIGNAL_ERR on error
+ *  - SIGNAL_NA on n/a
+ *  - SIGNAL_OK on success
+ */
+
+uint8_t Cmd_V_Z(void)
+{
+  uint8_t           Flag = SIGNAL_OK;   /* return value */
+
+  if (Check.Found == COMP_ZENER)        /* Zener diode */
+  {
+    /* send value */
+    Display_Value(Semi.U_1, -3, 'V');   /* in mV */
+  }
+  else                                  /* other component */
+  {
+    Flag = SIGNAL_ERR;                  /* signal error */
+  }
+
+  return Flag;
+}
+
+#endif
 
 
 
@@ -1782,6 +1819,12 @@ uint8_t RunCommand(uint8_t ID)
     case CMD_I_C:             /* return I_C */
     case CMD_I_E:             /* return I_E */
       Flag = Cmd_I_C(ID);                    /* run command */
+      break;
+    #endif
+
+    #ifdef HW_PROBE_ZENER
+    case CMD_V_Z:             /* return V_Z */
+      Flag = Cmd_V_Z();                      /* run command */
       break;
     #endif
 

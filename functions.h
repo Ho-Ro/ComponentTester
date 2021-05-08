@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -208,6 +208,8 @@
 
   extern void Display_ProbeNumber(uint8_t Probe);
   extern void Display_Space(void);
+  extern void Display_Minus(void);
+  extern void Display_Colon(void);
   extern void Display_EEString_Space(const unsigned char *String);
   extern void Display_NL_EEString(const unsigned char *String);
   extern void Display_NL_EEString_Space(const unsigned char *String);
@@ -226,6 +228,13 @@
 
   #ifdef UI_SERIAL_COMMANDS
   extern void Display_EEString_NL(const unsigned char *String);
+  #endif
+
+  #ifdef UI_COLORED_TITLES
+  extern void Display_ColoredEEString(const unsigned char *String, uint16_t Color);
+  extern void Display_ColoredEEString_Space(const unsigned char *String, uint16_t Color);
+  extern void Display_UseTitleColor(void);
+  extern void Display_UsePenColor(void);
   #endif
 
   #if defined (FUNC_DISPLAY_HEXBYTE) || defined (FUNC_DISPLAY_HEXVALUE)
@@ -392,6 +401,10 @@
 
   #ifdef HW_ZENER
   extern void Zener_Tool(void);
+  #endif
+
+  #ifdef HW_PROBE_ZENER
+  extern void CheckZener(void);
   #endif
 
   #ifdef SW_ESR_TOOL

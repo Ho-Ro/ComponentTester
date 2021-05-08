@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Romana (ISO 8859-1)
  *
- *   (c) 2016-2020 by Markus Reschke
+ *   (c) 2016-2021 by Markus Reschke
  *   translation by Dumidan
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
@@ -44,10 +44,10 @@
   const unsigned char Error_str[] MEM_TYPE = "Eroare!";
   const unsigned char Exit_str[] MEM_TYPE = "Iesire";
   const unsigned char Checksum_str[] MEM_TYPE = "Suma cntrl";
-  const unsigned char BJT_str[] MEM_TYPE = "Trnz. bipolar";
+  const unsigned char BJT_str[] MEM_TYPE = "Tranzistor";
   const unsigned char Thyristor_str[] MEM_TYPE = "Tiristor";
   const unsigned char Triac_str[] MEM_TYPE = "Triac";
-  const unsigned char PUT_str[] MEM_TYPE = "Trnz. PUT";
+  const unsigned char PUT_str[] MEM_TYPE = "Tranz. PUT";
   const unsigned char Bye_str[] MEM_TYPE = "Pa !";
 
 
@@ -79,8 +79,11 @@
     const unsigned char SquareWave_str[] MEM_TYPE = "Generator";
   #endif
 
-  #ifdef HW_ZENER
+  #if defined (HW_ZENER) || defined (HW_PROBE_ZENER)
     const unsigned char Zener_str[] MEM_TYPE = "Zener";
+  #endif
+
+  #if defined (HW_ZENER) && ! defined (ZENER_UNSWITCHED)
     const unsigned char Min_str[] MEM_TYPE = "Min";
   #endif
 
@@ -137,7 +140,7 @@
   #endif
 
   #ifdef SW_UJT
-    const unsigned char UJT_str[] MEM_TYPE = "Trnz. UJT";
+    const unsigned char UJT_str[] MEM_TYPE = "Tranz. UJT";
   #endif
 
   #ifdef SW_SERVO

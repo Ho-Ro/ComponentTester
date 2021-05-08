@@ -2,7 +2,7 @@
  *
  *   L/C meter (hardware option)
  *
- *   (c) 2020 by Markus Reschke
+ *   (c) 2020-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -135,12 +135,13 @@ Measuring L
 
 Measurement ranges:
 - L_i 82µH / C_i 1nF (base frequency around 595 kHz)
+  firmware enforces a lower frequency limit of 10 kHz
 
   Mode  feasible         theoretically   PIC LC Meter
   ------------------------------------------------------
-  L     1nH - 150mH      0.2nH -         10nH - 100mH
-  C     10fF - 33nF      3.3fF -         0.1pF - 900nF
-
+  L     1nH - 150mH      0.2nH - 250mH   10nH - 100mH
+  C     10fF - 33nF      3.3fF - 3.5µF   0.1pF - 900nF
+             - 120nF with signal clean-up
 */
 
 
@@ -249,6 +250,7 @@ uint8_t Get_LC_Frequency(void)
     OCR1A = Top;                        /* Timer1: set gate time */
     TCCR1B = Bits;                      /* start Timer1: prescaler */
     TCCR0B = (1 << CS02) | (1 << CS01); /* start Timer0: clock source T0 - falling edge */
+                                        /* for rising edge: | (1 << CS00) */
 
     /* wait for timer1 or key press */
     while (Flag == WAIT_FLAG)
@@ -587,8 +589,12 @@ uint8_t LC_Meter(void)
 
   /* show info */
   LCD_Clear();                          /* clear display */
-  Display_EEString(LC_Meter_str);       /* display: LC Meter */
-
+  #ifdef UI_COLORED_TITLES
+    /* display: LC Meter */
+    Display_ColoredEEString(LC_Meter_str, COLOR_TITLE);
+  #else
+    Display_EEString(LC_Meter_str);     /* display: LC Meter */
+  #endif
 
   /*
    *  init
@@ -724,11 +730,11 @@ uint8_t LC_Meter(void)
         /* display frequency of LC oscillator in line #3 */
         LCD_ClearLine(3);
         LCD_CharPos(1, 3);
-        Display_Char('f');
-        Display_Char(':');
+        Display_Char('f');                    /* display: f */
+        Display_Colon();                      /* display: : */
         Display_Space();
-        Display_FullValue(LC_Freq, 0, 'H');
-        Display_Char('z');
+        Display_FullValue(LC_Freq, 0, 0);     /* display frequency */
+        Display_EEString(Hertz_str);          /* display: Hz */
         #endif
 
         Run |= SHOW_VALUE;         /* show value */
@@ -803,14 +809,14 @@ uint8_t LC_Meter(void)
       }
 
       Display_Char(Test);          /* display L/C */
-      Display_Char(':');
+      Display_Colon();
 
       /* display value */
       Display_Space();
 
       if (Run & NO_VALUE)          /* no value */
       {
-        Display_Char('-');         /* display: -*/
+        Display_Minus();           /* display: -*/
       }
       else                         /* value */
       {

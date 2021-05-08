@@ -2,7 +2,7 @@
  *
  *   user interface functions
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -747,6 +747,10 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   #ifdef UI_KEY_HINTS
   uint8_t           Pos = 0;            /* X position for text */
   #endif
+  #ifdef UI_COLORED_CURSOR
+  uint16_t          Color;              /* pen color */
+  #endif
+
 
   /*
    *  init
@@ -797,6 +801,11 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
                                    /* and keep timeout */
     }
   }
+
+  #ifdef UI_COLORED_CURSOR
+  Color = UI.PenColor;             /* save current pen color */
+  UI.PenColor = COLOR_CURSOR;      /* set cursor color */
+  #endif
 
   #ifdef UI_KEY_HINTS
   if (Mode & CURSOR_TEXT)          /* show key hint */
@@ -1099,6 +1108,10 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
    *  clean up
    */
 
+  #ifdef UI_COLORED_CURSOR
+  UI.PenColor = Color;        /* restore pen color */
+  #endif
+
   if (Mode & (CURSOR_STEADY | CURSOR_BLINK))  /* cursor enabled */
   {
     LCD_Cursor(0);            /* disable cursor on display */
@@ -1310,15 +1323,28 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
   void              *Address;           /* address of menu element */
   uint16_t          Value;              /* temp. value */
 
+  /* init */
   Items--;                    /* to match array counter */
   Lines = UI.CharMax_Y;       /* max. number of lines */
   Lines--;                    /* adjust to match item counter */
-  Display_Char(':');          /* whatever: */
 
+  /* add ":" to title in line #1 */
+  #ifdef UI_COLORED_TITLES
+  Display_UseTitleColor();    /* use title color */
+  #endif
+  Display_Colon();            /* display: <whatever>: */
+  #ifdef UI_COLORED_TITLES
+  Display_UsePenColor();      /* use pen color */
+  #endif
+
+
+  /*
+   *  processing loop
+   */
 
   while (Run)
   {
-    if (Lines == 1)           /* 2 line display */
+    if (Lines == 1)           /* 2-line display */
     {
       First = Selected;       /* just one line for items */
       Run++;                  /* set flag for changed list */
@@ -1327,10 +1353,11 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
     /*
      *  display item(s)
+     *  - starting in line #2
      */
 
     Address = &Menu[First];        /* get address of first item */
-    n = 0;
+    n = 0;                         /* reset counter */
 
     while (n < Lines)
     {
@@ -1372,7 +1399,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
     Run = 1;             /* reset loop flag (changed list) */
 
-    /* show navigation help for 2 line displays */
+    /* show navigation help for 2-line displays */
     if (Lines == 1)
     {
       LCD_CharPos(UI.CharMax_X, UI.CharMax_Y);    /* set position to bottom right */
@@ -1538,14 +1565,22 @@ void AdjustmentMenu(uint8_t Mode)
   #endif
 
   /* display storage mode */
-  LCD_Clear();
+  LCD_Clear();                     /* clear display */
   if (Mode == STORAGE_SAVE)        /* write mode */
   {
-    Display_EEString(Save_str);    /* display: Save */
+    #ifdef UI_COLORED_TITLES
+      Display_ColoredEEString(Save_str, COLOR_TITLE);  /* display: Save */
+    #else
+      Display_EEString(Save_str);                      /* display: Save */
+    #endif
   }
   else                             /* read mode */
   {
-    Display_EEString(Load_str);    /* display: Load */
+    #ifdef UI_COLORED_TITLES
+      Display_ColoredEEString(Load_str, COLOR_TITLE);  /* display: Load */
+    #else
+      Display_EEString(Load_str);                      /* display: Load */
+    #endif
   }
 
   /* run menu */
@@ -2007,7 +2042,13 @@ uint8_t PresentMainMenu(void)
    */
 
   LCD_Clear();
-  Display_EEString(Select_str);         /* display "Select" */
+  #ifdef UI_COLORED_TITLES
+    /* display "Select" */
+    Display_ColoredEEString(Select_str, COLOR_TITLE);
+  #else
+    Display_EEString(Select_str);       /* display "Select" */
+  #endif
+
   ID = MenuTool(n, 1, Item_Str, NULL);  /* menu dialog */
   ID = Item_ID[ID];                     /* get item ID */
 
@@ -2099,7 +2140,12 @@ void MainMenu(void)
     case MENUITEM_PWM_TOOL:
       /* run PWM menu */
       LCD_Clear();
-      Display_EEString(PWM_str);
+      #ifdef UI_COLORED_TITLES
+        /* display: PWM */
+        Display_ColoredEEString(PWM_str, COLOR_TITLE);
+      #else
+        Display_EEString(PWM_str);           /* display: PWM */
+      #endif
       ID = MenuTool(NUM_PWM_FREQ, 2, (void *)PWM_Freq_table, (unsigned char *)Hertz_str);
       Frequency = DATA_read_word(&PWM_Freq_table[ID]);      /* get selected frequency */
       PWM_Tool(Frequency);                                  /* and run PWM tool */

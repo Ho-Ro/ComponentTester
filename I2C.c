@@ -2,7 +2,7 @@
  *
  *   I2C (bit-bang & hardware TWI)
  *
- *   (c) 2017-2020 by Markus Reschke
+ *   (c) 2017-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -66,7 +66,7 @@
  *    bit 1 (A1)         bit 2
  *    bit 2 (A2)         bit 3
  *    bits 3-6           bits 4-7
- *  - 10 bit + R/W  ->   2 adress bytes
+ *  - 10 bit + R/W  ->   2 address bytes
  *    R/W (1/0)          MSB bit 0
  *    bits 0-7           LSB bits 0-7
  *    bits 8-9           MSB bits 1-2

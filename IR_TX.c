@@ -2,7 +2,7 @@
  *
  *   IR remote control: sender
  *
- *   (c) 2015-2019 by Markus Reschke
+ *   (c) 2015-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -210,6 +210,8 @@ void IR_Send_Pulse(uint8_t Type, uint16_t Time)
 
 /*
  *  send IR code using Bi-Phase modulation
+ *  - similar to Manchester encoding
+ *  - special case of BPSK (binary phase-shift keying)
  *
  *  required:
  *  - Code: pointer to code data
@@ -228,13 +230,16 @@ void IR_Send_BiPhase(uint8_t *Code, uint8_t Bits, uint8_t Mode, uint16_t tP)
   uint8_t           Zero;          /* type of first half for 1 */
 
   /*
-   *  Bi-Phase Modulation / Manchester encoding
-   *  - G.E. Thomas
-   *    0: pause - pulse
-   *    1: pulse - pause
-   *  - IEEE 802.3
-   *    0: pulse - pause 
-   *    1: pause - pulse
+   *  Bi-Phase Modulation:
+   *  - fixed time slot for each bit
+   *  - bit is encoded as a phase shift (H-L or L-H transition)
+   *  - two encoding conventions
+   *    - G.E. Thomas (Manchester II or Biphase-L)
+   *      0 -> pause - pulse
+   *      1 -> pulse - pause
+   *    - IEEE 802.3
+   *      0 -> pulse - pause 
+   *      1 -> pause - pulse
    */
 
   if (Mode & IR_IEEE)         /* IEEE */
@@ -284,6 +289,7 @@ void IR_Send_BiPhase(uint8_t *Code, uint8_t Bits, uint8_t Mode, uint16_t tP)
 
 /*
  *  send IR code using PWM
+ *  - Pulse Width Modulation
  *
  *  required:
  *  - Code: pointer to code data
@@ -297,6 +303,12 @@ void IR_Send_PWM(uint8_t *Code, uint8_t Bits, uint16_t tP, uint16_t t0, uint16_t
 {
   uint8_t           Count;         /* bit counter */
   uint8_t           Byte;          /* current code byte */
+
+  /*
+   *  PWM / pulse encoding:
+   *  - fixed pause time
+   *  - two different pulse times to encode 0/1
+   */
 
   Count = 0;                  /* reset bit counter */
   Byte = *Code;               /* get first code byte */
@@ -332,6 +344,7 @@ void IR_Send_PWM(uint8_t *Code, uint8_t Bits, uint16_t tP, uint16_t t0, uint16_t
 
 /*
  *  send IR code using PDM
+ *  - Pulse Distance Modulation
  *
  *  required:
  *  - Code: pointer to code data
@@ -345,6 +358,14 @@ void IR_Send_PDM(uint8_t *Code, uint8_t Bits, uint16_t tP, uint16_t t0, uint16_t
 {
   uint8_t           Count;         /* bit counter */
   uint8_t           Byte;          /* current code byte */
+
+  /*
+   *  PDM / space encoding:
+   *  - fixed pulse time
+   *  - two different pause times to encode 0/1
+   *  - last item is pulse (stop bit)
+   *    required to indicate end of pause of last data bit
+   */
 
   Count = 0;                  /* reset bit counter */
   Byte = *Code;               /* get first code byte */
@@ -1176,11 +1197,16 @@ void IR_RemoteControl(void)
   #define MODE_DUTYCYCLE          3     /* carrier duty cycle */
   #define MODE_DATA               4     /* code data */
 
-  /* todo: remove user changeable carrier frequency? */
-
   ShortCircuit(0);                      /* make sure probes are not shorted */
+
+  /* display info */
   LCD_Clear();
-  Display_EEString_Space(IR_Transmitter_str);     /* display: IR sender */
+  #ifdef UI_COLORED_TITLES
+    /* display: IR sender */
+    Display_ColoredEEString_Space(IR_Transmitter_str, COLOR_TITLE);
+  #else
+    Display_EEString_Space(IR_Transmitter_str);   /* display: IR sender */
+  #endif
 
   #ifndef HW_FIXED_SIGNAL_OUTPUT
   /* display pinout (1: Gnd / 2: LED / 3: Gnd) */
@@ -1190,7 +1216,7 @@ void IR_RemoteControl(void)
   #endif
 
   #ifndef HW_FIXED_SIGNAL_OUTPUT
-  /* probes 1 and 3 are signal ground, probe 2 is signal output */
+  /* set up probes: #1 and #3 are signal ground, #2 is signal output */
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
   R_PORT = 0;                           /* pull down probe 2 initially */
@@ -1198,7 +1224,7 @@ void IR_RemoteControl(void)
   #endif
 
   #ifdef HW_FIXED_SIGNAL_OUTPUT
-  /* dedicated output via OC1B */
+  /* set up signal output: dedicated output via OC1B */
   SIGNAL_PORT &= ~(1 << SIGNAL_OUT);    /* low by default */
   SIGNAL_DDR |= (1 << SIGNAL_OUT);      /* enable output */
   #endif

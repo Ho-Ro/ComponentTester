@@ -2,7 +2,7 @@
  *
  *   misc tools (hardware and software options)
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -115,14 +115,13 @@ void ProbePinout(uint8_t Mode)
  * ************************************************************************ */
 
 
-#ifdef HW_ZENER
-
-  #ifndef ZENER_UNSWITCHED
+#if defined (HW_ZENER) && ! defined (ZENER_UNSWITCHED)
 
 /*
  *  Zener tool (standard mode)
  *  - hardware option for voltage measurement of Zener diode 
- *  - uses dedicated analog input (TP_ZENER) with 10:1 voltage divider
+ *  - uses dedicated analog input (TP_ZENER) with voltage divider
+ *    (default 10:1)
  *  - test push button enables boost converter
  */
 
@@ -133,18 +132,20 @@ void Zener_Tool(void)
   uint8_t                Counter2 = 0;       /* time between two key presses */
   uint16_t               U1;                 /* current voltage */
   uint16_t               Min = UINT16_MAX;   /* minimal voltage */
-
-  #ifdef ZENER_HIGH_RES
-    #define SCALE   -2        /* 10mV resolution */
-  #else
-    #define SCALE   -1        /* 100mV resolution */
+  #ifdef ZENER_DIVIDER_CUSTOM
+  uint32_t               Value;              /* value */
   #endif
 
   /* show info */
   LCD_Clear();
-  Display_EEString(Zener_str);     /* display: Zener */
+  #ifdef UI_COLORED_TITLES
+    /* display: Zener */
+    Display_ColoredEEString(Zener_str, COLOR_TITLE);
+  #else
+    Display_EEString(Zener_str);   /* display: Zener */
+  #endif
   Display_NextLine();
-  Display_Char('-');               /* display "no value" */
+  Display_Minus();                 /* display "no value" */
 
 
   /*
@@ -179,17 +180,34 @@ void Zener_Tool(void)
     {
       /* get voltage (10:1 voltage divider) */
       U1 = ReadU(TP_ZENER);        /* read voltage (in mV) */
-                                   /* with 10:1 divider: 10mV */
 
-      #ifndef ZENER_HIGH_RES
-      U1 /= 10;                    /* scale to 100mV */
+      #ifndef ZENER_DIVIDER_CUSTOM
+      /* ADC pin is connected to a 10:1 voltage divider */
+      /* so U1's scale is 10mV */
+      #endif
+
+      #ifdef ZENER_DIVIDER_CUSTOM
+      /*
+       *  ADC pin is connected to a voltage divider (top: R1 / bottom: R2).
+       *  - U2 = (Uin / (R1 + R2)) * R2 
+       *  - Uin = (U2 * (R1 + R2)) / R2
+       */
+
+      Value = (((uint32_t)(ZENER_R1 + ZENER_R2) * 1000) / ZENER_R2);  /* factor (0.001) */
+      Value *= U1;                     /* voltage (0.001 mV) */
+      Value /= 1000;                   /* scale to mV */
+      U1 = (uint16_t)Value;            /* keep 2 bytes */
       #endif
 
       /* display voltage */
       if (Counter % 8 == 0)        /* every 8 loop runs (240ms) */
       {
         LCD_ClearLine2();               /* clear line #2 */
-        Display_Value(U1, SCALE, 'V');  /* display current voltage */
+        #ifndef ZENER_DIVIDER_CUSTOM
+          Display_Value(U1, -2, 'V');   /* display current voltage */
+        #else
+          Display_Value(U1, -3, 'V');   /* display current voltage */
+        #endif
       }
 
       /* data hold */
@@ -246,52 +264,56 @@ void Zener_Tool(void)
 
       if (Min != UINT16_MAX)       /* got updated value */
       {
-        Display_Value(Min, SCALE, 'V');    /* display minimal voltage */
+        #ifndef ZENER_DIVIDER_CUSTOM
+          Display_Value(Min, -2, 'V');     /* display minimal voltage */
+        #else
+          Display_Value(Min, -3, 'V');     /* display minimal voltage */
+        #endif
         Display_Space();
         Display_EEString(Min_str);         /* display: Min */
       }
       else                         /* unchanged default */
       {
-        Display_Char('-');                 /* display "no value" */
+        Display_Minus();                   /* display "no value" */
       }
 
       Counter2 = 0;                /* reset delay time */
     }
   }
-
-  /* clean up */
-  #undef SCALE
 }
 
-  #endif
+#endif
 
 
 
-  #ifdef ZENER_UNSWITCHED
+#if defined (HW_ZENER) && defined (ZENER_UNSWITCHED)
 
 /*
  *  Zener tool (alternative mode)
  *  - hardware option for voltage measurement of Zener diode
  *    or external voltage
- *  - uses dedicated analog input (TP_ZENER) with 10:1 voltage divider
+ *  - uses dedicated analog input (TP_ZENER) with voltage divider
+ *    (default 10:1)
  *  - boost converter runs all the time or circuit without boost converter
  */
 
 void Zener_Tool(void)
 {
-  uint8_t                Run = 1;            /* control flag */
-  uint8_t                Test;               /* user feedback */
-  uint16_t               U1;                 /* current voltage */
-
-  #ifdef ZENER_HIGH_RES
-    #define SCALE   -2        /* 10mV resolution */
-  #else
-    #define SCALE   -1        /* 100mV resolution */
+  uint8_t                Run = 1;       /* control flag */
+  uint8_t                Test;          /* user feedback */
+  uint16_t               U1;            /* voltage */
+  #ifdef ZENER_DIVIDER_CUSTOM
+  uint32_t               Value;         /* value */
   #endif
 
   /* show info */
   LCD_Clear();
-  Display_EEString(Zener_str);     /* display: Zener */
+  #ifdef UI_COLORED_TITLES
+    /* display: Zener */
+    Display_ColoredEEString(Zener_str, COLOR_TITLE);
+  #else
+    Display_EEString(Zener_str);   /* display: Zener */
+  #endif
 
 
   /*
@@ -300,16 +322,34 @@ void Zener_Tool(void)
 
   while (Run)
   {
-    /* get voltage (10:1 voltage divider) */
+    /* get voltage */
     U1 = ReadU(TP_ZENER);          /* read voltage (in mV) */
-                                   /* with 10:1 divider: 10mV */
-    #ifndef ZENER_HIGH_RES
-    U1 /= 10;                      /* scale to 100mV */
+
+    #ifndef ZENER_DIVIDER_CUSTOM
+    /* ADC pin is connected to a 10:1 voltage divider */
+    /* so U1's scale is 10mV */
+    #endif
+
+    #ifdef ZENER_DIVIDER_CUSTOM
+    /*
+     *  ADC pin is connected to a voltage divider (top: R1 / bottom: R2).
+     *  - U2 = (Uin / (R1 + R2)) * R2 
+     *  - Uin = (U2 * (R1 + R2)) / R2
+     */
+
+    Value = (((uint32_t)(ZENER_R1 + ZENER_R2) * 1000) / ZENER_R2);  /* factor (0.001) */
+    Value *= U1;                     /* voltage (0.001 mV) */
+    Value /= 1000;                   /* scale to mV */
+    U1 = (uint16_t)Value;            /* keep 2 bytes */
     #endif
 
     /* display voltage */
-    LCD_ClearLine2();               /* clear line #2 */
-    Display_Value(U1, SCALE, 'V');  /* display current voltage */
+    LCD_ClearLine2();              /* clear line #2 */
+    #ifndef ZENER_DIVIDER_CUSTOM
+      Display_Value(U1, -2, 'V');  /* display current voltage */
+    #else
+      Display_Value(U1, -3, 'V');  /* display current voltage */
+    #endif
 
     /* user feedback (1s delay) */
     Test = TestKey(1000, CHECK_KEY_TWICE | CHECK_BAT | CURSOR_STEADY);
@@ -319,12 +359,58 @@ void Zener_Tool(void)
       Run = 0;                     /* end processing loop */
     }
   }
-
-  /* clean up */
-  #undef SCALE
 }
 
+#endif
+
+
+
+#ifdef HW_PROBE_ZENER
+
+/*
+ *  check for Zener diode
+ *  - hardware option for voltage measurement of Zener diode
+ *    or external voltage
+ *  - uses dedicated analog input (TP_ZENER) with voltage divider
+ *    (default 10:1)
+ *  - boost converter runs all the time or circuit without boost converter
+ */
+
+void CheckZener(void)
+{
+  uint16_t               U1;            /* voltage */
+  #ifdef ZENER_DIVIDER_CUSTOM
+  uint32_t               Value;         /* value */
   #endif
+
+  /* get voltage */
+  U1 = ReadU(TP_ZENER);            /* read voltage (in mV) */
+
+  #ifndef ZENER_DIVIDER_CUSTOM
+  /* ADC pin is connected to a 10:1 voltage divider */
+  U1 *= 10;                        /* voltage (mV) */
+  #endif
+
+  #ifdef ZENER_DIVIDER_CUSTOM
+  /*
+   *  ADC pin is connected to a voltage divider (top: R1 / bottom: R2).
+   *  - U2 = (Uin / (R1 + R2)) * R2 
+   *  - Uin = (U2 * (R1 + R2)) / R2
+   */
+
+  Value = (((uint32_t)(ZENER_R1 + ZENER_R2) * 1000) / ZENER_R2);  /* factor (0.001) */
+  Value *= U1;                     /* voltage (0.001 mV) */
+  Value /= 1000;                   /* scale to mV */
+  U1 = (uint16_t)Value;            /* keep 2 bytes */
+  #endif
+
+  /* check for valid voltage */
+  if ((U1 >= ZENER_VOLTAGE_MIN) && (U1 <= ZENER_VOLTAGE_MAX))
+  {
+    Check.Found = COMP_ZENER;      /* we got a Zener */
+    Semi.U_1 = U1;                 /* save voltage (V_Z) */
+  }
+}
 
 #endif
 
@@ -360,9 +446,14 @@ void ESR_Tool(void)
 
   /* show tool info */
   LCD_Clear();
-  Display_EEString(ESR_str);       /* display: ESR */
+  #ifdef UI_COLORED_TITLES
+    /* display: ESR */
+    Display_ColoredEEString(ESR_str, COLOR_TITLE);
+  #else
+    Display_EEString(ESR_str);     /* display: ESR */
+  #endif
   ProbePinout(PROBES_ESR);         /* show probes used */
-  Display_Char('-');               /* display "no value" */
+  Display_Minus();                 /* display "no value" */
 
   while (Run > 0)
   {
@@ -407,12 +498,12 @@ void ESR_Tool(void)
         }
         else                            /* no ESR */
         {
-          Display_Char('-');
+          Display_Minus();
         }
       }
       else                                   /* no capacitor */
       {
-        Display_Char('-');
+        Display_Minus();
       }
 
       #ifdef HW_DISCHARGE_RELAY
@@ -588,7 +679,12 @@ void Encoder_Tool(void)
 
   /* show info */
   LCD_Clear();
-  Display_EEString(Encoder_str);   /* display: Rotary Encoder */
+  #ifdef UI_COLORED_TITLES
+    /* display: Rotary Encoder */
+    Display_ColoredEEString(Encoder_str, COLOR_TITLE);
+  #else
+    Display_EEString(Encoder_str);      /* display: Rotary Encoder */
+  #endif
 
   /* init array */
   for (Flag = 0; Flag <= 2; Flag++)
@@ -711,14 +807,29 @@ void OptoCoupler_Tool(void)
   uint16_t          U3, U4;             /* voltages */
   uint32_t          CTR = 0;            /* CTR in % */
 
+  /* status */
+  #define DETECTED_LED        50
+  #define DETECTED_BJT       100
+  #define DETECTED_TRIAC     101
+
   /* init */
   /* next-line mode: keep first line and wait for key/timeout */
   UI.LineMode = LINE_KEEP | LINE_KEY;
 
   /* display info */
   LCD_Clear();
-  Display_EEString(OptoCoupler_str);    /* display: Opto Coupler */
+  #ifdef UI_COLORED_TITLES
+    /* display: Opto Coupler */
+    Display_ColoredEEString(OptoCoupler_str, COLOR_TITLE);
+  #else
+    Display_EEString(OptoCoupler_str);  /* display: Opto Coupler */
+  #endif
   Display_NL_EEString(Start_str);       /* display: Start */
+
+
+  /*
+   *  processing loop
+   */
 
   while (Run)
   {
@@ -734,13 +845,19 @@ void OptoCoupler_Tool(void)
 
     if (Run)                       /* check opto coupler */
     {
+      /* update display */
       LCD_Clear();
       #ifdef UI_SERIAL_COPY
       Display_Serial_On();         /* enable serial output & NL */
       #endif
-      Display_EEString(OptoCoupler_str);     /* display: Opto Coupler */
+      #ifdef UI_COLORED_TITLES
+        /* display: Opto Coupler */
+        Display_ColoredEEString(OptoCoupler_str, COLOR_TITLE);
+      #else
+        Display_EEString(OptoCoupler_str);   /* display: Opto Coupler */
+      #endif
       Display_NextLine();
-      Test = 0;
+      Test = 0;                    /* reset status */
 
       /*
        *  scan for LED
@@ -763,7 +880,7 @@ void OptoCoupler_Tool(void)
         Test = GetThirdProbe(Diodes[0].A, Diodes[0].C);  /* get third probe */
         UpdateProbes(Diodes[0].A, Diodes[0].C, Test);    /* update probes */
 
-        Test = 50;                      /* proceed with other checks */
+        Test = DETECTED_LED;            /* proceed with other checks */
       }
 
 
@@ -783,7 +900,7 @@ void OptoCoupler_Tool(void)
        *    of about 5V.
        */
 
-      if (Test == 50)
+      if (Test == DETECTED_LED)         /* LED detected */
       {
         /* set probes: probe-2 -- Gnd / probe-3 -- Rl -- Vcc */
         ADC_DDR = Probes.Pin_2;              /* set probe-2 to output */
@@ -809,7 +926,7 @@ void OptoCoupler_Tool(void)
           {
             if (U2 >= 4000)        /* no conduction, allow some leakage current */
             {
-              Test = 100;          /* BJT type */
+              Test = DETECTED_BJT;      /* BJT type */
             }
             else                   /* conduction */
             {
@@ -820,7 +937,7 @@ void OptoCoupler_Tool(void)
               U3 += U1;            /* upper threshold */
               if ((U2 > U4) && (U2 < U3))
               {
-                Test = 101;        /* TRIAC type */
+                Test = DETECTED_TRIAC;  /* TRIAC type */
               }
             }
           }
@@ -834,7 +951,7 @@ void OptoCoupler_Tool(void)
        *  measure CRT for BJT type
        */
 
-      if (Test == 100)          /* got BJT type */
+      if (Test == DETECTED_BJT)         /* BJT type */
       {
         /* change probes: probe-3 -- Vcc */
         ADC_DDR = Probes.Pin_2 | Probes.Pin_3;    /* set probe-3 to output */
@@ -879,7 +996,7 @@ void OptoCoupler_Tool(void)
        *    time measurement to opto couplers with a CTR > 200%.
        */
 
-      if (Test == 100)
+      if (Test == DETECTED_BJT)    /* BJT type */
       {
         U1 = UINT16_MAX;           /* reset value */
         U2 = UINT16_MAX;
@@ -955,7 +1072,7 @@ void OptoCoupler_Tool(void)
        *  display result
        */
 
-      if (Test == 100)          /* got BJT type */
+      if (Test == DETECTED_BJT)         /* BJT type */
       {
         Display_EEString(BJT_str);      /* display: BJT */
 
@@ -990,14 +1107,14 @@ void OptoCoupler_Tool(void)
         Display_NL_EEString_Space(Vf_str);        /* display: Vf */
         Display_Value(Diodes[0].V_f, -3, 'V');    /* display Vf */
       }
-      else if (Test == 101)     /* got TRIAC type */
+      else if (Test == DETECTED_TRIAC)  /* TRIAC type */
       {
         Display_EEString(Triac_str);    /* display: TRIAC */
 
         Display_NL_EEString_Space(Vf_str);        /* display: Vf */
         Display_Value(Diodes[0].V_f, -3, 'V');    /* display Vf */
       }
-      else                      /* none found */
+      else                              /* none found */
       {
         Display_EEString(None_str);     /* display: None */
       }
@@ -1007,6 +1124,11 @@ void OptoCoupler_Tool(void)
       #endif
     }
   }
+
+  /* clean up */
+  #undef DETECTED_LED
+  #undef DETECTED_BJT
+  #undef DETECTED_TRIAC
 }
 
 #endif
@@ -1046,7 +1168,12 @@ void Cap_Leakage(void)
 
   /* show info */
   LCD_Clear();                          /* clear display */
-  Display_EEString(CapLeak_str);        /* display: cap leakage */
+  #ifdef UI_COLORED_TITLES
+    /* display: cap leakage */
+    Display_ColoredEEString(CapLeak_str, COLOR_TITLE);
+  #else
+    Display_EEString(CapLeak_str);      /* display: cap leakage */
+  #endif
 
   /* set start values */
   Flag = RUN_FLAG | CHANGED_MODE;
@@ -1152,7 +1279,7 @@ void Cap_Leakage(void)
           }
           else                          /* in the noise floor */
           {
-            Display_Char('-');
+            Display_Minus();
           }
           break;
 
@@ -1260,7 +1387,12 @@ void Monitor_R(void)
 
   /* show info */
   LCD_Clear();
-  Display_EEString(Monitor_R_str);      /* display: R monitor */
+  #ifdef UI_COLORED_TITLES
+    /* display: R monitor */
+    Display_ColoredEEString(Monitor_R_str, COLOR_TITLE);
+  #else
+    Display_EEString(Monitor_R_str);    /* display: R monitor */
+  #endif
   ProbePinout(PROBES_RCL);              /* show probes used */
 
   /* init */
@@ -1288,7 +1420,7 @@ void Monitor_R(void)
     }
     else                                /* no resistor */
     {
-      Display_Char('-');                /* display: nothing */
+      Display_Minus();                  /* display: nothing */
     }
 
     /* user feedback (1s delay) */
@@ -1326,7 +1458,12 @@ void Monitor_C(void)
 
   /* show info */
   LCD_Clear();
-  Display_EEString(Monitor_C_str);      /* display: C monitor */
+  #ifdef UI_COLORED_TITLES
+    /* display: C monitor */
+    Display_ColoredEEString(Monitor_C_str, COLOR_TITLE);
+  #else
+    Display_EEString(Monitor_C_str);    /* display: C monitor */
+  #endif
   ProbePinout(PROBES_RCL);              /* show probes used */
 
   /* init */
@@ -1360,7 +1497,7 @@ void Monitor_C(void)
     }
     else                                     /* no cap */
     {
-      Display_Char('-');                     /* display: nothing */
+      Display_Minus();                       /* display: nothing */
     }
 
     /* user feedback (2s delay) */
@@ -1391,7 +1528,12 @@ void Monitor_L(void)
 
   /* show info */
   LCD_Clear();
-  Display_EEString(Monitor_L_str);      /* display: L monitor */
+  #ifdef UI_COLORED_TITLES
+    /* display: L monitor */
+    Display_ColoredEEString(Monitor_L_str, COLOR_TITLE);
+  #else
+    Display_EEString(Monitor_L_str);    /* display: L monitor */
+  #endif
   ProbePinout(PROBES_RCL);              /* show probes used */
 
   /* init */
@@ -1419,12 +1561,12 @@ void Monitor_L(void)
       }
       else                              /* no inductor */
       {
-        Display_Char('-');              /* display: nothing */
+        Display_Minus();                /* display: nothing */
       }
     }
     else                                /* no resistor */
     {
-      Display_Char('-');                /* display: nothing */
+      Display_Minus();                  /* display: nothing */
     }
 
     /* user feedback (1s delay) */
@@ -1459,7 +1601,12 @@ void Monitor_RCL(void)
 
   /* show info */
   LCD_Clear();
-  Display_EEString(Monitor_RCL_str);    /* display: RCL monitor */
+  #ifdef UI_COLORED_TITLES
+    /* display: RCL monitor */
+    Display_ColoredEEString(Monitor_RCL_str, COLOR_TITLE);
+  #else
+    Display_EEString(Monitor_RCL_str);  /* display: RCL monitor */
+  #endif
   ProbePinout(PROBES_RCL);              /* show probes used */
 
   /* init */
@@ -1536,7 +1683,7 @@ void Monitor_RCL(void)
 
     if (Run == 1)                       /* no component */
     {
-      Display_Char('-');                /* display: nothing */
+      Display_Minus();                  /* display: nothing */
     }
     else if (Run == COMP_CAPACITOR)     /* C */
     {
@@ -1595,7 +1742,12 @@ void Monitor_RL(void)
 
   /* show info */
   LCD_Clear();
-  Display_EEString(Monitor_RL_str);     /* display: monitor RL */
+  #ifdef UI_COLORED_TITLES
+    /* display: monitor RL */
+    Display_ColoredEEString(Monitor_RL_str, COLOR_TITLE);
+  #else
+    Display_EEString(Monitor_RL_str);   /* display: monitor RL */
+  #endif
   ProbePinout(PROBES_RCL);              /* show probes used */
 
   /* init */
@@ -1630,7 +1782,7 @@ void Monitor_RL(void)
     }
     else                                /* no resistor */
     {
-      Display_Char('-');                /* display: nothing */
+      Display_Minus();                  /* display: nothing */
     }
 
     /* user feedback (1s delay) */

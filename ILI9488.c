@@ -11,7 +11,7 @@
  *     - 3 line SPI (not supported, would be insanely slow)
  *     - 4 line SPI (hardware SPI strongly recommended)
  *
- *   (c) 2020 by Markus Reschke
+ *   (c) 2020-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -23,7 +23,7 @@
  *    /CSX     LCD_CS (optional)
  *    D/CX     LCD_DC
  *    WRX      LCD_WR
- *    RDX      LCD_RD
+ *    RDX      LCD_RD (optional)
  *             LCD_PORT2/LCD_DDR2/LCD_PIN2:
  *    DB0      LCD_DB0 (LCD_PORT2 pin #0)
  *    DB1      LCD_DB1 (LCD_PORT2 pin #1)
@@ -395,12 +395,16 @@ void LCD_BusSetup(void)
    *  - LCD_PORT
    */
 
+  /* set directions */
   Bits = LCD_DDR;                       /* get current directions */
 
   /* basic output pins */
-  Bits |= (1 << LCD_DC) | (1 << LCD_WR) | (1 << LCD_RD);    /* D/CX, WRX, RDX */
+  Bits |= (1 << LCD_DC) | (1 << LCD_WR);     /* D/CX, WRX */
 
   /* optional output pins */
+  #ifdef LCD_RD
+  Bits |= (1 << LCD_RD);                /* RDX */
+  #endif
   #ifdef LCD_RES
   Bits |= (1 << LCD_RES);               /* /RES */
   #endif 
@@ -413,10 +417,13 @@ void LCD_BusSetup(void)
   /* set default levels */
   Bits = LCD_PORT;                      /* get current levels */
 
-  /* set WRX and RDX high */
-  Bits |= (1 << LCD_WR) | (1 << LCD_RD);
+  /* basic output pins */
+  Bits |= (1 << LCD_WR);                /* set WRX high */
 
   /* optional output pins */
+  #ifdef LCD_RD
+  Bits |= (1 << LCD_RD);                /* set RDX high */
+  #endif
   #ifdef LCD_CS
   /* disable chip */
   Bits |= (1 << LCD_CS);                /* set /CSX high */
@@ -658,12 +665,16 @@ void LCD_BusSetup(void)
    *  - LCD_PORT
    */
 
+  /* set directions */
   Bits = LCD_DDR;                       /* get current directions */
 
   /* basic output pins */
-  Bits |= (1 << LCD_DC) | (1 << LCD_WR) | (1 << LCD_RD);    /* D/CX, WRX, RDX */
+  Bits |= (1 << LCD_DC) | (1 << LCD_WR);     /* D/CX, WRX */
 
   /* optional output pins */
+  #ifdef LCD_RD
+  Bits |= (1 << LCD_RD);                /* RDX */
+  #endif
   #ifdef LCD_RES
   Bits |= (1 << LCD_RES);               /* /RES */
   #endif 
@@ -676,10 +687,13 @@ void LCD_BusSetup(void)
   /* set default levels */
   Bits = LCD_PORT;                      /* get current levels */
 
-  /* set WRX and RDX high */
-  Bits |= (1 << LCD_WR) | (1 << LCD_RD);
+  /* basic output pins */
+  Bits |= (1 << LCD_WR);                /* set WRX high */
 
   /* optional output pins */
+  #ifdef LCD_RD
+  Bits |= (1 << LCD_RD);                /* set RDX high */
+  #endif
   #ifdef LCD_CS
   /* disable chip */
   Bits |= (1 << LCD_CS);                /* set /CSX high */

@@ -8,7 +8,7 @@
  *     - 8 bit parallel in 8080 mode (not supported)
  *     - 4 line SPI
  *
- *   (c) 2015-2020 by Markus Reschke
+ *   (c) 2015-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -142,6 +142,7 @@ void LCD_BusSetup(void)
    *  set control signals
    */
 
+  /* set directions */
   Bits = LCD_DDR;                  /* get current directions */
 
   /* basic output pins */

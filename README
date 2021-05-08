@@ -3,11 +3,11 @@
 
             ReadMe for the Component Tester firmware (m-firmware)
 
-        (c) 2012-2020 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2021 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit: 2020-12-16
+Last edit: 2021-03-12
 
 Content
   - About
@@ -44,6 +44,7 @@ Content
     - Rotary Encoder
     - Increase/Decrease Buttons
     - Touch Screen
+  - User Interface
   - Communication with PC
     - Serial Output
     - Automation
@@ -96,6 +97,7 @@ Content
   - Support
   - Change Log
   - Remote Commands
+  - Helpful Links
   - References
 
 
@@ -194,7 +196,7 @@ simple frameworks for displays and interface busses were added. I hope the
 code is easy to read and maintain.
 
 You can download the lastest firmware from following sites:
-- https://www.mikrocontroller.net/svnbrowser/transistortester/Software/Markus
+- https://github.com/Mikrocontroller-net/transistortester/tree/master/Software/Markus
 - https://github.com/madires/Transistortester-Warehouse
 
 
@@ -446,7 +448,7 @@ At the moment following display controllers are supported:
 - ST7735 (color graphic display 128x160)
 - ST7920 (graphic display up to 256x64)
 - STE2007/HX1230 (graphic display 96x68)
-- VT100 Terminal
+- VT100 Terminal (via serial interface)
 
 Take care about the LCD's supply voltage and logic levels! Use a level shifter
 if required. A simple level shifter with in-series resistors relying on the
@@ -556,7 +558,7 @@ For 8-bit parallel:
   /CSX        LCD_CS           PB5          optional
   D/CX        LCD_DC           PB7
   WRX         LCD_WR           PB0
-  RDX         LCD_RD           PB6
+  RDX         LCD_RD           PB6          optional
               LCD_PORT2        PORTL
   D0          LCD_DB0          PL0          LCD_PORT2 pin #0
   D1          LCD_DB1          PL1          LCD_PORT2 pin #1
@@ -593,7 +595,7 @@ The pin assignment for 8-bit parallel is:
   /CSX        LCD_CS           PB5          optional
   D/CX        LCD_DC           PB7
   WRX         LCD_WR           PB0
-  RDX         LCD_RD           PB6
+  RDX         LCD_RD           PB6          optional
               LCD_PORT2        PORTL
   DB0         LCD_DB0          PL0          LCD_PORT2 pin #0
   DB1         LCD_DB1          PL1          LCD_PORT2 pin #1
@@ -814,6 +816,10 @@ orientation for your display. With LCD_LATE_ON enabled the tester starts
 with a cleared display causing a slight delay at power-on. Otherwise you'll
 see some random pixels for a moment.
 
+Meanwhile a semi-compatible LCD module appeared which won't run with the
+standard driver. The solution is to use a modified driver (LCD_SEMI_ST7735
+instead of LCD_ST7735) with the same settings.
+
 
 + ST7920
 
@@ -975,6 +981,27 @@ config-<MCU>.h (currently just config_644.h and config_1280.h because the
 ATmega 328 doesn't provide enough IO pins).
 
 
+* User Interface
+
+There are several options to make the output for displays more fancy and easier
+to read.
+
+For displays with more then two text lines:
+- show key hints instead of cursor if available (UI_KEY_HINTS)
+
+For graphic displays:
+- all options listed before
+- symbols incl. pinout for three-legged semiconductors (SW_SYMBOLS, not for
+  low resolution diplays)
+
+For color graphic displays:
+- all options listed before
+- color coding for probes/testpins (UI_PROBE_COLORS)
+- dedicated color for titles (UI_COLORED_TITLES)
+- dedicated color for cursor and key hints (UI_COLORED_CURSOR)
+- color code for resistors (SW_R_E24_5_CC, SW_R_E24_1_CC and SW_R_E96_CC)
+
+
 * Communication with PC
 
 The tester can support a TTL serial interface for communication with a PC.
@@ -1132,9 +1159,10 @@ be displayed.
 
 + PWM Tool
 
-This does what you would expect :) Before compiling the firmware please
+This does what you would expect. :) Before compiling the firmware please
 choose either the PWM generator with the simple user interface or the one with
-the fancy interface for testers with rotary encoder and large displays.
+the fancy interface for testers with rotary encoder and large displays. For
+optional output of the pulse duration enable also PWM_SHOW_DURATION.
 
 Pinout for signal output via probes:
   Probe #2:         output (with 680 Ohms resistor to limit current)
@@ -1191,7 +1219,7 @@ An onboard DC-DC boost converter creates a high test voltage for measuring the
 breakdown voltage of a Zener diode connected to dedicated probe pins. While
 the test button is pressed the boost converter runs and the tester displays
 the current voltage. After releasing the test button the minimum voltage
-measured is shown if the test button was pressed long enough for a stable test
+measured is shown when the test button was pressed long enough for a stable test
 voltage. You may repeat this as long as you like. :) To exit the Zener tool
 press the test button twice quickly.
 
@@ -1200,7 +1228,12 @@ measuring an external voltage or the boost converter runs all the time, you
 can choose the alternative mode (ZENER_UNSWITCHED) which measures the voltage 
 periodically without pressing the test button. When you see the cursor at the
 bottom right between measurements you can exit the Zener tool by two short
-presses of the test button.
+presses of the test button. There's another option to run the Zener check
+during normal probing (HW_PROBE_ZENER). When no component is found at the
+standard probes the tester will check for a voltage at the Zener probes. 
+
+In case your tester has a non-standard voltage divider (not 10:1) enable
+ZENER_DIVIDER_CUSTOM and specify the resistor values (ZENER_R1 and ZENER_R2).
 
 How to connect the Zener diode:
    Probe +: cathode
@@ -1274,12 +1307,18 @@ The PIC LC meters usually have measurement ranges of 10nH to 100mH, and 0.1pF
 to 900nF. They seem to use a gate time of 100ms for the frequency counter.
 The m-firmwmare uses auto-ranging with gate times of 100ms and 1000ms to
 improve the resolution for low value L/Cs. Thus the ranges start at about 1nH
-and 10fF. The maximum inductance supported is roughly 150nH. Regarding 
-capacitance I've run into an issue with my PCB. At around 33nF the output
-signal starts having some spurs in the rising and falling edges causing the
-frequency counter to see more pulses than there really are. Could be a problem
-with my PCB layout. Despite that, the maximum should be around 900nF (beyond
-that the LC oscillator will become unstabe).
+and 10fF (0.01pF). The maximum inductance supported is roughly 150mH.
+Regarding capacitance I've run into an issue with the circuit. At around 33nF
+the output signal starts having some spurs in the rising and falling edges
+causing the frequency counter to see more pulses than there really are. A user
+noted that this is a known problem of the LM311 based LC oscillator circuit.
+After trying a few modifications without ponderable success a second
+comparator or a Schmitt trigger logic gate seem to be the best choice to clean
+up the signal of the oscillator output. The CMOS quad NAND 4093 works fine for
+that. With a clean output signal the maximum capacitance is around 120nF (
+beyond that the LC oscillator becomes unstable). The tester enforces a lower
+frequency limit of 10kHz, i.e. the maximum values are theoretically 250nH
+or 3.5µF if the LC oscillator would run stable.
 
 When starting the LC Meter the tester will run a self-adjustment indicated
 by an "adjusting..." message. After that you can connect the capacitor or
@@ -1288,7 +1327,7 @@ measurement modes (default mode is C). The frequency of the LC oscillator
 drifts over time (up to 100 Hz) and needs a re-adjustment. If you see an
 increasing zero value or a "-" without any component connected please run
 the self-adjustment by a long key press. If there's any problem with the
-self-adjustment or you abort it by pressing some buttom the tester will exit
+self-adjustment or you abort it by pressing some button the tester will exit
 the LC meter and report an error. Two short button presses will end the
 LC Meter tool.
 
@@ -1773,7 +1812,7 @@ Hint:
 
 + Self Test
 
-If you entered the self-test by the menu you'll be asked to short circuit all
+If you start the self-test via the menu you'll be asked to short circuit all
 three probes and the tester will wait until you have. In case of any problem
 you can abort that by a key press. That will also skip the complete self-test.
 
@@ -1805,12 +1844,12 @@ adjustment (they will be not stored automatically in the EEPROM, see
 
 The voltage offset of the analog comparator is automatically adjusted by the
 capacitance measurement (in normal probing mode, outside of the self
-adjustment) if the capacitor is in the range of 100nF up to 3.3µF. Also the
+adjustment) if the capacitor is in the range of 100 nF up to 3.3 µF. Also the
 offset of the internal bandgap reference is determined in the same way.
 
 Before running the self-adjustment the first time, please measure a film
-capacitor with a value between 100nF and 3.3µF three times at least to let the
-tester self-adjust the offsets mentioned above. Typically the first
+capacitor with a value between 100 nF and 3.3 µF three times at least to let
+the tester self-adjust the offsets mentioned above. Typically the first
 measurement will result in a slightly low value, the second in a high one
 and the third will be fine. This is caused by the self adjusting offsets.
 Both offsets are displayed at the end of the self-adjustment.
@@ -1830,7 +1869,7 @@ and user interface.
 The adjustments steps are:
 - A1 offsets for bandgap reference and analog comparator
      (only for fixed cap option)
-- A2 resistance of probe leads/pins (in 10mOhms)
+- A2 resistance of probe leads/pins (in 10 mOhms)
 - A3 remove short circuit of probes
 - A4 MCU's internal pin resistance for Gnd (voltage across RiL)
 - A5 MCU's internal pin resistance for Vcc (voltage across RiH)
@@ -1838,7 +1877,7 @@ The adjustments steps are:
 
 Limits:
 - probe resistance   < 1.50 Ohms for two probes in series
-- probe capacitance  < 100pF
+- probe capacitance  < 100 pF
 
 Hint: When the resistance values for the probe leads/pins vary too much,
 there could be a contact problem.
@@ -2419,6 +2458,31 @@ Probing Commands:
   - requires UJT detection to be enabled
   - applies to UJT
   - example response: "4758R"
+
+  V_Z
+  - returns V_Z value (Zener or external voltage)
+  - requires Zener check during normal probing to be enabled
+  - applies to Zener diode or external voltage (hardware option)
+  - example response: "6750mV"
+
+
+* Helpful Links
+
+- German forum
+  https://www.mikrocontroller.net/topic/248078
+
+- English forum
+  https://www.eevblog.com/forum/testgear/$20-lcr-esr-transistor-checker-project/
+
+- Russian forum
+  https://vrtp.ru/index.php?showtopic=16451
+
+- Info on various clones, like images, schematics and firmwares
+  (by indman@EEVblog)
+  https://yadi.sk/d/yW8xa5NJgUo5z
+
+- Instruction guide and files for WinAVR (by indman@EEVblog)
+  https://drive.google.com/file/d/1-IJA8uTcsCA_6SYHEuMydjfS2vNgmwdH/view?usp=sharing
 
 
 * References

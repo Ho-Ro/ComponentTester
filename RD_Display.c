@@ -1,24 +1,36 @@
 /* ************************************************************************
  *
- *   driver functions for Test Display
- *   - for identifying display controllers and for R&D
+ *   driver functions for R&D Display
+ *   - for identifying display controllers
  *   - x * y pixels
  *   - interfaces
- *     - 8 bit parallel
+ *     - 8 bit parallel in 8080 mode
+ *     - 8 bit parallel in 6800 mode (untested)
+ *     - 4 line SPI (untested)
  *
- *   (c) 2020 by Markus Reschke
+ *   (c) 2020-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
 /*
  *  hints:
- *  - pin assignment for 8 bit parallel interface
+ *  - pin assignment for SPI
+ *    /RES         LCD_RES (optional)
+ *    /CS          LCD_CS (optional)
+ *    D/C          LCD_DC
+ *    SCK          LCD_SCK
+ *    SDI          LCD_SDI
+ *    SDO          LCD_SDO
+ *    For hardware SPI LCD_SCK, LCD_SDI and LCD_SDO have to be the MCU's
+ *    SCK, MOSI and MISO pins. 
+ *  - max. SPI clock: 10MHz write and 6.6MHz read
+ *  - pin assignment for 8 bit parallel interface in 8080 mode
  *             LCD_PORT/LCD_DDR:
  *    /RES     LCD_RES (optional)
  *    /CS      LCD_CS (optional)
  *    D/C      LCD_DC
  *    WR       LCD_WR
- *    RD       LCD_RD
+ *    RD       LCD_RD (optional)
  *             LCD_PORT2/LCD_DDR2/LCD_PIN2:
  *    DB0      LCD_DB0 (LCD_PORT2 pin #0)
  *    DB1      LCD_DB1 (LCD_PORT2 pin #1)
@@ -32,13 +44,29 @@
  *    15MHz write
  *    6.25MHz read register data
  *    2.2MHz read frame memory
+ *  - pin assignment for 8 bit parallel interface in 6800 mode
+ *             LCD_PORT/LCD_DDR:
+ *    /RES     LCD_RES (optional)
+ *    /CS      LCD_CS (optional)
+ *    D/C      LCD_DC
+ *    R/W      LCD_RW
+ *    E        LCD_E
+ *             LCD_PORT2/LCD_DDR2/LCD_PIN2:
+ *    DB0      LCD_DB0 (LCD_PORT2 pin #0)
+ *    DB1      LCD_DB1 (LCD_PORT2 pin #1)
+ *    DB2      LCD_DB2 (LCD_PORT2 pin #2)
+ *    DB3      LCD_DB3 (LCD_PORT2 pin #3)
+ *    DB4      LCD_DB4 (LCD_PORT2 pin #4)
+ *    DB5      LCD_DB5 (LCD_PORT2 pin #5)
+ *    DB6      LCD_DB6 (LCD_PORT2 pin #6)
+ *    DB7      LCD_DB7 (LCD_PORT2 pin #7)
  */
 
 
 /* local includes */
 #include "config.h"           /* global configuration */
 
-#ifdef LCD_TESTDISPLAY
+#ifdef LCD_RD_DISPLAY
 
 
 /*
@@ -151,7 +179,197 @@ uint16_t            LineFlags;     /* bitfield for up to 16 lines */
 
 
 /* ************************************************************************
- *   low level functions for 8 bit parallel interface
+ *   low level functions for 4 line SPI interface
+ * ************************************************************************ */
+
+
+/*
+ *  protocol:
+ *  - CSX -> D/CX -> D7-0 with rising edge of SCL
+ *  - D/CX: high = data / low = command
+ */
+
+#ifdef LCD_SPI
+
+/*
+ *  set up interface bus
+ *  - should be called at firmware startup
+ */
+
+void LCD_BusSetup(void)
+{
+  uint8_t           Bits;          /* register bits */
+
+
+  /*
+   *  set control signals
+   */
+
+  Bits = LCD_DDR;                       /* get current directions */
+
+  /* basic output pins */
+  Bits |= (1 << LCD_DC);                /* D/C */
+
+  /* optional output pins */
+  #ifdef LCD_RES
+  Bits |= (1 << LCD_RES);               /* /RES */
+  #endif 
+  #ifdef LCD_CS
+  Bits |= (1 << LCD_CS);                /* /CS */
+  #endif
+
+  LCD_DDR = Bits;                       /* set new directions */
+
+
+  /* set default levels */
+  #ifdef LCD_CS
+  /* disable chip */
+  LCD_PORT |= (1 << LCD_CS);            /* set /CS high */
+  #endif
+  #ifdef LCD_RES
+  /* disable reset */
+  LCD_PORT |= (1 << LCD_RES);           /* set /RES high */
+  #endif
+
+
+  /*
+   *  init SPI bus
+   *  - SPI bus is set up already in main()
+   */
+
+  #ifdef SPI_HARDWARE
+
+  /*
+   *  set SPI clock rate (10MHz worst case)
+   *  - max. MCU clock 20MHz / 2 = 10MHz
+   *  - f_osc/2 (SPR1 = 0, SPR0 = 0, SPI2X = 1)
+   */
+
+  SPI.ClockRate = SPI_CLOCK_2X;    /* set clock rate flags */
+
+  SPI_Clock();                     /* update SPI clock */
+  #endif
+}
+
+
+
+/*
+ *  manage control lines
+ *
+ *  requires:
+ *  - Mode: control flags (bitfield)
+ *    DISP_SELECT    select controller
+ *    DISP_DESELECT  deselect controller
+ *    DISP_WRITE     write mode
+ *    DISP_READ      read mode
+ */
+
+void LCD_Control(uint8_t Mode)
+{
+  /*
+   *  We can ignore DISP_WRITE and DISP_READ because SPI uses two separate
+   *  lines for reading and writing.
+   */
+
+  #ifdef LCD_CS
+  if (Mode & DISP_SELECT)          /* select controller */
+  {
+    /* select chip */
+    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS low */
+  }
+  else if (Mode & DISP_DESELECT)   /* deselect controller */
+  {
+    /* select chip */
+    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
+  }
+  #endif
+}
+
+
+
+/*
+ *  send a command to the LCD
+ *
+ *  requires:
+ *  - Cmd: byte value to send
+ */
+ 
+void LCD_Cmd(uint8_t Cmd)
+{
+  /* indicate command mode */
+  LCD_PORT &= ~(1 << LCD_DC);      /* set D/C low */
+
+  SPI_Write_Byte(Cmd);             /* write command byte */
+}
+
+
+
+/*
+ *  send data to the LCD
+ *
+ *  requires:
+ *  - Data: byte value to send
+ */
+
+void LCD_Data(uint8_t Data)
+{
+  /* indicate data mode */
+  LCD_PORT |= (1 << LCD_DC);       /* set D/C high */
+
+  SPI_Write_Byte(Data);            /* write data byte */
+}
+
+
+
+/*
+ *  send data to the LCD
+ *
+ *  requires:
+ *  - Data: 2-byte value to send
+ */
+
+void LCD_Data2(uint16_t Data)
+{
+  uint8_t           Byte;     /* data byte */
+
+  /* indicate data mode */
+  LCD_PORT |= (1 << LCD_DC);       /* set D/C high */
+
+  Byte = (uint8_t)Data;            /* save LSB */
+  Data >>= 8;                      /* get MSB */
+
+  SPI_Write_Byte((uint8_t)Data);   /* write MSB of data */
+  SPI_Write_Byte(Byte);            /* write LSB of data */
+}
+
+
+
+#ifdef LCD_READ
+
+/*
+ *  read byte from display
+ *
+ *  returns:
+ *  - byte
+ */
+
+uint8_t LCD_ReadByte(void)
+{
+  uint8_t           Byte;     /* return value */
+
+  Byte = SPI_WriteRead_Byte(0);    /* send dummy byte and read byte */
+
+  return Byte;
+}
+
+#endif
+
+#endif
+
+
+
+/* ************************************************************************
+ *   low level functions for 8 bit parallel interface in 8080 mode
  *   - LCD_PORT (LCD_DDR) for control signals
  *   - LCD_PORT2 (LCD_DDR2/LCD_PIN2) for data signals 0-7
  * ************************************************************************ */
@@ -164,11 +382,11 @@ uint16_t            LineFlags;     /* bitfield for up to 16 lines */
  *  - read:  CS low -> D/C -> RD low to trigger output ->
  *           read D7-0 with rising edge of RD
  *  - D/C: high = data / low = command
- *  - commands have to be sent as 2 bytes
+ *  - commands may have to be sent as 2 bytes for some controllers
  */
 
 
-#ifdef LCD_PAR_8
+#ifdef LCD_PAR_8_8080
 
 /*
  *  set up interface bus
@@ -194,12 +412,16 @@ void LCD_BusSetup(void)
    *  - LCD_PORT
    */
 
+  /* set directions */
   Bits = LCD_DDR;                       /* get current directions */
 
   /* basic output pins */
-  Bits |= (1 << LCD_DC) | (1 << LCD_WR) | (1 << LCD_RD);    /* D/C, WR, RD */
+  Bits |= (1 << LCD_DC) | (1 << LCD_WR);     /* D/C, WR */
 
   /* optional output pins */
+  #ifdef LCD_RD
+  Bits |= (1 << LCD_RD);                /* RD */
+  #endif
   #ifdef LCD_RES
   Bits |= (1 << LCD_RES);               /* /RES */
   #endif 
@@ -212,10 +434,13 @@ void LCD_BusSetup(void)
   /* set default levels */
   Bits = LCD_PORT;                      /* get current levels */
 
-  /* set WRX and RDX high */
-  Bits |= (1 << LCD_WR) | (1 << LCD_RD);
+  /* basic output pins */
+  Bits |= (1 << LCD_WR);                /* set WRX high */
 
   /* optional output pins */
+  #ifdef LCD_RD
+  Bits |= (1 << LCD_RD);                /* set RD high */
+  #endif
   #ifdef LCD_CS
   /* disable chip */
   Bits |= (1 << LCD_CS);                /* set /CS high */
@@ -385,7 +610,7 @@ uint8_t LCD_ReadByte(void)
   LCD_PORT &= ~(1 << LCD_RD);      /* set RD low */
 
   /* wait for display to fetch data: max. 40ns */
-  /* but we wait a little be more, just in case (min. 150ns) */
+  /* but we wait a little be longer, just in case (min. 150ns) */
   asm volatile(
     "nop\n\t"
     "nop\n\t"
@@ -410,6 +635,277 @@ uint8_t LCD_ReadByte(void)
   #endif
 
   /* next read cycle after 90ns RD being high */
+
+  return Byte;
+}
+
+#endif
+
+#endif
+
+
+
+
+/* ************************************************************************
+ *   low level functions for 8 bit parallel interface in 6800 mode
+ *   - LCD_PORT (LCD_DDR) for control signals
+ *   - LCD_PORT2 (LCD_DDR2/LCD_PIN2) for data signals 0-7
+ * ************************************************************************ */
+
+
+/*
+ *  protocol:
+ *  - write: CS low -> D/C -> R/W low -> E high -> set D7-0 ->
+ *           falling edge of E triggers read
+ *  - read:  CS low -> D/C -> R/W high -> E high ->
+ *           read D7-0 with falling edge of E
+ *  - D/C: high = data / low = command
+ *  - commands may have to be sent as 2 bytes for some controllers
+ */
+
+
+#ifdef LCD_PAR_8_6800
+
+/*
+ *  set up interface bus
+ *  - should be called at firmware startup
+ */
+
+void LCD_BusSetup(void)
+{
+  uint8_t           Bits;          /* register bits */
+
+
+  /*
+   *  set data signals
+   *  - LCD_PORT2
+   */
+
+  /* all data pins are in output mode by default */
+  LCD_DDR2 = 0b11111111;                /* DB0-7 */
+
+
+  /*
+   *  set control signals
+   *  - LCD_PORT
+   */
+
+  /* set directions */
+  Bits = LCD_DDR;                       /* get current directions */
+
+  /* basic output pins */
+  Bits |= (1 << LCD_DC) | (1 << LCD_RW) | (1 << LCD_E);   /* D/C, R/W, E */
+
+  /* optional output pins */
+  #ifdef LCD_RES
+  Bits |= (1 << LCD_RES);               /* /RES */
+  #endif 
+  #ifdef LCD_CS
+  Bits |= (1 << LCD_CS);                /* /CS */
+  #endif
+
+  LCD_DDR = Bits;                       /* set new directions */
+
+  /* set default levels */
+  Bits = LCD_PORT;                      /* get current levels */
+
+  /* basic output pins */
+  Bits &= ~(1 << LCD_E);                /* set E low */
+
+  /* optional output pins */
+  #ifdef LCD_CS
+  /* disable chip */
+  Bits |= (1 << LCD_CS);                /* set /CS high */
+  #endif
+  #ifdef LCD_RES
+  /* disable reset */
+  Bits |= (1 << LCD_RES);               /* set /RES high */
+  #endif
+
+  LCD_PORT = Bits;                      /* set new levels */
+}
+
+
+
+/*
+ *  manage control lines
+ *
+ *  requires:
+ *  - Mode: control flags (bitfield)
+ *    DISP_SELECT    select controller
+ *    DISP_DESELECT  deselect controller
+ *    DISP_WRITE     write mode
+ *    DISP_READ      read mode
+ */
+
+void LCD_Control(uint8_t Mode)
+{
+  #ifdef LCD_READ
+  if (Mode & DISP_WRITE)           /* start writing / end reading */
+  {
+    /* set data pins to output mode before writing */
+    LCD_DDR2 = 0b11111111;         /* DB0-7 */
+  }
+  else if (Mode & DISP_READ)       /* start reading / end writing */
+  {
+    /* set data pins to input mode before reading */
+    LCD_DDR2 = 0b00000000;         /* DB0-7 */
+  }
+  #endif
+
+  #ifdef LCD_CS
+  if (Mode & DISP_SELECT)          /* select controller */
+  {
+    /* select chip */
+    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS low */
+  }
+  else if (Mode & DISP_DESELECT)   /* deselect controller */
+  {
+    /* select chip */
+    LCD_PORT |= (1 << LCD_CS);     /* set /CS high */
+  }
+  #endif
+}
+
+
+
+/*
+ *  send a byte (data or command) to the display
+ *
+ *  requires:
+ *  - Byte: byte value to send
+ */
+
+void LCD_SendByte(uint8_t Byte)
+{
+  /* claim bus */
+  LCD_PORT |= (1 << LCD_E);        /* set E high */
+
+  /* set data signals */
+  LCD_PORT2 = Byte;                /* DB0-7 */
+
+  /* trigger read (falling edge takes data in) */
+  LCD_PORT &= ~(1 << LCD_E);       /* set E low */
+
+  /* data hold time 10ns */
+  /* next write cycle after 15ns E being low */
+}
+
+
+
+/*
+ *  send a command to the display
+ *
+ *  requires:
+ *  - Cmd: byte value to send
+ */
+ 
+void LCD_Cmd(uint8_t Cmd)
+{
+  /* indicate command mode */
+  LCD_PORT &= ~(1 << LCD_DC);      /* set D/C low */
+
+  if (CmdMode & CMD_MODE_8)        /* 8 bit command */
+  {
+    /* send command: 1 byte */
+    LCD_SendByte(Cmd);             /* send command byte */
+  }
+  else if (CmdMode & CMD_MODE_16)  /* 16 bit command */
+  {
+    /* send command: 2 bytes */
+    LCD_SendByte(0);               /* send dummy MSB */
+    LCD_SendByte(Cmd);             /* send command byte as LSB */
+  }
+}
+
+
+
+/*
+ *  send data to the display
+ *
+ *  requires:
+ *  - Data: byte value to send
+ */
+
+void LCD_Data(uint8_t Data)
+{
+  /* indicate data mode */
+  LCD_PORT |= (1 << LCD_DC);       /* set D/C high */
+
+  /* send data */
+  LCD_SendByte(Data);              /* send data byte */
+}
+
+
+
+/*
+ *  send data to the display
+ *
+ *  requires:
+ *  - Data: 2-byte value to send
+ */
+
+void LCD_Data2(uint16_t Data)
+{
+  uint8_t           Byte;     /* data byte */
+
+  /* indicate data mode */
+  LCD_PORT |= (1 << LCD_DC);       /* set D/C high */
+
+  /* send data */
+  Byte = (uint8_t)Data;            /* save LSB */
+  Data >>= 8;                      /* get MSB */
+  LCD_SendByte((uint8_t)Data);     /* send MSB */
+  LCD_SendByte(Byte);              /* send LSB */
+}
+
+
+
+#ifdef LCD_READ
+
+/*
+ *  read byte from display
+ *  - timing for register data
+ *  - not suitable for frame memory
+ *
+ *  returns:
+ *  - byte
+ */
+
+uint8_t LCD_ReadByte(void)
+{
+  uint8_t           Byte;     /* return value */
+
+  /* indicate data mode */
+  LCD_PORT |= (1 << LCD_DC);       /* set D/C high */
+
+  /* start read cycle */
+  LCD_PORT |= (1 << LCD_E);        /* set E high */
+
+  /* wait for display to fetch data: min. 90ns */
+  /* but we wait a little be longer, just in case (min. 150ns) */
+  asm volatile(
+    "nop\n\t"
+    "nop\n\t"
+    "nop\n\t"
+    ::
+  );
+
+  /* read data: DB0-7 */
+  Byte = LCD_PIN2;
+
+  /* end read cycle */
+  LCD_PORT &= ~(1 << LCD_E);       /* set E low */
+
+  /* wait for display to release data lines: max. 80ns */
+  #ifndef LCD_CS
+  /* burn two clock cycles */
+  asm volatile(
+    "nop\n\t"
+    "nop\n\t"
+    ::
+  );
+  #endif
 
   return Byte;
 }
@@ -790,7 +1286,7 @@ void DisplayRegisters(void)
     /* display command */
     Display_NextLine();            /* new line */
     Display_HexByte(Cmd);          /* display command */
-    Display_Char(':');             /* display: : */
+    Display_Colon();               /* display: : */
     Display_Space();               /* display space */
 
     /* send command */

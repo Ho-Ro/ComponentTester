@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Polish (ISO 8859-2)
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *   translation by Jacon (zarnow@safe-mail.net)
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
@@ -79,8 +79,11 @@
     const unsigned char SquareWave_str[] MEM_TYPE = "Gen. prostok±ta";
   #endif
 
-  #ifdef HW_ZENER
+  #if defined (HW_ZENER) || defined (HW_PROBE_ZENER)
     const unsigned char Zener_str[] MEM_TYPE = "Dioda Zenera";
+  #endif
+
+  #if defined (HW_ZENER) && ! defined (ZENER_UNSWITCHED)
     const unsigned char Min_str[] MEM_TYPE = "Min";
   #endif
 
@@ -104,8 +107,8 @@
   #endif
 
   #ifdef HW_LC_METER
-    const unsigned char LC_Meter_str[] MEM_TYPE = "LC Meter";
-    const unsigned char Adjusting_str[] MEM_TYPE = "adjusting...";
+    const unsigned char LC_Meter_str[] MEM_TYPE = "Miernik LC";
+    const unsigned char Adjusting_str[] MEM_TYPE = "regulacja...";
   #endif
 
   #ifdef SW_ENCODER

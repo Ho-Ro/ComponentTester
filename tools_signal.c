@@ -2,7 +2,7 @@
  *
  *   signal tools (hardware and software options)
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -76,10 +76,13 @@ void PWM_Tool(uint16_t Frequency)
 {
   uint8_t           Test = 1;           /* loop control and user feedback */
   uint8_t           Ratio;              /* PWM ratio (in %) */
-  uint8_t           Prescaler;          /* timer prescaler */
+  uint8_t           Bits;               /* bits for timer prescaler */
   uint16_t          Top;                /* top value */
   uint16_t          Toggle;             /* counter value to toggle output */
   uint32_t          Value;              /* temporary value */
+  #ifdef PWM_SHOW_DURATION
+  uint16_t          Time;               /* duration/resolution of timer step */
+  #endif
 
   /*
    *  Timer1:
@@ -93,20 +96,27 @@ void PWM_Tool(uint16_t Frequency)
    *    8          500kHz    7.6Hz      125kHz     5kHz
    *    64         62.5kHz   0.95Hz     15.625kHz  625Hz
    *    256        15625Hz   0.24Hz     3906.25Hz  156.25Hz
-   *  - to support a PWM ratio of 1% top should be 100 at least
+   *  - to support a PWM ratio of 1% top should be at least 100
    */
 
-  ShortCircuit(0);                    /* make sure probes are not shorted */
+  ShortCircuit(0);                      /* make sure probes are not shorted */
+
+  /* display info */
   LCD_Clear();
-  Display_EEString_Space(PWM_str);    /* display: PWM */
-  Display_Value(Frequency, 0, 0);     /* display frequency */
-  Display_EEString(Hertz_str);        /* display: Hz */
+  #ifdef UI_COLORED_TITLES
+    /* display: PWM */
+    Display_ColoredEEString_Space(PWM_str, COLOR_TITLE);
+  #else
+    Display_EEString_Space(PWM_str);    /* display: PWM */
+  #endif
+  Display_Value(Frequency, 0, 0);       /* display frequency */
+  Display_EEString(Hertz_str);          /* display: Hz */
   #ifndef HW_FIXED_SIGNAL_OUTPUT
-  ProbePinout(PROBES_PWM);            /* show probes used */
+  ProbePinout(PROBES_PWM);              /* show probes used */
   #endif
 
   #ifndef HW_FIXED_SIGNAL_OUTPUT
-  /* probes 1 and 3 are signal ground, probe 2 is signal output */
+  /* set up probes: #1 and #3 are signal ground, #2 is signal output */
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
   R_DDR = (1 << R_RL_2);                /* enable Rl for probe 2 */
@@ -124,28 +134,56 @@ void PWM_Tool(uint16_t Frequency)
    *  - top = f_MCU / (2 * prescaler * f_PWM)
    */
 
-  Value = CPU_FREQ / 2;
-  Value /= Frequency;
+  Value = CPU_FREQ / 2;                 /* /2 */
+  Value /= Frequency;                   /* /f_PWM */
 
   if (Value > 2000000)        /* low frequency (<20Hz @8MHz) */
   {
-    Value /= 256;
-    Prescaler = (1 << CS12);                 /* 256 */
+    #ifdef PWM_SHOW_DURATION
+      Toggle = 256;                     /* prescaler 256 */
+    #else
+      Value /= 256;                     /* /prescaler */
+    #endif
+    Bits = (1 << CS12);                 /* prescaler bits for 256:1 */
   }
   else if (Value > 16000)     /* mid-range frequency (<250Hz @8MHz) */
   {
-    Value /= 64;
-    Prescaler = (1 << CS11) | (1 << CS10);   /* 64 */
+    #ifdef PWM_SHOW_DURATION
+      Toggle = 64;                      /* prescaler 64 */
+    #else
+      Value /= 64;                      /* /prescaler */
+    #endif
+    Bits = (1 << CS11) | (1 << CS10);   /* prescaler bits for 64:1 */
   }
   else                        /* high frequency */
   {
-    Prescaler = (1 << CS10);                 /* 1 */
+    #ifdef PWM_SHOW_DURATION
+      Toggle = 1;                       /* prescaler 1 */
+    #endif
+    Bits = (1 << CS10);                 /* prescaler bits for 1:1 */
   }
 
-  Top = (uint16_t)Value;      /* keep lower 16 bits */
+  #ifdef PWM_SHOW_DURATION
+  Value /= Toggle;                 /* /prescaler */
+  #endif
+  Top = (uint16_t)Value;           /* keep lower 16 bits */
+
+  #ifdef PWM_SHOW_DURATION
+  /* calculate duration of timer step */
+  /* t = (1 / f_MCU) * 2 * prescaler = 2 * prescaler / f_MCU */
+  Value = 2000000000 / CPU_FREQ;        /* 2/f_MCU in ns */
+  Value *= Toggle;                      /* * prescaler */
+  Time = (uint16_t)Value;               /* keep lower 16 bits */
+  #endif
 
   /* set start values */
   Ratio = 50;                 /* default ratio is 50% */
+  #if 0
+  /* calculate toggle value: top * (ratio / 100) */
+  Value = (uint32_t)Top * Ratio;
+  Value /= 100;
+  Toggle = (uint16_t)Value;
+  #endif
   Toggle = Top / 2;           /* compare value for 50% */
 
 
@@ -165,7 +203,7 @@ void PWM_Tool(uint16_t Frequency)
   OCR1B = Toggle;                            /* set value to compare with */
 
   /* start counter by setting clock prescaler */
-  TCCR1B = (1 << WGM13) | Prescaler;
+  TCCR1B = (1 << WGM13) | Bits;
 
 
   /*
@@ -174,9 +212,17 @@ void PWM_Tool(uint16_t Frequency)
 
   while (Test > 0)
   {
-    /* show current ratio */
+    /* show PWM ratio in line #2 */
     LCD_ClearLine2();
     Display_Value(Ratio, 0, '%');       /* show ratio in % */
+    #ifdef PWM_SHOW_DURATION
+    /* and also pulse duration */
+    Display_Space();
+    /* pulse duration = duration of timer step * toggle value */ 
+    Value = (uint32_t)Time * OCR1B;          /* in ns */
+    Display_Value(Value, -9, 's');
+    #endif
+
     #ifdef HW_KEYS
     if (Test <= KEY_LONG)               /* just for test button usage */
     #endif
@@ -274,6 +320,10 @@ void PWM_Tool(void)
   uint16_t          Step2;              /* step size */
   uint16_t          Temp;               /* temporary value */
   uint32_t          Value;              /* temporary value */
+  #ifdef PWM_SHOW_DURATION
+  uint16_t          TimeValue = 0;      /* duration/resolution of timer step */
+  int8_t            TimeScale = 0;      /* scale of duration */
+  #endif
 
   /* local constants for Flag (bitfield) */
   #define RUN_FLAG       0b00000001     /* run / otherwise end */
@@ -299,18 +349,25 @@ void PWM_Tool(void)
    *    64         62.5kHz     0.95Hz     15.625kHz  625Hz
    *    256        15625Hz     0.24Hz     3906.25Hz  156.25Hz
    *    1024       3906.25Hz   0.06Hz     976.5Hz    39Hz
-   *  - to support a PWM ratio of 1% top should be 100 at least
+   *  - to support a PWM ratio of 1% top should be at least 100
    */
 
   ShortCircuit(0);                    /* make sure probes are not shorted */
+
+  /* display info */
   LCD_Clear();
-  Display_EEString_Space(PWM_str);    /* display: PWM */
+  #ifdef UI_COLORED_TITLES
+    /* display: PWM */
+    Display_ColoredEEString_Space(PWM_str, COLOR_TITLE);
+  #else
+    Display_EEString_Space(PWM_str);    /* display: PWM */
+  #endif
   #ifndef HW_FIXED_SIGNAL_OUTPUT
-  ProbePinout(PROBES_PWM);            /* show probes used */
+  ProbePinout(PROBES_PWM);              /* show probes used */
   #endif
 
   #ifndef HW_FIXED_SIGNAL_OUTPUT
-  /* probes 1 and 3 are signal ground, probe 2 is signal output */
+  /* set up probes: #1 and #3 are signal ground, #2 is signal output */
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
   R_DDR = (1 << R_RL_2);                /* enable Rl for probe 2 */
@@ -343,11 +400,12 @@ void PWM_Tool(void)
    */
 
   /* start values */
-  Ratio = 50;                      /* 50% PWM ratio */
-  Prescaler = 1;
-  Index = 0;
-  Bits = (1 << CS10);              /* prescaler register bits for 1 */
+  /* top = f_MCU / (2 * prescaler * f_PWM) */
   Top = (CPU_FREQ / 2000);         /* 1kHz */
+  Ratio = 50;                      /* 50% PWM ratio */
+  Prescaler = 1;                   /* prescaler 1:1 */
+  Index = 0;                       /* first index of prescaler tables */
+  Bits = (1 << CS10);              /* register bits for prescaler 1:1 */
   Flag = RUN_FLAG | CHANGE_FREQ | CHANGE_RATIO | DISPLAY_FREQ | DISPLAY_RATIO;
   Mode = MODE_FREQ;                /* frequency mode */
 
@@ -363,7 +421,7 @@ void PWM_Tool(void)
        *  auto-ranging
        */
 
-      Step = Index;
+      Step = Index;                /* save old index */
 
       /* check if we should change the range */
       if (Top > 0x7FFF)            /* more than 15 bits */
@@ -407,6 +465,21 @@ void PWM_Tool(void)
       /* set frequency */
       OCR1A = Top;                      /* set top value */
       TCCR1B = (1 << WGM13) | Bits;     /* (re)start timer */
+
+      #ifdef PWM_SHOW_DURATION
+      /* calculate duration of timer step */
+      TimeScale = -9;                        /* ns */
+      /* t = (1 / f_MCU) * 2 * prescaler = 2 * prescaler / f_MCU */
+      Value = 2000000000 / CPU_FREQ;         /* 2/f_MCU in ns */
+      Value *= Prescaler;                    /* * prescaler */
+      while (Value > UINT16_MAX)             /* rescale */
+      {
+        Value /= 1000;                       /* /1000 */
+        TimeScale += 3;                      /* 10^3 */
+      } 
+      TimeValue = (uint16_t)Value;           /* keep lower 16 bits */
+      #endif
+
       Flag &= ~CHANGE_FREQ;             /* clear flag */
       /* a frequency change implies a ratio change */
     }
@@ -418,6 +491,12 @@ void PWM_Tool(void)
       Value = (uint32_t)Top * Ratio;
       Value /= 100;
       OCR1B = (uint16_t)Value;          /* set compare/toggle value */
+
+      #ifdef PWM_SHOW_DURATION
+      /* also update the display of the pulse duration */
+      Flag |= DISPLAY_RATIO;            /* display ratio */
+      #endif
+
       Flag &= ~CHANGE_RATIO;            /* clear flag */
     }
 
@@ -426,14 +505,14 @@ void PWM_Tool(void)
      *  update display
      */
 
-    if (Flag & DISPLAY_FREQ)       /* display frequency */
+    if (Flag & DISPLAY_FREQ)       /* display frequency in line #2 */
     {
       LCD_ClearLine2();
       MarkItem(MODE_FREQ, Mode);        /* mark mode if selected */
 
       /* f_PWM = f_MCU / (2 * prescaler * top) */
       Value = CPU_FREQ * 50;            /* scale to 0.01Hz and /2 */
-      Value /= Prescaler;
+      Value /= Prescaler;               /* /prescaler */
       Step = 2;                         /* 2 decimal places */
 
       /*
@@ -450,7 +529,7 @@ void PWM_Tool(void)
         Temp /= 8;              /* next lower prescaler */
       }
 
-      Value /= Top;
+      Value /= Top;             /* /top */
 
       Display_FullValue(Value, Step, 0);  /* display frequency */
       Display_EEString(Hertz_str);        /* display: Hz */
@@ -459,13 +538,21 @@ void PWM_Tool(void)
     }
 
 
-    if (Flag & DISPLAY_RATIO)      /* display ratio */
+    if (Flag & DISPLAY_RATIO)      /* display ratio in line #3 */
     {
       LCD_ClearLine(3);
       LCD_CharPos(1, 3);
       MarkItem(MODE_RATIO, Mode);       /* mark mode if selected */
 
       Display_Value(Ratio, 0, '%');     /* show ratio in % */
+
+      #ifdef PWM_SHOW_DURATION
+      /* and also pulse duration */
+      Display_Space();
+      /* pulse duration = duration of timer step * toggle value */ 
+      Value = (uint32_t)TimeValue * OCR1B;
+      Display_Value(Value, TimeScale, 's');
+      #endif
 
       Flag &= ~DISPLAY_RATIO;           /* clear flag */
     }
@@ -709,15 +796,22 @@ void Servo_Check(void)
    *  - typical speed is 30-500ms/60°
    */
 
-  ShortCircuit(0);                    /* make sure probes are not shorted */
+  ShortCircuit(0);                 /* make sure probes are not shorted */
+
+  /* display info */
   LCD_Clear();
-  Display_EEString_Space(Servo_str);  /* display: Servo */
+  #ifdef UI_COLORED_TITLES
+    /* display: Servo */
+    Display_ColoredEEString_Space(Servo_str, COLOR_TITLE);
+  #else
+    Display_EEString_Space(Servo_str);  /* display: Servo */
+  #endif
   #ifndef HW_FIXED_SIGNAL_OUTPUT
-  ProbePinout(PROBES_PWM);            /* show probes used */
+  ProbePinout(PROBES_PWM);              /* show probes used */
   #endif
 
   #ifndef HW_FIXED_SIGNAL_OUTPUT
-  /* probes 1 and 3 are signal ground, probe 2 is signal output */
+  /* set up probes: #1 and #3 are signal ground, #2 is signal output */
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
   R_DDR = (1 << R_RL_2);                /* enable Rl for probe 2 */
@@ -799,10 +893,10 @@ void Servo_Check(void)
   /* set start values */
   Toggle = SERVO_MID;              /* toggle value (1.5ms) */
   Index = 0;                       /* #0 (20.0ms) */
-  SweepStep = 0;
-  SweepDir = 0;
+  SweepStep = 0;                   /* no step */
+  SweepDir = 0;                    /* no direction */
   Mode = MODE_PULSE;               /* pulse width mode */
-  Flag = RUN_FLAG | MODE_PULSE | CHANGE_PULSE | CHANGE_FREQ | DISPLAY_FREQ | DISPLAY_PULSE | DISPLAY_FREQ;
+  Flag = RUN_FLAG | MODE_PULSE | CHANGE_PULSE | CHANGE_FREQ | DISPLAY_PULSE | DISPLAY_FREQ;
 
   /*
    *  todo:
@@ -1248,14 +1342,21 @@ void SquareWave_SignalGenerator(void)
   */
 
   ShortCircuit(0);                      /* make sure probes are not shorted */
+
+  /* display info */
   LCD_Clear();
-  Display_EEString_Space(SquareWave_str);    /* display: Square Wave */
+  #ifdef UI_COLORED_TITLES
+    /* display: Square Wave */
+    Display_ColoredEEString_Space(SquareWave_str, COLOR_TITLE);
+  #else
+    Display_EEString_Space(SquareWave_str);  /* display: Square Wave */
+  #endif
   #ifndef HW_FIXED_SIGNAL_OUTPUT
   ProbePinout(PROBES_PWM);              /* show probes used */
   #endif
 
   #ifndef HW_FIXED_SIGNAL_OUTPUT
-  /* probes 1 and 3 are signal ground, probe 2 is signal output */
+  /* set up probes: #1 and #3 are signal ground, #2 is signal output */
   ADC_PORT = 0;                         /* pull down directly: */
   ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
   R_DDR = (1 << R_RL_2);                /* enable Rl for probe 2 */
@@ -1545,7 +1646,12 @@ void FrequencyCounter(void)
 
   /* show info */
   LCD_Clear();                          /* clear display */
-  Display_EEString(FreqCounter_str);    /* display: Freq. Counter */
+  #ifdef UI_COLORED_TITLES
+    /* display: Freq. Counter */
+    Display_ColoredEEString(FreqCounter_str, COLOR_TITLE);
+  #else
+    Display_EEString(FreqCounter_str);  /* display: Freq. Counter */
+  #endif
 
 
   /*
@@ -1719,7 +1825,7 @@ void FrequencyCounter(void)
     }
     else                                /* invalid frequency */
     {
-      Display_Char('-');                /* display: no value */
+      Display_Minus();                  /* display: no value */
     }    
   }
 
@@ -1797,7 +1903,12 @@ void FrequencyCounter(void)
 
   /* show info */
   LCD_Clear();                          /* clear display */
-  Display_EEString(FreqCounter_str);    /* display: Freq. Counter */
+  #ifdef UI_COLORED_TITLES
+    /* display: Freq. Counter */
+    Display_ColoredEEString(FreqCounter_str, COLOR_TITLE);
+  #else
+    Display_EEString(FreqCounter_str);  /* display: Freq. Counter */
+  #endif
 
 
   /*
@@ -2159,7 +2270,7 @@ void FrequencyCounter(void)
       }
       else                         /* invalid frequency */
       {
-        Display_Char('-');         /* display: no value */
+        Display_Minus();           /* display: no value */
       }
 
       /* manage rescan */
@@ -2314,7 +2425,12 @@ void EventCounter(void)
 
   /* show info */
   LCD_Clear();                          /* clear display */
-  Display_EEString(EventCounter_str);   /* display: Event Counter */
+  #ifdef UI_COLORED_TITLES
+    /* display: Event Counter */
+    Display_ColoredEEString(EventCounter_str, COLOR_TITLE);
+  #else
+    Display_EEString(EventCounter_str); /* display: Event Counter */
+  #endif
 
 
   /*

@@ -2,7 +2,7 @@
  *
  *   global variables
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -149,7 +149,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.42m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.43m";
 
 
   /* common terms and texts */
@@ -332,6 +332,9 @@
       const unsigned char Cmd_I_C_str[] MEM_TYPE = "I_C";
       const unsigned char Cmd_I_E_str[] MEM_TYPE = "I_E";
     #endif
+    #ifdef HW_PROBE_ZENER
+      const unsigned char Cmd_V_Z_str[] MEM_TYPE = "V_Z";
+    #endif
 
     /* command reference table */
     const Cmd_Type Cmd_Table[] MEM_TYPE = {
@@ -381,6 +384,9 @@
         {CMD_I_C, Cmd_I_C_str},
         {CMD_I_E, Cmd_I_E_str},
       #endif
+      #ifdef HW_PROBE_ZENER
+        {CMD_V_Z, Cmd_V_Z_str},
+      #endif
       {0, 0}
     };
   #endif
@@ -420,7 +426,7 @@
     const uint8_t T1_RegBits_table[NUM_TIMER1] MEM_TYPE = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
   #endif
 
-  #ifdef SW_PROBE_COLORS
+  #ifdef UI_PROBE_COLORS
     /* probe color coding */
     uint16_t        ProbeColors[NUM_PROBE_COLORS] = {COLOR_PROBE_1, COLOR_PROBE_2, COLOR_PROBE_3};
   #endif
@@ -641,8 +647,11 @@
     extern const unsigned char SquareWave_str[];
   #endif
 
-  #ifdef HW_ZENER
+  #if defined (HW_ZENER) || defined (HW_PROBE_ZENER)
     extern const unsigned char Zener_str[];
+  #endif
+
+  #if defined (HW_ZENER) && ! defined (ZENER_UNSWITCHED)
     extern const unsigned char Min_str[];
   #endif
 
@@ -853,6 +862,9 @@
       extern const unsigned char Cmd_I_C_str[];
       extern const unsigned char Cmd_I_E_str[];
     #endif
+    #ifdef HW_PROBE_ZENER
+      extern const unsigned char Cmd_V_Z_str[];
+    #endif
 
     /* command reference table */
     extern const Cmd_Type Cmd_Table[];
@@ -890,7 +902,7 @@
     extern const uint8_t T1_RegBits_table[];
   #endif
 
-  #ifdef SW_PROBE_COLORS
+  #ifdef UI_PROBE_COLORS
     extern uint16_t      ProbeColors[];      /* probe color coding */
   #endif
 

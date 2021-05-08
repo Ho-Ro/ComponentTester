@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Danish (ISO 8859-1)
  *
- *   (c) 2018-2020 by Markus Reschke
+ *   (c) 2018-2021 by Markus Reschke
  *   translation by glenndk@mikrocontroller.net
  *   based on code from Markus Frejek and Karl-Heinz K¸bbeler
  *
@@ -79,8 +79,11 @@
     const unsigned char SquareWave_str[] MEM_TYPE = "firkantbølge";
   #endif
 
-  #ifdef HW_ZENER
+  #if defined (HW_ZENER) || defined (HW_PROBE_ZENER)
     const unsigned char Zener_str[] MEM_TYPE = "Zener";
+  #endif
+
+  #if defined (HW_ZENER) && ! defined (ZENER_UNSWITCHED)
     const unsigned char Min_str[] MEM_TYPE = "Min";
   #endif
 

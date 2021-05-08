@@ -2,9 +2,34 @@
 
              Änderungen der Component-Tester-Firmware (m-firmware)
 
-                       (c) 2012-2020 by Markus Reschke
+                       (c) 2012-2021 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.43m 2021-?
+- R&D-Anzeigentreiber zur Identifizierung von Controllern.
+- Steuersignal LCD_RD ist nun optional für ILI9341, ILI9481, ILI9486 und
+  ILI9488.
+- Modifizierter Treiber für ST7735-teil-kompatible Anzeigen (Vorschlag von
+  b0hoon4@gmail.com).
+- Option zum Ausführen des Zenertests während der normalen Bauteilesuche (
+  HW_PROBE_ZENER, Vorschlag von indman@EEVblog). Benötigt ZENER_UNSWITCHED.
+  Und entsprechendes Fernsteuerkommando ergänzt (V_Z).
+- Option für anwenderspezifischen Spannungsteiler für den Zenertest (
+  ZENER_DIVIDER_CUSTOM, ZENER_R1 und ZENER_R2).
+- Option für niedrige Aufösung im Zenertest entfernt, und auch den
+  Konfigurationsschalter ZENER_HIGH_RES.
+- Russische Texte aktualisiert (Dank an indman@EEVblog).
+- Optionale Anzeige der Pulsdauer für PWM-Generatoren (PWM_SHOW_DURATION,
+  Vorschlag von Gast "hamburger" @mikrocontroller.net),
+- Source-Archiv beinhaltet nun auch das Verzeichnis "dep", um ein paar IDEs
+  glücklich zu machen (Vorschlag von DAIRVINE@EEVblog).
+- Konfigurationschalter SW_PROBE_COLORS zu UI_PROBE_COLORS umbenannt.
+- Überschriften können andersfarbig ausgegeben werden (UI_COLORED_TITLES).
+  Ebenfalls Cursor und Bedienungshinweise (UI_COLORED_CURSOR).
+- Rumänische Texte aktualisiert (Dank an Dumidan@EEVblog).
+- Alternative polnische Texte aktialisiert (Dank an Jacon@EEVblog).
+- Spanische Texte aktualisiert (Dank an pepe10000@EEVblog).
 
 v1.42m 2020-12
 - Aktualisierte 6x8-Zeichensätze (Dank an Bohu).

@@ -2,7 +2,7 @@
  *
  *   common display functions and common functions for LCD modules
  *
- *   (c) 2015-2020 by Markus Reschke
+ *   (c) 2015-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -226,7 +226,7 @@ void Display_EEString(const unsigned char *String)
  
 void Display_ProbeNumber(uint8_t Probe)
 {
-  #ifdef SW_PROBE_COLORS
+  #ifdef UI_PROBE_COLORS
   uint16_t          Color;         /* color value */
 
   Color = UI.PenColor;               /* save current color */
@@ -236,7 +236,7 @@ void Display_ProbeNumber(uint8_t Probe)
   /* since probe-1 is 0 we simply add the value to ASCII '1' */
   Display_Char('1' + Probe);       /* send char */
 
-  #ifdef SW_PROBE_COLORS
+  #ifdef UI_PROBE_COLORS
   UI.PenColor = Color;             /* restore old color */
   #endif
 }
@@ -250,6 +250,28 @@ void Display_ProbeNumber(uint8_t Probe)
 void Display_Space(void)
 {
   Display_Char(' ');          /* print a space */
+}
+
+
+
+/*
+ *  display a minus sign
+ */
+
+void Display_Minus(void)
+{
+  Display_Char('-');          /* print a minus */
+}
+
+
+
+/*
+ *  display a colon
+ */
+
+void Display_Colon(void)
+{
+  Display_Char(':');          /* print a minus */
 }
 
 
@@ -389,6 +411,70 @@ void Display_EEString_NL(const unsigned char *String)
 {
   Display_EEString(String);   /* display string */
   Display_NextLine();         /* new line */
+}
+
+#endif
+
+
+
+#ifdef UI_COLORED_TITLES
+
+/*
+ *  display a fixed string stored in EEPROM using a specific color
+ *
+ *  requires:
+ *  - pointer to fixed string
+ *  - color
+ */
+
+void Display_ColoredEEString(const unsigned char *String, uint16_t Color)
+{
+  uint16_t               OldColor;
+
+  OldColor = UI.PenColor;     /* get current color */
+  UI.PenColor = Color;        /* set new color */
+
+  Display_EEString(String);   /* display string */
+
+  UI.PenColor = OldColor;     /* reset color to old one */
+}
+
+
+
+/*
+ *  display a fixed string stored in EEPROM using a specific color and
+ *  folowed by a space
+ *
+ *  requires:
+ *  - pointer to fixed string
+ *  - color
+ */
+
+void Display_ColoredEEString_Space(const unsigned char *String, uint16_t Color)
+{
+  Display_ColoredEEString(String, Color);    /* display string */
+  Display_Space();                           /* print space */
+}
+
+
+/*
+ *  set pen color to COLOR_TITLE
+ */
+
+void Display_UseTitleColor(void)
+{
+  UI.PenColor = COLOR_TITLE;       /* set pen color */
+}
+
+
+
+/*
+ *  set pen color to COLOR_PEN
+ */
+
+void Display_UsePenColor(void)
+{
+  UI.PenColor = COLOR_PEN;         /* reset pen color */
 }
 
 #endif
@@ -596,7 +682,7 @@ void Display_SignedFullValue(int32_t Value, uint8_t DecPlaces, unsigned char Uni
   /* take care about sign */
   if (Value < 0)              /* negative value */
   {
-    Display_Char('-');        /* display: "-" */
+    Display_Minus();          /* display: "-" */
     Value = -Value;           /* make value positive */
   }
 
@@ -734,7 +820,7 @@ void Display_SignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
   /* take care about sign */
   if (Value < 0)              /* negative value */
   {
-    Display_Char('-');        /* display: "-" */
+    Display_Minus();          /* display: "-" */
     Value = -Value;           /* make value positive */
   }
 
@@ -1028,7 +1114,12 @@ void FontTest(void)
 
   /* show info */
   LCD_Clear();
-  Display_EEString(FontTest_str);       /* display: Rotary Encoder */
+  #ifdef UI_COLORED_TITLES
+    /* display: Rotary Encoder */
+    Display_ColoredEEString(FontTest_str, COLOR_TITLE);
+  #else
+    Display_EEString(FontTest_str);     /* display: Rotary Encoder */
+  #endif
   UI.LineMode = LINE_STD | LINE_KEEP;   /* next-line mode: keep first line */
 
   Max = UI.CharMax_Y;         /* get maximum number of lines */

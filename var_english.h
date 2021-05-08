@@ -2,7 +2,7 @@
  *
  *   language specific global variables: English (ISO 8859-1)
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -78,8 +78,11 @@
     const unsigned char SquareWave_str[] MEM_TYPE = "Square Wave";
   #endif
 
-  #ifdef HW_ZENER
+  #if defined (HW_ZENER) || defined (HW_PROBE_ZENER)
     const unsigned char Zener_str[] MEM_TYPE = "Zener";
+  #endif
+
+  #if defined (HW_ZENER) && ! defined (ZENER_UNSWITCHED)
     const unsigned char Min_str[] MEM_TYPE = "Min";
   #endif
 

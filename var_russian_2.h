@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Russian (Windows-1251)
  *
- *   (c) 2017-2020 by Markus Reschke
+ *   (c) 2017-2021 by Markus Reschke
  *   translation by hapless@EEVblog
  *   based on code from Markus Frejek and Karl-Heinz Kьbbeler
  *
@@ -79,8 +79,11 @@
     const unsigned char SquareWave_str[] MEM_TYPE = "Генератор";
   #endif
 
-  #ifdef HW_ZENER
+  #if defined (HW_ZENER) || defined (HW_PROBE_ZENER)
     const unsigned char Zener_str[] MEM_TYPE = "Напряжение";
+  #endif
+
+  #if defined (HW_ZENER) && ! defined (ZENER_UNSWITCHED)
     const unsigned char Min_str[] MEM_TYPE = "мин.";
   #endif
 

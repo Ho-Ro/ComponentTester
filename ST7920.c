@@ -10,7 +10,7 @@
  *     - 4 bit parallel interface
  *     - 8 bit parallel interface (not suppoprted)
  *
- *   (c) 2017-2020 by Markus Reschke
+ *   (c) 2017-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -168,6 +168,7 @@ void LCD_BusSetup(void)
    *  set control signals
    */
 
+  /* set directions */
   Bits = LCD_DDR;                       /* get current directions */
 
   /* required pins */
@@ -332,6 +333,7 @@ void LCD_BusSetup(void)
    *  set control signals
    */
 
+  /* set directions */
   Bits = LCD_DDR;                       /* get current directions */
 
   /* optional output pins */

@@ -2,7 +2,7 @@
  *
  *   ATmega 324/644/1284 specific global configuration, setup and settings
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -199,7 +199,7 @@
 #define LCD_CS           PC3            /* port pin used for /CSX (optional) */
 #define LCD_DC           PC2            /* port pin used for D/CX */
 #define LCD_WR           PC1            /* port pin used for WRX */
-#define LCD_RD           PC0            /* port pin used for RDX */
+#define LCD_RD           PC0            /* port pin used for RDX (optional) */
 /* data lines DB0-7 */
 #define LCD_PORT2        PORTB          /* port data register */
 #define LCD_DDR2         DDRB           /* port data direction register */
@@ -1001,7 +1001,7 @@
 #define COUNTER_DDR           DDRB      /* port data direction register */
 #define COUNTER_IN            PB0       /* signal input T0 */
 
-/* control for extended frequency counter */
+/* control of extended frequency counter */
 #define COUNTER_CTRL_PORT     PORTC     /* port data register */ 
 #define COUNTER_CTRL_DDR      DDRC      /* port data direction register */
 #define COUNTER_CTRL_DIV      PC0       /* prescaler (low 1:1, high x:1) */
@@ -1011,7 +1011,8 @@
 
 /*
  *  L/C meter
- *  - frequency input must be pin PB0/T0
+ *  - frequency input must be pin PB0/T0 (uses COUNTER_IN)
+ *  - control of L/C meter
  */
 
 #define LC_CTRL_PORT     PORTC     /* port data register */ 

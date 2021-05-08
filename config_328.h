@@ -2,7 +2,7 @@
  *
  *   ATmega 328 specific global configuration, setup and settings
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */

@@ -2,7 +2,7 @@
  *
  *   global configuration, setup and settings
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -107,13 +107,26 @@
 /*
  *  Zener check / voltage measurement up to 50V DC
  *  - default pin: PC3 (ATmega 328)
- *  - 10:1 voltage divider
- *  - DC-DC boost converter controled by test push button
+ *  - uses voltage divider (standard: 10:1)
+ *  - DC-DC boost converter controlled by test push button
  *  - see TP_ZENER in config_<MCU>.h for port pin
  *  - uncomment to enable
  */
 
 //#define HW_ZENER
+
+
+/*
+ *  non-standard voltage divider for Zener check
+ *  - standard voltage divider is 10:1 
+ *  - ZENER_R1: top resistor in Ohms
+ *  - ZENER_R2: bottom resistor in Ohms
+ *  - uncomment to enable and adjust resistor values
+ */
+
+//#define ZENER_DIVIDER_CUSTOM
+#define ZENER_R1         180000
+#define ZENER_R2         20000
 
 
 /*
@@ -127,12 +140,17 @@
 
 
 /*
- *  high resolution for Zener check
- *  - 10mV instead of 0.1V
+ *  Zener check during normal probing
+ *  - requires boost converter running all the time (ZENER_UNSWITCHED)
  *  - uncomment to enable
+ *  - The min/max voltages are meant for the detection of a valid Zener voltage.
+ *    The min. voltage should be higher than the noise floor, while the max.
+ *    voltage should be lower than the boost converter's output voltage.
  */
 
-#define ZENER_HIGH_RES
+//#define HW_PROBE_ZENER
+#define ZENER_VOLTAGE_MIN     1000      /* min. voltage in mV */
+#define ZENER_VOLTAGE_MAX     30000     /* max. voltage in mV */
 
 
 /*
@@ -278,6 +296,15 @@
  */
 
 //#define SW_PWM_PLUS
+
+
+/*
+ *  PWM generator: show also pulse duration
+ *  - duration based on timer's resolution
+ *  - uncomment to enable
+ */
+
+//#define PWM_SHOW_DURATION
 
 
 /*
@@ -739,12 +766,33 @@
 
 /*
  *  color coding for probes
- *  - requires color graphics LCD
+ *  - requires color graphics display
  *  - uncomment to enable
  *  - edit colors.h to select correct probe colors
+ *    (COLOR_PROBE_1, COLOR_PROBE_2 and COLOR_PROBE_3)
  */
 
-#define SW_PROBE_COLORS
+#define UI_PROBE_COLORS
+
+
+/*
+ *  colored titles
+ *  - requires color graphics display
+ *  - edit colors.h to select prefered color (COLOR_TITLE)
+ *  - uncomment to enable
+ */
+
+//#define UI_COLORED_TITLES
+
+
+/*
+ *  colored cursor and key hints
+ *  - requires color graphics display
+ *  - edit colors.h to select prefered color (COLOR_CURSOR)
+ *  - uncomment to enable
+ */
+
+//#define UI_COLORED_CURSOR
 
 
 /*
@@ -826,6 +874,7 @@
  *  Voltage divider for battery monitoring
  *  - BAT_R1: top resistor in Ohms
  *  - BAT_R2: bottom resistor in Ohms
+ *  - standard values are: R1=10k, R2=3.3k
  */
 
 #define BAT_R1           10000
@@ -1465,8 +1514,18 @@
 #ifndef LCD_COLOR
 
   /* color coding for probes */
-  #ifdef SW_PROBE_COLORS
-    #undef SW_PROBE_COLORS
+  #ifdef UI_PROBE_COLORS
+    #undef UI_PROBE_COLORS
+  #endif
+
+  /* colored titles */
+  #ifdef UI_COLORED_TITLES
+    #undef UI_COLORED_TITLES
+  #endif
+
+  /* colored cursor and key hints */
+  #ifdef UI_COLORED_CURSOR
+    #undef UI_COLORED_CURSOR
   #endif
 
 #endif
@@ -1535,6 +1594,14 @@
 #ifdef UI_ROUND_DS18B20
   #ifndef SW_DS18B20
     #undef UI_ROUND_DS18B20
+  #endif
+#endif
+
+
+/* Zener check during normal probing requires "unswitched" mode */
+#ifdef HW_PROBE_ZENER
+  #ifndef ZENER_UNSWITCHED
+    #undef HW_PROBE_ZENER
   #endif
 #endif
 

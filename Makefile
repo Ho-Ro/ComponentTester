@@ -1,7 +1,7 @@
 #
 #  Makefile
 #
-#  (c) 2012-2020 by Markus Reschke
+#  (c) 2012-2021 by Markus Reschke
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
@@ -9,8 +9,8 @@ PROJECT = ComponentTester
 
 
 #
-# MCU settings
-# - Edit to match your setup!
+#  MCU settings
+#  - Edit to match your setup!
 #
 
 # avr-gcc: MCU model
@@ -51,8 +51,8 @@ endif
 
 
 #
-# avrdude settings
-# - Edit to match your setup!
+#  avrdude settings
+#  - Edit to match your setup!
 #
 
 # avrdude: part number of MCU
@@ -160,8 +160,8 @@ OBJECTS_C += SPI.o I2C.o serial.o commands.o OneWire.o
 OBJECTS_C += IR_RX.o IR_TX.o DHTxx.o ADS7843.o
 OBJECTS_C += HD44780.o ILI9163.o ILI9341.o ILI9481.o ILI9486.o ILI9488.o
 OBJECTS_C += PCD8544.o PCF8814.o SH1106.o SSD1306.o
-OBJECTS_C += ST7036.o ST7565R.o ST7735.o ST7920.o
-OBJECTS_C += STE2007.o VT100.o TestDisplay.o
+OBJECTS_C += ST7036.o ST7565R.o ST7735.o Semi_ST7735.o ST7920.o
+OBJECTS_C += STE2007.o VT100.o RD_Display.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 
@@ -170,6 +170,7 @@ OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 #  build
 #
 
+.PHONY: all size
 all: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
 
 
@@ -193,7 +194,7 @@ $(NAME): ${OBJECTS}
 %.lss: ${NAME}
 	avr-objdump -h -S $< > $@
 
-# output size of firmware and stuff
+# output firmware size and other info
 size: ${NAME}
 	@echo
 	@avr-size -C --mcu=${MCU} $<
@@ -216,32 +217,40 @@ ${OBJECTS_S}: %.o: %.S ${HEADERS} ${MAKEFILE_LIST}
 
 
 #
-#  extras
+#  program MCU
 #
 
 # program firmware and EEPROM data
+.PHONY: upload
 upload: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
 	  -U flash:w:./${NAME}.hex:a -U eeprom:w:./${NAME}.eep:a
 
 # program firmware only
+.PHONY: prog_fw
 prog_fw: ${NAME} ${NAME}.hex ${NAME}.lss size
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
 	  -U flash:w:./${NAME}.hex:a
 
 # program EEPROM data only
+.PHONY: prog_ee
 prog_ee: ${NAME} ${NAME}.eep ${NAME}.lss size
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
 	  -U eeprom:w:./${NAME}.eep:a
 
+
+#
+#  misc
+#
+
 # create distribution package
-dist:
-	rm -f *.tgz
+.PHONY: dist clean
+dist: clean
 	cd ..; tar -czf ${DIST}/${DIST}.tgz \
 	  ${DIST}/*.h ${DIST}/*.c ${DIST}/*.S ${DIST}/bitmaps/*.h \
 	  ${DIST}/Makefile ${DIST}/README ${DIST}/CHANGES \
 	  ${DIST}/README.de ${DIST}/CHANGES.de ${DIST}/Clones \
-	  ${DIST}/*.pdf
+	  ${DIST}/*.pdf ${DIST}/dep
 
 # clean up
 clean:
@@ -359,7 +368,7 @@ ifeq (${FAMILY},atmega328pb)
   endif
 endif
 
-# select low fuse byte
+# select low byte
 ifeq (${OSCILLATOR},RC)
   LFUSE = ${LFUSE_RC}
 endif
@@ -379,6 +388,7 @@ ifneq ($(strip ${LFUSE}),)
 endif
 
 # set fuses
+.PHONY: fuses
 fuses:
   ifeq ($(strip ${FUSES}),)
 	@echo Invalid fuse settings!

@@ -3,7 +3,7 @@
  *   driver functions for ADS7843 compatible touchscreen controller
  *   - compatible controllers: XPT2046
  *
- *   (c) 2015-2020 by Markus Reschke
+ *   (c) 2015-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -507,7 +507,7 @@ uint8_t Touch_AdjustPos(uint8_t Char_X, uint8_t Char_Y)
   LCD_CharPos(Char_X, Char_Y);
 
   #ifdef LCD_COLOR
-  UI.PenColor = COLOR_SYMBOL;         /* set pen color */
+  UI.PenColor = COLOR_MARKER;         /* set pen color */
   #endif
   LCD_Char('*');                      /* display: * */
   #ifdef LCD_COLOR
@@ -581,7 +581,12 @@ uint8_t Touch_Adjust(void)
   LCD_Clear();                     /* clear display */
   LCD_CharPos(1, 1);
   // todo: make sure we output string only to display
-  Display_EEString(TouchSetup_str);
+  #ifdef UI_COLORED_TITLES
+    /* display: Touch Setup */
+    Display_ColoredEEString(TouchSetup_str, COLOR_TITLE);
+  #else
+    Display_EEString(TouchSetup_str);   /* display: Touch Setup */
+  #endif
 
 
   /*

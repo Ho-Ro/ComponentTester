@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Spanish (ISO 8859-1)
  *
- *   (c) 2016-2020 by Markus Reschke
+ *   (c) 2016-2021 by Markus Reschke
  *   translation by pepe10000@EEVblog
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
@@ -79,8 +79,11 @@
     const unsigned char SquareWave_str[] MEM_TYPE = "Onda cuadrada";
   #endif
 
-  #ifdef HW_ZENER
+  #if defined (HW_ZENER) || defined (HW_PROBE_ZENER)
     const unsigned char Zener_str[] MEM_TYPE = "Zener+Voltaje";
+  #endif
+
+  #if defined (HW_ZENER) && ! defined (ZENER_UNSWITCHED)
     const unsigned char Min_str[] MEM_TYPE = "Min";
   #endif
 
@@ -104,8 +107,8 @@
   #endif
 
   #ifdef HW_LC_METER
-    const unsigned char LC_Meter_str[] MEM_TYPE = "LC Meter";
-    const unsigned char Adjusting_str[] MEM_TYPE = "adjusting...";
+    const unsigned char LC_Meter_str[] MEM_TYPE = "Medir LC";
+    const unsigned char Adjusting_str[] MEM_TYPE = "ajustando...";
   #endif
 
   #ifdef SW_ENCODER

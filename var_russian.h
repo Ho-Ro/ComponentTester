@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Russian (Windows-1251)
  *
- *   (c) 2017-2020 by Markus Reschke
+ *   (c) 2017-2021 by Markus Reschke
  *   translation by indman@EEVblog
  *   based on code from Markus Frejek and Karl-Heinz Kьbbeler
  *
@@ -44,10 +44,10 @@
   const unsigned char Error_str[] MEM_TYPE = "Ошибка!";
   const unsigned char Exit_str[] MEM_TYPE = "Выход";
   const unsigned char Checksum_str[] MEM_TYPE = "Контр.сумма";
-  const unsigned char BJT_str[] MEM_TYPE = "Транз.BJT";
+  const unsigned char BJT_str[] MEM_TYPE = "BJT";
   const unsigned char Thyristor_str[] MEM_TYPE = "Тиристор";
   const unsigned char Triac_str[] MEM_TYPE = "Симистор";
-  const unsigned char PUT_str[] MEM_TYPE = "Транз.PUT";
+  const unsigned char PUT_str[] MEM_TYPE = "PUT";
   const unsigned char Bye_str[] MEM_TYPE = "До свидания!";
 
 
@@ -79,8 +79,11 @@
     const unsigned char SquareWave_str[] MEM_TYPE = "Генератор";
   #endif
 
-  #ifdef HW_ZENER
+  #if defined (HW_ZENER) || defined (HW_PROBE_ZENER)
     const unsigned char Zener_str[] MEM_TYPE = "Вольтметр";
+  #endif
+
+  #if defined (HW_ZENER) && ! defined (ZENER_UNSWITCHED)
     const unsigned char Min_str[] MEM_TYPE = "Мин.";
   #endif
 
@@ -105,7 +108,7 @@
 
   #ifdef HW_LC_METER
     const unsigned char LC_Meter_str[] MEM_TYPE = "LC Meter";
-    const unsigned char Adjusting_str[] MEM_TYPE = "adjusting...";
+    const unsigned char Adjusting_str[] MEM_TYPE = "настройка...";
   #endif
 
   #ifdef SW_ENCODER
@@ -137,7 +140,7 @@
   #endif
 
   #ifdef SW_UJT
-    const unsigned char UJT_str[] MEM_TYPE = "Транз.UJT";
+    const unsigned char UJT_str[] MEM_TYPE = "UJT";
   #endif
 
   #ifdef SW_SERVO
@@ -182,7 +185,7 @@
   #endif
 
   #ifdef SW_ONEWIRE_SCAN
-    const unsigned char OneWire_Scan_str[] MEM_TYPE = "OneWire детект";
+    const unsigned char OneWire_Scan_str[] MEM_TYPE = "1-Wire детект";
     const unsigned char Bus_str[] MEM_TYPE = "Шина";
   #endif
 

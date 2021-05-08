@@ -9,7 +9,7 @@
  *     - I2C (ST7036i, not supported)
  *   - untested!!!
  *
- *   (c) 2019-2020 by Markus Reschke
+ *   (c) 2019-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -104,6 +104,7 @@ void LCD_BusSetup(void)
    *  set control signals
    */
 
+  /* set directions */
   Bits = LCD_DDR;                       /* get current directions */
 
   /* required pins */
@@ -455,6 +456,7 @@ void LCD_BusSetup(void)
    *  set control signals
    */
 
+  /* set directions */
   Bits = LCD_DDR;                  /* get current directions */
 
   /* basic output pins */

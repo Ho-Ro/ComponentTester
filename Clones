@@ -7,6 +7,30 @@
 
 ------------------------------------------------------------------------------
 
+Arduino Nano, Uno or Mega 2560
+- Nano/Uno: ATmega 328, 16MHz clock
+  Mega 2560: ATmega 2560, 16MHz clock
+- Download the Arduino pinout diagram to get the mapping between Arduino and
+  ATmega pins.
+- The integrated USB2serial adapter makes serial communication simple
+  (enable SERIAL_HARDWARE and related options).
+- only the essential settings are listed
+
+Hardware options:
+#define HW_FIXED_SIGNAL_OUTPUT
+
+User interface:
+#define UI_AUTOHOLD
+
+Power management:
+#define POWER_SWITCH_MANUAL
+#define BAT_NONE
+
+Measurement settings and offsets:
+#define ADC_LARGE_BUFFER_CAP
+
+------------------------------------------------------------------------------
+
 DIY Kit "AY-AT" / GM328A
 - ATmega328, 8MHz clock
 - ST7735 color LCD module (bit-bang SPI)
@@ -15,6 +39,12 @@ DIY Kit "AY-AT" / GM328A
 - basic frequency counter with dedicated input (PD4)
 - measurement of external voltage up to 45V (PC3)
 - settings provided by flywheelz@EEVBlog
+- settings for ST7735 semi-compatible display provided by b0hoon4@gmail.com
+
+Hints:
+- Some GM328A have an ST7735 semi-compatible display which won't run with the
+  standard ST7735 driver. On those modules the level shifter is followed by an
+  additional IC (U3). In this case use the Semi-ST7735 driver.
 
 Hardware Options:
 #define HW_ENCODER
@@ -55,6 +85,29 @@ LCD module:
 If you prefer that the tester starts with a cleared display uncomment
 LCD_LATE_ON.
 
+For the ST7735 semi-compatible display use:
+#define LCD_SEMI_ST7735
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_COLOR                       /* color display */
+#define LCD_SPI                         /* SPI interface */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RES          PD0            /* port pin used for /RESX */
+#define LCD_CS           PD5            /* port pin used for /CSX (optional) */
+#define LCD_DC           PD1            /* port pin used for D/CX */
+#define LCD_SCL          PD2            /* port pin used for SCL */
+#define LCD_SDA          PD3            /* port pin used for SDA */
+#define LCD_DOTS_X       160            /* number of horizontal dots */
+#define LCD_DOTS_Y       128            /* number of vertical dots */
+#define LCD_LATE_ON                     /* turn on LCD after clearing it */
+#define FONT_8X8_HF                     /* 8x8 font */
+#define SYMBOLS_30X32_HF                /* 30x32 symbols */
+#define SPI_BITBANG                     /* bit-bang SPI */
+#define SPI_PORT         LCD_PORT       /* SPI port data register */
+#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
+#define SPI_SCK          LCD_SCL        /* port pin used for SCK */
+#define SPI_MOSI         LCD_SDA        /* port pin used for MOSI */
+
 Rotary Encoder:
 #define ENCODER_PORT     PORTD     /* port data register */
 #define ENCODER_DDR      DDRD      /* port data direction register */
@@ -89,98 +142,24 @@ Inductance compensation offsets for 20MHz model
 
 ------------------------------------------------------------------------------
 
-M12864 DIY Transistor Tester
-- ATmega328, 8MHz clock
+BSide ESR02 (DTU-1701)
+- ATmega 328, 8MHz clock
 - ST7565 display (bit-bang SPI)
-- rotary encoder (PD1 & PD3, in parallel with display)
 - external 2.5V voltage reference (TL431)
+- settings provided by indman@EEVblog
 
 Hardware Options:
-#define HW_ENCODER
-#define ENCODER_PULSES   4         /* not confirmed yet, could be also 2 */
-#define ENCODER_STEPS    24        /* not confirmed yet */
 #define HW_REF25
 
-LCD module:
-#define LCD_ST7565R
-#define LCD_GRAPHIC                     /* graphic display */
-#define LCD_SPI                         /* SPI interface */
-#define LCD_PORT         PORTD          /* port data register */
-#define LCD_DDR          DDRD           /* port data direction register */
-#define LCD_RESET        PD0            /* port pin used for /RES */
-#define LCD_A0           PD1            /* port pin used for A0 */
-#define LCD_SCL          PD2            /* port pin used for SCL */
-#define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
-#define LCD_DOTS_X       128            /* number of horizontal dots */
-#define LCD_DOTS_Y       64             /* number of vertical dots */
-//#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
-#define LCD_FLIP_Y                      /* enable vertical flip */
-#define LCD_START_Y      0              /* start line (0-63) */
-#define LCD_CONTRAST     11             /* default contrast (0-63) */
-#define FONT_8X8_VF                     /* 8x8 font */
-#define SYMBOLS_24X24_VFP               /* 24x24 symbols */
-#define SPI_BITBANG                     /* bit-bang SPI */
-#define SPI_PORT         LCD_PORT       /* SPI port data register */
-#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
-#define SPI_SCK          LCD_SCL        /* port pin used for SCK */
-#define SPI_MOSI         LCD_SI         /* port pin used for MOSI */
-
-Rotary Encoder:
-#define ENCODER_PORT     PORTD     /* port data register */
-#define ENCODER_DDR      DDRD      /* port data direction register */
-#define ENCODER_PIN      PIND      /* port input pins register */
-#define ENCODER_A        PD3       /* rotary encoder A signal */
-#define ENCODER_B        PD1       /* rotary encoder B signal */
-
-
-------------------------------------------------------------------------------
-
-T3/T4
-- ATmega328, 8MHz clock
-- ST7565 display (bit-bang SPI)
-- settings provided by tom666@EEVblog
-- LCD_RESET could be also PD0
+Power management:
+#define BAT_DIVIDER
+#define BAT_EXT_UNMONITORED
+#define BAT_R1           47000
+#define BAT_R2           47000
+#define BAT_OFFSET       420
 
 LCD module:
-#define LCD_ST7565R
-#define LCD_GRAPHIC                     /* graphic display */
-#define LCD_SPI                         /* SPI interface */
-#define LCD_PORT         PORTD          /* port data register */
-#define LCD_DDR          DDRD           /* port data direction register */
-#define LCD_RESET        PD4            /* port pin used for /RES */
-#define LCD_A0           PD3            /* port pin used for A0 */
-#define LCD_SCL          PD2            /* port pin used for SCL */
-#define LCD_SI           PD1            /* port pin used for SI (LCD's data input) */
-#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
-#define LCD_DOTS_X       128            /* number of horizontal dots */
-#define LCD_DOTS_Y       64             /* number of vertical dots */
-#define LCD_START_Y      0              /* start line (0-63) */
-#define LCD_CONTRAST     11             /* default contrast (0-63) */
-#define FONT_8X8_VF                     /* 8x8 font */
-#define SYMBOLS_24X24_VFP               /* 24x24 symbols */
-#define SPI_BITBANG                     /* bit-bang SPI */
-#define SPI_PORT         LCD_PORT       /* SPI port data register */
-#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
-#define SPI_SCK          LCD_SCL        /* port pin used for SCK */
-#define SPI_MOSI         LCD_SI         /* port pin used for MOSI */
-
-Some T4 variants use a slightly different pin assignment:
-#define LCD_RESET        PD0            /* port pin used for /RES */
-#define LCD_A0           PD1            /* port pin used for A0 */
-#define LCD_SCL          PD2            /* port pin used for SCL */
-#define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
-#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
-
-
-------------------------------------------------------------------------------
-
-GM328
-- ATmega328, 8MHz clock
-- ST7565 display (bit-bang SPI)
-- settings provided by rddube@EEVblog
-
-LCD module:
-#define LCD_ST7565R
+#define LCD_ST7565R                     /* display controller ST7565R */
 #define LCD_GRAPHIC                     /* graphic display */
 #define LCD_SPI                         /* SPI interface */
 #define LCD_PORT         PORTD          /* port data register */
@@ -189,11 +168,13 @@ LCD module:
 #define LCD_A0           PD1            /* port pin used for A0 */
 #define LCD_SCL          PD2            /* port pin used for SCL */
 #define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
-#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */
+#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
+#define LCD_FLIP_X                      /* enable horizontal flip */
+#define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_START_Y      0              /* start line (0-63) */
-#define LCD_CONTRAST     11             /* default contrast (0-63) */
+#define LCD_CONTRAST     15             /* default contrast (0-63) */
 #define FONT_8X8_VF                     /* 8x8 font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
@@ -240,116 +221,33 @@ LCD module:
 
 ------------------------------------------------------------------------------
 
-Multifunction Tester TC-1 and family (T7)
-- ATmega324 (very poor pin assignment), 16MHz clock
-  later models may have an ATmega644
-- ST7735 color display (bit-bang SPI)
-- external 2.5V voltage reference (TL431)
-- fixed IR receiver module
-- boost converter for Zener check
-- fixed adjustment cap
-- powered by Li-Ion cell 3.7V
-- sample testers provided by jellytot@EEVblog and joystik@EEVblog
-- initial information provided by indman@EEVblog
-
-Hints:
-- Control MCU U4 needs to be replaced with a simple control circuit (TC1-Mod,
-  see source repository for Hardware/Markus/TC1-Mod.kicad.tgz, 5µA standby
-  current in total) or reprogrammed with a modified firmware (see
-  https://github.com/atar-axis/tc1-u4).
-- Set extended fuse byte to 0xfd (brown-out detection).
-- If D2 (rectifier diode for Zener test voltage) gets hot replace it with a
-  Schottky diode rated for 80V reverse voltage or higher, e.g. SS18.
-- Replace C11 and C12 (filter caps for Zener test voltage) with a 10 or 22µF
-  low-ESR electrolytic cap rated for 100V or higher because of the MLCC DC
-  bias capacitance derating issue.
-- Based on the LCD module used you might have to set LCD_FLIP_X instead of
-  LCD_FLIP_Y.
-- The TC-1 can't provide signal output (PWM/squarewave/etc.) on probe #2. Use
-  PD4 (OC1B) as dedicated signal output (add a resistor to limit current) and
-  enable HW_FIXED_SIGNAL_OUTPUT in config.h.
-- If you like to add a rotary encoder or in/decrease buttons please use
-  PB5 (display's D/C) and PB6 (display's SDA).
-- You can also get the frequency counter by using PB0 (T0) as input und adding
-  a simple input stage.
-- PD0 solder bridge (unused by m-firmware)
-
-Hardware Options:
-#define HW_REF25
-#define HW_ZENER
-#define HW_IR_RECEIVER
-#define HW_ADJUST_CAP
-
-Misc settings:
-#define BAT_DIRECT
-#define BAT_OFFSET       0
-#define BAT_WEAK         3600
-#define BAT_LOW          3400
+GM328
+- ATmega328, 8MHz clock
+- ST7565 display (bit-bang SPI)
+- settings provided by rddube@EEVblog
 
 LCD module:
-#define LCD_ST7735
-#define LCD_COLOR                       /* color graphic display */
+#define LCD_ST7565R
+#define LCD_GRAPHIC                     /* graphic display */
 #define LCD_SPI                         /* SPI interface */
-#define LCD_PORT         PORTB          /* port data register */
-#define LCD_DDR          DDRB           /* port data direction register */
-#define LCD_RES          PB4            /* port pin used for /RESX (optional) */
-//#define LCD_CS           PB?            /* port pin used for /CSX (optional) */
-#define LCD_DC           PB5            /* port pin used for D/CX */
-#define LCD_SCL          PB7            /* port pin used for SCL */
-#define LCD_SDA          PB6            /* port pin used for SDA */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RESET        PD0            /* port pin used for /RES (optional) */
+#define LCD_A0           PD1            /* port pin used for A0 */
+#define LCD_SCL          PD2            /* port pin used for SCL */
+#define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
+#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
-#define LCD_DOTS_Y       160            /* number of vertical dots */
-#define LCD_OFFSET_X     2              /* enable x offset of 2 or 4 dots */
-#define LCD_OFFSET_Y     1              /* enable y offset of 1 or 2 dots */
-//#define LCD_FLIP_X                      /* enable horizontal flip */
-#define LCD_FLIP_Y                      /* enable vertical flip */
-#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
-#define LCD_LATE_ON                     /* turn on LCD after clearing it */
-#define FONT_10X16_HF                   /* 10x16 font */
-#define SYMBOLS_30X32_HF                /* 30x32 symbols */
+#define LCD_DOTS_Y       64             /* number of vertical dots */
+#define LCD_START_Y      0              /* start line (0-63) */
+#define LCD_CONTRAST     11             /* default contrast (0-63) */
+#define FONT_8X8_VF                     /* 8x8 font */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
 #define SPI_DDR          LCD_DDR        /* SPI port data direction register */
 #define SPI_SCK          LCD_SCL        /* port pin used for SCK */
-#define SPI_MOSI         LCD_SDA        /* port pin used for MOSI */
-
-Pinout for test probes:
-#define TP_ZENER         PA4       /* test pin with 10:1 voltage divider */
-#define TP_REF           PA3       /* test pin with 2.5V reference */
-#define TP_BAT           PA5       /* test pin with 4:1 voltage divider */
-#define TP_CAP           PA7       /* test pin for self-adjustment cap */
-
-Pinout for probe resistors:
-#define R_PORT           PORTC     /* port data register */
-#define R_DDR            DDRC      /* port data direction register */
-#define R_RL_1           PC0       /* Rl (680R) for test pin #1 */
-#define R_RH_1           PC1       /* Rh (470k) for test pin #1 */
-#define R_RL_2           PC2       /* Rl (680R) for test pin #2 */
-#define R_RH_2           PC3       /* Rh (470k) for test pin #2 */
-#define R_RL_3           PC4       /* Rl (680R) for test pin #3 */
-#define R_RH_3           PC5       /* Rh (470k) for test pin #3 */
-
-Pinout for power control:
-#define POWER_PORT       PORTD     /* port data register */
-#define POWER_DDR        DDRD      /* port data direction register */
-#define POWER_CTRL       PD2       /* controls power (1: on / 0: off) */
-
-Pinout for test button:
-#define BUTTON_PORT      PORTD     /* port data register */
-#define BUTTON_DDR       DDRD      /* port data direction register */
-#define BUTTON_PIN       PIND      /* port input pins register */
-#define TEST_BUTTON      PD1       /* test/start push button (low active) */
-
-Pinout for fixed IR detector/decoder:
-#define IR_PORT          PORTD     /* port data register */
-#define IR_DDR           DDRD      /* port data direction register */
-#define IR_PIN           PIND      /* port input pins register */
-#define IR_DATA          PD3       /* data signal */
-
-Pinout for fixed cap for self-adjustment:
-#define ADJUST_PORT      PORTC     /* port data register */
-#define ADJUST_DDR       DDRC      /* port data direction register */
-#define ADJUST_RH        PC6       /* Rh (470k) for fixed cap */
+#define SPI_MOSI         LCD_SI         /* port pin used for MOSI */
 
 ------------------------------------------------------------------------------
 
@@ -362,6 +260,7 @@ Hiland M644
 - extended frequency counter
   (but no input buffer stage for direct frequency measurement) 
 - fixed adjustment cap
+  (in case of problems replace MLCC with 220nF film cap)
 - settings provided by Horst O. (obelix2007@mikrocontroller.net)
 
 Hardware Options:
@@ -453,39 +352,75 @@ Pinout for fixed cap for self-adjustment:
 
 ------------------------------------------------------------------------------
 
-BSide ESR02 (DTU-1701)
-- ATmega 328, 8MHz clock
+M12864 DIY Transistor Tester
+- ATmega328, 8MHz clock
 - ST7565 display (bit-bang SPI)
+- rotary encoder (PD1 & PD3, in parallel with display)
 - external 2.5V voltage reference (TL431)
-- settings provided by indman@EEVblog
 
 Hardware Options:
+#define HW_ENCODER
+#define ENCODER_PULSES   4         /* not confirmed yet, could be also 2 */
+#define ENCODER_STEPS    24        /* not confirmed yet */
 #define HW_REF25
 
-Power management:
-#define BAT_DIVIDER
-#define BAT_EXT_UNMONITORED
-#define BAT_R1           47000
-#define BAT_R2           47000
-#define BAT_OFFSET       420
-
 LCD module:
-#define LCD_ST7565R                     /* display controller ST7565R */
+#define LCD_ST7565R
 #define LCD_GRAPHIC                     /* graphic display */
 #define LCD_SPI                         /* SPI interface */
 #define LCD_PORT         PORTD          /* port data register */
 #define LCD_DDR          DDRD           /* port data direction register */
-#define LCD_RESET        PD0            /* port pin used for /RES (optional) */
+#define LCD_RESET        PD0            /* port pin used for /RES */
 #define LCD_A0           PD1            /* port pin used for A0 */
 #define LCD_SCL          PD2            /* port pin used for SCL */
 #define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       64             /* number of vertical dots */
-#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
-#define LCD_FLIP_X                      /* enable horizontal flip */
+//#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_START_Y      0              /* start line (0-63) */
-#define LCD_CONTRAST     15             /* default contrast (0-63) */
+#define LCD_CONTRAST     11             /* default contrast (0-63) */
+#define FONT_8X8_VF                     /* 8x8 font */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+#define SPI_BITBANG                     /* bit-bang SPI */
+#define SPI_PORT         LCD_PORT       /* SPI port data register */
+#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
+#define SPI_SCK          LCD_SCL        /* port pin used for SCK */
+#define SPI_MOSI         LCD_SI         /* port pin used for MOSI */
+
+Rotary Encoder:
+#define ENCODER_PORT     PORTD     /* port data register */
+#define ENCODER_DDR      DDRD      /* port data direction register */
+#define ENCODER_PIN      PIND      /* port input pins register */
+#define ENCODER_A        PD3       /* rotary encoder A signal */
+#define ENCODER_B        PD1       /* rotary encoder B signal */
+
+------------------------------------------------------------------------------
+
+MK-328
+- ATmega328, 8MHz clock
+- ST7565 display (bit-bang SPI)
+- external 2.5V voltage reference (TL431)
+- settings provided by brunosso@EEVblog
+
+Hardware Options:
+#define HW_REF25
+
+LCD module:
+#define LCD_ST7565R
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_SPI                         /* SPI interface */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RESET        PD0            /* port pin used for /RES (optional) */
+#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
+#define LCD_A0           PD1            /* port pin used for A0 */
+#define LCD_SCL          PD2            /* port pin used for SCL */
+#define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       64             /* number of vertical dots */
+#define LCD_START_Y      0              /* start line (0-63) */
+#define LCD_CONTRAST     11             /* default contrast (0-63) */
 #define FONT_8X8_VF                     /* 8x8 font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
@@ -496,27 +431,164 @@ LCD module:
 
 ------------------------------------------------------------------------------
 
-Arduino Nano, Uno or Mega 2560
-- Nano/Uno: ATmega 328, 16MHz clock
-  Mega 2560: ATmega 2560, 16MHz clock
-- Download the Arduino pinout diagram to get the mapping between Arduino and
-  ATmega pins.
-- The integrated USB2serial adapter makes serial communication simple
-  (enable SERIAL_HARDWARE).
-- only the essential settings are listed
+T3/T4
+- ATmega328, 8MHz clock
+- ST7565 display (bit-bang SPI)
+- settings provided by tom666@EEVblog
+- LCD_RESET could be also PD0
 
-Hardware options:
-#define HW_FIXED_SIGNAL_OUTPUT
+LCD module:
+#define LCD_ST7565R
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_SPI                         /* SPI interface */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RESET        PD4            /* port pin used for /RES */
+#define LCD_A0           PD3            /* port pin used for A0 */
+#define LCD_SCL          PD2            /* port pin used for SCL */
+#define LCD_SI           PD1            /* port pin used for SI (LCD's data input) */
+#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       64             /* number of vertical dots */
+#define LCD_START_Y      0              /* start line (0-63) */
+#define LCD_CONTRAST     11             /* default contrast (0-63) */
+#define FONT_8X8_VF                     /* 8x8 font */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+#define SPI_BITBANG                     /* bit-bang SPI */
+#define SPI_PORT         LCD_PORT       /* SPI port data register */
+#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
+#define SPI_SCK          LCD_SCL        /* port pin used for SCK */
+#define SPI_MOSI         LCD_SI         /* port pin used for MOSI */
 
-User interface:
-#define UI_AUTOHOLD
+Some T4 variants use a slightly different pin assignment:
+#define LCD_RESET        PD0            /* port pin used for /RES */
+#define LCD_A0           PD1            /* port pin used for A0 */
+#define LCD_SCL          PD2            /* port pin used for SCL */
+#define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
+#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
 
-Power management:
-#define POWER_SWITCH_MANUAL
-#define BAT_NONE
+------------------------------------------------------------------------------
 
-Measurement settings and offsets:
-#define ADC_LARGE_BUFFER_CAP
+Multifunction Tester TC-1 and family (T7)
+- ATmega324 (very poor pin assignment), 16MHz clock
+  later models may have an ATmega644
+- ST7735 color display (bit-bang SPI)
+- external 2.5V voltage reference (TL431)
+- fixed IR receiver module
+- boost converter for Zener check
+  (runs all the time, non-standard voltage divider 100k/12k)
+- fixed adjustment cap
+  (in case of problems replace MLCC with 220nF film cap)
+- powered by Li-Ion cell 3.7V
+- sample testers provided by jellytot@EEVblog and joystik@EEVblog
+- initial information provided by indman@EEVblog
 
+Hints:
+- Control MCU U4 needs to be replaced with a simple control circuit (TC1-Mod,
+  see source repository for Hardware/Markus/TC1-Mod.kicad.tgz, 5µA standby
+  current in total) or reprogrammed with a modified firmware (see
+  https://github.com/atar-axis/tc1-u4).
+- Set extended fuse byte to 0xfd (brown-out detection).
+- If D2 (rectifier diode for Zener test voltage) gets hot replace it with a
+  Schottky diode rated for 80V reverse voltage or higher, e.g. SS18.
+- Replace C11 and C12 (filter caps for Zener test voltage) with a 10 or 22µF
+  low-ESR electrolytic cap rated for 100V or higher because of the MLCC DC
+  bias capacitance derating issue.
+- Based on the LCD module used you might have to set LCD_FLIP_X instead of
+  LCD_FLIP_Y.
+- The TC-1 can't provide signal output (PWM/squarewave/etc.) on probe #2. Use
+  PD4 (OC1B) as dedicated signal output (add a resistor to limit current) and
+  enable HW_FIXED_SIGNAL_OUTPUT in config.h.
+- If you like to add a rotary encoder or in/decrease buttons please use
+  PB5 (display's D/C) and PB6 (display's SDA).
+- You can also get the frequency counter by using PB0 (T0) as input und
+  adding a simple input stage.
+- PD0 solder bridge (open: pull-up, shorted: Gnd, unused by m-firmware)
+
+Hardware Options:
+#define HW_REF25
+#define HW_ZENER
+#define ZENER_DIVIDER_CUSTOM
+#define ZENER_R1         100000
+#define ZENER_R2         12000
+#define ZENER_UNSWITCHED
+#define HW_IR_RECEIVER
+#define HW_ADJUST_CAP
+
+Optionally:
+#define HW_PROBE_ZENER
+#define ZENER_VOLTAGE_MIN     1000      /* min. voltage in mV */
+#define ZENER_VOLTAGE_MAX     40000     /* max. voltage in mV */
+
+Power management settings:
+#define BAT_DIRECT
+#define BAT_OFFSET       0
+#define BAT_WEAK         3600
+#define BAT_LOW          3400
+
+LCD module:
+#define LCD_ST7735
+#define LCD_COLOR                       /* color graphic display */
+#define LCD_SPI                         /* SPI interface */
+#define LCD_PORT         PORTB          /* port data register */
+#define LCD_DDR          DDRB           /* port data direction register */
+#define LCD_RES          PB4            /* port pin used for /RESX (optional) */
+//#define LCD_CS           PB?            /* port pin used for /CSX (optional) */
+#define LCD_DC           PB5            /* port pin used for D/CX */
+#define LCD_SCL          PB7            /* port pin used for SCL */
+#define LCD_SDA          PB6            /* port pin used for SDA */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       160            /* number of vertical dots */
+#define LCD_OFFSET_X     2              /* enable x offset of 2 or 4 dots */
+#define LCD_OFFSET_Y     1              /* enable y offset of 1 or 2 dots */
+//#define LCD_FLIP_X                      /* enable horizontal flip */
+#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
+#define LCD_LATE_ON                     /* turn on LCD after clearing it */
+#define FONT_10X16_HF                   /* 10x16 font */
+#define SYMBOLS_30X32_HF                /* 30x32 symbols */
+#define SPI_BITBANG                     /* bit-bang SPI */
+#define SPI_PORT         LCD_PORT       /* SPI port data register */
+#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
+#define SPI_SCK          LCD_SCL        /* port pin used for SCK */
+#define SPI_MOSI         LCD_SDA        /* port pin used for MOSI */
+
+Pinout for test probes:
+#define TP_ZENER         PA4       /* test pin with 10:1 voltage divider */
+#define TP_REF           PA3       /* test pin with 2.5V reference */
+#define TP_BAT           PA5       /* test pin with 4:1 voltage divider */
+#define TP_CAP           PA7       /* test pin for self-adjustment cap */
+
+Pinout for probe resistors:
+#define R_PORT           PORTC     /* port data register */
+#define R_DDR            DDRC      /* port data direction register */
+#define R_RL_1           PC0       /* Rl (680R) for test pin #1 */
+#define R_RH_1           PC1       /* Rh (470k) for test pin #1 */
+#define R_RL_2           PC2       /* Rl (680R) for test pin #2 */
+#define R_RH_2           PC3       /* Rh (470k) for test pin #2 */
+#define R_RL_3           PC4       /* Rl (680R) for test pin #3 */
+#define R_RH_3           PC5       /* Rh (470k) for test pin #3 */
+
+Pinout for power control:
+#define POWER_PORT       PORTD     /* port data register */
+#define POWER_DDR        DDRD      /* port data direction register */
+#define POWER_CTRL       PD2       /* controls power (1: on / 0: off) */
+
+Pinout for test button:
+#define BUTTON_PORT      PORTD     /* port data register */
+#define BUTTON_DDR       DDRD      /* port data direction register */
+#define BUTTON_PIN       PIND      /* port input pins register */
+#define TEST_BUTTON      PD1       /* test/start push button (low active) */
+
+Pinout for fixed IR detector/decoder:
+#define IR_PORT          PORTD     /* port data register */
+#define IR_DDR           DDRD      /* port data direction register */
+#define IR_PIN           PIND      /* port input pins register */
+#define IR_DATA          PD3       /* data signal */
+
+Pinout for fixed cap for self-adjustment:
+#define ADJUST_PORT      PORTC     /* port data register */
+#define ADJUST_DDR       DDRC      /* port data direction register */
+#define ADJUST_RH        PC6       /* Rh (470k) for fixed cap */
 
 ------------------------------------------------------------------------------

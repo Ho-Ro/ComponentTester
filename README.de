@@ -3,11 +3,11 @@
 
             ReadMe für die Component-Tester-Firmware (m-Firmware)
 
-        (c) 2012-2020 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2021 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2020-12-16
+Letzte Änderung: 2021-03-12
 
 Inhaltsübersicht:
   - Über den Tester
@@ -44,6 +44,7 @@ Inhaltsübersicht:
     - Drehencoder
     - Mehr/Weniger-Tasten
     - Touch-Screen
+  - Benutzerschnittstelle
   - Kommunikation mit PC
     - Serielle Ausgabe
     - Automatisierung
@@ -96,6 +97,7 @@ Inhaltsübersicht:
   - Hilfe
   - Firmware-Änderungen
   - Fernsteuerungskommandos
+  - Hilfreiche Links
   - Quellenverzeichnis
 
 
@@ -195,7 +197,7 @@ u.A. einfache Frameworks für Anzeige und Schnittstellen dazu gekommen. Ich
 hoffe, daß der Quellcode einfach zu lesen und gut verständlich ist.
 
 Du findest die aktuelle Firmware auf folgenden Webseiten:
-- https://www.mikrocontroller.net/svnbrowser/transistortester/Software/Markus
+- https://github.com/Mikrocontroller-net/transistortester/tree/master/Software/Markus
 - https://github.com/madires/Transistortester-Warehouse
 
 
@@ -450,7 +452,7 @@ Im Augenblick werden folgende Controller unterstützt:
 - ST7735 (grafisches Farb-Display 128x160)
 - ST7920 (grafisches Display bis zu 256x64)
 - STE2007/HX1230 (grafisches Display 96x68)
-- VT100 Terminal
+- VT100 Terminal (über serielle Schnitstelle)
 
 Beachte die Versorgungsspannung und die Logikpegel des Anzeige-Moduls! Benutze
 Pegelumsetzer, sofern notwendig. Ein einfacher Pegelumsetzer mit Widerständen
@@ -561,7 +563,7 @@ Das Pinout für 8-Bit-Parallel ist:
   /CSX        LCD_CS           PB5          optional
   D/CX        LCD_DC           PB7
   WRX         LCD_WR           PB0
-  RDX         LCD_RD           PB6
+  RDX         LCD_RD           PB6          optional
               LCD_PORT2        PORTL
   D0          LCD_DB0          PL0          LCD_PORT2 Pin #0
   D1          LCD_DB1          PL1          LCD_PORT2 Pin #1
@@ -598,7 +600,7 @@ Das Pinout für 8-Bit-Parallel ist:
   /CSX        LCD_CS           PB5          optional
   D/CX        LCD_DC           PB7
   WRX         LCD_WR           PB0
-  RDX         LCD_RD           PB6
+  RDX         LCD_RD           PB6          optional
               LCD_PORT2        PORTL
   DB0         LCD_DB0          PL0          LCD_PORT2 Pin #0
   DB1         LCD_DB1          PL1          LCD_PORT2 Pin #1
@@ -824,6 +826,11 @@ experimentieren. Wenn LCD_LATE_ON aktiviert ist, startet der Tester mit einem
 gelöschten Display, was zu einer kurzen Verzögerung beim Einschalten führt.
 Ansonsten sind beim Anschalten kurz zufällige Pixel zu sehen.
 
+Es ist inzwischen auch ein teil-kompatibles LCD-Modul aufgetaucht, welches
+nicht mit dem normalen Treiber funktioniert. Als Lösung gibt es einen
+modifizierten Treiber (LCD_SEMI_ST7735 anstatt LCD_ST7735) mit den gleichen
+Einstellmöglichkeiten.
+
 
 + ST7920
 
@@ -986,6 +993,27 @@ Unterstützte Touch-Screen-Controller:
 Du findest die Konfiguration dazu unterhalb des Bereichs für LCD-Module in
 config-<MCU>.h (momentan nur config_644.h und config_1280.h, da der 328 zu
 wenig unbenutze IO-Pins hat).
+
+
+* Benutzerschnittstelle
+
+Es gibt mehrere Optionen, die Display-Ausgabe für Anzeigen schicker oder
+verständlicher zu gestalten.
+
+Für Anzeigen mit mehr als zwei Textzeilen:
+- Anzeige von Tastenhinweisen statt Cursor, sofern verfügbar (UI_KEY_HINTS)
+
+Für graphische Anzeigen:
+- alle vorherigen Optionen
+- Symbole mit Pinout für dreibeinige Halbleiter (SW_SYMBOLS, nicht für
+  Anzeigen mit niedriger Auflösung)
+
+Für farbige Grafikanzeigen:
+- alle vorherigen Optionen
+- Farbcodierung für Testpins (UI_PROBE_COLORS)
+- Titel mit eigener Farbe (UI_COLORED_TITLES)
+- Cursor und Tastenhinweise mit eigener Farbe (UI_COLORED_CURSOR)
+- Farbcode für Widerstände (SW_R_E24_5_CC, SW_R_E24_1_CC und SW_R_E96_CC)
 
 
 * Kommunikation mit PC
@@ -1156,10 +1184,11 @@ Pinout.
 
 + PWM-Generator
 
-Macht genaus das, was Du erwartest :-) Vor dem Übersetzen der Firmware bitte
+Macht genaus das, was Du erwartest. :) Vor dem Übersetzen der Firmware bitte
 entweder den PWN-Generator mit einfacher Bedienung oder den mit erweiterter
 Bedienung auswählen. Letzterer benötigt einen Drehencoder und ein größeres
-Display.
+Display. Für die optionale Ausgabe der Pulsdauer zusätzlich PWM_SHOW_DURATION
+aktivieren.
 
 Beschaltung bei Signalsusgabe über die Testpins: 
   Pin #2:          Ausgang (680 Ohm Widerstand zur Strombegrenzung)
@@ -1226,7 +1255,14 @@ Messen einer externen Spannung hat, oder der Boost-Konverter ständig läuft,
 kannst Du den alternativen Modus (ZENER_UNSWITCHED) aktivieren, welcher
 die Spannung periodisch ohne Drücken der Test-Taste misst. Zeigt der Tester
 zwischen den Messungen unten rechts einen Cursor an, kannst Du den Zenertest 
-über zweimaliges Drücken der Test-Taste beenden.
+über zweimaliges Drücken der Test-Taste beenden. Als weitere Option kannst Du
+den Zenertest auch während der normalen Bauteilesuche automatisch laufen
+lassen (HW_PROBE_ZENER). Wird kein Bauteil an den normalen Testpins gefunden,
+prüft der Tester die Spannung an den Zener-Testpins.
+
+Für den Fall, dass Dein Tester einen Nicht-Standard-Spannungsteiler hat (nicht
+10:1), aktiviere ZENER_DIVIDER_CUSTOM und setze die Widerstandswerte (ZENER_R1
+und ZENER_R2).
 
 Beschaltung für Zenerdiode:
    Pin +: Kathode
@@ -1303,13 +1339,20 @@ Die PIC-L/C-Meter haben in der Regel einen Messbereich von 10nH bis 100mH,
 und 0.1pF bis 900nF. Sie scheinen eine Torzeit von 100ms für den Frequenz-
 zähler zu nutzen. Die m-Firmware hat dagegen eine automatische Bereichswahl
 mit Torzeiten von 100ms und 1000ms, um die Auflösung für kleine L/C-Werte zu
-verbessern. Somit starten die Messbereiche bei ca. 1nH und 10fF. Die maximal
-messbare Induktivität ist grob 150nH. Bei der Kapazität bin ich mit meiner
-Platine auf ein Problem mit dem Ausgangssignal ab ca. 33nF gestoßen. Dort
-bekommen die Flanken kleine Sporne, wodurch der Frequenzzähler mehr Pulse
-sieht als wirklich da sind. Das könnte am Layout der Platine liegen.
-Ansonsten sollte das Maximum ebenfalls bei ca. 900nF liegen (darüber wird der
-LCD-Oszillator instabil).
+verbessern. Somit starten die Messbereiche bei ca. 1nH und 10fF (0.01pF). Die
+maximal messbare Induktivität ist grob 150mH. Bzgl. der Kapazität bin ich bei
+der Schaltung auf ein Problem mit dem Ausgangssignal ab ca. 33nF gestoßen.
+Dort bekommen die Flanken kleine Sporne, wodurch der Frequenzzähler mehr
+Pulse sieht als wirklich da sind. Ein Benutzer erwähnte, dass es sich um ein
+bekanntes Problem der LM311-basierten Oszilatorschaltung handelt. Beim Testen
+mehrerer Modifikationen ergab sich keine nennenswerte Verbesserung. Daher
+scheint ein weiterer Komparator oder ein Logik-Gatter mit Schmitt-Trigger-
+Eingang die beste Lösung zu sein, um das Ausgangssignal des Oszillators zu
+bereinigen. Das CMOS Vierfach-NAND 4093 funktioniert dazu prima. Bei einem
+sauberen Ausgangssignal liegt das Maximum der Kapazität bei ca. 120nF (darüber
+wird der LC-Oszillator instabil). Der Tester begrenzt die Messungen auf einen 
+unteren Wert von 10kHz, d.h. die theoretischen Maximalwerte sind 250mH bzw.
+3,5µF, wenn der LC-Oszillator stabil liefe.
 
 Nach dem Starten vom L/C-Meter führt der Tester als Erstes einen Selbst-
 abgleich durch, angezeigt durch eine "abgleichen..." Nachricht. Danach
@@ -2476,6 +2519,30 @@ Testkommandos:
   - nur für UJT
   - Beispielantwort: "4758R"
 
+  V_Z
+  - gibt V_Z zurück (Zener- oder externe Spannung)
+  - benötigt aktvierten Zener-Test während normaler Bauteilesuche
+  - nur für Zenerdiode oder externe Spannung (Hardware-Option)
+  - Beispielantwort: "6750mV"
+
+
+* Hilfreiche Links
+
+- Deutsches Forum
+  https://www.mikrocontroller.net/topic/248078
+
+- Englisches Forum
+  https://www.eevblog.com/forum/testgear/$20-lcr-esr-transistor-checker-project/
+
+- Russisches Forum
+  https://vrtp.ru/index.php?showtopic=16451
+
+- Infos zu verschiedenen Clonen, wie Bilder, Schaltpläne und Firmware
+  (von indman@EEVblog)
+  https://yadi.sk/d/yW8xa5NJgUo5z
+
+- Anleitung plus div. Dateien für WinAVR (von indman@EEVblog)
+  https://drive.google.com/file/d/1-IJA8uTcsCA_6SYHEuMydjfS2vNgmwdH/view?usp=sharing
 
 
 * Quellenverzeichnis

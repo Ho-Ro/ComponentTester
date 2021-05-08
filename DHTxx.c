@@ -7,7 +7,7 @@
  *            DHT33, RHT04, AM2303
  *            DHT44, RHT05
  *
- *   (c) 2019 by Markus Reschke
+ *   (c) 2019-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -80,7 +80,12 @@ uint8_t DHTxx_Probes(void)
   /* inform user */
   ShortCircuit(0);                      /* make sure probes are not shorted */
   LCD_Clear();
-  Display_EEString(DHTxx_str);          /* display: DHTxx */
+  #ifdef UI_COLORED_TITLES
+    /* display: DHTxx */
+    Display_ColoredEEString(DHTxx_str, COLOR_TITLE);
+  #else
+    Display_EEString(DHTxx_str);        /* display: DHTxx */
+  #endif
 
   /* display module pinout (1: Gnd / 2: Data / 3: Vdd) */
   Display_NextLine();
@@ -536,11 +541,19 @@ void DHTxx_DisplaySensor(uint8_t Sensor, uint8_t Mode)
   /* show sensor type */
   if (Sensor == DHT11)                  /* DHT11 */
   {
-    Display_EEString_Space(DHT11_str);  /* display: DHT11 */
+    #ifdef UI_COLORED_TITLES
+      Display_ColoredEEString_Space(DHT11_str, COLOR_TITLE);
+    #else
+      Display_EEString_Space(DHT11_str);     /* display: DHT11 */
+    #endif
   }
   else                                  /* DHT22 */
   {
-    Display_EEString_Space(DHT22_str);  /* display: DHT22 */
+    #ifdef UI_COLORED_TITLES
+      Display_ColoredEEString_Space(DHT22_str, COLOR_TITLE);
+    #else
+      Display_EEString_Space(DHT22_str);     /* display: DHT22 */
+    #endif
   }
 
   /* show mode */
@@ -661,12 +674,12 @@ uint8_t DHTxx_Tool(void)
         }
         else                       /* checksum error */
         {
-          Display_Char('-');       /* display n/a */
+         Display_Minus();          /* display n/a */
         }
       }
       else                         /* some error */
       {
-        Display_Char('-');         /* display n/a */
+       Display_Minus();            /* display n/a */
       }
     }
   }

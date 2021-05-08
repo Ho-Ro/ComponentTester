@@ -118,10 +118,15 @@ uint8_t OneWire_Probes(const unsigned char *String)
   uint8_t           Flag = 0;      /* return value */
   uint8_t           Run = 1;       /* loop control */
 
-  /* inform user */
+  /* inform user in line #1 */
   ShortCircuit(0);                      /* make sure probes are not shorted */
   LCD_Clear();
-  Display_EEString(String);             /* display String */
+  #ifdef UI_COLORED_TITLES
+    Display_ColoredEEString(String, COLOR_TITLE);   /* display String */
+  #else
+    Display_EEString(String);           /* display String */
+  #endif
+
   /* display module pinout (1: Gnd / 2: Data / 3: Vcc) */
   Display_NextLine();
   Show_SimplePinout('-', 'd', '+');
@@ -933,7 +938,7 @@ void OneWire_Read_ROM_Code(void)
     }
     else                       /* mismatch */
     {
-      Display_Char('-');                /* display n/a */
+      Display_Minus();                  /* display n/a */
     }
   }
 }
@@ -1204,10 +1209,14 @@ uint8_t DS18B20_Tool(void)
 
     if (Test == KEY_LONG)          /* long key press */
     {
-      /* display mode */
+      /* display mode in line #1 */
       LCD_ClearLine(1);            /* clear line #1 */
       LCD_CharPos(1, 1);           /* move to line #1 */
-      Display_EEString_Space(DS18B20_str);
+      #ifdef UI_COLORED_TITLES
+        Display_ColoredEEString_Space(DS18B20_str, COLOR_TITLE);
+      #else
+        Display_EEString_Space(DS18B20_str);
+      #endif
 
       /* change mode */
       if (Mode == MODE_MANUAL)     /* manual mode */
@@ -1275,7 +1284,7 @@ uint8_t DS18B20_Tool(void)
       }
       else                         /* some error */
       {
-        Display_Char('-');         /* display n/a */
+        Display_Minus();           /* display n/a */
       }
 
       #ifdef ONEWIRE_READ_ROM

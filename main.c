@@ -2,7 +2,7 @@
  *
  *   main part
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -45,6 +45,7 @@ uint8_t        MissedParts;          /* counter for failed/missed components */
 
 /*
  *  show pinout for semiconductors
+ *  - diplays: =abc
  *
  *  required:
  *  - character for pin A
@@ -56,7 +57,7 @@ void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
 {
   uint8_t           n;             /* counter */
   uint8_t           Char;          /* character */
-  #ifdef SW_PROBE_COLORS
+  #ifdef UI_PROBE_COLORS
   uint16_t          Color;         /* color value */
 
   Color = UI.PenColor;             /* save current color */
@@ -74,7 +75,7 @@ void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
   /* display pin IDs */
   for (n = 0; n <= 2; n++)         /* loop through probe pins */
   {
-    #ifdef SW_PROBE_COLORS
+    #ifdef UI_PROBE_COLORS
     UI.PenColor = ProbeColors[n];  /* set probe color */
     #endif
 
@@ -85,7 +86,7 @@ void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
     Display_Char(Char);            /* display ID */
   }
 
-  #ifdef SW_PROBE_COLORS
+  #ifdef UI_PROBE_COLORS
   UI.PenColor = Color;             /* restore old color */
   #endif
 }
@@ -94,6 +95,7 @@ void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
 
 /*
  *  show simple pinout
+ *  - displays: 1:a 2:b 3:c 
  *
  *  required:
  *  - ID: characters for probes 1, 2 and 3
@@ -104,7 +106,7 @@ void Show_SimplePinout(uint8_t ID_1, uint8_t ID_2, uint8_t ID_3)
 {
   uint8_t           n;        /* counter */
   unsigned char     ID[3];    /* component pin IDs */
-  #ifdef SW_PROBE_COLORS
+  #ifdef UI_PROBE_COLORS
   uint16_t          Color;    /* color value */
 
   Color = UI.PenColor;             /* save current color */
@@ -120,15 +122,15 @@ void Show_SimplePinout(uint8_t ID_1, uint8_t ID_2, uint8_t ID_3)
     if (ID[n] != 0)                /* display this one */
     {
       Display_ProbeNumber(n);
-      Display_Char(':');
+      Display_Colon();
 
-      #ifdef SW_PROBE_COLORS
+      #ifdef UI_PROBE_COLORS
       UI.PenColor = ProbeColors[n];     /* set probe color */
       #endif
 
       Display_Char(ID[n]);
 
-      #ifdef SW_PROBE_COLORS
+      #ifdef UI_PROBE_COLORS
       UI.PenColor = Color;              /* restore old color */
       #endif
 
@@ -218,7 +220,7 @@ void Show_ENormValues(uint32_t Value, int8_t Scale, uint8_t ESeries, uint8_t Tol
   }
   else                        /* no norm value */
   {
-    Display_Char('-');        /* display: - */
+    Display_Minus();          /* display: - */
   }
 }
 
@@ -375,7 +377,7 @@ void Show_Error()
     /* display probe number and remaining voltage */
     Display_NextLine();
     Display_ProbeNumber(Check.Probe);
-    Display_Char(':');
+    Display_Colon();
     Display_Space();
     Display_Value(Check.U, -3, 'V');
   }
@@ -487,8 +489,12 @@ void Show_Resistor(void)
 
 
   /*
-   *  display the pins
+   *  display the resistor(s) and pins in line #1
    */
+
+  #ifdef UI_COLORED_TITLES
+  Display_UseTitleColor();         /* use title color */
+  #endif
 
   /* first resistor */
   if (R1->A != Pin)           /* A is not common pin */
@@ -517,9 +523,15 @@ void Show_Resistor(void)
     }
   }
 
+  #ifdef UI_COLORED_TITLES
+  Display_UsePenColor();           /* use pen color */
+  #endif
+
 
   /*
-   *  display the values
+   *  display the value(s) in line #2
+   *  - optionally inductance
+   *  - optionally E-series norm values
    */
 
   /* first resistor */
@@ -640,7 +652,10 @@ void Show_Capacitor(void)
   #endif
   uint8_t           Counter;       /* loop counter */
 
-  /* find largest cap */
+  /*
+   *  find largest cap
+   */
+
   MaxCap = &Caps[0];               /* pointer to first cap */
   Cap = MaxCap;
 
@@ -659,19 +674,36 @@ void Show_Capacitor(void)
   Info.Comp1 = (void *)MaxCap;     /* link largest cap */
   #endif
 
-  /* display pinout */
+
+  /*
+   *  display cap and pinout in line #1
+   */
+
+  #ifdef UI_COLORED_TITLES
+  Display_UseTitleColor();         /* use title color */
+  #endif
+
   Display_ProbeNumber(MaxCap->A);  /* display pin #1 */
   Display_EEString(Cap_str);       /* display capacitor symbol */
   Display_ProbeNumber(MaxCap->B);  /* display pin #2 */
 
-  /* show capacitance */
+  #ifdef UI_COLORED_TITLES
+  Display_UsePenColor();           /* use pen color */
+  #endif
+
+
+  /*
+   *  display capacitance in line #2, optionally ESR
+   */
+
+  /* display capacitance */
   Display_NextLine();              /* move to next line */
   Display_Value(MaxCap->Value, MaxCap->Scale, 'F');
 
   #if defined (SW_ESR) || defined (SW_OLD_ESR)
-  /* show ESR */
+  /* measure and display ESR */
   ESR = MeasureESR(MaxCap);        /* measure ESR */
-  if (ESR < UINT16_MAX)            /* if successfull */
+  if (ESR < UINT16_MAX)            /* if successful */
   {
     Display_Space();
     Display_Value(ESR, -2, LCD_CHAR_OMEGA);  /* display ESR */
@@ -682,7 +714,12 @@ void Show_Capacitor(void)
     #endif
   #endif
 
-  /* show discharge leakage current */
+
+  /*
+   *  display additional stuff
+   */
+
+  /* display discharge leakage current in next line */
   if (MaxCap->I_leak > 0)
   {
     Display_NL_EEString_Space(I_leak_str);
@@ -744,7 +781,7 @@ void Show_Diode_Cap(Diode_Type *Diode)
 
 
 /*
- *  show diode
+ *  show diode(s)
  */
 
 void Show_Diode(void)
@@ -760,6 +797,10 @@ void Show_Diode(void)
   uint8_t           m;             /* counter */
 
   D1 = &Diodes[0];                 /* pointer to first diode */
+
+  #ifdef UI_COLORED_TITLES
+  Display_UseTitleColor();         /* use title color */
+  #endif
 
   /*
    *  figure out which diodes to display
@@ -830,12 +871,13 @@ void Show_Diode(void)
   }
   else                             /* too much diodes */
   {
-    Display_EEString(Diode_AC_str);     /* display: -|>|- */
-    Display_Space();                    /* display space */
-    Display_Char(Check.Diodes + '0');   /* display number of diodes found */
+    /* display number of diodes found in line #1 */
+    Display_EEString_Space(Diode_AC_str);    /* display: -|>|- */
+    Display_Char('0' + Check.Diodes);        /* display number of diodes */
+
     #ifdef UI_SERIAL_COMMANDS
     /* set data for remote commands */
-    Info.Quantity = Check.Diodes;       /* set quantity */
+    Info.Quantity = Check.Diodes;            /* set quantity */
     #endif
 
     return;
@@ -849,7 +891,7 @@ void Show_Diode(void)
 
 
   /*
-   *  display pins 
+   *  display diode(s) and pinout in line #1
    */
 
   /* first diode */
@@ -898,7 +940,15 @@ void Show_Diode(void)
     #endif
   }
 
-  /* check for B-E resistor of possible BJT */
+  #ifdef UI_COLORED_TITLES
+  Display_UsePenColor();           /* use pen color */
+  #endif
+
+
+  /*
+   *  check for B-E resistor of possible BJT
+   */
+
   if (R_Pin1 < 5)                  /* possible BJT */
   {
     /* B-E resistor below 25kOhms */
@@ -908,7 +958,7 @@ void Show_Diode(void)
       Display_Space();
       if (A < 3)                        /* PNP */
       {
-        Display_EEString(PNP_str);
+        Display_EEString(PNP_str);      /* display: PNP */
         #ifdef UI_SERIAL_COMMANDS
         /* set data for remote commands */
         Info.Flags |= INFO_D_R_BE | INFO_D_BJT_PNP;    /* R_BE & PNP */
@@ -916,13 +966,13 @@ void Show_Diode(void)
       }
       else                              /* NPN */
       {
-        Display_EEString(NPN_str);
+        Display_EEString(NPN_str);      /* display: NPN */
         #ifdef UI_SERIAL_COMMANDS
         /* set data for remote commands */
         Info.Flags |= INFO_D_R_BE | INFO_D_BJT_NPN;    /* R_BE & NPN */
         #endif
       }
-      Display_Char('?');
+      Display_Char('?');                /* display: ? */
 
       Display_NextLine();               /* move to line #2 */
       R_Pin1 += '1';                    /* convert pin ID to character */
@@ -936,7 +986,7 @@ void Show_Diode(void)
   /*
    *  display:
    *  - Uf (forward voltage)
-   *  - reverse leakage current (for single diodes)
+   *  - reverse leakage current (for single diode)
    *  - capacitance (not for anti-parallel diodes)
    */
 
@@ -975,7 +1025,11 @@ void Show_Diode(void)
     Display_Value(D2->V_f, -3, 'V');
   }
 
-  /* display capacitance */
+
+  /*
+   *  display capacitance in next line
+   */
+
   if (CapFlag == 1)                     /* if feasable */ 
   {
     Display_NL_EEString_Space(DiodeCap_str);   /* display: C */
@@ -992,11 +1046,11 @@ void Show_Diode(void)
     #endif
 
     #ifdef UI_SERIAL_COMMANDS
-    /* first diode */
+    /* first diode (store value in Caps[0]) */
     MeasureCap(D1->C, D1->A, 0);        /* get capacitance (reversed direction) */
     Display_Value(Caps[0].Value, Caps[0].Scale, 'F');
 
-    if (D2)                   /* second diode */
+    if (D2)                   /* second diode (store value in Caps[1]) */
     {
       Display_Space();
       MeasureCap(D2->C, D2->A, 1);      /* get capacitance (reversed direction) */
@@ -1088,11 +1142,18 @@ void Show_BJT(void)
 
 
   /*
-   *  display type
+   *  display type in line #1
    */
 
-  Display_EEString_Space(BJT_str);      /* display: BJT */
-  Display_EEString(String);             /* display: NPN / PNP */
+  #ifdef UI_COLORED_TITLES
+    /* display: BJT */
+    Display_ColoredEEString_Space(BJT_str, COLOR_TITLE);
+    /* display: NPN / PNP */
+    Display_ColoredEEString(String, COLOR_TITLE);
+  #else
+    Display_EEString_Space(BJT_str);    /* display: BJT */
+    Display_EEString(String);           /* display: NPN / PNP */
+  #endif
 
   /* parasitic BJT (freewheeling diode on same substrate) */
   if (Check.Type & TYPE_PARASITIC)
@@ -1104,7 +1165,7 @@ void Show_BJT(void)
 
 
   /*
-   *  display pinout
+   *  display pinout in line #2
    */
 
   Show_SemiPinout('B', 'C', 'E');
@@ -1127,7 +1188,7 @@ void Show_BJT(void)
 
 
   /*
-   *  display B-E resistor if detected
+   *  display B-E resistor in next line if detected 
    */
 
   /* check for B-E resistor below 25kOhms */
@@ -1149,7 +1210,7 @@ void Show_BJT(void)
 
 
   /*
-   *  display h_FE
+   *  display h_FE in next line
    */
 
   /* display h_FE */
@@ -1200,7 +1261,7 @@ void Show_BJT(void)
 
 
   /*
-   *  display V_BE
+   *  display V_BE in next line
    *  (taken from diode's forward voltage)
    */
 
@@ -1481,6 +1542,14 @@ void Show_FET(void)
    *  U_3 - V_GS(off) (mV)
    */
 
+  /*
+   *  display type, channel and mode in line #1
+   */
+
+  #ifdef UI_COLORED_TITLES
+  Display_UseTitleColor();         /* use title color */
+  #endif
+
   /* display type */
   if (Check.Type & TYPE_MOSFET)    /* MOSFET */
   {
@@ -1498,7 +1567,15 @@ void Show_FET(void)
   /* display mode for MOSFETs*/
   if (Check.Type & TYPE_MOSFET) Show_FET_Mode();
 
-  /* pinout */
+  #ifdef UI_COLORED_TITLES
+  Display_UsePenColor();           /* use pen color */
+  #endif
+
+
+  /*
+   *  display pinout in line #2
+   */
+
   Display_NextLine();                   /* next line (#2) */
 
   if (Check.Type & TYPE_SYMMETRICAL)    /* symmetrical Drain and Source */
@@ -1510,6 +1587,11 @@ void Show_FET(void)
   {
     Show_SemiPinout('G', 'D', 'S');     /* show pinout */
   }
+
+
+  /*
+   *  display additional stuff
+   */
 
   /* show body diode, V_th and Cgs for MOSFETs */
   if (Check.Type & TYPE_MOSFET) Show_FET_Extras();
@@ -1550,13 +1632,24 @@ void Show_IGBT(void)
    *  U_2 - V_th (mV)
    */
 
+  /* display type in line #1 */
+  #ifdef UI_COLORED_TITLES
+  Display_UseTitleColor();         /* use title color */
+  #endif
+
   Display_EEString(IGBT_str);      /* display: IGBT */
   Show_FET_Channel();              /* display channel type */
   Show_FET_Mode();                 /* display mode */
 
+  #ifdef UI_COLORED_TITLES
+  Display_UsePenColor();           /* use pen color */
+  #endif
+
+  /* display pinout in line #2 */
   Display_NextLine();              /* next line (#2) */
   Show_SemiPinout('G', 'C', 'E');  /* show pinout */
 
+  /* display additional stuff */
   Show_FET_Extras();               /* show diode, V_th and C_GE */
 }
 
@@ -1577,21 +1670,33 @@ void Show_ThyristorTriac(void)
    *  U_1 - V_GT (mV)
    */
 
-  /* display component type any pinout */
+  /* display component type in line #1 and pinout in line #2 */
   if (Check.Found == COMP_THYRISTOR)    /* SCR */
   {
-    Display_EEString(Thyristor_str);    /* display: thyristor */
+    #ifdef UI_COLORED_TITLES
+      /* display: thyristor */
+      Display_ColoredEEString(Thyristor_str, COLOR_TITLE);
+    #else
+      Display_EEString(Thyristor_str);  /* display: thyristor */
+    #endif
+
     Display_NextLine();                 /* next line (#2) */
     Show_SemiPinout('G', 'A', 'C');     /* display pinout */
   }
   else                                  /* TRIAC */
   {
-    Display_EEString(Triac_str);        /* display: TRIAC */
+    #ifdef UI_COLORED_TITLES
+      /* display: TRIAC */
+      Display_ColoredEEString(Triac_str, COLOR_TITLE);
+    #else
+      Display_EEString(Triac_str);      /* display: TRIAC */
+    #endif
+
     Display_NextLine();                 /* next line (#2) */
     Show_SemiPinout('G', '2', '1');     /* display pinout */
   }
 
-  /* show V_GT (gate trigger voltage) */
+  /* show V_GT (gate trigger voltage) in line #3 */
   if (Semi.U_1 > 0)                /* show if not zero */
   {
     Display_NL_EEString_Space(V_GT_str);     /* display: V_GT */
@@ -1612,8 +1717,8 @@ void Show_PUT(void)
    *  A   - Gate
    *  B   - Anode
    *  C   - Cathode
-   *  U_1 - V_f
-   *  U_2 - V_T
+   *  U_1 - V_f (mV)
+   *  U_2 - V_T (mV)
    *
    *  Mapping for Semi structure:
    *  A   - Gate
@@ -1621,15 +1726,23 @@ void Show_PUT(void)
    *  C   - Cathode
    */
 
-  Display_EEString(PUT_str);            /* display: PUT */
+  /* display type in line #1 */
+  #ifdef UI_COLORED_TITLES
+    /* display: PUT */
+    Display_ColoredEEString(PUT_str, COLOR_TITLE);
+  #else
+    Display_EEString(PUT_str);          /* display: PUT */
+  #endif
+
+  /* display pinout in line #2 */
   Display_NextLine();                   /* move to line #2 */
   Show_SemiPinout('G', 'A', 'C');       /* display pinout */
 
-  /* display V_T */
+  /* display V_T in line #3 */
   Display_NL_EEString_Space(V_T_str);   /* display: VT */
   Display_Value(AltSemi.U_2, -3, 'V');  /* display V_T */
 
-  /* display V_f */
+  /* display V_f in line #4 */
   Display_NL_EEString_Space(Vf_str);    /* display: Vf */
   Display_Value(AltSemi.U_1, -3, 'V');  /* display V_f */
 }
@@ -1656,13 +1769,53 @@ void Show_UJT(void)
    *  C   - Cathode
    */
 
-  Display_EEString(UJT_str);            /* display: UJT */
+  /* display type in line #1 */
+  #ifdef UI_COLORED_TITLES
+    /* display: UJT */
+    Display_ColoredEEString(UJT_str, COLOR_TITLE);
+  #else
+    Display_EEString(UJT_str);          /* display: UJT */
+  #endif
+
+  /* display pinout in line #2 */  
   Display_NextLine();                   /* next line (#2) */
   Show_SemiPinout('E', '2', '1');       /* display pinout */
 
-  /* display r_BB */
+  /* display r_BB in line #3 */
   Display_NL_EEString_Space(R_BB_str);  /* display: R_BB */  
   Display_Value(Resistors[0].Value, Resistors[0].Scale, LCD_CHAR_OMEGA);
+}
+
+#endif
+
+
+
+#ifdef HW_PROBE_ZENER
+
+/*
+ *  show Zener diode / external voltage
+ */
+
+void Show_Zener(void)
+{
+  /*
+   *  Anode and cathode are fixed (dedicated probes).
+   *
+   *  Mapping for Semi structure:
+   *  U1   - V_Z (Zener voltage, mV)
+   */
+
+  /* display type in line #1 */
+  #ifdef UI_COLORED_TITLES
+    /* display: Zener */
+    Display_ColoredEEString(Zener_str, COLOR_TITLE);
+  #else
+    Display_EEString(Zener_str);        /* display: Zener */
+  #endif
+
+  /* display voltage in line #2 */  
+  Display_NextLine();                   /* next line (#2) */
+  Display_Value(Semi.U_1, -3, 'V');     /* display voltage */
 }
 
 #endif
@@ -1739,7 +1892,7 @@ void PowerOff(void)
   /* display feedback (otherwise the user will wait :) */
   LCD_Clear();
   #ifdef LCD_COLOR
-  UI.PenColor = COLOR_TITLE;            /* set pen color */
+  UI.PenColor = COLOR_INFO;             /* set pen color */
   #endif
   Display_EEString(Bye_str);            /* display: Bye! */
 
@@ -1782,7 +1935,7 @@ void ShowBattery(void)
 
     /* display status */
     #ifdef LCD_COLOR
-    UI.PenColor = COLOR_GREEN;          /* use green */
+    UI.PenColor = COLOR_BAT_OK;         /* use OK color */
     #endif
     Display_EEString(External_str);     /* display: ext */
   }
@@ -1799,21 +1952,21 @@ void ShowBattery(void)
     if (Cfg.Vbat < BAT_LOW)        /* low level reached */
     {
       #ifdef LCD_COLOR
-      UI.PenColor = COLOR_RED;          /* use red */
+      UI.PenColor = COLOR_BAT_LOW;      /* set LOW color */
       #endif
       Display_EEString(Low_str);        /* display: low */
     }
     else if (Cfg.Vbat < BAT_WEAK)  /* warning level reached */
     {
       #ifdef LCD_COLOR
-      UI.PenColor = COLOR_YELLOW;       /* use yellow */
+      UI.PenColor = COLOR_BAT_WEAK;     /* set WEAK color */
       #endif
       Display_EEString(Weak_str);       /* display: weak */
     }
     else                           /* ok */
     {
       #ifdef LCD_COLOR
-      UI.PenColor = COLOR_GREEN;        /* use green */
+      UI.PenColor = COLOR_BAT_OK;       /* set OK color */
       #endif
       Display_EEString(OK_str);         /* display: ok */
     }
@@ -1854,7 +2007,7 @@ void CheckBattery(void)
   Temp = (((uint32_t)(BAT_R1 + BAT_R2) * 1000) / BAT_R2);   /* factor (0.001) */
   Temp *= U_Bat;                   /* Uin (0.001 mV) */
   Temp /= 1000;                    /* Uin (mV) */
-  U_Bat = (uint16_t)Temp;
+  U_Bat = (uint16_t)Temp;          /* keep 2 bytes */
   #endif
 
   U_Bat += BAT_OFFSET;             /* add offset for voltage drop */
@@ -1871,6 +2024,11 @@ void CheckBattery(void)
     {
       /* battery operation */
     #endif
+
+      #ifdef UI_COLORED_CURSOR
+      /* because of TestKey() we have to reset the pen color */
+      UI.PenColor = COLOR_PEN;     /* set default pen color */
+      #endif
 
       LCD_Clear();                 /* clear display */
       ShowBattery();               /* display battery status */
@@ -1996,7 +2154,7 @@ int main(void)
        might be zeroed. Drivers with line tracking won't clear screen. */
     LCD_Clear();                        /* clear display */
     #ifdef LCD_COLOR
-    UI.PenColor = COLOR_TITLE;          /* set pen color */
+    UI.PenColor = COLOR_ERROR;          /* set pen color */
     #endif
     Display_EEString(Timeout_str);      /* display: timeout */
     Display_NL_EEString(Error_str);     /* display: error */
@@ -2080,7 +2238,7 @@ int main(void)
 
   UI.LineMode = LINE_STD;               /* reset next-line mode */
   #ifdef LCD_COLOR
-  UI.PenColor = COLOR_TITLE;            /* set pen color */
+  UI.PenColor = COLOR_INFO;             /* set pen color */
   #endif
 
   #ifdef HW_TOUCH
@@ -2180,7 +2338,6 @@ int main(void)
   /* select adjustment profile */
   AdjustmentMenu(STORAGE_LOAD | STORAGE_SHORT);
   #endif
-
 
 
   /*
@@ -2310,7 +2467,9 @@ cycle_start:
   if ((Check.Found == COMP_NONE) ||
       (Check.Found == COMP_RESISTOR))
   {
-    /* tell user to be patient with large caps :-) */
+    /* check for capacitors */
+
+    /* tell user to be patient with large caps :) */
     Display_Space();
     Display_Char('C');    
 
@@ -2319,6 +2478,14 @@ cycle_start:
     MeasureCap(PROBE_3, PROBE_2, 1);
     MeasureCap(PROBE_2, PROBE_1, 2);
   }
+
+  #ifdef HW_PROBE_ZENER
+  /* when no component is found check for Zener diode */
+  if (Check.Found == COMP_NONE)
+  {
+    CheckZener();
+  }
+  #endif
 
 
   /*
@@ -2398,6 +2565,12 @@ show_component:
     case COMP_CAPACITOR:
       Show_Capacitor();
       break;
+
+    #ifdef HW_PROBE_ZENER
+    case COMP_ZENER:
+      Show_Zener();
+      break;
+    #endif
 
     default:                  /* no component found */
       Show_Fail();
