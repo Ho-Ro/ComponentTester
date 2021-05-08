@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2012-09-27
+Last edit:  2012-10-21
 
 
 * About
@@ -62,7 +62,13 @@ ones and what have you. I hope the code is easy to read and maintain now.
 
 A long key press (0.3s) while starting the tester selects the auto-hold mode.
 In that mode the tester waits for a short key press after displaying a result
-before it continues. After powering on the tester displays the mode selected.
+before it continues. Otherwise the tester chooses the continous (looping) mode
+by default. After powering on the tester displays the mode selected.
+
+After that the tester may display a checksum error, when it loads the saved
+calibration values from the EEPROM and detects an error. That error indicates
+a corrupted EEPROM, i.e. caused by too much write operations. In that case
+the default calibration values from config.h will be used.
 
 
 * Probing Loop 
@@ -93,11 +99,11 @@ circuit.
 
 + Self Calibration
 
-The self calibration measures the zero offset for capacitance meaurements,
-e.g. the capacitance of the PCB, internal wiring and probe leads as a sum.
-It also measures the internal resistance of the MCU port pins in pull-down
-and pull-up mode. If the tests before are skipped or strange values are
-measured the default values defined in config.h are displayed and used. If
+The self calibration measures the resistance and the capacitance of the
+probe leads, e.g. the PCB, internal wiring and probe leads as a sum, for
+creating a zero offset. It also measures the internal resistance of the MCU
+port pins in pull-down and pull-up mode. If the tests are skipped or strange
+values are measured the default values defined in config.h are used. If
 everything went fine the tester will display and use the new values gained
 by the self calibration.
 
@@ -120,6 +126,12 @@ other probe leads, I recommend to measure a capacitor (100nF - 20µF) to
 trigger the voltage offset calibrations, then run the selftest and save the
 new values.
 
+The idea of the save function is to prevent automatic saving of calibration
+values. If you need to use other probe leads for some tests, you'll simply
+calibrate the tester for the temporary probe leads and perform the tests.
+If you switch back to the standard probe leads you don't need to re-calibrate
+because the old values are still stored. Just powercycle the tester.
+
 
 + Values
 
@@ -132,7 +144,12 @@ Resistors are measured twice (both directions) and the values are compared.
 If the values differ too much the tester assumes that there are two resistors
 instead of just a single one. In that case the tester displays the result as
 two resistors with the same pins, like "1 -- 2 -- 1", and the two different
-resistance values.
+resistance values. For resistors lower than 10 Ohms an extra measurement with
+a higher resolution is performed.
+
+In some rare cases the tester might not be able to detect a very low
+resistance, since the primary measurements indicate a problem with the
+validity of the results. In that case simply re-run the test.
 
 
 * Measuring Capacitance
@@ -168,7 +185,7 @@ to adjust CAP_DISCHARGED to about 3mV.
 * ADC Oversampling
 
 The ADC function is modified to support a variable oversampling (1-255 times).
-The default value is 25 samples. Yuo can try to improve the accuracy of the
+The default value is 25 samples. You can try to improve the accuracy of the
 measurements by increasing the number of samples. Note that more samples will
 take more time resulting in slower measurements.
 
@@ -199,13 +216,23 @@ tester provides just a voltage of 5V, which isn't sufficient for DIACs with
 a V_BO of 20-200V.
 
 In theory the tester could measure inductance by monitoring how the current
-increases over time. Tests showed that this works only in quite limited way,
+increases over time. Tests showed that this works only in a quite limited way,
 so we won't support inductors. A better way is to add a signal source (sinus
 AC), meassuring frequency, current and voltage, and calculating the inductance
 by the frequency and the complex resistance.
 
 
 * Change Log
+
+v1.01m 2012-10
+- Added a checksum for calibration values stored in the EEPROM and wrote a
+  function to validate the checksum.
+- Added a measurement function for small resistors (resolution: 0.01 Ohms).
+- Extended self calibration to support an auto-zero for the resistance of the
+  probe leads.
+- CheckResistor() runs an extra measurement for small resistors (<10 Ohms).
+- Added a function to compare two scaled values. 
+- Adapted several functions to support variable scaling of values.
 
 v1.00m 2012-09
 - Added a simple menu for selection of self test, self calibration, update of

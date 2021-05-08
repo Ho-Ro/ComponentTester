@@ -16,8 +16,12 @@
 
 #ifndef MAIN_C
 
+  extern int8_t CmpValue(unsigned long Value1, int8_t Scale1,
+    unsigned long Value2, int8_t Scale2);
+
   extern void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit);
   extern void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit);
+
   extern uint8_t TestKey(unsigned int Timeout, uint8_t Mode);
 
 #endif
@@ -57,8 +61,11 @@
   extern uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2);
   extern void DischargeProbes(void);
   extern void PullProbe_10ms(uint8_t Probe, uint8_t Mode);
+  extern void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);
 
   extern void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID);
+
+  extern unsigned int SmallResistor(void);
  
   extern void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);
 

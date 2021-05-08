@@ -771,8 +771,6 @@ uint8_t SmallCap(Capacitor_Type *Cap)
      *  Changed offsets will we used in next test run.
      */
 
-/* todo: add global flag to perform this calibration only once? */
-
     if (((Scale == -12) && (Value >= 100000)) ||
         ((Scale == -9) && (Value <= 20000)))
     {
@@ -865,14 +863,14 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
   Cap = &Caps[ID];
   Cap->A = 0;
   Cap->B = 0;
-  Cap->Scale = -12;           /* pF */
+  Cap->Scale = -12;           /* pF by default */
   Cap->Raw = 0;
   Cap->Value = 0;
 
 
   /*
    *  Skip resistors
-   *  - Check for resistor < 10 Ohm. Might be a large cap.
+   *  - Check for a resistor < 10 Ohm. Might be a large cap.
    */
 
   if (CompFound == COMP_RESISTOR)
@@ -887,7 +885,7 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
       if (((Resistor->A == Probe1) && (Resistor->B == Probe2)) ||
           ((Resistor->A == Probe2) && (Resistor->B == Probe1)))
       {
-        if (Resistor->Value < 100UL)    /* 10 = 100 * 0.1 Ohms */
+        if (CmpValue(Resistor->Value, Resistor->Scale, 10UL, 0) == -1)
           TempByte = 99;                /* signal low resistance and end loop */
       }
 
@@ -930,7 +928,10 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
   {
     TempByte = SmallCap(Cap);
   }
-
+//else if (TempByte == 3)
+//{
+//  MeasureESR(Cap);
+//}
 
   /*
    *  check for plausibility
@@ -1084,6 +1085,141 @@ void CheckDiode(void)
 
 
 /*
+ *  measure small resistors (< 100 Ohms)
+ *
+ *  returns:
+ *  - resistance in 0.01 Ohm
+ */
+
+unsigned int SmallResistor(void)
+{
+  unsigned int      R = 0;              /* return value */
+  uint8_t           Probe;              /* probe ID */
+  uint8_t           Mode;               /* measurement mode */
+  uint8_t           Counter;            /* sample counter */
+  unsigned long     Value;              /* ADC sample value */
+  unsigned long     Value1, Value2;     /* temp. values */
+
+  DischargeProbes();                    /* try to discharge probes */
+  if (CompFound == COMP_CELL) return R;
+
+  /* charge: GND -- probe 2 / probe 1 -- Rl -- 5V */
+  /* discharge: GND -- probe 2 / probe 1 -- Rl -- GND */
+  ADC_PORT = 0;                         /* set ADC port to low */
+  ADC_DDR = Probe2_ADC;                 /* pull-down probe 2 directly */
+  R_PORT = 0;                           /* low by default */
+  R_DDR = Probe1_Rl;                    /* enable resistor */
+
+#define MODE_HIGH        0b00000001
+#define MODE_LOW         0b00000010
+
+  /*
+   *  monster loop
+   */
+
+  Mode = MODE_HIGH;
+
+  while (Mode > 0)
+  {
+    /* setup measurement */
+    if (Mode & MODE_HIGH) Probe = Probe1_Pin;
+    else Probe = Probe2_Pin;
+
+    wdt_reset();              /* reset watchdog */
+    Counter = 0;              /* reset loop counter */
+    Value = 0;                /* reset sample value */
+
+    /* set ADC to use bandgap reference and run a dummy conversion */
+    Probe |= (1 << REFS0) | (1 << REFS1);
+    ADMUX = Probe;                   /* set input channel and U reference */
+    wait100us();                     /* time for voltage stabilization */
+    ADCSRA |= (1 << ADSC);           /* start conversion */
+    while (ADCSRA & (1 << ADSC));    /* wait until conversion is done */
+
+
+    /*
+     *  measurement loop (about 1ms per cycle)
+     */
+
+    while (Counter < 100)
+    {
+      /* create short charging pulse */
+      ADC_DDR = Probe2_ADC;             /* pull-down probe 2 directly */
+      R_PORT = Probe1_Rl;
+
+      /* start ADC conversion */
+      /* ADC performs S&H after 1.5 ADC cycles (12µs) */
+      ADCSRA |= (1 << ADSC);            /* start conversion */
+
+      /* wait 20µs */
+      wait20us();
+
+      /* start discharging */
+      R_PORT = 0;
+      ADC_DDR = Probe2_ADC | Probe1_ADC;
+
+      /* get ADC reading (about 100µs) */
+      while (ADCSRA & (1 << ADSC));     /* wait until conversion is done */
+      Value += ADCW;                    /* add ADC reading */
+
+      /* wait */
+      wait400us();
+      wait500us();
+
+      Counter++;                        /* next round */
+    }
+
+    /* convert ADC reading to voltage */
+    Value *= Config.U_Bandgap;
+    Value /= 1024;                 /* / 1024 for 10bit ADC */
+    Value /= 10;                   /* de-sample to 0.1mV */
+
+    /* loop control */
+    if (Mode & MODE_HIGH)          /* probe #1 / Rl */
+    {
+      Mode = MODE_LOW;
+      Value1 = Value;
+    }
+    else                           /* probe #2 / R_i_L */
+    {
+      Mode = 0;
+      Value2 = Value;
+    }
+  }
+
+
+  /*
+   *  process measurement
+   */
+
+  if (Value1 > Value2)             /* sanity check */
+  {
+    /* I = U/R = (5V - U_Rl)/(Rl + R_i_H) */
+    Value = 10UL * UREF_VCC;                 /* in 0.1 mV */
+    Value -= Value1;
+    Value *= 1000;                           /* scale to µA */
+    Value /= ((R_LOW * 10) + Config.RiH);    /* in 0.1 Ohms */
+
+    /* U = U_Rl - U_R_i_L = U_Rl - (R_i_L * I) */
+    /* U = U_probe1 - U_probe2 */
+    Value1 -= Value2;                        /* in 0.1 mV */
+    Value1 *= 10000;                         /* scale to 0.01 µV */
+
+    /* R = U/I (including R of probe leads) */
+    Value1 /= Value;                         /* in 0.01 Ohms */
+
+    R = (unsigned int)Value1;
+  }
+
+#undef MODE_LOW
+#undef MODE_HIGH
+
+  return R;
+}
+
+
+
+/*
  *  check for resistor
  */
 
@@ -1093,6 +1229,8 @@ void CheckResistor(void)
   unsigned long     Value1;             /* resistance of measurement #1 */
   unsigned long     Value2;             /* resistance of measurement #2 */
   unsigned long     Value;              /* resistance value */
+  unsigned long     Temp;               /* temp. value */
+  int8_t            Scale;              /* resistance scaling */
   uint8_t           n;                  /* counter */
 
   /* voltages */
@@ -1311,6 +1449,11 @@ void CheckResistor(void)
               Value = (Value1 + Value2) / 2;
             }
           }
+          else      /* may happen for very low resistances */
+          {
+            if (U_Rl_L > 4750) Value = 1;    /* U_Rl_L: R < 15 Ohms */
+            /* this will trigger the low resistance measurement below */
+          }
         }
 
 
@@ -1320,7 +1463,23 @@ void CheckResistor(void)
 
         if (Value > 0)             /* valid resistor */
         {
-          /* also prevents division by zero */
+          Scale = -1;              /* 0.1 Ohm by default */
+
+
+          /*
+           *  meassure small resistor <10 Ohm with special method
+           */
+
+          if (Value < 100UL)
+          {
+            Value = (unsigned long)SmallResistor();
+            Scale = -2;                      /* 0.01 Ohm */
+
+            /* auto-zero */
+            if (Value > Config.RZero) Value -= Config.RZero;
+            else Value = 0;
+          }
+
 
           /*
            *  check for measurement in reversed direction
@@ -1336,19 +1495,33 @@ void CheckResistor(void)
               /* this is the reverse measurement */
 
               /*
-               *  check if the reverse measurement is within 5% tolerance
+               *  check if the reverse measurement is within a specific tolerance
                */
 
-              /* calculate tolerance */
-              if (Value >= Resistor->Value) Value1 = Value - Resistor->Value;
-              else Value1 = Resistor->Value - Value;
-              Value1 *= 100;
-              Value1 /= Value;
+              /* set lower and upper tolerance limits */
+              if (CmpValue(Value, Scale, 1, 0) == -1)  /* < 1 Ohm */
+              {
+                Temp = Value / 2;            /* 50% */
+              }
+              else                                     /* >= 1 Ohm */
+              {
+                Temp = Value / 20;           /* 5% */
+              }
 
-              /* low resistances < 1 Ohms will be given 50% */
-              if (Value < 10) Value1 /= 10;
+              Value1 = Value - Temp;         /* 95% or 50% */
+              Value2 = Value + Temp;         /* 105% or 150% */
 
-              if (Value1 < 5)      /* within 5% */
+              /* special case for very low resistance */
+              if (CmpValue(Value, Scale, 1, -1) == -1) /* < 0.1 Ohm */
+              {
+                Value1 = 0;                  /* 0 */
+                Value2 = Value * 5;          /* 500% */
+                if (Value2 == 0) Value2 = 5; /* special case */
+              }
+
+              /* check if value matches given tolerance */
+              if ((CmpValue(Resistor->Value, Resistor->Scale, Value1, Scale) >= 0) &&
+                  (CmpValue(Resistor->Value, Resistor->Scale, Value2, Scale) <= 0))
               {
                 n = 100;             /* end loop and signal match */
               }
@@ -1374,7 +1547,7 @@ void CheckResistor(void)
             Resistor->B = Probe1_Pin;
             Resistor->HiZ = Probe3_Pin;
             Resistor->Value = Value;
-            Resistor->Scale = -1;                       /* 0.1 Ohm */
+            Resistor->Scale = Scale;
             ResistorsFound++;                           /* another one found */
             if (ResistorsFound > 6) ResistorsFound--;   /* prevent array overflow */
           }

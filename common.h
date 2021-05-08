@@ -86,6 +86,7 @@ typedef struct
   uint16_t          U_Bandgap;     /* voltage of internal bandgap reference (mV) */
   uint16_t          RiL;           /* internal pin resistance of µC in low mode (0.1 Ohms) */
   uint16_t          RiH;           /* internal pin resistance of µC in high mode (0.1 Ohms) */
+  uint16_t          RZero;         /* resistance of probe leads (0.01 Ohms) */
   uint8_t           CapZero;       /* capacity zero offset (input + leads) (pF) */
   int8_t            RefOffset;     /* voltage offset of bandgap reference (mV) */
   int8_t            CompOffset;    /* voltage offset of analog comparator (mV) */
@@ -98,8 +99,8 @@ typedef struct
   uint8_t           A;             /* probe pin #1 */
   uint8_t           B;             /* probe pin #2 */
   uint8_t           HiZ;           /* probe pin in HiZ mode */
-  unsigned long     Value;         /* resistance */
   uint8_t           Scale;         /* exponent of factor (value * 10^x) */
+  unsigned long     Value;         /* resistance */
 } Resistor_Type;
 
 
@@ -108,9 +109,9 @@ typedef struct
 {
   uint8_t           A;             /* probe pin #1 */
   uint8_t           B;             /* probe pin #2 */
+  int8_t            Scale;         /* exponent of factor (value * 10^x) */
   unsigned long     Value;         /* capacitance incl. zero offset */
   unsigned long     Raw;           /* capacitance excl. zero offset */
-  int8_t            Scale;         /* exponent of factor (value * 10^x) */  
 } Capacitor_Type;
 
 

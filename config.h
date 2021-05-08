@@ -174,6 +174,16 @@
 #define RH_OFFSET        700 
 
 
+
+/*
+ *  Resistance of probe leads (in 0.01 Ohms).
+ *  - Resistance of two probe leads in series.
+ *  - Assuming all probe leads got same/similar resistance.
+ */
+
+#define R_ZERO           20
+
+
 /* 
  *  Capacitance of the wires between PCB and terminals (in pF).
  *  Examples:

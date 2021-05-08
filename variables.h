@@ -52,14 +52,17 @@
 
 
   /*
-   *  NVRAM values (stored in EEPROM)
+   *  NVRAM values (stored in EEPROM) with their defaults
    */
 
+#define CHECKSUM (uint8_t)R_MCU_LOW + (uint8_t)R_MCU_HIGH + (uint8_t)R_ZERO + C_ZERO + (uint8_t)UREF_OFFSET + (uint8_t)COMPARATOR_OFFSET
   const uint16_t    NV_RiL EEMEM = R_MCU_LOW;
   const uint16_t    NV_RiH EEMEM = R_MCU_HIGH;
+  const uint16_t    NV_RZero EEMEM = R_ZERO;
   const uint8_t     NV_CapZero EEMEM = C_ZERO;
   const int8_t      NV_RefOffset EEMEM = UREF_OFFSET;
   const int8_t      NV_CompOffset EEMEM = COMPARATOR_OFFSET;
+  const uint8_t     NV_Checksum EEMEM = CHECKSUM;
 
 
   /*
@@ -68,7 +71,7 @@
 
   /* language specific: German */
   #if defined (UI_GERMAN)
-    const unsigned char Mode_str[] MEM_TEXT = "Tester-Modus:";
+    const unsigned char Mode_str[] MEM_TEXT = "Modus:";
     const unsigned char Continous_str[] MEM_TEXT = "Fortlaufend";
     const unsigned char AutoHold_str[] MEM_TEXT = "Einzelschritt";
     const unsigned char Running_str[] MEM_TEXT = "Suche...";
@@ -91,7 +94,7 @@
 
   /* language specific: English */
   #if defined (UI_ENGLISH)
-    const unsigned char Mode_str[] MEM_TEXT = "Tester Mode:";
+    const unsigned char Mode_str[] MEM_TEXT = "Mode:";
     const unsigned char Continous_str[] MEM_TEXT = "Continous";
     const unsigned char AutoHold_str[] MEM_TEXT = "Auto Hold";
     const unsigned char Running_str[] MEM_TEXT = "Probing...";
@@ -113,7 +116,7 @@
   #endif
 
   /* language independent */
-  const unsigned char Battery_str[] MEM_TEXT = "Bat. ";
+  const unsigned char Battery_str[] MEM_TEXT = "Bat.";
   const unsigned char OK_str[] MEM_TEXT = "ok";
   const unsigned char MOS_str[] MEM_TEXT = "MOS";
   const unsigned char FET_str[] MEM_TEXT = "FET";
@@ -136,11 +139,13 @@
   const unsigned char RhHigh_str[] MEM_TEXT = "Rh+";
   const unsigned char RiLow_str[] MEM_TEXT = "Ri-";
   const unsigned char RiHigh_str[] MEM_TEXT = "Ri+";
-  const unsigned char Rl_str[] MEM_TEXT = "+Rl- 12 13 23";
-  const unsigned char Rh_str[] MEM_TEXT = "+Rh- 12 13 23";
+  const unsigned char Rl_str[] MEM_TEXT = "+Rl-";
+  const unsigned char Rh_str[] MEM_TEXT = "+Rh-";
+  const unsigned char ProbeComb_str[] MEM_TEXT = "12 13 23";
   const unsigned char CapOffset_str[] MEM_TEXT = "C0";
-  const unsigned char RiLowHigh_str[] MEM_TEXT = "-Ri+";
+  const unsigned char ROffset_str[] MEM_TEXT = "R0";
   const unsigned char CompOffset_str[] MEM_TEXT = "AComp";
+  const unsigned char Checksum_str[] MEM_TEXT = "ChkSum Err!";
 
   const unsigned char Cap_str[] MEM_TEXT = {'-',LCD_CHAR_CAP, '-',0};
   const unsigned char Diode_AC_str[] MEM_TEXT = {'-', LCD_CHAR_DIODE1, '-', 0};
@@ -148,7 +153,7 @@
   const unsigned char Diodes_str[] MEM_TEXT = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
   const unsigned char Resistor_str[] MEM_TEXT = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
 
-  const unsigned char Version_str[] MEM_TEXT = "v1.00m";
+  const unsigned char Version_str[] MEM_TEXT = "v1.01m";
 
 
   /*

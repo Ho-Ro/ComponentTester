@@ -42,6 +42,95 @@ signed int     TempInt;                 /* temporary value */
 
 
 /* ************************************************************************
+ *   values and scales
+ * ************************************************************************ */
+
+
+/*
+ *  get number of digits of a value
+ */
+
+uint8_t NumberOfDigits(unsigned long Value)
+{
+  uint8_t           Counter = 1;
+
+  while (Value >= 10)
+  {
+    Value /= 10;
+    Counter++;
+  }
+
+  return Counter;
+}
+
+
+
+/*
+ *  compare two scaled values
+ *
+ *  returns:
+ *  - -1 if first value is smaller than seconds one
+ *  - 0 if equal
+ *  - 1 if first value is larger than second one
+ */
+
+int8_t CmpValue(unsigned long Value1, int8_t Scale1, unsigned long Value2, int8_t Scale2)
+{
+  int8_t            Flag;               /* return value */
+  int8_t            Len1, Len2;         /* length */
+
+  /* determine virtual length */
+  Len1 = NumberOfDigits(Value1) + Scale1;
+  Len2 = NumberOfDigits(Value2) + Scale2;
+
+  if ((Value1 == 0) || (Value2 == 0))    /* special case */
+  {
+    Flag = 10;                /* perform direct comparison */
+  }
+  else if (Len1 > Len2)       /* more digits -> larger */
+  {
+    Flag = 1;
+  }
+  else if (Len1 == Len2)      /* same length */
+  {
+    /* re-scale to longer value */
+    Len1 -= Scale1;
+    Len2 -= Scale2;
+
+    while (Len1 > Len2)       /* up-scale Value #2 */
+    {
+      Value2 *= 10;
+      Len2++;
+      /* Scale2-- */
+    }
+
+    while (Len2 > Len1)       /* up-scale Value #1 */
+    {
+      Value1 *= 10;
+      Len1++;
+      /* Scale1-- */
+    }   
+
+    Flag = 10;                /* perform direct comparison */
+  }
+  else                        /* less digits -> smaller */
+  {
+    Flag = -1;
+  }
+
+  if (Flag == 10)             /* perform direct comparison */
+  {
+    if (Value1 > Value2) Flag = 1;
+    else if (Value1 < Value2) Flag = -1;
+    else Flag = 0;
+  }
+
+  return Flag;
+}
+
+
+
+/* ************************************************************************
  *   display of values and units
  * ************************************************************************ */
 
@@ -290,7 +379,7 @@ void SelfTest(void)
     {
       /* display test number */
       lcd_clear();
-      lcd_data('T');                    /* display: T */
+      lcd_data('t');                    /* display: t */
       lcd_data('0' + Test);             /* display test number */
       lcd_space();
 
@@ -314,7 +403,9 @@ void SelfTest(void)
           break;
 
         case 2:     /* compare Rl resistors (probes still connected) */
-          lcd_fix_string(Rl_str);            /* display: Rl */
+          lcd_fix_string(Rl_str);            /* display: +Rl- */
+          lcd_space();
+          lcd_fix_string(ProbeComb_str);     /* display: 12 13 23 */
 
           /* set up a voltage divider with the Rl's */
           /* substract theoretical voltage of voltage divider */
@@ -339,7 +430,9 @@ void SelfTest(void)
           break;
 
         case 3:     /* compare Rh resistors (probes still connected) */
-          lcd_fix_string(Rh_str);            /* display: Rh */
+          lcd_fix_string(Rh_str);            /* display: +Rh- */
+          lcd_space();
+          lcd_fix_string(ProbeComb_str);     /* display: 12 13 23 */
 
           /* set up a voltage divider with the Rh's */
 
@@ -449,19 +542,30 @@ void SelfTest(void)
 
 void ShowCal(void)
 {
+  /* display RiL and RiH */
+  lcd_clear();
+  lcd_fix_string(RiLow_str);            /* display: Ri- */
+  lcd_space();
+  DisplayValue(Config.RiL, -1, LCD_CHAR_OMEGA);
+
+  lcd_line(2);
+  lcd_fix_string(RiHigh_str);           /* display: Ri+ */
+  lcd_space();
+  DisplayValue(Config.RiH, -1, LCD_CHAR_OMEGA);
+
+  TestKey(3000, TesterMode);            /* let the user read */
+
   /* display C-Zero */
-  lcd_clear();  
+  lcd_clear();
   lcd_fix_string(CapOffset_str);             /* display: C0 */
   lcd_space();
   DisplayValue(Config.CapZero, -12, 'F');    /* display C0 offset */
 
-  /* display RiL and RiH */
+  /* display R-Zero */
   lcd_line(2);
-  DisplayValue(Config.RiL, -1, LCD_CHAR_OMEGA);
+  lcd_fix_string(ROffset_str);               /* display: R0 */
   lcd_space();
-  lcd_fix_string(RiLowHigh_str);        /* display: -Ri+ */
-  lcd_space();
-  DisplayValue(Config.RiH, -1, LCD_CHAR_OMEGA);
+  DisplayValue(Config.RZero, -2, LCD_CHAR_OMEGA);  /* display R0 */
 
   TestKey(3000, TesterMode);            /* let the user read */
 
@@ -492,8 +596,10 @@ void SelfCal(void)
   uint8_t           Counter;            /* loop counter */
   uint8_t           Flag;               /* control flag */
   unsigned int      Val1, Val2, Val3;   /* voltages */
-  uint8_t           CapCounter = 0;     /* number of C_null measurements */
-  unsigned int      CapSum = 0;         /* sum of C_null values */
+  uint8_t           CapCounter = 0;     /* number of C_Zero measurements */
+  unsigned int      CapSum = 0;         /* sum of C_Zero values */
+  uint8_t           RCounter = 0;       /* number of R_Zero measurements */
+  unsigned int      RSum = 0;           /* sum of R_Zero values */
   uint8_t           RiL_Counter = 0;    /* number of U_RiL measurements */
   unsigned int      U_RiL = 0;          /* sum of U_RiL values */
   uint8_t           RiH_Counter = 0;    /* number of U_RiH measurements */
@@ -504,7 +610,7 @@ void SelfCal(void)
    *  measurements
    */
 
-  while (Test <= 4)
+  while (Test <= 5)
   {
     Counter = 1;
 
@@ -513,7 +619,7 @@ void SelfCal(void)
     {
       /* display test number */
       lcd_clear();
-      lcd_data('C');                    /* display: C */
+      lcd_data('c');                    /* display: c */
       lcd_data('0' + Test);             /* display cal number */
       lcd_space();
 
@@ -525,13 +631,31 @@ void SelfCal(void)
 
       switch (Test)
       {
-        case 1:     /* disconnect probes */
+        case 1:     /* resistance of probe leads */
+          lcd_fix_string(ROffset_str);       /* display: R0 */
+          lcd_space();
+          lcd_fix_string(ProbeComb_str);     /* display: 12 13 23 */          
+
+          UpdateProbes(TP2, TP1, 0);
+          Val1 = SmallResistor();
+          RSum += Val1;
+          UpdateProbes(TP3, TP1, 0);
+          Val2 = SmallResistor();
+          RSum += Val2;
+          UpdateProbes(TP3, TP2, 0);
+          Val3 = SmallResistor();
+          RSum += Val3;
+
+          RCounter += 3;
+          break;
+
+        case 2:     /* disconnect probes */
           RemoveShortCircuit();
           Counter = 100;                        /* skip test */
           Flag = 0;                             /* reset display flag */
           break;
 
-        case 2:     /* internal resistance of µC in pull-down mode */
+        case 3:     /* internal resistance of µC in pull-down mode */
           lcd_fix_string(RiLow_str);         /* display: Ri- */
 
           /* TP1:  Gnd -- Ri -- probe -- Rl -- Ri -- Vcc */
@@ -559,7 +683,7 @@ void SelfCal(void)
           RiL_Counter += 3;
           break;
 
-        case 3:     /* internal resistance of µC in pull-up mode */
+        case 4:     /* internal resistance of µC in pull-up mode */
           lcd_fix_string(RiHigh_str);        /* display: Ri+ */
 
           /* TP1: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */
@@ -587,9 +711,12 @@ void SelfCal(void)
           RiH_Counter += 3;
           break;
 
-        case 4:     /* capacitance offset (PCB and probe leads) */
+        case 5:     /* capacitance offset (PCB and probe leads) */
           lcd_fix_string(CapOffset_str);     /* display: C0 */
-          MeasureCap(TP3, TP1, 0);
+          lcd_space();
+          lcd_fix_string(ProbeComb_str);     /* display: 12 13 23 */
+
+          MeasureCap(TP2, TP1, 0);
           Val1 = (unsigned int)Caps[0].Raw;
           /* limit offset to 100pF */
           if ((Caps[0].Scale == -12) && (Caps[0].Raw <= 100))
@@ -598,7 +725,7 @@ void SelfCal(void)
             CapCounter++;            
           }
 
-          MeasureCap(TP3, TP2, 1);
+          MeasureCap(TP3, TP1, 1);
           Val2 = (unsigned int)Caps[1].Raw;
           /* limit offset to 100pF */
           if ((Caps[1].Scale == -12) && (Caps[1].Raw <= 100))
@@ -607,7 +734,7 @@ void SelfCal(void)
             CapCounter++;            
           }
 
-          MeasureCap(TP2, TP1, 2);
+          MeasureCap(TP3, TP2, 2);
           Val3 = (unsigned int)Caps[2].Raw;
           /* limit offset to 100pF */
           if ((Caps[2].Scale == -12) && (Caps[2].Raw <= 100))
@@ -641,7 +768,7 @@ void SelfCal(void)
       if (Counter > 99) TempWord = 0;             /* disable timeout if skipping test */
       TempByte1 = TestKey(TempWord, 0);           /* catch key press or timeout */
 
-      /* short press -> next test / long press -> end calib */
+      /* short press -> next test / long press -> end cal */
       if (TempByte1 > 0)
       {
         Counter = 100;                            /* skip current test */
@@ -662,7 +789,15 @@ void SelfCal(void)
   /* capacitance auto-zero */
   if (CapCounter == 15)
   {
-    Config.CapZero = CapSum / CapCounter;    /* calculate average offset (pF) */
+    /* calculate average offset (pF) */
+    Config.CapZero = CapSum / CapCounter;
+  }
+
+  /* resistance auto-zero */
+  if (RCounter == 15)
+  { 
+    /* calculate average offset (0.01 Ohms) */
+    Config.RZero = RSum / RCounter;
   }
 
   /* RiL & RiH */
@@ -699,11 +834,33 @@ void SelfCal(void)
 
 
 /*
+ *  calculate checksum for EEPROM stored values and offsets
+ */
+
+uint8_t CheckSum(void)
+{
+  uint8_t           Checksum;
+
+  Checksum = (uint8_t)Config.RiL;
+  Checksum += (uint8_t)Config.RiH;
+  Checksum += (uint8_t)Config.RZero;
+  Checksum += Config.CapZero;
+  Checksum += (uint8_t)Config.RefOffset;
+  Checksum += (uint8_t)Config.CompOffset;
+
+  return Checksum;
+}
+
+
+
+/*
  *  save calibration values
  */
 
 void SafeCal(void)
 {
+  uint8_t           Checksum;
+
   /*
    *  update values stored in EEPROM
    */
@@ -714,6 +871,9 @@ void SafeCal(void)
   /* Ri of µC in low mode */
   eeprom_write_word((uint16_t *)&NV_RiH, Config.RiH);
 
+  /* resistance of probe leads */
+  eeprom_write_word((uint16_t *)&NV_RZero, Config.RZero);
+
   /* capacitance offset: PCB + wiring + probe leads */
   eeprom_write_byte((uint8_t *)&NV_CapZero, Config.CapZero);
 
@@ -723,7 +883,9 @@ void SafeCal(void)
   /* voltage offset of analog comparator */
   eeprom_write_byte((uint8_t *)&NV_CompOffset, (uint8_t)Config.CompOffset);
 
-/* todo: add a checksum (byte) */
+  /* checksum */
+  Checksum = CheckSum();
+  eeprom_write_byte((uint8_t *)&NV_Checksum, Checksum);
 }
 
 
@@ -734,6 +896,9 @@ void SafeCal(void)
 
 void LoadCal(void)
 {
+  uint8_t           Checksum;
+  uint8_t           Test;
+
   /*
    *  read stored values from EEPROM
    */
@@ -744,6 +909,9 @@ void LoadCal(void)
   /* Ri of µC in low mode */
   Config.RiH = eeprom_read_word(&NV_RiH);
 
+  /* resitance of probe leads */
+  Config.RZero = eeprom_read_word(&NV_RZero);
+
   /* capacitance offset: PCB + wiring + probe leads */
   Config.CapZero = eeprom_read_byte(&NV_CapZero);
 
@@ -753,7 +921,31 @@ void LoadCal(void)
   /* voltage offset of analog comparator */
   Config.CompOffset = (int8_t)eeprom_read_byte((uint8_t *)&NV_CompOffset);
 
-/* todo: add a checksum (byte) */
+  /* checksum */
+  Checksum = eeprom_read_byte(&NV_Checksum);
+
+
+  /*
+   *  check checksum
+   */
+
+  Test = CheckSum();
+
+  if (Test != Checksum)
+  {
+    /* tell user */
+    lcd_clear();
+    lcd_fix_string(Checksum_str);
+    wait2s();
+
+    /* set default values */
+    Config.RiL = R_MCU_LOW;
+    Config.RiH = R_MCU_HIGH;
+    Config.RZero = R_ZERO;
+    Config.CapZero = C_ZERO;
+    Config.RefOffset = UREF_OFFSET;
+    Config.CompOffset = COMPARATOR_OFFSET;
+  }
 }
 
 
@@ -1053,22 +1245,26 @@ void ShowBJT(void)
   uint8_t           Counter;       /* counter */
   Diode_Type        *Diode;        /* pointer to diode */
   unsigned int      Vf;            /* forward voltage U_be */
+  unsigned char     *String;       /* display string pointer */
 
   /* display type */
   if (CompType == TYPE_NPN)        /* NPN */
-    lcd_fix_string(NPN_str);         /* display: NPN */
+    String = (unsigned char *)NPN_str;
   else                             /* PNP */
-    lcd_fix_string(PNP_str);         /* display: PNP */
+    String = (unsigned char *)PNP_str;
+
+  lcd_fix_string(String);          /* display: NPN / PNP */
 
   /* protections diodes */
   if (DiodesFound > 2)     /* transistor is a set of two diodes :-) */
   {
     lcd_space();
     if (CompType == TYPE_NPN)           /* NPN */
-      lcd_fix_string(Diode_AC_str);       /* display: -|>|- */
+      String = (unsigned char *)Diode_AC_str;
     else                                /* PNP */
-      lcd_fix_string(Diode_CA_str);       /* display: -|<|- */
-    
+      String = (unsigned char *)Diode_CA_str;
+
+    lcd_fix_string(String);     /* display: -|>|- / -|<|- */
   }
 
   /* display pins */
@@ -1172,6 +1368,8 @@ void ShowBJT(void)
 
 void ShowFET(void)
 {
+  uint8_t           Data;          /* temp. data */
+
   /* display type */
   if (CompType & TYPE_MOSFET)      /* MOSFET */
     lcd_fix_string(MOS_str);         /* display: MOS */
@@ -1182,9 +1380,11 @@ void ShowFET(void)
   /* display channel type */
   lcd_space();
   if (CompType & TYPE_N_CHANNEL)   /* n-channel */
-    lcd_data('N');
+    Data = 'N';
   else                             /* p-channel */
-    lcd_data('P');
+    Data = 'P';
+
+  lcd_data(Data);                  /* display: N / P */
   lcd_fix_string(Channel_str);     /* display: -ch */
       
   /* display mode */
@@ -1283,7 +1483,7 @@ void ShowResistor(void)
 
     if (ResistorsFound == 3)       /* three resistors */
     {
-      Resistor_Type     *Rmax;          /* pointer to largest resistor */    
+      Resistor_Type     *Rmax;     /* pointer to largest resistor */    
 
       /*
        *  3 resistors mean 2 single resistors and both resitors in series.
@@ -1294,7 +1494,7 @@ void ShowResistor(void)
       Rmax = R1;                   /* starting point */
       for (Pin = 1; Pin <= 2; Pin++)
       {
-        if (R2->Value > Rmax->Value)
+        if (CmpValue(R2->Value, R2->Scale, Rmax->Value, Rmax->Scale) == 1)
         {
           Rmax = R2;          /* update largest one */
         }
@@ -1367,9 +1567,7 @@ void ShowCapacitor(void)
   {
     Cap++;                              /* next cap */
 
-    if ((Cap->Scale > MaxCap->Scale) ||
-        ((Cap->Scale == MaxCap->Scale) &&
-         (Cap->Value > MaxCap->Value)))
+    if (CmpValue(Cap->Value, Cap->Scale, MaxCap->Value, MaxCap->Scale) == 1)
     {
       MaxCap = Cap;
     }
@@ -1542,6 +1740,7 @@ start:
 
   /* display battery voltage */
   lcd_fix_string(Battery_str);          /* display: Bat. */
+  lcd_space();
   DisplayValue(TempWord / 10, -2, 'V'); /* display battery voltage */
   lcd_space();
 
