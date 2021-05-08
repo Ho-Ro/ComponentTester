@@ -1,7 +1,7 @@
 /* ************************************************************************
  *
  *   fixed 8x16 font based on Windows-1251
- *   horizontally aligned
+ *   horizontally aligned, bit order horizontally flipped
  *
  *   provided by indman@EEVblog and Gennady_13@VRTP.RU
  *   font (c) by NickNi@VRTP.RU
@@ -14,7 +14,7 @@
  *   font data
  * ************************************************************************ */
 
-#ifdef FONT_8X16_CYRILLIC_H
+#ifdef FONT_8X16_CYRILLIC_HF
 
 
 /* font size */

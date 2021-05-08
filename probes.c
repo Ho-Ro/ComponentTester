@@ -167,8 +167,8 @@ uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
    *  to be half of Vcc (allowed difference +/- 30mV).
    */
 
-  Min = (Config.Vcc / 2) - 30;     /* lower voltage */
-  Max = (Config.Vcc / 2) + 30;     /* upper voltage */
+  Min = (Cfg.Vcc / 2) - 30;        /* lower voltage */
+  Max = (Cfg.Vcc / 2) + 30;        /* upper voltage */
 
   if ((U1 > Min) && (U1 < Max))    /* U1 within window */
   { 
@@ -338,12 +338,12 @@ void DischargeProbes(void)
 void PullProbe(uint8_t Mask, uint8_t Mode)
 {
   /* set pull mode */
-  if (Mode & FLAG_PULLUP) R_PORT |= Mask;    /* pull-up */
-  else R_PORT &= ~Mask;                      /* pull-down */
-  R_DDR |= Mask;                             /* enable pulling */
+  if (Mode & PULL_UP) R_PORT |= Mask;   /* pull-up */
+  else R_PORT &= ~Mask;                 /* pull-down */
+  R_DDR |= Mask;                        /* enable pulling */
 
-  if (Mode & FLAG_1MS) wait1ms();            /* wait 1ms */
-  else wait10ms();                           /* wait 10ms */
+  if (Mode & PULL_1MS) wait1ms();       /* wait 1ms */
+  else wait10ms();                      /* wait 10ms */
 
   /* reset pulling */
   R_DDR &= ~Mask;                       /* set to HiZ mode */
@@ -490,7 +490,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
    *  Hint: The pull-down of the gate will trigger a possible PUT.
    */
 
-  PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLDOWN);   /* discharge gate via Rl */
+  PullProbe(Probes.Rl_3, PULL_10MS | PULL_DOWN);  /* discharge gate via Rl */
   U_Rl = ReadU_5ms(Probes.ADC_2);                 /* get voltage at Rl */
 
   /*
@@ -505,8 +505,8 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
      *  assuming: probe-1 = S / probe-2 = D / probe-3 = G
      */
 
-    PullProbe(Probes.Rl_3, FLAG_10MS | FLAG_PULLUP);   /* discharge gate via Rl */
-    U_Rl = ReadU_5ms(Probes.ADC_2);                    /* get voltage at Rl */
+    PullProbe(Probes.Rl_3, PULL_10MS | PULL_UP);  /* discharge gate via Rl */
+    U_Rl = ReadU_5ms(Probes.ADC_2);               /* get voltage at Rl */
   }
 
 

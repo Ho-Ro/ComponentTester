@@ -1,6 +1,6 @@
 /* ************************************************************************
  *
- *   self adjustment functions
+ *   self-adjustment functions
  *
  *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
@@ -38,9 +38,9 @@
  *  set default adjustment values
  */
 
-void SetAdjustDefaults(void)
+void AdjustDefaults(void)
 {
-  /* set default values */
+  /* set defaults for basic offsets/values */
   NV.RiL = R_MCU_LOW;
   NV.RiH = R_MCU_HIGH;
   NV.RZero = R_ZERO;
@@ -48,24 +48,46 @@ void SetAdjustDefaults(void)
   NV.RefOffset = UREF_OFFSET;
   NV.CompOffset = COMPARATOR_OFFSET;
   NV.Contrast = LCD_CONTRAST;
+
+  #ifdef HW_TOUCH
+  /* set defaults for touch screen */
+  Touch.X_Left = 0;
+  Touch.X_Right = 0;
+  Touch.Y_Top = 0;
+  Touch.Y_Bottom = 0;
+  /* this triggers the touch adjustment at startup */
+  #endif
 }
 
 
 
+#ifdef HW_TOUCH
+
 /*
- *  calculate checksum for adjustment values
+ *  functions optimized for generic usage
  */
 
-uint8_t CheckSum(void)
+
+/*
+ *  calculate checksum for adjustment values
+ *
+ *  requires:
+ *  - pointer to data structure in RAM
+ *  - size of data structure
+ */
+
+uint8_t CheckSum(uint8_t *Data, uint8_t Size)
 {
   uint8_t      Checksum = 0;            /* checksum / return value */
-  uint8_t      n;                       /* counter */
-  uint8_t      *Data = (uint8_t *)&NV;  /* pointer to RAM */
+  uint8_t      n = 0;                   /* counter */
 
   /* we simply add all bytes, besides the checksum */
-  for (n = 0; n < (sizeof(NV_Type) - 1); n++)
+  Size--;                     /* last byte is checksum */
+  while (n < Size)
   {  
-    Checksum += *Data;
+    Checksum += *Data;        /* add byte */
+    Data++;                   /* next byte */
+    n++;                      /* next byte */
   }
 
   /* fix for zero (not updated yet) */
@@ -80,11 +102,177 @@ uint8_t CheckSum(void)
  *  load/save adjustment values from/to EEPROM
  *
  *  requires:
+ *  - pointer to data structure in RAM
+ *  - pointer to data structure in EEPROM
+ *  - size of data structure
  *  - mode: load/save
+ *
+ *  returns:
+ *  - 0 on checksum error for read operation
+ *  - number of bytes read/written
+ */
+
+uint8_t DataStorage(uint8_t *Data_RAM, uint8_t *Data_EE, uint8_t Size, uint8_t Mode)
+{
+  uint8_t      n;                       /* counter & return value */
+  uint8_t      *Help;                   /* pointer */
+
+  /* update checksum */
+  Help = Data_RAM;                      /* start pointer */
+  Help += Size - 1;                     /* last byte (checksum) */
+  *Help = CheckSum(Data_RAM, Size);     /* update checksum */
+
+  Help = Data_RAM;                      /* save pointer */
+
+
+  /*
+   *  read/write EEPROM byte-wise to/from data structure in RAM
+   */
+
+  n = 0;
+  while (n < Size)
+  {
+    if (Mode == MODE_SAVE)              /* write */
+    {
+      eeprom_write_byte(Data_EE, *Data_RAM);    /* write a byte */
+    }
+    else                                /* read */
+    {
+      *Data_RAM = eeprom_read_byte(Data_EE);    /* read a byte */
+    }
+
+    Data_RAM++;               /* next byte */
+    Data_EE++;                /* next byte */
+    n++;                      /* next byte */
+  }
+
+
+  /*
+   *  check checksum on read
+   */
+
+  if (Mode != MODE_SAVE)           /* read mode */
+  {
+    n = CheckSum(Help, Size);      /* checksum of data in RAM */
+
+    /* data structure's last byte is checksum */
+    Data_RAM--;                    /* one byte back */
+    if (*Data_RAM != 0)            /* EEPROM updated */
+    {
+      if (*Data_RAM != n)          /* mismatch */
+      {
+        /* tell user */
+        LCD_Clear();
+        LCD_EEString(Checksum_str);          /* display: Checksum */
+        LCD_NextLine_EEString(Error_str);    /* display: error! */
+        MilliSleep(2000);                    /* give user some time to read */
+
+        n = 0;           /* signal checksum problem */
+      }
+    }
+  }
+
+  return n;
+}
+
+
+
+/*
+ *  manage storage of adjustment offsets and values
+ *
+ *  requires:
+ *  - mode: load/save
+ *    MODE_LOAD  load data from EEPROM to RAM
+ *    MODE_SAVE  save data from RAM to EEPROM
+ *  - ID: profile ID (1 or 2) for basic adjustment values
+ */
+
+void AdjustStorage(uint8_t Mode, uint8_t ID)
+{
+  uint8_t      n;                            /* temp. value */
+  uint8_t      Flag = 1;                     /* control flag */
+  uint8_t      *Data_EE;                     /* pointer to EEPROM */
+
+  /*
+   *  basic adjustment offsets/values
+   */
+
+  /* determine EEPROM address */
+  if (ID == 2)                     /* profile #2 */
+  {
+    Data_EE = (uint8_t *)&NV_Adjust_2;
+  }
+  else                             /* profile #1 */
+  {
+    Data_EE = (uint8_t *)&NV_Adjust_1;
+  }
+
+  /* write/read EEPROM */
+  n = DataStorage((uint8_t *)&NV, Data_EE, sizeof(Adjust_Type), Mode);
+  if (n == 0) Flag = 0;       /* checksum error */
+
+
+  /*
+   *  additional offsets
+   */
+
+  /* touch screen offsets */
+  n = DataStorage((uint8_t *)&Touch, (uint8_t *)&NV_Touch, sizeof(Touch_Type), Mode);
+  if (n == 0) Flag = 0;       /* checksum error */
+
+
+  if ((Mode == MODE_LOAD) && (Flag == 0))    /* checksum error */
+  {
+    AdjustDefaults();         /* set defaults */
+  }
+}
+
+
+#else
+
+
+/*
+ *  functions optimized for basic adjustment offsets and values
+ */
+
+
+/*
+ *  calculate checksum for adjustment values
+ */
+
+uint8_t CheckSum(void)
+{
+  uint8_t      Checksum = 0;            /* checksum / return value */
+  uint8_t      n;                       /* counter */
+  uint8_t      *Data = (uint8_t *)&NV;  /* pointer to RAM */
+
+  /* we simply add all bytes, besides the checksum */
+  for (n = 0; n < (sizeof(Adjust_Type) - 1); n++)
+  {  
+    Checksum += *Data;        /* add byte */
+    Data++;                   /* next byte */
+  }
+
+  /* fix for zero (not updated yet) */
+  if (Checksum == 0) Checksum++;
+
+  return Checksum;
+}
+
+
+
+/*
+ *  manage storage of adjustment offsets and values
+ *  - save/load values to/from EEPROM
+ *
+ *  requires:
+ *  - mode: load/save
+ *    MODE_LOAD  load data from EEPROM to RAM
+ *    MODE_SAVE  save data from RAM to EEPROM
  *  - ID: profile ID
  */
 
-void ManageAdjust(uint8_t Mode, uint8_t ID)
+void AdjustStorage(uint8_t Mode, uint8_t ID)
 {
   uint8_t      n;                            /* counter */
   uint8_t      *Addr_RAM = (uint8_t *)&NV;   /* pointer to RAM */
@@ -93,11 +281,11 @@ void ManageAdjust(uint8_t Mode, uint8_t ID)
   /* determine EEPROM address */
   if (ID == 2)                     /* profile #2 */
   {
-    Addr_EE = (uint8_t *)&NV_EE2;
+    Addr_EE = (uint8_t *)&NV_Adjust_2;
   }
   else                             /* profile #1 */
   {
-    Addr_EE = (uint8_t *)&NV_EE;
+    Addr_EE = (uint8_t *)&NV_Adjust_1;
   }
 
   NV.CheckSum = CheckSum();        /* update checksum */
@@ -107,7 +295,7 @@ void ManageAdjust(uint8_t Mode, uint8_t ID)
    *  read/write EEPROM byte-wise to/from data structure 
    */
 
-  for (n = 0; n < sizeof(NV_Type); n++)
+  for (n = 0; n < sizeof(Adjust_Type); n++)
   {
     if (Mode == MODE_SAVE)              /* write */
     {
@@ -129,7 +317,7 @@ void ManageAdjust(uint8_t Mode, uint8_t ID)
 
   if (Mode != MODE_SAVE)           /* read mode */
   {
-    n = CheckSum();
+    n = CheckSum();                /* get checksum */
 
     if (NV.CheckSum != 0)          /* EEPROM updated */
     {
@@ -141,11 +329,13 @@ void ManageAdjust(uint8_t Mode, uint8_t ID)
         LCD_NextLine_EEString(Error_str);    /* display: error! */
         MilliSleep(2000);                    /* give user some time to read */
 
-        SetAdjustDefaults();                 /* set defaults */
+        AdjustDefaults();                    /* set defaults */
       }
     }
   }
 }
+
+#endif
 
 
 
@@ -155,10 +345,10 @@ void ManageAdjust(uint8_t Mode, uint8_t ID)
 
 
 /*
- *  show adjustment values and offsets
+ *  show basic adjustment values and offsets
  */
 
-void ShowAdjust(void)
+void ShowBasicAdjust(void)
 {
   LCD_NextLine_Mode(MODE_KEY);          /* set next line mode */
 
@@ -179,11 +369,11 @@ void ShowAdjust(void)
 
   /* display internal bandgap reference */
   LCD_NextLine_EEString_Space(URef_str);     /* display: Vref */
-  DisplayValue(Config.Bandgap, -3, 'V');     /* display bandgap ref */
+  DisplayValue(Cfg.Bandgap, -3, 'V');        /* display bandgap ref */
 
   /* display Vcc */
   LCD_NextLine_EEString_Space(Vcc_str);      /* display: Vcc */
-  DisplayValue(Config.Vcc, -3, 'V');         /* display Vcc */
+  DisplayValue(Cfg.Vcc, -3, 'V');            /* display Vcc */
 
   /* display offset of analog comparator */
   LCD_NextLine_EEString_Space(CompOffset_str);    /* display: AComp */
@@ -352,21 +542,21 @@ uint8_t SelfAdjust(void)
           ADC_PORT = (1 << TP1);
           ADC_DDR = (1 << TP1);
           R_DDR = (1 << R_RL_1);
-          Val1 = Config.Vcc - ReadU_5ms(TP1);     /* U across RiH */
+          Val1 = Cfg.Vcc - ReadU_5ms(TP1);        /* U across RiH */
           U_RiH += Val1;
 
           /* TP2: Gnd -- RiL -- Rl -- probe-2 -- RiH -- Vcc */
           ADC_PORT = (1 << TP2);
           ADC_DDR = (1 << TP2);
           R_DDR = (1 << R_RL_2);
-          Val2 = Config.Vcc - ReadU_5ms(TP2);     /* U across RiH */
+          Val2 = Cfg.Vcc - ReadU_5ms(TP2);        /* U across RiH */
           U_RiH += Val2;
 
           /* TP3: Gnd -- RiL -- Rl -- probe-3 -- RiH -- Vcc */
           ADC_PORT = (1 << TP3);
           ADC_DDR = (1 << TP3);
           R_DDR = (1 << R_RL_3);
-          Val3 = Config.Vcc - ReadU_5ms(TP3);     /* U across RiH */
+          Val3 = Cfg.Vcc - ReadU_5ms(TP3);        /* U across RiH */
           U_RiH += Val3;
 
           RiH_Counter += 3;
@@ -480,7 +670,7 @@ uint8_t SelfAdjust(void)
     /* use values multiplied by 3 to increase accuracy */    
     U_RiL /= 5;                         /* average sum of 3 U_RiL */
     U_RiH /= 5;                         /* average sum of 3 U_RiH */
-    Val1 = (Config.Vcc * 3) - U_RiL - U_RiH;  /* U_Rl * 3 */
+    Val1 = (Cfg.Vcc * 3) - U_RiL - U_RiH;    /* U_Rl * 3 */
 
     /* RiL */
     Val0 = ((uint32_t)R_LOW * 100 * U_RiL) / Val1;     /* Rl * U_Ri / U_Rl in 0.01 Ohm */
@@ -510,8 +700,8 @@ uint8_t SelfAdjust(void)
   }
   #endif
 
-  /* show values and offsets */
-  ShowAdjust();
+  /* show basic values and offsets */
+  ShowBasicAdjust();
 
   if (Flag == 4) Flag = 1;         /* all adjustments done -> success */
   else Flag = 0;                   /* signal error */
@@ -591,7 +781,7 @@ uint8_t SelfTest(void)
           /* substract theoretical voltage of voltage divider */
 
           /* voltage of voltage divider */
-          Temp = ((int32_t)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          Temp = ((int32_t)Cfg.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
 
           /* TP3: Gnd -- Rl -- probe-2 -- probe-1 -- Rl -- Vcc */
           R_PORT = (1 << R_RL_1);
@@ -619,7 +809,7 @@ uint8_t SelfTest(void)
           /* set up a voltage divider with the Rh's */
 
           /* voltage of voltage divider (ignore RiL and RiH) */
-          Temp = Config.Vcc / 2;
+          Temp = Cfg.Vcc / 2;
 
           /* TP3: Gnd -- Rh -- probe-2 -- probe-1 -- Rh -- Vcc */
           R_PORT = (1 << R_RH_1);

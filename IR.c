@@ -7,6 +7,12 @@
  * ************************************************************************ */
 
 
+/* local includes */
+#include "config.h"           /* global configuration */
+
+#if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+
+
 /*
  *  local constants
  */
@@ -20,13 +26,9 @@
  */
 
 /* local includes */
-#include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
 #include "functions.h"        /* external functions */
-
-
-#if defined(SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
 
 
 /*
@@ -1447,7 +1449,7 @@ void IR_Detector(void)
   #undef MAX_PULSES
 }
 
-#endif
+
 
 /* ************************************************************************
  *   clean-up of local constants
@@ -1457,7 +1459,7 @@ void IR_Detector(void)
 /* source management */
 #undef IR_C
 
-
+#endif
 
 /* ************************************************************************
  *   EOF

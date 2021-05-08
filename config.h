@@ -35,7 +35,7 @@
  *    to match your rotary encoder
  */
 
-#define HW_ENCODER
+//#define HW_ENCODER
 
 
 /*
@@ -153,20 +153,6 @@
 //#define HW_CAP_RELAY
 
 
-/*
- *  I2C bus
- *  - might be required by some hardware
- *  - for bit-bang I2C port and pins see I2C_PORT (config_<MCU>.h)
- *  - hardware I2C (TWI) uses the proper pins automatically
- *  - uncomment either I2C_BITBANG or I2C_HARDWARE to enable
- */
-
-//#define I2C_BITBANG                /* bit-bang I2C */
-//#define I2C_HARDWARE               /* MCU's hardware TWI */
-#define I2C_STANDARD_MODE          /* 100kHz bus speed */
-//#define I2C_FAST_MODE              /* 400kHz bus speed */
-
-
 
 /* ************************************************************************
  *   software options
@@ -183,7 +169,7 @@
 
 /*
  *  PWM generator with fancy user interface
- *  - requires rotary encoder and display with more than 2 text lines
+ *  - requires additional keys and display with more than 2 text lines
  *  - uncomment to enable
  */
 
@@ -216,7 +202,7 @@
 
 /*
  *  squarewave signal generator
- *  - requires rotary encoder
+ *  - requires additional keys
  *  - uncomment to enable
  */
 
@@ -271,7 +257,7 @@
 
 /*
  *  Servo Check
- *  - requires rotary encoder and display with more than 2 text lines
+ *  - requires additional keys and display with more than 2 text lines
  *  - uncomment to enable
  */
 
@@ -316,6 +302,7 @@
 #define UI_ENGLISH
 //#define UI_GERMAN
 //#define UI_CZECH
+//#define UI_ITALIAN
 //#define UI_SPANISH
 //#define UI_RUSSIAN
 
@@ -502,6 +489,40 @@
 
 
 /* ************************************************************************
+ *   Busses
+ * ************************************************************************ */
+
+
+/*
+ *  I2C bus
+ *  - might be required by some hardware
+ *  - could already be enabled in display section (config_<MCU>.h)
+ *  - for bit-bang I2C port and pins see I2C_PORT (config_<MCU>.h)
+ *  - hardware I2C (TWI) uses automatically the proper MCU pins
+ *  - uncomment either I2C_BITBANG or I2C_HARDWARE to enable
+ *  - uncomment one of the bus speed modes
+ */
+
+//#define I2C_BITBANG                /* bit-bang I2C */
+//#define I2C_HARDWARE               /* MCU's hardware TWI */
+//#define I2C_STANDARD_MODE          /* 100kHz bus speed */
+//#define I2C_FAST_MODE              /* 400kHz bus speed */
+
+
+/*
+ *  SPI bus
+ *  - might be required by some hardware
+ *  - could already be enabled in display section (config_<MCU>.h)
+ *  - for bit-bang SPI port and pins see SPI_PORT (config_<MCU>.h)
+ *  - hardware SPI uses automatically the proper MCU pins
+ */
+
+//#define SPI_BITBANG                /* bit-bang SPI */
+//#define SPI_HARDWARE               /* hardware SPI */
+
+
+
+/* ************************************************************************
  *   ADC clock
  * ************************************************************************ */
 
@@ -610,14 +631,15 @@
  */
 
 
-/* rotary encoder or increase/decrease push buttons */
-#if defined(HW_ENCODER) || defined(HW_INCDEC_KEYS)
-  #define HW_STEP_KEYS
+/* additional keys */
+/* rotary encoder, increase/decrease push buttons or touch screen */
+#if defined(HW_ENCODER) || defined(HW_INCDEC_KEYS) | defined(HW_TOUCH)
+  #define HW_KEYS
 #endif
 
 
-/* options which require a rotary encoder */
-#ifndef HW_STEP_KEYS
+/* options which require additional keys */
+#ifndef HW_KEYS
 
   /* PWM+ */
   #ifdef SW_PWM_PLUS
@@ -644,6 +666,12 @@
 #endif
 #ifdef HW_IR_RECEIVER
   #undef SW_IR_RECEIVER
+#endif
+
+
+/* SPI */
+#if defined (SPI_BITBANG) || defined (SPI_HARDWARE)
+  #define HW_SPI
 #endif
 
 
@@ -676,10 +704,15 @@
 
 
 /* component symbols for fancy pinout */
-#if defined (SYMBOLS_24X24_VP) || defined (SYMBOLS_24X24_H) || defined (SYMBOLS_30X32_H) || defined (SYMBOLS_32X32_H)
+#if defined (SYMBOLS_24X24_H)
   #define SW_SYMBOLS
 #endif
-
+#if defined (SYMBOLS_24X24_HF) || defined (SYMBOLS_30X32_HF) || defined (SYMBOLS_32X32_HF)
+  #define SW_SYMBOLS
+#endif
+#if defined (SYMBOLS_24X24_VFP)
+  #define SW_SYMBOLS
+#endif
 
 
 /* ************************************************************************

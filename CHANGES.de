@@ -8,6 +8,23 @@
 
 ------------------------------------------------------------------------------
 
+v1.29m 2017-07
+- Unterstützung von Touch-Screens und Treiber für ADS7843 kompatible
+  Controller.
+- Fehler in Kontrast-Einstellung für PCD8544 korrigiert.
+- Dummen Fehler in CheckSum() beseitigt.
+- Treiber für ST7920 basierte LCD-Module mit 64x128 Pixel.
+- SmallResistor() optimiert und Erkennungslogik in CheckResistor() verbessert,
+  damit sehr kleine Widerstände in Verbindung mit Kontaktwiderständen der
+  Prüfkabel besser erkannt werden.
+- Steuerlogik und Schwellwert für Darlingston-Transistoren in Get_hFE_C()
+  geändert, um Problem mit manchen NPN-Typen zu beseitigen.
+- Zentraler SPI-Treiber. Treiber und Konfiguation von LCD-Modulen entsprechend
+  angepasst.
+- Italienischer Text von Gino_09@EEVblog.
+- Unterstützung von HD44780 mit kyrillischem Zeichensatz durch
+  hapless@EEVblog.
+
 v1.28m 2017-04
 - Mehr/Weniger-Tasten als Alternative zum Drehencoder (HW_INCDEC_KEYS).
 - Zurücksetzen auf Standardfrequenz im Rechteck-Generator ergänzt.

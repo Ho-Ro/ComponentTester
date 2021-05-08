@@ -2,7 +2,7 @@
  *
  *   ADS7843 compatible touchscreen controller
  *
- *   (c) 2015 by Markus Reschke
+ *   (c) 2015-2017 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -31,10 +31,13 @@
 #define FLAG_SER         0b00000100     /* single-ended reference */
 
 /* power down mode */
-#define FLAG_PWR_PEN_ON  0b00000000     /* power-down between conversions and enable PENIRQ */
-#define FLAG_PWR_PEN_OFF 0b00000001     /* power-down between conversions and disable PENIRQ */
-#define FLAG_PWR_RSVR    0b00000010     /* reserved for future use */
+#define FLAG_PWR_DOWN_1  0b00000000     /* power-down between conversions */
+                                        /* and enable PENIRQ */
+#define FLAG_PWR_DOWN_2  0b00000001     /* power-down between conversions */
+                                        /* and disable PENIRQ */
+#define FLAG_PWR_RSRVD   0b00000010     /* reserved for future use */
 #define FLAG_PWR_ALWAYS  0b00000011     /* no power-down between conversions */
+                                        /* and disable PENIRQ */
 
 
 

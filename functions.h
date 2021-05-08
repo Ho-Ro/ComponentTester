@@ -51,6 +51,26 @@
 
 
 /* ************************************************************************
+ *   functions from SPI.c
+ * ************************************************************************ */
+
+#ifndef SPI_C
+
+  #ifdef HW_SPI
+    #ifdef SPI_HARDWARE
+      extern void SPI_Clock(void);
+    #endif
+    extern void SPI_Setup(void);
+    extern void SPI_Write_Byte(uint8_t Byte);
+    #ifdef SPI_MISO
+      extern uint8_t SPI_WriteRead_Byte(uint8_t Byte);
+    #endif
+  #endif
+
+#endif
+
+
+/* ************************************************************************
  *   functions from I2C.c
  * ************************************************************************ */
 
@@ -71,9 +91,14 @@
  * ************************************************************************ */
 
 #ifndef TOUCH_DRIVER_C
-  #ifdef HW_TOUCH
 
+  #ifdef HW_TOUCH
+    extern void Touch_BusSetup(void);
+    extern void Touch_Init(void);
+    extern uint8_t Touch_Check(void);
+    extern uint8_t Touch_Adjust(void);
   #endif
+
 #endif
 
 
@@ -115,11 +140,10 @@
 
 #ifndef ADJUST_C
 
-  extern void SetAdjustDefaults(void);
-  extern uint8_t CheckSum(void);
-  extern void ManageAdjust(uint8_t Mode, uint8_t ID);
+  extern void AdjustDefaults(void);
+  extern void AdjustStorage(uint8_t Mode, uint8_t ID);
 
-  extern void ShowAdjust(void);
+  extern void ShowBasicAdjust(void);
   extern uint8_t SelfAdjust(void);
 
   extern uint8_t SelfTest(void);
@@ -136,7 +160,6 @@
   extern int8_t CmpValue(uint32_t Value1, int8_t Scale1,
     uint32_t Value2, int8_t Scale2);
   extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
-
 
   #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS)
     extern void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
@@ -199,6 +222,7 @@
   #ifdef SW_OPTO_COUPLER
     extern void OptoCoupler_Tool(void);
   #endif
+
 #endif
 
 

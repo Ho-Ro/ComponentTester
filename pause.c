@@ -59,7 +59,7 @@ void MilliSleep(uint16_t Time)
       complicated and we don't need exact timing here.
   */
 
-  Mode = Config.SleepMode;              /* get requested sleep mode */
+  Mode = Cfg.SleepMode;                 /* get requested sleep mode */
 
   /* calculate required timer cycles (prescaler 1024) */
   Cycles = Time;

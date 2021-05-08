@@ -31,7 +31,7 @@
  *  local constants
  */
 
-/* rotary encoder and push buttons */
+/* rotary encoder */
 #define DIR_NONE         0b00000000     /* no turn or error */
 #define DIR_RESET        0b00000001     /* reset state */
 
@@ -348,7 +348,11 @@ void DisplaySignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
 
 
 /* ************************************************************************
- *   user input (test push button / rotary encoder)
+ *   user input 
+ *   - test push button
+ *   - rotary encoder
+ *   - increase/decrease push buttons
+ *   - touch screen
  * ************************************************************************ */
 
 
@@ -360,17 +364,17 @@ void DisplaySignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
  *  - encoder might be in parallel with LCD signal lines
  *
  *  returns user action:
- *  - DIR_NONE for no turn or invalid signal
- *  - KEY_TURN_RIGHT for right/clockwise turn
- *  - KEY_TURN_LEFT for left/counter-clockwise turn
+ *  - KEY_NONE for no turn or invalid signal
+ *  - KEY_RIGHT for right/clockwise turn
+ *  - KEY_LEFT for left/counter-clockwise turn
  */
 
 uint8_t ReadEncoder(void)
 {
-  uint8_t           Action = DIR_NONE;       /* return value */
-  uint8_t           Temp;                    /* temporary value */
-  uint8_t           AB = 0;                  /* new AB state */
-  uint8_t           Old_AB;                  /* old AB state */
+  uint8_t           Key = KEY_NONE;     /* return value */
+  uint8_t           Temp;               /* temporary value */
+  uint8_t           AB = 0;             /* new AB state */
+  uint8_t           Old_AB;             /* old AB state */
 
   /* set encoder's A & B pins to input */
   Old_AB = ENCODER_DDR;                 /* save current settings */
@@ -421,9 +425,9 @@ uint8_t ReadEncoder(void)
       Temp >>= (Old_AB * 2);            /* get expected value by shifting */
       Temp &= 0b00000011;               /* select value */
       if (Temp == AB)                   /* value matches */
-        Temp = KEY_TURN_RIGHT;          /* turn to the right */
+        Temp = KEY_RIGHT;               /* turn to the right */
       else                              /* value mismatches */
-        Temp = KEY_TURN_LEFT;           /* turn to the left */
+        Temp = KEY_LEFT;                /* turn to the left */
 
       /* step/detent logic */
       UI.EncPulses++;                   /* got a new pulse */
@@ -439,7 +443,7 @@ uint8_t ReadEncoder(void)
       if (UI.EncPulses >= ENCODER_PULSES)    /* reached step */
       {
         UI.EncPulses = 0;               /* reset pulses */
-        Action = Temp;                  /* signal valid step */
+        Key = Temp;                     /* signal valid step */
       }
     }
     else                                /* invalid change */
@@ -448,7 +452,7 @@ uint8_t ReadEncoder(void)
     }
   }
 
-  return Action;
+  return Key;
 }
 
 #endif
@@ -458,28 +462,29 @@ uint8_t ReadEncoder(void)
 #ifdef HW_INCDEC_KEYS
 
 /*
- *  check incresae/decrease push buttons
+ *  check increase/decrease push buttons
  *  - adds delay of 0.5ms
  *  - buttons might be in parallel with LCD signal lines
+ *  - speed-up functionality (similar to rotary encoder's turning velocity)
  *
  *  returns:
- *  - DIR_NONE for no button press
- *  - KEY_TURN_RIGHT for increase
- *  - KEY_TURN_LEFT for decrease
+ *  - KEY_NONE for no button press
+ *  - KEY_RIGHT for increase
+ *  - KEY_LEFT for decrease
  *  - KEY_INCDEC for increase and decrease
  */
 
 uint8_t ReadIncDecKeys(void)
 {
-  uint8_t           Action = DIR_NONE;       /* return value */
-  uint8_t           Reg;                     /* register state */
+  uint8_t           Key = KEY_NONE;          /* return value */
+  uint8_t           RegState;                /* register state */
   uint8_t           Run = 1;                 /* loop control */
   uint8_t           Temp;                    /* temporary value */
   uint8_t           TicksInc = 0;            /* time counter */
   uint8_t           TicksDec = 0;            /* time counter */
 
   /* set pins to input */
-  Reg = KEY_DDR;                   /* save current settings */
+  RegState = KEY_DDR;              /* save current settings */
   KEY_DDR &= ~((1 << KEY_INC) | (1 << KEY_DEC));
   wait500us();                     /* settle time */
 
@@ -522,31 +527,31 @@ uint8_t ReadIncDecKeys(void)
   /* process counters */
   if (TicksInc > 0)                /* "increase" button pressed */
   {
-    Action = KEY_TURN_RIGHT;
+    Key = KEY_RIGHT;
   }
 
   if (TicksDec > 0)                /* "decrease" button pressed */
   {
-    if (Action == KEY_TURN_RIGHT)  /* also "increase" button */
+    if (Key == KEY_RIGHT)          /* also "increase" button */
     {
-      Action = KEY_INCDEC;         /* both buttons pressed */
+      Key = KEY_INCDEC;            /* both buttons pressed */
     }
     else                           /* just "decrease */
     {
-      Action = KEY_TURN_LEFT;
+      Key = KEY_LEFT;
     }
   }
 
   /* speed-up functionality */
-  if (Action != DIR_NONE)          /* button pressed */
+  if (Key != KEY_NONE)             /* button pressed */
   {
     Temp = 1;                      /* default step size */
 
-    if (Action == UI.OldKey)       /* same key as before */
+    if (Key == UI.KeyOld)          /* same key as before */
     {
       if (Run == 2)                /* long button press */
       {
-        Temp = UI.OldStep;         /* get former step size */
+        Temp = UI.KeyStepOld;      /* get former step size */
 
         if (Temp <= 6)             /* limit step size to 7 */
         {
@@ -555,14 +560,143 @@ uint8_t ReadIncDecKeys(void)
       }
     }
 
-    UI.OldStep = Temp;             /* update former step size */
+    UI.KeyStepOld = Temp;          /* update former step size */
     UI.KeyStep = Temp;             /* set new step size */
   }
 
   /* restore port/pin settings */
-  KEY_DDR = Reg;                   /* restore old settings */
+  KEY_DDR = RegState;              /* restore old settings */
 
-  return Action;
+  return Key;
+}
+
+#endif
+
+
+
+#ifdef HW_TOUCH
+
+/*
+ *  check touch screen
+ *
+ *  returns:
+ *  - KEY_NONE for no touch event
+ *  - KEY_RIGHT for increase
+ *  - KEY_LEFT for decrease
+ */
+
+uint8_t ReadTouchScreen(void)
+{
+  uint8_t           Key = KEY_NONE;          /* return value */
+  uint8_t           OldKey = KEY_NONE;       /* former key action */
+  uint8_t           Run = 1;                 /* loop control */
+  uint8_t           Flag;                    /* control flag */
+  uint8_t           n = 0;                   /* counter */
+  uint8_t           X, Y;                    /* char pos */
+  uint8_t           X_Max, Y_Max;            /* char pos limits */
+
+  X_Max = UI.CharMax_X;       /* get limits */
+  Y_Max = UI.CharMax_Y;
+
+  /* processing loop */
+  while (Run == 1)
+  {
+    Flag = Touch_Check();     /* check touch controller */
+
+    if (Flag)                 /* touch event */
+    {
+      X = UI.TouchPos_X;      /* get char pos */
+      Y = UI.TouchPos_Y;
+
+      /* derive "button" */
+      if (X <= 3)                  /* left touch bar */
+      {
+        Key = KEY_LEFT;
+      }
+      else if (X >= (X_Max - 2))   /* right touch bar */
+      {
+        Key = KEY_RIGHT;
+      }
+      else if (Y <= 2)             /* top touch bar */
+      {
+        Key = KEY_LEFT;
+      }
+      else if (Y >= (Y_Max - 1))   /* bottom touch bar */
+      {
+        Key = KEY_RIGHT;
+      }
+      else                         /* center area */
+      {
+        Key = KEY_SHORT;
+      }
+
+      /* control logic */
+      if (Key == KEY_NONE)         /* no valid Key */
+      {
+        Run = 0;                   /* end loop */
+      }
+      else                         /* valid key */
+      {
+        if (OldKey == KEY_NONE)    /* first run */
+        {
+          OldKey = Key;            /* set former key */
+        }
+
+        if (OldKey != Key)         /* key has changed */
+        {
+          Key = KEY_NONE;          /* reset key */
+          Run = 0;                 /* end loop */
+        }
+      }
+
+      n++;                    /* increase counter */
+
+      if (n >= 10)            /* long "button" press (300ms) */
+      {
+        Run = 2;              /* end loop & signal long press */
+      }
+      else                    /* */
+      {
+        MilliSleep(30);       /* time to debounce and delay */
+      }
+    }
+    else                      /* no touch event */
+    {
+      Run = 0;                /* end loop */
+    }
+  }
+
+
+  /* speed-up functionality */
+  if (Key != KEY_NONE)             /* "button" pressed */
+  {
+    n = 1;                         /* default step size */
+
+    if (Key == KEY_SHORT)          /* special case: center area */
+    {
+      if (Run == 2)                /* long key press */
+      {
+        Key = KEY_LONG;            /* change to long key press */
+      }
+    }
+    else if (Key == UI.KeyOld)     /* same key as before */
+    {
+      if (Run == 2)                /* long button press */
+      {
+        n = UI.KeyStepOld;         /* get former step size */
+
+        if (n <= 6)                /* limit step size to 7 */
+        {
+          n++;                     /* increase step size */
+        }
+      }
+    }
+
+    UI.KeyStepOld = n;             /* update former step size */
+    UI.KeyStep = n;                /* set new step size */
+  }
+
+  return Key;
 }
 
 #endif
@@ -570,9 +704,11 @@ uint8_t ReadIncDecKeys(void)
 
 
 /*
- *  read test push button, optional rotary encoder or increase/decrease
- *  push buttons
- *  - detection of the rotary encoder's turning velocity
+ *  get user feedback
+ *  - test push button
+ *  - optional rotary encoder incl. detection of turning velocity
+ *  - optional increase/decrease push buttons
+ *  - 
  *
  *  requires:
  *  - Timeout in ms 
@@ -587,8 +723,8 @@ uint8_t ReadIncDecKeys(void)
  *  - KEY_TIMEOUT     reached timeout
  *  - KEY_SHORT       short press of test key
  *  - KEY_LONG        long press of test key
- *  - KEY_TURN_RIGHT  rotary encoder turned right or increase key pressed 
- *  - KEY_TURN_LEFT   rotary encoder turned left or decrease key pressed
+ *  - KEY_RIGHT       rotary encoder turned right or increase key pressed 
+ *  - KEY_LEFT        rotary encoder turned left or decrease key pressed
  *  - KEY_INCDEC      increase and decrease keys both pressed
  *  The turning velocity (speed-up) is returned via UI.KeyStep (1-7).
  */
@@ -628,8 +764,8 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   Timeout2 = 50;
   #endif
 
-  #ifdef HW_STEP_KEYS
-  /* init variables for rotary encoder or up/down push buttons */ 
+  #ifdef HW_KEYS
+  /* init variables for additional keys */ 
   UI.KeyStep = 1;             /* default level #1 */
   #endif
 
@@ -697,6 +833,20 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
     }
     else                      /* no key press */
     {
+      /*
+       *  touch screen
+       */
+
+      #ifdef HW_TOUCH
+      Test = ReadTouchScreen();
+
+      if (Test)               /* got user input */
+      {
+        Key = Test;                /* save key */
+        break;                     /* exit loop */
+      }
+      #endif
+
       /*
        *  increase/decrease push buttons
        */
@@ -808,8 +958,8 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
     LCD_Cursor(0);            /* disable cursor on display */
   }
 
-  #ifdef HW_INCDEC_KEYS
-  UI.OldKey = Key;            /* update former key */
+  #ifdef HW_KEYS
+  UI.KeyOld = Key;            /* update former key */
   #endif
 
   #undef DELAY_500
@@ -940,8 +1090,8 @@ void ChangeContrast(void)
     LCD_ClearLine2();
     DisplayValue(Contrast, 0, 0);
 
-    #ifdef HW_STEP_KEYS
-    if (Flag < KEY_TURN_RIGHT)          /* just for test button usage */
+    #ifdef HW_KEYS
+    if (Flag < KEY_RIGHT)               /* just for test button usage */
     #endif
     MilliSleep(300);                    /* smooth UI */
 
@@ -959,8 +1109,8 @@ void ChangeContrast(void)
         if (Contrast < Max) Contrast++;   /* increase value */
       }
     }
-    #ifdef HW_STEP_KEYS
-    else if (Flag == KEY_TURN_RIGHT)    /* rotary encoder: right turn */
+    #ifdef HW_KEYS
+    else if (Flag == KEY_RIGHT)         /* rotary encoder: right turn */
     {
       if (Contrast < Max) Contrast++;   /* increase value */
     }
@@ -979,7 +1129,7 @@ void ChangeContrast(void)
 
 
 /* ************************************************************************
- *   menues
+ *   menus
  * ************************************************************************ */
 
 
@@ -1086,7 +1236,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
       LCD_Char(n);
     }
 
-    #ifndef HW_STEP_KEYS
+    #ifndef HW_KEYS
       MilliSleep(100);        /* smooth UI */
     #endif
 
@@ -1097,17 +1247,17 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
  
     n = TestKey(0, CURSOR_NONE);        /* wait for testkey */
 
-    #ifdef HW_STEP_KEYS
-    /* processing for rotary encoder */
+    #ifdef HW_KEYS
+    /* processing for rotary encoder etc. */
     if (n == KEY_SHORT)            /* short key press: select item */
     {
       n = KEY_LONG;                     /* trigger item selection */
     }
-    else if (n == KEY_TURN_RIGHT)  /* rotary encoder: right turn */
+    else if (n == KEY_RIGHT)       /* rotary encoder: right turn */
     {
       n = KEY_SHORT;                    /* trigger next item */
     }
-    else if (n == KEY_TURN_LEFT)   /* rotary encoder: left turn */
+    else if (n == KEY_LEFT)        /* rotary encoder: left turn */
     {
       if (Selected == 0)                /* first item */
       {
@@ -1218,7 +1368,7 @@ void AdjustmentMenu(uint8_t Mode)
 
   if (ID > 0)                 /* valid profile ID */
   {
-    ManageAdjust(Mode, ID);
+    AdjustStorage(Mode, ID);
   }
 
   #undef MENU_ITEMS
@@ -1231,7 +1381,76 @@ void AdjustmentMenu(uint8_t Mode)
 
 uint8_t PresentMainMenu(void)
 {
-  #define MENU_ITEMS  16
+  #define ITEM_0         6         /* basic items */
+
+  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
+    #define ITEM_6       1
+  #else
+    #define ITEM_6       0
+  #endif
+
+  #ifdef SW_SQUAREWAVE
+    #define ITEM_7       1
+  #else
+    #define ITEM_7       0
+  #endif
+
+  #ifdef HW_ZENER
+    #define ITEM_8       1
+  #else
+    #define ITEM_8       0
+  #endif
+
+  #ifdef SW_ESR
+    #define ITEM_9       1
+  #else
+    #define ITEM_9       0
+  #endif
+
+  #ifdef HW_FREQ_COUNTER
+    #define ITEM_10      1
+  #else
+    #define ITEM_10      0
+  #endif
+
+  #ifdef SW_ENCODER
+    #define ITEM_11      1
+  #else
+    #define ITEM_11      0
+  #endif
+
+  #ifdef SW_CONTRAST
+    #define ITEM_12      1
+  #else
+    #define ITEM_12      0
+  #endif
+
+  #ifdef SW_IR_RECEIVER
+    #define ITEM_13      1
+  #else
+    #define ITEM_13      0
+  #endif
+
+  #ifdef SW_OPTO_COUPLER
+    #define ITEM_14      1
+  #else
+    #define ITEM_14      0
+  #endif
+
+  #ifdef SW_SERVO
+    #define ITEM_15      1
+  #else
+    #define ITEM_15      0
+  #endif
+
+  #ifdef HW_TOUCH
+    #define ITEM_16      1
+  #else
+    #define ITEM_16      0
+  #endif
+
+  #define MENU_ITEMS (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16)
+//  #define MENU_ITEMS     17             /* worst case */
 
   uint8_t           Item = 0;           /* item number */
   uint8_t           ID;                 /* ID of selected item */
@@ -1274,11 +1493,6 @@ uint8_t PresentMainMenu(void)
   MenuID[Item] = 11;
   Item++;
   #endif
-  #ifdef SW_CONTRAST
-  MenuItem[Item] = (void *)Contrast_str;     /* change LCD contrast */
-  MenuID[Item] = 12;
-  Item++;
-  #endif
   #ifdef SW_IR_RECEIVER
   MenuItem[Item] = (void *)IR_Detector_str;  /* IR RC detection */
   MenuID[Item] = 13;
@@ -1296,22 +1510,32 @@ uint8_t PresentMainMenu(void)
   #endif
 
   /* standard items */
-  MenuItem[Item] = (void *)Selftest_str;    /* selftest */
+  MenuItem[Item] = (void *)Selftest_str;     /* selftest */
   MenuID[Item] = 1;
   Item++;
-  MenuItem[Item] = (void *)Adjustment_str;  /* self-adjustment */
+  MenuItem[Item] = (void *)Adjustment_str;   /* self-adjustment */
   MenuID[Item] = 2;
-  Item++;  
-  MenuItem[Item] = (void *)Save_str;        /* store self-adjustment values */
+  Item++;
+  #ifdef SW_CONTRAST
+  MenuItem[Item] = (void *)Contrast_str;     /* LCD contrast */
+  MenuID[Item] = 12;
+  Item++;
+  #endif
+  #ifdef HW_TOUCH
+  MenuItem[Item] = (void *)TouchSetup_str;   /* touch screen adjustment */
+  MenuID[Item] = 16;
+  Item++;
+  #endif
+  MenuItem[Item] = (void *)Save_str;         /* save self-adjustment values */
   MenuID[Item] = 3;
   Item++;
-  MenuItem[Item] = (void *)Load_str;        /* load self-adjustment values */
+  MenuItem[Item] = (void *)Load_str;         /* load self-adjustment values */
   MenuID[Item] = 4;
   Item++;
-  MenuItem[Item] = (void *)Show_str;        /* show self-adjustment values */
+  MenuItem[Item] = (void *)Show_str;         /* show self-adjustment values */
   MenuID[Item] = 5;
   Item++;
-  MenuItem[Item] = (void *)Exit_str;        /* exit menu */
+  MenuItem[Item] = (void *)Exit_str;         /* exit menu */
   MenuID[Item] = 0;
 
 
@@ -1359,16 +1583,16 @@ void MainMenu(void)
       Flag = SelfAdjust();
       break;
 
-    case 3:              /* save self-adjustment values */
+    case 3:              /* save adjustment values */
       AdjustmentMenu(MODE_SAVE);
       break;
 
-    case 4:              /* load self-adjustment values */
+    case 4:              /* load adjustment values */
       AdjustmentMenu(MODE_LOAD);
       break;
 
-    case 5:              /* show self-adjustment values */
-      ShowAdjust();
+    case 5:              /* show basic adjustment values */
+      ShowBasicAdjust();
       break;
 
     #ifdef SW_PWM_SIMPLE
@@ -1439,6 +1663,12 @@ void MainMenu(void)
     #ifdef SW_SERVO
     case 15:             /* servo check */
       Servo_Check();
+      break;
+    #endif
+
+    #ifdef HW_TOUCH
+    case 16:             /* touch screen adjustment */
+      Flag = Touch_Adjust();
       break;
     #endif
   }

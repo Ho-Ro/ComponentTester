@@ -2,7 +2,7 @@
  *
  *   language specific global variables: English (ISO 8859-1)
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -83,6 +83,10 @@
   #ifdef SW_SERVO
     const unsigned char Servo_str[] EEMEM = "Servo";
     const unsigned char Sweep_str[] EEMEM = "<->";
+  #endif
+
+  #ifdef HW_TOUCH
+    const unsigned char TouchSetup_str[] EEMEM = "Touch Setup";
   #endif
 
 #endif

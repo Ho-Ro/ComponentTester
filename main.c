@@ -1139,12 +1139,17 @@ int main(void)
   MCUSR &= ~(1 << WDRF);                /* reset watchdog flag */
   wdt_disable();                        /* disable watchdog */
 
+  Cfg.BusState = BUS_NONE;              /* no interface bus yet */
+
   #ifdef HW_I2C
-  I2C_Setup();                /* set up I2C bus */
+  I2C_Setup();                          /* set up I2C bus */
   #endif
 
   /* LCD module */
   LCD_BusSetup();                       /* set up LCD bus */
+  #ifdef HW_TOUCH
+  Touch_BusSetup();                     /* set up touch screen */
+  #endif
 
 
   /*
@@ -1170,19 +1175,19 @@ int main(void)
    *  operation mode selection
    */
 
-  Config.SleepMode = SLEEP_MODE_PWR_SAVE;    /* default: power save */
-  UI.TesterMode = MODE_CONTINOUS;            /* set default mode: continous */
-  Test = 0;                                  /* key press */
+  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* default: power save */
+  UI.TesterMode = MODE_CONTINOUS;       /* set default mode: continous */
+  Test = 0;                             /* key press */
 
   /* catch long key press */
-  if (!(CONTROL_PIN & (1 << TEST_BUTTON)))   /* if test button is pressed */
+  if (!(CONTROL_PIN & (1 << TEST_BUTTON)))   /* test button pressed */
   {
     RunsMissed = 0;
 
     while (Test == 0)
     {
       MilliSleep(20);
-      if (!(CONTROL_PIN & (1 << TEST_BUTTON)))    /* if button is still pressed */
+      if (!(CONTROL_PIN & (1 << TEST_BUTTON)))    /* button still pressed */
       {
         RunsMissed++;
         if (RunsMissed > 100) Test = 3;      /* >2000ms */
@@ -1204,19 +1209,22 @@ int main(void)
   #ifdef LCD_COLOR
     UI.PenColor = COLOR_TITLE;          /* set pen color */
   #endif
+  #ifdef HW_TOUCH
+  Touch_Init();                         /* init touch screen */
+  #endif
 
 
   /*
-   *  load saved offsets and values
+   *  load saved adjustment offsets and values
    */
 
   if (Test == 3)              /* key press >2s resets to defaults */
   {
-    SetAdjustDefaults();                /* set default values */
+    AdjustDefaults();              /* set default values */
   }
   else                        /* normal mode */
   {
-    ManageAdjust(MODE_LOAD, 1);    /* load adjustment values: profile #1 */
+    AdjustStorage(MODE_LOAD, 1);   /* load adjustment values: profile #1 */
   }
 
   /* set extra stuff */
@@ -1246,11 +1254,27 @@ int main(void)
   RunsPassed = 0;
 
   /* default offsets and values */
-  Config.Samples = ADC_SAMPLES;         /* number of ADC samples */
-  Config.AutoScale = 1;                 /* enable ADC auto scaling */
-  Config.RefFlag = 1;                   /* no ADC reference set yet */
-  Config.Vcc = UREF_VCC;                /* voltage of Vcc */
+  Cfg.Samples = ADC_SAMPLES;            /* number of ADC samples */
+  Cfg.AutoScale = 1;                    /* enable ADC auto scaling */
+  Cfg.RefFlag = 1;                      /* no ADC reference set yet */
+  Cfg.Vcc = UREF_VCC;                   /* voltage of Vcc */
   wdt_enable(WDTO_2S);		        /* enable watchdog (timeout 2s) */
+
+  #ifdef HW_TOUCH
+  /* adjust touch screen if not done yet */
+  if ((Touch.X_Left == 0) && (Touch.X_Right == 0))
+  {
+    Test = Touch_Adjust();         /* adjust touch screen */
+
+    if (Test == 0)                 /* error */
+    {
+      LCD_ClearLine2();
+      LCD_EEString(Error_str);          /* display: Error */
+      MilliSleep(1000);                 /* smooth UI */
+      TestKey(2500, CURSOR_BLINK | CURSOR_OP_MODE);
+    }
+  }
+  #endif
 
 
   /*
@@ -1272,9 +1296,9 @@ start:
   Semi.I_value = 0;
   AltSemi.U_1 = 0;
   AltSemi.U_2 = 0;
-  #ifdef HW_INCDEC_KEYS
-  UI.OldKey = 0;
-  UI.OldStep = 1;
+  #ifdef HW_KEYS
+  UI.KeyOld = KEY_NONE;
+  UI.KeyStepOld = 1;
   #endif
 
   /* reset hardware */
@@ -1293,26 +1317,26 @@ start:
 
   #ifdef HW_REF25
   /* external 2.5V reference */
-  Config.Samples = 200;            /* do a lot of samples for high accuracy */
+  Cfg.Samples = 200;               /* do a lot of samples for high accuracy */
   U_Bat = ReadU(TP_REF);           /* read voltage of reference (mV) */
-  Config.Samples = ADC_SAMPLES;    /* set samples back to default */
+  Cfg.Samples = ADC_SAMPLES;       /* set samples back to default */
 
   if ((U_Bat > 2250) && (U_Bat < 2750))   /* check for valid reference */
   {
     uint32_t        Temp;
 
     /* adjust Vcc (assuming 2.495V typically) */
-    Temp = ((uint32_t)Config.Vcc * UREF_25) / U_Bat;
-    Config.Vcc = (uint16_t)Temp;
+    Temp = ((uint32_t)Cfg.Vcc * UREF_25) / U_Bat;
+    Cfg.Vcc = (uint16_t)Temp;
   }
   #endif
 
   /* internal bandgap reference */
-  Config.Bandgap = ReadU(ADC_BANDGAP);  /* dummy read for bandgap stabilization */
-  Config.Samples = 200;                 /* do a lot of samples for high accuracy */
-  Config.Bandgap = ReadU(ADC_BANDGAP);  /* get voltage of bandgap reference (mV) */
-  Config.Samples = ADC_SAMPLES;         /* set samples back to default */
-  Config.Bandgap += NV.RefOffset;       /* add voltage offset */ 
+  Cfg.Bandgap = ReadU(ADC_BANDGAP);     /* dummy read for bandgap stabilization */
+  Cfg.Samples = 200;                    /* do a lot of samples for high accuracy */
+  Cfg.Bandgap = ReadU(ADC_BANDGAP);     /* get voltage of bandgap reference (mV) */
+  Cfg.Samples = ADC_SAMPLES;            /* set samples back to default */
+  Cfg.Bandgap += NV.RefOffset;          /* add voltage offset */ 
 
 
   /*
@@ -1512,8 +1536,8 @@ end:
   {
     goto power_off;                /* -> power off */
   }
-  #ifdef HW_STEP_KEYS
-  else if (Test == KEY_TURN_LEFT)  /* rotary encoder: left turn */
+  #ifdef HW_KEYS
+  else if (Test == KEY_LEFT)       /* rotary encoder: left turn */
   {
     MainMenu();                    /* enter main menu */
     goto end;                      /* re-run cycle control */

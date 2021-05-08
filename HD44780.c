@@ -19,7 +19,7 @@
  *    E      LCD_EN1
  *  - write only since R/W is hardwired to Gnd
  *  - max. clock for interface: 2 MHz
- *  - pin assignment for PCF8574 backpack (not supported yet)
+ *  - pin assignment for PCF8574 backpack
  *    DB4    LCD_DB4 (default: P4)
  *    DB5    LCD_DB5 (default: P5)
  *    DB6    LCD_DB6 (default: P6)
@@ -56,7 +56,8 @@
 #include "HD44780.h"          /* HD44780 specifics */
 
 /* fonts */
-#include "font_HD44780_int.h" /* standard international */
+#include "font_HD44780_int.h"      /* international font version */
+#include "font_HD44780_cyr.h"      /* Cyrillic font version */
 
 
 
@@ -74,13 +75,13 @@
 
 void LCD_EnablePulse(void)
 {
-  LCD_PORT |= (1 << LCD_EN1);      /* set enable bit */
+  LCD_PORT |= (1 << LCD_EN1);      /* set EN1 high */
 
   /* the LCD needs some time */
   /* if required adjust time according to LCD's datasheet */
   wait10us();
 
-  LCD_PORT &= ~(1 << LCD_EN1);     /* unset enable bit */
+  LCD_PORT &= ~(1 << LCD_EN1);     /* set EN1 low */
 }
 
 
@@ -98,7 +99,7 @@ void LCD_BusSetup(void)
    *  - data lines: LCD_DB4, LCD_DB5, LCD_DB6 & LCD_DB7
    */
 
-  LCD_DDR = LCD_DDR | (1 << LCD_RS) | (1 << LCD_EN1) | (1 << LCD_DB4) | (1 << LCD_DB5) | (1 << LCD_DB6) | (1 << LCD_DB7);
+  LCD_DDR |= (1 << LCD_RS) | (1 << LCD_EN1) | (1 << LCD_DB4) | (1 << LCD_DB5) | (1 << LCD_DB6) | (1 << LCD_DB7);
 
   /* LCD_EN1 should be low by default */
 }
@@ -116,8 +117,8 @@ void LCD_SendNibble(uint8_t Nibble)
 {
   uint8_t           Data;
 
-  Data = LCD_PORT;            /* get current bitmask */
-  /* reset all 4 data lines */
+  Data = LCD_PORT;            /* get current bits */
+  /* clear all 4 data lines */
   Data &= ~((1 << LCD_DB4) | (1 << LCD_DB5) | (1 << LCD_DB6) | (1 << LCD_DB7));
 
   #ifdef LCD_DB_STD
@@ -157,28 +158,17 @@ void LCD_Send(uint8_t Byte)
 {
   uint8_t           Nibble;
 
-  /*
-   *  send upper nibble (bits 4-7)
-   */
-
+  /* send upper nibble (bits 4-7) */
   Nibble = (Byte >> 4) & 0x0F;          /* get upper nibble */
   LCD_SendNibble(Nibble);
 
-
-  /*
-   *  send lower nibble (bits 0-3)
-   */
-
+  /* send lower nibble (bits 0-3) */
   Nibble = Byte & 0x0F;                 /* get lower nibble */
   LCD_SendNibble(Nibble);
 
   wait50us();            /* LCD needs some time for processing */
 
-
-  /*
-   *  clear data lines on port
-   */  
-
+  /* clear data lines on port */  
   Nibble = ~((1 << LCD_DB4) | (1 << LCD_DB5) | (1 << LCD_DB6) | (1 << LCD_DB7));
   LCD_PORT &= Nibble;         /* clear port */
 }
@@ -195,7 +185,7 @@ void LCD_Send(uint8_t Byte)
 void LCD_Cmd(uint8_t Cmd)
 {
   /* indicate command mode */
-  LCD_PORT &= ~(1 << LCD_RS);      /* set RS to 0 */
+  LCD_PORT &= ~(1 << LCD_RS);      /* set RS low */
 
   LCD_Send(Cmd);                   /* send command */
 }
@@ -224,7 +214,7 @@ void LCD_Char(unsigned char Char)
   if (ID == 0xff) return;               /* no character available */
 
   /* indicate data mode */
-  LCD_PORT |= (1 << LCD_RS);       /* set RS to 1 */
+  LCD_PORT |= (1 << LCD_RS);       /* set RS high */
  
   LCD_Send(ID);                    /* send character ID */
 
@@ -315,7 +305,7 @@ void LCD_CustomChar(uint8_t ID)
   LCD_Cmd(CMD_SET_CG_RAM_ADDR | (ID << 3));
 
   /* indicate data mode */
-  LCD_PORT |= (1 << LCD_RS);       /* set RS to 1 */
+  LCD_PORT |= (1 << LCD_RS);            /* set RS high */
 
   /* write custom character */
   for (i = 0; i < 8; i++)               /* 8 bytes */

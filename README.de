@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung:  2017-04-10
+Letzte Änderung:  2017-07-07
 
 Inhaltsübersicht:
   - Über den Tester
@@ -22,13 +22,16 @@ Inhaltsübersicht:
   - I2C/SPI
   - LCD-Module
     - HD44780
-    - ST7565R
     - ILI9341/ILI9342
+    - ST7565R
     - ST7735
+    - ST7920
     - PCD8544
-  - Test-Taste
+  - Tasten und Eingabeoptionen
+    - Test-Taste
     - Drehencoder
     - Mehr/Weniger-Tasten
+    - Touch-Screen
   - Einschalten
   - Bauteilesuche
   - Ausschalten
@@ -142,7 +145,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - Strukturierter Quellcode
 - Und Manches mehr, was mir gerade nicht einfällt.
 
-Mehr Details dazu findest du in den nachfolgenden Abschnitten.
+Mehr Details dazu findest Du in den nachfolgenden Abschnitten.
 
 
 * Quellcode
@@ -154,11 +157,11 @@ hoffe, daß der Quellcode nun einfach zu lesen und gut verständlich ist.
 
 * Firmware übersetzen
 
-Als erstes solltest du das Makefile editieren und MCU-Modell, Frequenz,
+Als erstes solltest Du das Makefile editieren und MCU-Modell, Frequenz,
 Oszillator-Typ und die Programmieradaptereinstellungen anpassen. Alle anderen
 Einstellungen stehen in der globalen config.h und einer MCU-spezifischen
-config-<MCU>.h. In der Datei "Clones" findest du Einstellungen zu
-verschiedenen Testerversionen bzw. Clonen. Ist dein Tester nicht dabei,
+config-<MCU>.h. In der Datei "Clones" findest Du Einstellungen zu
+verschiedenen Testerversionen bzw. Clonen. Ist Dein Tester nicht dabei,
 schicke bitte die Einstellungen per EMail an den Autor, um anderen Benutzern
 damit zu helfen.
 
@@ -168,7 +171,10 @@ Werte sind in der Datei selber erklärt. Daher folgt hier nur eine kurze
 Übersicht der wichtigsten Punkte.
 
 Hardware-Optionen:
-- Drehencoder oder Mehr/Weniger-Tasten
+- zusätzliche Tasten bzw. Eingabeoptionen
+  - Drehencoder
+  - Mehr/Weniger-Tasten
+  - Touch-Screen
 - externe 2,5V Spannungsreferenz
 - Schutz-Relais zur Kondensatorentladung
 - Messung von Zenerdioden (DC-DC-Konverter)
@@ -179,19 +185,19 @@ Hardware-Optionen:
 
 Die externe 2,5V Spannungsreferenz sollte nur genutzt werden, wenn sie
 um den Faktor 10 genauer als der Spannungsregler ist. Ansonsten würde
-sie die Messergebnisse eher verschlechtern als verbessern. Wenn du einen
+sie die Messergebnisse eher verschlechtern als verbessern. Wenn Du einen
 MCP1702 mit einer typischen Genauigkeit von 0,4% als Spannungsregler
-hast, brauchst du eigentlich keine zusätzliche Spannungsreferenz mehr.
+hast, brauchst Du eigentlich keine zusätzliche Spannungsreferenz mehr.
 
 Und natürlich die Software-Optionen:
 - PWM Generator (2 Varianten)
 - Messung von Induktivität
 - ESR-Messung und In-Circuit-ESR
 - Test von Drehencodern
-- Rechtecksignalgenerator (braucht Drehencoder)
+- Rechtecksignalgenerator (braucht zusätzliche Tasten)
 - Test von IR-Fernbedienungen (IR-Empfängermodul an Testpins)
 - Test von Opto-Kopplern
-- Test von Modellbau-Servos (braucht Drehencoder, Display >2 Zeilen)
+- Test von Modellbau-Servos (braucht zusätzliche Tasten, Display >2 Zeilen)
 - Erkennung von UJTs
 - Farbkodierung für Testpins (benötigt Farbdisplay)
 
@@ -202,10 +208,15 @@ zu groß werden, versuche nicht so wichtige Optionen wieder zu deaktivieren.
 Verfügbare Sprachen:
 - Deutsch
 - Englisch
-- Russisch (von indman@EEVblog)
-  nur 8x16 Zeichensatz horizontal ausgerichtet
+- Italienisch (von Gino_09@EEVblog)
+- Russisch (von indman@EEVblog und hapless@EEVblog)
+  nur 8x16 Zeichensatz (horizontal ausgerichtet) und HD44780 mit kyrillischem
+  Zeichensatz
 - Spanisch (von pepe10000@EEVblog)
 - Tschechisch (von Kapa)
+
+Es gibt für Russisch eine alternative Textdatei (var_russian_2.h). Wenn Du
+diese nehmen möchtest, einfach nach var_russian.h umbenennen.
 
 Für die MCU-spezifischen Einstellungen, wie Pin-Zuordnungen und Display,
 editiere config-<MCU>.h:
@@ -216,7 +227,7 @@ Das LCD-Modul sollte min. 2 Zeilen mit min. 16 Zeichen haben. Für Grafikmodule
 einen Zeichensatz wählen, der die obige Bedingung erfüllt.
 
 Nach dem Editieren vom Makefile, config.h oder config-<MCU>.h bitte "make"
-ausführen oder was-auch-immer dein IDE will, um die Firmware zu übersetzen.
+ausführen oder was-auch-immer Dein IDE will, um die Firmware zu übersetzen.
 Das Makefile bietet folgende zusätzliche Targets: 
 - clean    alle Objektdateien löschen
 - fuses    Fuse Bits setzen
@@ -249,15 +260,10 @@ Beschaltung benötigt. Der ATmega 324/644/1284 hat mehr I/O Pins, plus die
 veränderte Beschaltung erlauben es, die festen Bus-Pins für den Hardware-
 Modus zu nutzen. 
 
-Die SPI-Treiber sind zur Optimierung in den LCD-Treibern integriert. Im Moment
-wird SPI auch nur von LCD-Modulen benutzt. Daher wird alles SPI-spezifische
-im Display-Abschnitt in config-<MCU>.h konfiguriert.
-
-Die Treiber für I2C sind als eigenständige Funktionsbibliothek zusammen-
-gefasst, um die Nutzung durch mehrere IC-Treiber zu erlauben. I2C wird in
-config.h aktiviert, und für den Bit-Bang-Modus werden Port und Pins in
-config-<MCU>.h definiert. IC-spezifische Dinge stehen in jeweils eigenen 
-Abschnitten.
+Da SPI oder I2C primär vom LCD-Modul genutzt wird, können beide im Abschnitt
+fuer LCD-Module in config-<MCU>.h direkt konfiguriert werden. Alternativ kannst
+Du auch I2C bzw. SPI in config.h aktivieren und Ports & Pins in config-<MCU>.h
+festlegen (schaue nach I2C_PORT bzw. SPI_PORT).
 
 
 * LCD-Module
@@ -274,7 +280,7 @@ Pegelumsetzer, sofern notwendig. Wenn das Display trotz korrekter Beschaltung
 nichts anzeigt, versuche den Kontrast zu ändern (config_<MCU>.h).
 
 Hinweis zu ATmega 328:
-Wenn du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom LCD-Modul
+Wenn Du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom LCD-Modul
 mit PD5 und setze LCD_CS in config_328.h (nur für grafische LCD-Module).
 Anderenfalls würde der Drehencoder den Datenbus durcheinander bringen und
 zu fehlerhaften Ausgaben führen.
@@ -282,65 +288,52 @@ zu fehlerhaften Ausgaben führen.
 
 + HD44780
 
-Der HD44780 wird im 4-Bit-Modu bestrieben. Die Pins für den Parallelbus sind:
+Der HD44780 wird im 4-Bit-Modus bestrieben. Die Pins für den Parallelbus sind:
 
-  Modul       config-<MCU>.h     Standard
-  DB4         LCD_DB4            PD0
-  DB5         LCD_DB5            PD1
-  DB6         LCD_DB6            PD2
-  DB7         LCD_DB7            PD3
-  RS          LCD_RS             PD4
-  R/W         Gnd
-  E           LCD_EN1            PD5
+  Modul       config-<MCU>.h   Standard
+                               328
+  DB4         LCD_DB4          PD0
+  DB5         LCD_DB5          PD1
+  DB6         LCD_DB6          PD2
+  DB7         LCD_DB7          PD3
+  RS          LCD_RS           PD4
+  R/W                          Gnd
+  E           LCD_EN1          PD5
 
 Das LCD-Modul kann auch über einen I2C-Adapter mit PCF8574 bestrieben werden.
 Dazu muss zum einen I2C aktiviert werden, und zum anderen wird auch die
 I2C-Adresse des PCF8574 benötigt. Das Pinout beschreibt wie das LCD-Modul mit
 dem PCF8574 verdrahtet ist:
 
-  Modul       config-<MCU>.h     Standard
-  DB4         LCD_DB4            PCF8574_P4
-  DB5         LCD_DB5            PCF8574_P5
-  DB6         LCD_DB6            PCF8574_P6
-  DB7         LCD_DB7            PCF8574_P7
-  RS          LCD_RS             PCF8574_P0
-  R/W         LCD_RW             PCF8574_P1
-  E           LCD_EN1            PCF8574_P2
-  LED         LCD_LED            PCF8574_P3
-
-
-+ ST7565R
-
-Der ST7565R wird mittels 4/5-Line SPI gesteuert. Die Pins sind:
-
-  Modul       config-<MCU>.h     Standard   Hinweis
-  /RES        LCD_RESET          PD0
-  A0          LCD_A0             PD1
-  SCL (DB6)   LCD_SCL            PD2
-  SI (DB7)    LCD_SI             PD3
-  /CS1        LCD_CS             PD5        optional
-
-Für eine korrekte Anzeige mußt du evtl. mit den Einstellungen X/Y-Flip und
-X-Offset experimentieren.
+  Modul       config-<MCU>.h   Standard
+  DB4         LCD_DB4          PCF8574_P4
+  DB5         LCD_DB5          PCF8574_P5
+  DB6         LCD_DB6          PCF8574_P6
+  DB7         LCD_DB7          PCF8574_P7
+  RS          LCD_RS           PCF8574_P0
+  R/W         LCD_RW           PCF8574_P1
+  E           LCD_EN1          PCF8574_P2
+  LED         LCD_LED          PCF8574_P3
 
 
 + ILI9341/ILI9342
 
 Der ILI9341/ILI9342 wird mittels SPI gesteuert. Die Pins sind:
 
-  Modul       config-<MCU>.h     Standard   Hinweis
-  /RES        LCD_RES            PD4        optional
-  /CS         LCD_CS             PD5        optional
-  D/C         LCD_DC             PD3
-  SCK         LCD_SCK            PD2
-  SDI         LCD_SDI            PD1
-  SDO         LCD_SDO            PD0        nur ILI9341, noch nicht benutzt
+  Modul       config-<MCU>.h   Standard   Hinweis
+                               328
+  /RES        LCD_RES          PD4        optional
+  /CS         LCD_CS           PD5        optional
+  D/C         LCD_DC           PD3
+  SCK         LCD_SCK          PD2
+  SDI         LCD_SDI          PD1
+  SDO         LCD_SDO          PD0        nur ILI9341, noch nicht benutzt
 
-Für eine korrekte Anzeige mußt du evtl. mit den Einstellungen X/Y-Flip und
+Für eine korrekte Anzeige mußt Du evtl. mit den Einstellungen X/Y-Flip und
 Rotate experimentieren. Und nicht vergessen die X und Y-AUflösung korrekt
 zu setzen (ILI9341 ist 240x320 und ILI9342 ist 320x240).
 
-Der ILI9341/ILI9342 ist ein Farbdisplay-Controller, und du kannst zwischen
+Der ILI9341/ILI9342 ist ein Farbdisplay-Controller, und Du kannst zwischen
 Einfarben oder Mehrfarben-Modus über die LCD_COLOR Definition im LCD-Bereich
 in config.h wählen (Standard: Einfarben-Modus).
 
@@ -349,21 +342,67 @@ kompletten Anzeige dauert etwa 3 Sekunden bei 8MHz MCU-Takt, wenn Bit-Bang
 SPI genutzt wird.
 
 
++ ST7565R
+
+Der ST7565R wird mittels 4/5-Line SPI gesteuert. Die Pins sind:
+
+  Modul       config-<MCU>.h   Standard   Hinweis
+                               328
+  /RES        LCD_RESET        PD0        optional
+  /CS1        LCD_CS           PD5        optional
+  A0          LCD_A0           PD1
+  SCL (DB6)   LCD_SCL          PD2
+  SI (DB7)    LCD_SI           PD3
+
+Für eine korrekte Anzeige mußt Du evtl. mit den Einstellungen X/Y-Flip und
+X-Offset experimentieren.
+
+
 + ST7735
 
 Der ST7735 wird mittels SPI gesteuert. Die Pins sind:
 
-  Modul       config-<MCU>.h     Standard   Hinweis
-  /RESX       LCD_RES            PD4
-  /CSX        LCD_CS             PD5        optional
-  D/CX        LCD_DC             PD3
-  SCL         LCD_SCL            PD2
-  SDA         LCD_SDA            PD1
+  Modul       config-<MCU>.h   Standard   Hinweis
+                               328
+  /RESX       LCD_RES          PD4        optional
+  /CSX        LCD_CS           PD5        optional
+  D/CX        LCD_DC           PD3
+  SCL         LCD_SCL          PD2
+  SDA         LCD_SDA          PD1
 
-Für eine korrekte Anzeige mußt du evtl. mit den Einstellungen X/Y-Flip
+Für eine korrekte Anzeige mußt Du evtl. mit den Einstellungen X/Y-Flip
 experimentieren. Wenn LCD_LATE_ON aktiviert ist, startet der Tester mit einem
 gelöschten Display, was zu einer kurzen Verzögerung beim Einschalten führt.
 Ansonsten sind beim Anschalten kurz zufällige Pixel zu sehen.
+
+
++ ST7920
+
+Der ST7920 kann per 4-bit-Parallel-Modus oder SPI gesteuert werden. Die Pins
+für den Parallelbus sind:
+
+  Modul       config-<MCU>.h   Standard  Hinweis
+                               328
+
+  /XRESET     LCD_RESET        Vcc       optional
+  E           LCD_EN           PD5
+  RS          LCD_RS           PD4
+  RW          LCD_RW           Gnd       optional
+  D4          LCD_DB4          PD0
+  D5          LCD_DB5          PD1
+  D6          LCD_DB6          PD2
+  D7          LCD_DB7          PD3
+
+Und für SPI:
+
+ /XRESET      LCD_RESET        PD4       optional
+ CS (RS)      LCD_CS           PD5       optional
+ SCLK (E)     LCD_SCLK         PD2
+ SID (RW)     LCD_SID          PD1
+
+Wegen dem schlechten Design des ST7920 können nur Zeichensätze mit einer Breite
+von 8 Pixeln verwendet werden. Zur Handhabung der horizontalen Addressierung in
+16-Bit Schritten mußte ich einen Bildschirmpuffer für Zeichen einrichten.
 
 
 + PCD8544
@@ -371,18 +410,25 @@ Ansonsten sind beim Anschalten kurz zufällige Pixel zu sehen.
 Der PCD8544 wird mittels SPI gesteuert. Die Pins sind:
 
   Modul       config.h           Standard   Hinweis
-  /RES        LCD_RES            PD4
-  /SCE        LCD_SCE            PD5       optional
+  /RES        LCD_RES            PD4        optional
+  /SCE        LCD_SCE            PD5        optional
   D/C         LCD_DC             PD3
   SCLK        LCD_SCLK           PD2
   SDIN        LCD_SDIN           PD1
 
 Da das Display nur 84 Punkte in X-Richtung hat, ergeben sich max. 14 Zeichen
 pro Zeile bei einem 6x8-Zeichensatz. Also werden bis zu zwei Zeichen
-verschluckt. Wenn das stört, kannst du in variables.h die Texte etwas kürzen.
+verschluckt. Wenn das stört, kannst Du in variables.h die Texte etwas kürzen.
 
 
-* Test-Taste
+* Tasten und Eingabeoptionen
+
+Der Tester wird über primär über die Test-Taste bedient, erlaubt aber
+zusätzliche Eingabeoptionen, welche die Bedienung erleichtern oder für
+manche Funktion auch notwendig sind.
+
+
++ Test-Taste
 
 Die Test-Taste schaltet den Tester ein und dient zur Bedienung. Dazu
 unterscheidet der Tester zwischen einem kurzen Tastendruck und einem langen (
@@ -407,25 +453,59 @@ oder Sprünge von Werten.
 
 Der Lese-Algorithmus berücksichtigt die Anzahl der Gray-Code-Pulse pro
 Schritt (ENCODER_PULSES) und auch die Anzahl der Schritte für eine volle
-360 Grad Umdrehung (ENCODER_STEPS). Mit dem letzteren Wert kannst du
+360 Grad Umdrehung (ENCODER_STEPS). Mit dem letzteren Wert kannst Du
 auch eine Feineinstellung der Erkennung der Drehgeschwindigkeit vornehmen.
 Ein höherer Wert verlangsamt die Drehgeschwindigkeit, ein niedriger Wert
 erhöht sie. Sollte die Drehrichtung verkehrt herum sein, einfach die Pin-
 Definitionen für A und B in config_<MCU>.h vertauschen.
 
 Die Erkennung der Drehgeschwindigkeit mißt die Zeit von zwei Schritten. Also
-solltest du den Encoder mindestens um zwei Schritte für mittlere
+solltest Du den Encoder mindestens um zwei Schritte für mittlere
 Gewindigkeiten drehen. Für höhere Geschwindigkeiten sind es drei Schritte.
 Ein einzelner Schritt resultiert immer in der niedrigsten Geschwindigkeit. 
 
 
 + Mehr/Weniger-Tasten (Hardware-Option)
 
-Wenn dir Tasten lieber als ein Drekencoder sind, dann kannst du alternativ
+Wenn Dir Tasten lieber als ein Drekencoder sind, dann kannst Du alternativ
 auch zwei Tasten nutzen. Die Tasten werden genauso wie ein Drehencoder
 angeschlossen (Pull-Up Widerstände, Logikpegel Low bei Betätigung). Für
 eine Beschleunigung, ähnlich der Drehgeschwindikeit beim Drehencoder, einfach
 die Taste lange drücken. Je länger, desto höher wird die Beschleunigung.
+
+
++ Touch-Screen (Hardware-Option)
+
+Als weitere Eingabeoption ist ein Touch-Screen möglich. Dazu sollte das
+LCD-Modul groß genug sein und mindestens 8 Textzeilen je 16 Zeichen oder mehr
+unterstützen. Um wertvollen Platz auf dem LCD zu sparen, verzichten wir auf
+Symbole zum Berühren. Stattdessen gibt es unsichtbare Leisten links und rechts
+(je 3 Zeichen breit), oben und unten (je 2 Zeilen hoch) und eine Fläche in der
+Mitte. Die Leisten links und oben sind für "weniger" oder "Menüpunkt hoch",
+rechts und unten entsprechend für "mehr" oder "Menüpunkt runter". Also die
+gleiche Funktion wie beim Drehencoder. Ein langes Berühren beschleunigt
+Änderungen in manchen Funktionen, ähnlich der Drehgeschwindigkeit beim Dreh-
+encoder. Die Fläche in der Mitte ist eine Software-Version der Test-Taste,
+d.h. damit wird z.B. nicht die Zener-Test-Option mit Strom versorgt.
+
+Für die Benutzung des Touch-Screen ist ein Abgleich notwendig. Dieser wird
+automatisch nach dem Einschalten des Testers gestartet, wenn noch keine
+Abgleichwerte im EEPROM gespeichert sind. Man kann ihn auch über das Haupt-
+menü starten. Die Prozedur ist recht einfach. Wenn Du ein Sternchen (gelbes *
+bei Farb-LCDs) siehst, drauf drücken. Der Tester zeigt nach jeder Berührung
+die native x/y-Position an. Den Abgleich kannst Du jeder Zeit mit der Test-
+Taste abbrechen. Wenn Du Probleme mit dem Abgleich, wie z.B. seltsame x/y-
+Positionen, hast, überprüfe bitte die Orientierung des Touch-Screen gegenüber
+dem LCD-Modul. Der Treiber hat Schalter zum Verdrehen und Vertauschen der
+Orientierung. Nacht einem erfolgreichen Abgleich nicht vergessen, die Offset-
+Werte zu speichen (Hauptmenü: Speichern).
+
+Unterstützte Touch-Screen-Controller:
+- ADS7843 / XPT2046
+
+Du findest die Konfiguration dazu unterhalb des Bereichs für LCD-Module in
+config-<MCU>.h (momentan nur config_644.h, da der 328 zu wenig unbenutze
+IO-Pins hat).
 
 
 * Einschalten
@@ -436,7 +516,7 @@ um mit der Bauteilesuche weiter zu machen. Ansonsten läuft der Tester im
 kontinuierlichen Modus. Nach dem Einschalten wird kurz die Firmwareversion
 angezeigt.
 
-Mit einem sehr langen Tastendruck (2s) beim Einschalten kannst du die
+Mit einem sehr langen Tastendruck (2s) beim Einschalten kannst Du die
 Abgleichwerte auf ihre Standards zurück setzen. Das kann praktisch sein, wenn
 z.B. der Kontrast vom LCD-Modul so verstellt ist, daß man nichts mehr sieht. 
 
@@ -454,7 +534,7 @@ sich der Tester von selbst aus. Im Auto-Hold-Modus (durch Cursor signalisiert)
 führt der Tester einen Suchvorgang aus und wartet dann auf Tastendruck bzw.
 Rechtsdrehung vom Drehencoder. 
 
-In beiden Modi kannst du das Hauptmenü aufrufen (siehe weiter unten).
+In beiden Modi kannst Du das Hauptmenü aufrufen (siehe weiter unten).
 
 
 * Ausschalten
@@ -493,13 +573,13 @@ Tastendruck übersprungen werden.
 
 + PWM-Generator
 
-Macht genaus das, was du erwartest :-) Vor dem Übersetzen der Firmware bitte
+Macht genaus das, was Du erwartest :-) Vor dem Übersetzen der Firmware bitte
 entweder den PWN-Generator mit einfacher Bedienung oder den mit erweiterter
 Bedienung auswählen. Letzterer benötigt einen Drehencoder und ein größeres
 Display.
 
 Nach dem Starten des Generatore wird kurz die Beschaltung der Testpins
-angezeigt. Durch einen kurzen Tastendruck kannst du die Info überspringen. 
+angezeigt. Durch einen kurzen Tastendruck kannst Du die Info überspringen. 
 
 Beschaltung der Testpins:
   Pin #2:          Ausgang (680 Ohm Widerstand zur Strombegrenzung)
@@ -522,9 +602,9 @@ Ist ein Drehencoder vorhanden, läßt sich das Tastverhältnis in 1%-Schritten
 
 - Erweiterte PWM
 
-Mit einem kurzen Tastendruck schaltest du zwischen Frequenz und Tastverhältnis
+Mit einem kurzen Tastendruck schaltest Du zwischen Frequenz und Tastverhältnis
 um. Der ausgewählte Wert wird durch ein Sternchen markiert. Mit dem Dreh-
-encoder änderst du den Wert, rechts für höher, links für niedriger. Und mit
+encoder änderst Du den Wert, rechts für höher, links für niedriger. Und mit
 einem langen Tastendruck wird auf den Standardwert zurück gestellt (Frequenz:
 1kHz, Tastverhältnis: 50%). Mit zwei kurzen Tastendrücken wird der PWM-
 Generator beendet.
@@ -584,7 +664,7 @@ Beschaltung für Kondensator:
 
 + Frequenzzähler (Hardware-Option)
 
-Ist die Zusatzschaltung für den Frequenzzähler eingebaut, kannst du damit
+Ist die Zusatzschaltung für den Frequenzzähler eingebaut, kannst Du damit
 Frequenzen von ca. 10Hz bis zu 1/4 der MCU-Taktfrequenz mit einer Auflösung
 von 1Hz bei Frequenzen unterhalb von 10kHz messen. Die Frequenz wird ständig
 gemessen und angezeigt. Ein Tastendruck beendet die Messung. Die automatische
@@ -608,7 +688,7 @@ Suchlaufs drücken.
 
 + Kontrast
 
-Für manche grafische LCD-Module kannst du den Kontrast einstellen. Ein kurzer
+Für manche grafische LCD-Module kannst Du den Kontrast einstellen. Ein kurzer
 Tastendruck erhöht den Wert, ein langer verkleinert ihn. Zum Beenden die
 Test-Taste zweimal kurz hintereinander drücken. Ist ein Drehencoder
 vorhanden, kann der Kontrastwert damit ebenfalls geändert werden. 
@@ -618,7 +698,7 @@ vorhanden, kann der Kontrastwert damit ebenfalls geändert werden.
 
 Diese Funktion erkennt und dekodiert Signale von IR-Fernbedienungen und
 benötigt ein IR-Empfängermodul, wie z.B. aus der TSOP-Serie. Beim Übersetzen
-der Firmware kannst du zwischen zwei Anschlussvarianten wählen. Bei der ersten
+der Firmware kannst Du zwischen zwei Anschlussvarianten wählen. Bei der ersten
 Variante wird das Moduls mit den normalen Testpins verbunden. Die zweite
 Variante ist ein festes Modul, welches mit einem bestimmten MCU-Pin verbunden
 ist.
@@ -666,8 +746,8 @@ Beschaltung für das TSOP-Modul:
 
 Hinweis:
   Der Widerstand zur Strombegrenzung setzt ein IR-Empfängermodul mit einem
-  Versorgungsspannungsbereich von ca. 2,5 - 5V voraus. Wenn du ein 5V-Modul
-  hast, kannst du in config.h den Widerstand auf eigene Gefahr abschalten.
+  Versorgungsspannungsbereich von ca. 2,5 - 5V voraus. Wenn Du ein 5V-Modul
+  hast, kannst Du in config.h den Widerstand auf eigene Gefahr abschalten.
   Ein Kurzschluss kann allerdings die MCU zerstören.
 
 
@@ -691,7 +771,7 @@ Relais-Typen (MOSFET back to back) werden als Transistor erkannt und der
 CTR-Wert ist dann bedeutungslos. Typen mit anti-parallelen LEDs werden
 ignoriert.
 
-Zum Testen brauchst du einen einfachen Adapter mit folgenden drei Testpunkten:
+Zum Testen brauchst Du einen einfachen Adapter mit folgenden drei Testpunkten:
 
 Transistor-Typ:
 - Anode der LED
@@ -727,7 +807,7 @@ Zunächst wird kurz die Testpin-Belegung angezeigt (mittels Tastendruck
 Links für kürzere Pulse, und rechts für längere. Mit einem langen Tastendruck
 wird die Pulsweite auf 1,5ms zurück gesetzt (mittlere Position vom Servo).
 
-Mit einem kurzen Tastendruck wechselst du zwischen Puls- und Frequenzauswahl (
+Mit einem kurzen Tastendruck wechselst Du zwischen Puls- und Frequenzauswahl (
 durch ein Sternchen markiert). In der Frequenzauswahl schaltest Du mit dem
 Drehencoder zwischen den Frequenzen um. Mit einem langen Tastendruck wird der
 Sweep-Modus ein- bzw. ausgeschaltet (durch ein "<->" markiert).
@@ -741,7 +821,7 @@ Beschaltung der Testpins:
   Pin #2:          PWM-Ausgang (680 Ohm Widerstand zur Strombegrenzung)
   Pin #1 und #3:   Masse
 
-Hinweis: Für den Servo benötigst du eine zusätzliche Stromversorgung.
+Hinweis: Für den Servo benötigst Du eine zusätzliche Stromversorgung.
 
 Pinbelegungen für typische 3-Pin-Servo-Stecker:
 
@@ -755,9 +835,9 @@ JR Radios      PWM orange          Vcc rot             Gnd braun
 
 + Selbsttest
 
-Wenn du den Selbsttest über das Menü gestartet hast, bittet dich der Tester
+Wenn Du den Selbsttest über das Menü gestartet hast, bittet dich der Tester
 die drei Testpins kurz zu schließen und wartet solange, bis er dies erkennt.
-Bei Problemen kannst du das Warten mit einem Tastendruck abbrechen.
+Bei Problemen kannst Du das Warten mit einem Tastendruck abbrechen.
 
 Der Selbsttest führt jeden Test 5-mal aus. Mit einem kurzen Tastendruck wird
 der aktuelle Test übersprungen, mit einem langen Tastendruck der komplette
@@ -782,7 +862,7 @@ eines Kondensators bestimmt (bei der normalen Bauteilesuche), wenn der
 Kondensator einen Wert zwischen 100nF und 3,3µF hat. Außerdem wird
 gleichzeitig der Offset der internen Spannungsreferenz gemessen.
 
-Bevor der Selbstabgleich ausgeführt wird, solltest du einen Folienkondensator
+Bevor der Selbstabgleich ausgeführt wird, solltest Du einen Folienkondensator
 mit einer Kapazität zwischen 100nF und 3,3µF min. 3-mal messen, damit die oben
 erwähnten Offsets bestimmt werden können. Typischerweise liefert die erste
 Messung einen zu niedrigen Wert, die zweite einen zu hohen und erst die dritte
@@ -832,7 +912,7 @@ Diese Funktion zeigt die aktuellen Abgleichwerte an.
 
 + Exit
 
-Damit kannst du das Menü verlassen, wenn du z.B. aus Versehen reingegangen
+Damit kannst Du das Menü verlassen, wenn Du z.B. aus Versehen reingegangen
 bist.
 
 
@@ -911,9 +991,9 @@ Induktivität.
 
 Die Kompensation für die Hochstrommessung basiert auf den MCU-Takt und ist in
 drei Zeitbereiche unterteilt. Für die Niedrigstrommessung gibt es momentan nur
-eine einfache Kompensation, da hier noch weitere Tests notwendig sind. Wenn du
+eine einfache Kompensation, da hier noch weitere Tests notwendig sind. Wenn Du
 größere Abweichungen beim Vergleich mit einem "richtigen" LCR-Meter siehst,
-kannst du die Offsetwerte entsprechend deinem Tester anpassen.
+kannst Du die Offsetwerte entsprechend deinem Tester anpassen.
 
 Hinweis: Bei unerwarteten Messwerten bitte die Messung wiederholen.
 

@@ -12,11 +12,11 @@
 /*
  *  hints:
  *  - pin assignment for SPI
- *    /RES        LCD_RES
+ *    /RES        LCD_RES (optional) 
+ *    /SCE        LCD_SCE (optional)
  *    D/C         LCD_DC
  *    SCLK        LCD_SCLK
  *    SDIN        LCD_SDIN
- *    /SCE        LCD_SCE (optional)
  *    For hardware SPI LCD_SCLK and LCD_SDIN have to be the MCU's SCK and
  *    MOSI pins.
  *  - max. SPI clock rate: 4MHz
@@ -48,8 +48,9 @@
 #include "functions.h"        /* external functions */
 #include "PCD8544.h"          /* PCD8544 specifics */
 
-/* fonts and symbols, vertically aligned, bank-wise grouping */
-#include "font_6x8_v.h"
+/* fonts and symbols */
+/* vertically aligned, vertical bit order flipped, bank-wise grouping */
+#include "font_6x8_vf.h"
 
 
 /*
@@ -75,149 +76,11 @@ uint8_t             Y_Start;       /* start position Y (bank) */
 
 
 /* ************************************************************************
- *   low level functions for bit-bang SPI interface
+ *   low level functions for SPI interface
  * ************************************************************************ */
 
 
-#ifdef LCD_SPI_BITBANG
-
-/*
- *  set up interface bus
- *  - should be called at firmware startup
- */
-
-void LCD_BusSetup(void)
-{
-  /*
-   *  set port pin's data direction
-   */
-
-  #ifdef LCD_SCE
-    /* including /SCE */
-    LCD_DDR = LCD_DDR | (1 << LCD_RES) | (1 << LCD_DC) | (1 << LCD_SCLK) | (1 << LCD_SDIN) | (1 << LCD_SCE);
-  #else
-    /* excluding /SCE */
-    LCD_DDR = LCD_DDR | (1 << LCD_RES) | (1 << LCD_DC) | (1 << LCD_SCLK) | (1 << LCD_SDIN);
-  #endif
-
-
-  /*  set default levels:
-   *  - /SCE high, if pin available
-   *  - /RES high
-   *  - SCLK low
-   */
-
-  /* LCD_SCLK should be low by default */
-
-  /* optional pins */
-  #ifdef LCD_SCE
-    /* disable chip */
-    LCD_PORT |= (1 << LCD_SCE);         /* set /SCE high */
-  #endif
-
-  /* disable reset */
-  LCD_PORT = LCD_PORT | (1 << LCD_RES);      /* set /RES high */
-}
-
-
-
-
-/*
- *  send a byte (data or command) to the LCD
- *  - bit-bang 8 bits, MSB first, LSB last
- *
- *  requires:
- *  - byte value to send
- */
-
-void LCD_Send(uint8_t Byte)
-{
-  uint8_t           n = 8;         /* counter */
-
-  /* start with low clock signal */
-  LCD_PORT = LCD_PORT & ~(1 << LCD_SCLK);
-
-  /* select chip, if pin available */
-  #ifdef LCD_SCE
-    LCD_PORT = LCD_PORT & ~(1 << LCD_SCE);   /* set /SCE low */
-  #endif
-
-  /* bit-bang 8 bits */
-  while (n > 0)               /* 8 bits */
-  {
-    /* get current MSB and set SDIN */
-    if (Byte & 0b10000000)    /* 1 */
-    {
-      /* set SI high */
-      LCD_PORT = LCD_PORT | (1 << LCD_SDIN);
-    }
-    else                      /* 0 */
-    {
-      /* set SDIN low */
-      LCD_PORT = LCD_PORT & ~(1 << LCD_SDIN);
-    }
-
-    /* end clock cycle (rising edge takes bit) */
-    LCD_PORT = LCD_PORT | (1 << LCD_SCLK);
-
-    /* start next clock cycle (falling edge) */
-    LCD_PORT = LCD_PORT & ~(1 << LCD_SCLK);
-
-    Byte <<= 1;               /* shift bits one step left */
-
-    n--;                      /* next bit */
-  }
-
-  /* deselect chip, if pin available */
-  #ifdef LCD_SCE
-    LCD_PORT = LCD_PORT | (1 << LCD_SCE);    /* set /SCE high */
-  #endif
-}
-
-
-
-/*
- *  send a command to the LCD
- *
- *  requires:
- *  - byte value to send
- */
- 
-void LCD_Cmd(uint8_t Cmd)
-{
-  /* indicate command mode */
-  LCD_PORT = LCD_PORT & ~(1 << LCD_DC);      /* set D/C low */
-
-  LCD_Send(Cmd);              /* send command */
-}
-
-
-
-/*
- *  send data to the LCD
- *
- *  requires:
- *  - byte value to send
- */
-
-void LCD_Data(uint8_t Data)
-{
-  /* indicate data mode */
-  LCD_PORT = LCD_PORT | (1 << LCD_DC);       /* set D/C high */
-
-  LCD_Send(Data);             /* send data */
-}
-
-#endif
-
-
-
-/* ************************************************************************
- *   low level functions for hardware SPI interface
- * ************************************************************************ */
-
-
-#ifdef LCD_SPI_HARDWARE
+#ifdef LCD_SPI
 
 /*
  *  set up interface bus
@@ -228,108 +91,73 @@ void LCD_BusSetup(void)
 {
   uint8_t           Bits;          /* bitmask */
 
-
   /*
-   *  set port pin's data direction
+   *  set control signals
    */
 
   Bits = LCD_DDR;                       /* get current directions */
 
   /* basic output pins */
-  Bits |= (1 << LCD_RES) | (1 << LCD_DC) | (1 << LCD_SCLK) | (1 << LCD_SDIN);
+  Bits |= (1 << LCD_DC);                /* D/C */
 
   /* optional output pins */
+  #ifdef LCD_RES
+    Bits |= (1 << LCD_RES);             /* /RES */
+  #endif
   #ifdef LCD_SCE
-    Bits |= (1 << LCD_SCE);        /* /SCE */
+    Bits |= (1 << LCD_SCE);             /* /SCE */
   #endif
 
   LCD_DDR = Bits;                       /* set new directions */
 
-
-  /*  set default levels:
-   *  - /SCE high, if pin available
-   *  - /RES high
-   */
-
-  /* optional pins */
+  /* set default levels */
   #ifdef LCD_SCE
     /* disable chip */
     LCD_PORT |= (1 << LCD_SCE);         /* set /SCE high */
   #endif
-
-  /* disable reset */
-  LCD_PORT = LCD_PORT | (1 << LCD_RES);      /* set /RES high */
-
+  #ifdef LCD_RES
+    /* disable reset */
+    LCD_PORT |= (1 << LCD_RES);         /* set /RES high */
+  #endif
 
   /*
-   *  set up hardware SPI
-   *  - master mode
-   *  - SPI mode 0 (CPOL = 0, CPHA = 0)
-   *  - MSB first (DORD = 0)
-   *  - polling mode (SPIE = 0)
-   *  - SPI clock rate (max. 4MHz)
+   *  todo:
+   *  - Do we have the reset the display here?
+   *  - time window: 30 - 100ms after V_DD?
    */
 
-  /* 1MHz -> f_osc/2 */
+  /*
+   *  init SPI bus
+   */
+
+  #ifdef SPI_HARDWARE
+  /*
+   *  set SPI clock rate (max. 4MHz)
+   */
+
+  /* 1MHz -> f_osc/2 (SPR1 = 0, SPR0 = 0, SPI2X = 1) */
   #if CPU_FREQ / 1000000 == 1
-    #define SPI_CLOCKRATE_1   (0 << SPR1) | (0 << SPR0)
-    #define SPI_CLOCKRATE_2   (1 << SPI2X)
+    SPI.ClockRate = SPI_CLOCK_2X;
   #endif
 
-  /* 8MHz -> f_osc/2 */
+  /* 8MHz -> f_osc/2 (SPR1 = 0, SPR0 = 0, SPI2X = 1) */
   #if CPU_FREQ / 1000000 == 8
-    #define SPI_CLOCKRATE_1   (0 << SPR1) | (0 << SPR0)
-    #define SPI_CLOCKRATE_2   (1 << SPI2X)
+    SPI.ClockRate = SPI_CLOCK_2X;
   #endif
 
-  /* 16MHz -> f_osc/4 */
+  /* 16MHz -> f_osc/4 (SPR1 = 0, SPR0 = 0, SPI2X = 0) */
   #if CPU_FREQ / 1000000 == 16
-    #define SPI_CLOCKRATE_1   (0 << SPR1) | (0 << SPR0)
-    #define SPI_CLOCKRATE_2   (0 << SPI2X)
+    SPI.ClockRate = 0;
   #endif
 
-  /* 20MHz -> f_osc/8 */
+  /* 20MHz -> f_osc/8 (SPR1 = 0, SPR0 = 1, SPI2X = 1) */
   #if CPU_FREQ / 1000000 == 20
-    #define SPI_CLOCKRATE_1   (0 << SPR1) | (1 << SPR0)
-    #define SPI_CLOCKRATE_2   (1 << SPI2X)
+    SPI.ClockRate = SPI_CLOCK_R0 | SPI_CLOCK_2X;
   #endif
 
-  /* set mode and enable SPI */
-  SPCR = (1 << SPE) | (1 << MSTR) | SPI_CLOCKRATE_1;
-
-  /* set SPI2X for double SPI speed */
-  SPSR = SPI_CLOCKRATE_2;
-
-  /* clear SPI interrupt flag, just in case */
-  Bits = SPSR;           /* read flag */
-  Bits = SPDR;           /* clear flag by reading data */
-}
-
-
-
-/*
- *  send a byte (data or command) to the LCD
- *
- *  requires:
- *  - byte value to send
- */
-
-void LCD_Send(uint8_t Byte)
-{
-  /* select chip, if pin available */
-  #ifdef LCD_SCE
-    LCD_PORT &= ~(1 << LCD_SCE);   /* set /SCE low */
   #endif
 
-  /* send byte */
-  SPDR = Byte;                     /* start transmission */
-  while (!(SPSR & (1 << SPIF)));   /* wait for flag */
-  Byte = SPDR;                     /* clear flag by reading data */
-
-  /* deselect chip, if pin available */
-  #ifdef LCD_SCE
-    LCD_PORT |= (1 << LCD_SCE);    /* set /SCE high */
-  #endif
+  SPI_Setup();                     /* set up SPI bus */
 }
 
 
@@ -344,9 +172,19 @@ void LCD_Send(uint8_t Byte)
 void LCD_Cmd(uint8_t Cmd)
 {
   /* indicate command mode */
-  LCD_PORT = LCD_PORT & ~(1 << LCD_DC);      /* set D/C low */
+  LCD_PORT &= ~(1 << LCD_DC);                /* set D/C low */
 
-  LCD_Send(Cmd);              /* send command */
+  /* select chip, if pin available */
+  #ifdef LCD_SCE
+    LCD_PORT &= ~(1 << LCD_SCE);             /* set /SCE low */
+  #endif
+
+  SPI_Write_Byte(Cmd);                       /* write command byte */
+
+  /* deselect chip, if pin available */
+  #ifdef LCD_SCE
+    LCD_PORT |= (1 << LCD_SCE);              /* set /SCE high */
+  #endif
 }
 
 
@@ -361,9 +199,19 @@ void LCD_Cmd(uint8_t Cmd)
 void LCD_Data(uint8_t Data)
 {
   /* indicate data mode */
-  LCD_PORT = LCD_PORT | (1 << LCD_DC);       /* set D/C high */
+  LCD_PORT |= (1 << LCD_DC);                 /* set D/C high */
 
-  LCD_Send(Data);             /* send data */
+  /* select chip, if pin available */
+  #ifdef LCD_SCE
+    LCD_PORT &= ~(1 << LCD_SCE);             /* set /SCE low */
+  #endif
+
+  SPI_Write_Byte(Data);                      /* write data byte */
+
+  /* deselect chip, if pin available */
+  #ifdef LCD_SCE
+    LCD_PORT |= (1 << LCD_SCE);              /* set /SCE high */
+  #endif
 }
 
 #endif
@@ -534,11 +382,19 @@ void LCD_Contrast(uint8_t Contrast)
  
 void LCD_Init(void)
 {
+  #ifdef LCD_RES
   /* reset display */
+  /* max. delay for /RES after V_DD: 30ms or 100ms? */
   LCD_PORT = LCD_PORT & ~(1 << LCD_RES);     /* set /RES low */
   wait1us();                                 /* wait 1µs (needs just 100ns) */
   LCD_PORT = LCD_PORT | (1 << LCD_RES);      /* set /RES high */
-  wait1us();                                 /* wait 1µs */
+  wait10us();                                /* wait 10µs */
+  #endif
+
+  /*
+   *  Unfortunataly the datasheet doesn't tell anything about instruction
+   *  execution times, but a source says it's 100ns for most commands.
+   */ 
 
   /* default: display off */
   /* default: horizontal addressing mode */
@@ -564,6 +420,7 @@ void LCD_Init(void)
   /* update maximums */
   UI.CharMax_X = LCD_CHAR_X;       /* characters per line */
   UI.CharMax_Y = LCD_CHAR_Y;       /* lines */
+  UI.MaxContrast = 127;            /* LCD contrast */
 
   LCD_Clear();                /* clear display to set char position */
 }

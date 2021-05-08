@@ -2,7 +2,7 @@
  *
  *   color definitions for LCD modules
  *
- *   (c) 2015-2016 by Markus Reschke
+ *   (c) 2015-2017 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -11,9 +11,12 @@
 #define COLORS_H
 
 
+#ifdef LCD_COLOR
+
 /* ************************************************************************
  *   LCD specific color values
  * ************************************************************************ */
+
 
 /* ILI9341/ILI9342: 6 bit coded RGB */
 #ifdef LCD_ILI9341
@@ -67,6 +70,8 @@
 #define COLOR_PROBE_1         COLOR_YELLOW
 #define COLOR_PROBE_2         COLOR_GREEN
 #define COLOR_PROBE_3         COLOR_RED
+
+#endif
 
 
 

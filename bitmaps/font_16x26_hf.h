@@ -1,7 +1,7 @@
 /* ************************************************************************
  *
  *   fixed 16x26 font based on ISO 8859-1
- *   horizontally aligned
+ *   horizontally aligned, horizontal bit order flipped
  *
  *   (c) 2015-2017 by Markus Reschke
  *
@@ -12,7 +12,7 @@
  *   font data
  * ************************************************************************ */
 
-#ifdef FONT_16X26_H
+#ifdef FONT_16X26_HF
 
 
 /* font size */

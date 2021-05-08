@@ -8,6 +8,22 @@
 
 ------------------------------------------------------------------------------
 
+v1.29m 2017-07
+- Added touch screen support and driver for ADS7843 compatible touch
+  controllers.
+- Fixed bug in contrast setting for PCD8544.
+- Fixed silly error in CheckSum().
+- Driver for ST7920 based LCD modules with 64x128 pixels.
+- Optimized SmallResistor() and changed detecton logic in CheckResistor()
+  to cope better with low value resistances and possible probe contact
+  issues.
+- Changed control logic and treshold for Darlington BJTs in Get_hFE_C() to
+  fix issue with some NPN types.
+- Global driver for SPI bus. Modified display drivers and configuration
+  accordingly.
+- Italian text provided by Gino_09@EEVblog.
+- Support for HD44780 with Cyrillic font by hapless@EEVblog.
+
 v1.28m 2017-04
 - Increase/Decrease push buttons as alternative for a rotary encoder (
   HW_INCDEC_KEYS).

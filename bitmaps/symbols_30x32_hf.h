@@ -1,9 +1,9 @@
 /* ************************************************************************
  *
  *   30x32 component symbols 
- *   horizontally aligned
+ *   horizontally aligned, horizontal bit order flipped
  *
- *   (c) 2015-2016 by Markus Reschke
+ *   (c) 2015-2017 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -12,7 +12,7 @@
  *   symbol data
  * ************************************************************************ */
 
-#ifdef SYMBOLS_30X32_H
+#ifdef SYMBOLS_30X32_HF
 
 
 /* symbol size */

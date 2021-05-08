@@ -100,10 +100,10 @@
 
 
 /* bit flags for PullProbe() (bit mask) */
-#define FLAG_PULLDOWN         0b00000000
-#define FLAG_PULLUP           0b00000001
-#define FLAG_1MS              0b00001000
-#define FLAG_10MS             0b00010000
+#define PULL_DOWN             0b00000000     /* pull down */
+#define PULL_UP               0b00000001     /* pull up */
+#define PULL_1MS              0b00001000     /* pull for 1ms */
+#define PULL_10MS             0b00010000     /* pull for 10ms */
 
 
 /* cursor mode (bit mask) */
@@ -113,13 +113,14 @@
 #define CURSOR_OP_MODE        0b00000100     /* consider operation mode */
 
 
-/* test push button / rotary encoder */
+/* keys (test push button etc.) */
 #define KEY_TIMEOUT           0    /* timeout */
+#define KEY_NONE              0    /* no key or error */
 #define KEY_SHORT             1    /* test push button: short key press */
 #define KEY_LONG              2    /* test push button: long key press */
-#define KEY_TURN_RIGHT        3    /* rotary encoder: right turn */
+#define KEY_RIGHT             3    /* rotary encoder: right turn */
                                    /* push buttons: increase */
-#define KEY_TURN_LEFT         4    /* rotary encoder: left turn */
+#define KEY_LEFT              4    /* rotary encoder: left turn */
                                    /* push buttons: decrease */
 #define KEY_INCDEC            5    /* push buttons: increase and decrease */
 
@@ -135,7 +136,7 @@
 #define MODE_KEEP             0b00000010     /* keep first line */
 
 
-/* adjustment modes */
+/* storage modes */
 #define MODE_LOAD             1    /* load adjustment values */
 #define MODE_SAVE             2    /* save adjustment values */
 
@@ -176,6 +177,19 @@
 #define PIN_TOP               0b00001000     /* top */
 
 
+/* interface bus status flags */
+#define BUS_NONE              0b00000000     /* no bus */
+#define BUS_SPI               0b00000001     /* SPI */
+#define BUS_I2C               0b00000010     /* I2C */
+
+
+/* SPI */
+/* clock rate bitmask */
+#define SPI_CLOCK_R0          0b00000001     /* divider bit 0 (SPR0) */
+#define SPI_CLOCK_R1          0b00000010     /* divider bit 1 (SPR1) */
+#define SPI_CLOCK_2X          0b00000100     /* double clock rate (SPI2X) */
+
+
 /* I2C */
 #define I2C_ERROR             0              /* bus error */
 #define I2C_OK                1              /* operation done */
@@ -213,10 +227,11 @@ typedef struct
   uint8_t           RefFlag;       /* internal control flag for ADC */
   uint16_t          Bandgap;       /* voltage of internal bandgap reference (mV) */
   uint16_t          Vcc;           /* voltage of Vcc (mV) */
+  uint8_t           BusState;      /* status flags for interface busses */
 } Config_Type;
 
 
-/* offests and values stored in EEPROM */
+/* basic adjustment offsets and values (stored in EEPROM) */
 typedef struct
 {
   uint16_t          RiL;           /* internal pin resistance of MCU in low mode (0.1 Ohms) */
@@ -227,7 +242,18 @@ typedef struct
   int8_t            CompOffset;    /* voltage offset of analog comparator (mV) */
   uint8_t           Contrast;      /* current contrast value */
   uint8_t           CheckSum;      /* checksum for stored values */
-} NV_Type;
+} Adjust_Type;
+
+
+/* touch screen adjustment offsets (stored in EEPROM) */
+typedef struct
+{
+  uint16_t          X_Left;        /* offset for left side */
+  uint16_t          X_Right;       /* offset for right side */
+  uint16_t          Y_Top;         /* offset for top */
+  uint16_t          Y_Bottom;      /* offset for bottom */
+  uint8_t           CheckSum;      /* checksum for stored values */
+} Touch_Type;
 
 
 /* user interface */
@@ -244,23 +270,34 @@ typedef struct
   uint8_t           CharMax_X;     /* max. characters per line */
   uint8_t           CharMax_Y;     /* max. number of lines */
   uint8_t           MaxContrast;   /* maximum contrast */
+  #ifdef LCD_COLOR
   uint16_t          PenColor;      /* pen color */ 
+  #endif
 
-  /* keys (push buttons / rotary encoder) */
-  #ifdef HW_ENCODER
+  /* keys (push buttons etc.) */
+  #ifdef HW_KEYS
+  uint8_t           KeyOld;        /* former key */
+  uint8_t           KeyStep;       /* step size (1-7) */
+  uint8_t           KeyStepOld;    /* former step size */
+  #endif
   /* rotary encoder */
+  #ifdef HW_ENCODER
   uint8_t           EncState;      /* last AB status */
   uint8_t           EncDir;        /* turning direction */
   uint8_t           EncPulses;     /* number of Gray code pulses */
   uint8_t           EncTicks;      /* time counter */
   #endif
+  /* increase/decrease push buttons */
   #ifdef HW_INCDEC_KEYS
-  uint8_t           OldKey;        /* former key */
-  uint8_t           OldStep;       /* former step size */
   #endif
-  #ifdef HW_STEP_KEYS
-  uint8_t           KeyStep;       /* step size (1-7) */
+  /* touch screen */
+  #ifdef HW_TOUCH
+  uint16_t          TouchRaw_X;    /* raw touch screen x position */
+  uint16_t          TouchRaw_Y;    /* raw touch screen y position */
+  uint8_t           TouchPos_X;    /* charater x position */
+  uint8_t           TouchPos_Y;    /* charater y position */
   #endif
+
 } UI_Type;
 
 
@@ -412,6 +449,13 @@ typedef struct
 {
   uint16_t          Pulses;        /* number of pulses of input signal */
 } FreqCounter_Type;
+
+
+/* SPI */
+typedef struct
+{
+  uint8_t           ClockRate;     /* clock rate bits */
+} SPI_Type;
 
 
 /* I2C */

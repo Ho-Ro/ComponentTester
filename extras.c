@@ -185,7 +185,7 @@ void PWM_Tool(uint16_t Frequency)
    */
 
   /* power save mode would disable timer1 */
-  Config.SleepMode = SLEEP_MODE_IDLE;        /* change sleep mode to Idle */
+  Cfg.SleepMode = SLEEP_MODE_IDLE;           /* change sleep mode to Idle */
 
   TCCR1B = 0;                                /* disable timer */
   /* enable OC1B pin and set timer mode */
@@ -208,7 +208,7 @@ void PWM_Tool(uint16_t Frequency)
     /* show current ratio */
     LCD_ClearLine2();
     DisplayValue(Ratio, 0, '%');        /* show ratio in % */
-    #ifdef HW_STEP_KEYS
+    #ifdef HW_KEYS
     if (Test <= KEY_LONG)               /* just for test button usage */
     #endif
     MilliSleep(500);                    /* smooth UI */
@@ -234,12 +234,12 @@ void PWM_Tool(uint16_t Frequency)
         if (Ratio <= 95) Ratio += 5;      /* +5% and limit to 100% */
       }
     }
-    #ifdef HW_STEP_KEYS
-    else if (Test == KEY_TURN_RIGHT)    /* rotary encoder: right turn */
+    #ifdef HW_KEYS
+    else if (Test == KEY_RIGHT)         /* rotary encoder: right turn */
     {
       if (Ratio <= 99) Ratio += 1;      /* +1% and limit to 100% */
     }
-    else if (Test == KEY_TURN_LEFT)     /* rotary encoder: left turn */
+    else if (Test == KEY_LEFT)          /* rotary encoder: left turn */
     {
       if (Ratio >= 1) Ratio -= 1;         /* -1% and limit to 0% */
     }
@@ -259,7 +259,7 @@ void PWM_Tool(uint16_t Frequency)
   TCCR1B = 0;                 /* disable timer */
   TCCR1A = 0;                 /* reset flags (also frees PB2) */
   R_DDR = 0;                  /* set HiZ mode */
-  Config.SleepMode = SLEEP_MODE_PWR_SAVE;    /* reset sleep mode to default */
+  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 }
 
 #endif
@@ -331,9 +331,9 @@ void PWM_Tool(void)
    */
 
   /* power save mode would disable timer1 */
-  Config.SleepMode = SLEEP_MODE_IDLE;        /* change sleep mode to Idle */
+  Cfg.SleepMode = SLEEP_MODE_IDLE;      /* change sleep mode to Idle */
 
-  TCNT1 = 0;                                 /* set counter to 0 */
+  TCNT1 = 0;                            /* set counter to 0 */
 
   /* enable OC1B pin and set timer mode */
   TCCR1A = (1 << WGM10) | (1 << COM1B1);
@@ -565,7 +565,7 @@ void PWM_Tool(void)
         Flag |= CHANGE_RATIO | UPDATE_RATIO;      /* set flags */
       }
     }
-    else if (Test == KEY_TURN_RIGHT)    /* rotary encoder: right turn */
+    else if (Test == KEY_RIGHT)    /* rotary encoder: right turn */
     {
       if (Flag & MODE_FREQ)        /* frequency mode */
       {
@@ -591,7 +591,7 @@ void PWM_Tool(void)
         Flag |= CHANGE_RATIO | UPDATE_RATIO;      /* set flags */
       }
     }
-    else if (Test == KEY_TURN_LEFT)     /* rotary encoder: left turn */
+    else if (Test == KEY_LEFT)     /* rotary encoder: left turn */
     {
       if (Flag & MODE_FREQ)        /* frequency mode */
       {
@@ -626,7 +626,7 @@ void PWM_Tool(void)
   TCCR1B = 0;                 /* disable timer */
   TCCR1A = 0;                 /* reset flags (also frees PB2) */
   R_DDR = 0;                  /* set HiZ mode */
-  Config.SleepMode = SLEEP_MODE_PWR_SAVE;    /* reset sleep mode to default */
+  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 
   #undef UPDATE_RATIO
   #undef UPDATE_FREQ
@@ -767,7 +767,7 @@ void Servo_Check(void)
    */
 
   /* power save mode would disable timer1 */
-  Config.SleepMode = SLEEP_MODE_IDLE;   /* change sleep mode to Idle */
+  Cfg.SleepMode = SLEEP_MODE_IDLE;      /* change sleep mode to Idle */
 
   TCNT1 = 0;                       /* reset counter to 0 */
   TIMSK1 = 0;                      /* disable all interrupts for Timer1 */
@@ -1002,7 +1002,7 @@ void Servo_Check(void)
         Flag |= UPDATE_PULSE | UPDATE_FREQ | TOGGLE_SWEEP;  /* set flags */
       }
     }
-    else if (Test == KEY_TURN_RIGHT)    /* rotary encoder: right turn */
+    else if (Test == KEY_RIGHT)         /* rotary encoder: right turn */
     {
       if (Flag & MODE_PULSE)            /* pulse width mode */
       {
@@ -1036,7 +1036,7 @@ void Servo_Check(void)
         }       
       }
     }
-    else if (Test == KEY_TURN_LEFT)     /* rotary encoder: left turn */
+    else if (Test == KEY_LEFT)          /* rotary encoder: left turn */
     {
       if (Flag & MODE_PULSE)            /* pulse width mode */
       {
@@ -1106,7 +1106,7 @@ void Servo_Check(void)
   TCCR1A = 0;                 /* reset flags (also frees PB2) */
   cli();                      /* disable interrupts */
   R_DDR = 0;                  /* set HiZ mode */
-  Config.SleepMode = SLEEP_MODE_PWR_SAVE;    /* reset sleep mode to default */
+  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 
   #undef SERVO_STEP_TIME
   #undef SERVO_SWEEP_TOP
@@ -1248,7 +1248,7 @@ void SquareWave_SignalGenerator(void)
    */
 
   /* power save mode would disable timer1 */
-  Config.SleepMode = SLEEP_MODE_IDLE;        /* change sleep mode to Idle */
+  Cfg.SleepMode = SLEEP_MODE_IDLE;      /* change sleep mode to Idle */
 
   /* enable OC1B pin and set timer mode */
   TCCR1A = (1 << WGM11) | (1 << WGM10) | (1 << COM1B1) | (1 << COM1B0);
@@ -1374,17 +1374,17 @@ void SquareWave_SignalGenerator(void)
     }
 
     /* process user input */
-    if (Test == KEY_TURN_RIGHT)         /* encoder: right turn */
+    if (Test == KEY_RIGHT)         /* encoder: right turn */
     {
       /* increase frequency -> decrease top value */
       Temp = Top - Step;           /* take advantage of underflow */
       if ((Temp > Top) || (Temp < 0x003))    /* underflow */
       {
-        Temp = 0x0003;           /* lower limit */
+        Temp = 0x0003;             /* lower limit */
       }
-      Top = Temp;                /* set new value */
+      Top = Temp;                  /* set new value */
     }
-    else if (Test == KEY_TURN_LEFT)     /* encoder: left turn */
+    else if (Test == KEY_LEFT)     /* encoder: left turn */
     {
       /* decrease frequency -> increase top value */
       Temp = Top + Step;           /* take advantage of overflow */
@@ -1420,7 +1420,7 @@ void SquareWave_SignalGenerator(void)
   TCCR1B = 0;                 /* disable timer */
   TCCR1A = 0;                 /* reset flags (also frees PB2) */
   R_DDR = 0;                  /* set HiZ mode */
-  Config.SleepMode = SLEEP_MODE_PWR_SAVE;    /* reset sleep mode to default */
+  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 }
 
 #endif
@@ -1698,7 +1698,7 @@ void FrequencyCounter(void)
 
 
   /* power save mode would disable timer0 and timer1 */
-  Config.SleepMode = SLEEP_MODE_IDLE;        /* change sleep mode to Idle */
+  Cfg.SleepMode = SLEEP_MODE_IDLE;      /* change sleep mode to Idle */
 
   /* start values for autoranging (assuming high frequency) */
   GateTime = 1;                    /* gate time 1ms */
@@ -1810,7 +1810,7 @@ void FrequencyCounter(void)
   /* clean up */
   TIMSK0 = 0;                           /* disable all interrupts for Timer0 */
   TIMSK1 = 0;                           /* disable all interrupts for Timer1 */
-  Config.SleepMode = SLEEP_MODE_PWR_SAVE;    /* reset sleep mode to default */
+  Cfg.SleepMode = SLEEP_MODE_PWR_SAVE;  /* reset sleep mode to default */
 }
 
 
@@ -2258,17 +2258,17 @@ void OptoCoupler_Tool(void)
         ADC_PORT = Probes.Pin_3;                  /* pull up probe-3 directly */
 
         /* get voltages at current shunts */
-        Config.Samples = 10;            /* just a few samples for 1ms runtime */
+        Cfg.Samples = 10;               /* just a few samples for 1ms runtime */
         R_PORT = Probes.Rl_1;           /* turn LED on */
         wait1ms();                      /* time for propagation delay */
         U1 = ReadU(Probes.ADC_1);       /* voltage at LED's anode (Rl) */
         U2 = ReadU(Probes.ADC_2);       /* voltage at emitter (RiL) */
         R_PORT = 0;                     /* turn LED off */
-        Config.Samples = ADC_SAMPLES;   /* reset samples to default */
+        Cfg.Samples = ADC_SAMPLES;      /* reset samples to default */
 
         /* calculate LED's If */
         /* If = (Vcc - U1) / (RiH + Rl) */
-        U3 = Config.Vcc - U1;           /* Vcc - U1 (mV) */
+        U3 = Cfg.Vcc - U1;              /* Vcc - U1 (mV) */
         CTR = (uint32_t)U3;
         CTR *= 10000;                   /* scale to 0.0001 mV */
         U4 = NV.RiH + (R_LOW * 10);     /* RiH + Rl (0.1 Ohms) */

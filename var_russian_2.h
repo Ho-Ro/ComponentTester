@@ -3,7 +3,7 @@
  *   language specific global variables: Russian (Windows-1251)
  *
  *   (c) 2017 by Markus Reschke
- *   translation by indman@EEVblog
+ *   translation by hapless@EEVblog
  *   based on code from Markus Frejek and Karl-Heinz Kьbbeler
  *
  * ************************************************************************ */
@@ -21,28 +21,28 @@
 
   const unsigned char Running_str[] EEMEM = "Тестирование...";
   const unsigned char Weak_str[] EEMEM = "слабая";
-  const unsigned char Low_str[] EEMEM = "замена";
-  const unsigned char Timeout_str[] EEMEM = "Тайм-аут";
+  const unsigned char Low_str[] EEMEM = "разр.";
+  const unsigned char Timeout_str[] EEMEM = "Время истекло";
   const unsigned char Failed1_str[] EEMEM = "Компонент не";
   const unsigned char Failed2_str[] EEMEM = "найден!";
-  const unsigned char Done_str[] EEMEM = "Готово!";
+  const unsigned char Done_str[] EEMEM = "Выполнено!";
   const unsigned char Select_str[] EEMEM = "Выберите";
-  const unsigned char Selftest_str[] EEMEM = "Самотест";
+  const unsigned char Selftest_str[] EEMEM = "Самопроверка";
   const unsigned char Adjustment_str[] EEMEM = "Корректировка";
   const unsigned char Save_str[] EEMEM = "Сохранить";
   const unsigned char Load_str[] EEMEM = "Загрузить";
   const unsigned char Show_str[] EEMEM = "Данные";
-  const unsigned char Remove_str[] EEMEM = "Раскоротите";
-  const unsigned char Create_str[] EEMEM = "Закоротите";
-  const unsigned char ShortCircuit_str[] EEMEM = "тест.контакты!";
+  const unsigned char Remove_str[] EEMEM = "Разомкните";
+  const unsigned char Create_str[] EEMEM = "Замкните";
+  const unsigned char ShortCircuit_str[] EEMEM = "все 3 контакта!";
   const unsigned char DischargeFailed_str[] EEMEM = "Батарея?";
   const unsigned char Error_str[] EEMEM = "Ошибка!";
   const unsigned char Exit_str[] EEMEM = "Выход";
-  const unsigned char Checksum_str[] EEMEM = "Контр.сумма";
-  const unsigned char BJT_str[] EEMEM = "Транз.(BJT)";
+  const unsigned char Checksum_str[] EEMEM = "Контр. сумма";
+  const unsigned char BJT_str[] EEMEM = "Транз. (бипол.)";
   const unsigned char Thyristor_str[] EEMEM = "Тиристор";
   const unsigned char Triac_str[] EEMEM = "Симистор";
-  const unsigned char PUT_str[] EEMEM = "Транз.(PUT)";
+  const unsigned char PUT_str[] EEMEM = "Транз. (ПОПТ)";
   const unsigned char Bye_str[] EEMEM = "До свидания!";
 
   #ifdef SW_SQUAREWAVE
@@ -51,7 +51,7 @@
 
   #ifdef HW_ZENER
     const unsigned char Zener_str[] EEMEM = "Напряжение";
-    const unsigned char Min_str[] EEMEM = "Мин.";
+    const unsigned char Min_str[] EEMEM = "мин.";
   #endif
 
   #ifdef HW_FREQ_COUNTER
@@ -59,7 +59,7 @@
   #endif
 
   #ifdef SW_ENCODER
-    const unsigned char Encoder_str[] EEMEM = "Энкодер";
+    const unsigned char Encoder_str[] EEMEM = "Валкодер";
     const unsigned char TurnRight_str[] EEMEM = "Направо!";
   #endif
 
@@ -73,12 +73,12 @@
 
   #ifdef SW_OPTO_COUPLER
     const unsigned char OptoCoupler_str[] EEMEM = "Oптрон";
-    const unsigned char Start_str[] EEMEM = "Старт";
+    const unsigned char Start_str[] EEMEM = "Начать проверку";
     const unsigned char None_str[] EEMEM = "не найден";
   #endif
 
   #ifdef SW_UJT
-    const unsigned char UJT_str[] EEMEM = "Транз.(UJT)";
+    const unsigned char UJT_str[] EEMEM = "Транз. (ОПТ)";
   #endif
 
   #ifdef SW_SERVO

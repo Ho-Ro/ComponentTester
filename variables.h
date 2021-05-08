@@ -49,19 +49,23 @@
 
   /* configuration */
   UI_Type           UI;                      /* user interface */
-  Config_Type       Config;                  /* tester modes, offsets and values */
-  NV_Type           NV;                      /* stored values and offsets */
+  Config_Type       Cfg;                     /* tester modes, offsets and values */
+  Adjust_Type       NV;                      /* basic adjustment offsets and values */
+
+  #ifdef HW_TOUCH
+    Touch_Type      Touch;                   /* touch screen adjustment offsets */
+  #endif
 
   /* probing */
   Probe_Type        Probes;                  /* test probes */
   Check_Type        Check;                   /* checking/testing */
 
   /* components */
-  Resistor_Type     Resistors[3];            /* resistors (3 combinations) */
-  Capacitor_Type    Caps[3];                 /* capacitors (3 combinations) */
-  Diode_Type        Diodes[6];               /* diodes (3 combinations in 2 directions) */
-  Semi_Type         Semi;                    /* common semiconductor (BJT, FET, ...) */
-  AltSemi_Type      AltSemi;                 /* special semiconductors */
+  Resistor_Type     Resistors[3];            /* resistors */
+  Capacitor_Type    Caps[3];                 /* capacitors */
+  Diode_Type        Diodes[6];               /* diodes */
+  Semi_Type         Semi;                    /* common semiconductor */
+  AltSemi_Type      AltSemi;                 /* special semiconductor */
 
   #ifdef SW_INDUCTOR
     Inductor_Type   Inductor;                /* inductor */
@@ -70,6 +74,10 @@
   #ifdef SW_PROBE_COLORS
     /* probe color coding */
     uint16_t        ProbeColors[3] = {COLOR_PROBE_1, COLOR_PROBE_2, COLOR_PROBE_3};
+  #endif
+
+  #ifdef HW_SPI
+    SPI_Type        SPI;                     /* SPI */
   #endif
 
   #ifdef HW_I2C
@@ -81,8 +89,16 @@
    *  NVRAM values (stored in EEPROM) with their defaults
    */
 
-  const NV_Type     NV_EE EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
-  const NV_Type     NV_EE2 EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
+  /* basic adjustment values: profile #1 */
+  const Adjust_Type     NV_Adjust_1 EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
+
+  /* basic adjustment values: profile #2 */
+  const Adjust_Type     NV_Adjust_2 EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
+
+  #ifdef HW_TOUCH
+    /* touch screen adjustment offsets */
+    const Touch_Type    NV_Touch EEMEM = {0, 0, 0, 0, 0};
+  #endif
 
 
   /*
@@ -93,6 +109,7 @@
   #include "var_czech.h"
   #include "var_english.h"
   #include "var_german.h"
+  #include "var_italian.h"
   #include "var_spanish.h"
   #include "var_russian.h"
 
@@ -173,7 +190,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.28m";
+  const unsigned char Version_str[] EEMEM = "v1.29m";
 
 
   /*
@@ -245,34 +262,42 @@
    */
 
   /* buffers */
-  extern char            OutBuffer[12];           /* output buffer */
+  extern char            OutBuffer[12];      /* output buffer */
 
   /* configuration */
-  extern UI_Type         UI;                      /* user interface */
-  extern Config_Type     Config;                  /* offsets and values */
-  extern NV_Type         NV;                      /* stored values and offsets */
+  extern UI_Type         UI;                 /* user interface */
+  extern Config_Type     Cfg;                /* offsets and values */
+  extern Adjust_Type     NV;                 /* basic adjustment offsets and values */
+
+  #ifdef HW_TOUCH
+    extern Touch_Type    Touch;              /* touch screen adjustment offsets */
+  #endif
 
   /* probing */
-  extern Probe_Type      Probes;                  /* test probes */
-  extern Check_Type      Check;                   /* checking/testing */
+  extern Probe_Type      Probes;             /* test probes */
+  extern Check_Type      Check;              /* checking/testing */
 
   /* components */
-  extern Resistor_Type   Resistors[3];            /* resistors (3 combinations) */
-  extern Capacitor_Type  Caps[3];                 /* capacitors (3 combinations) */
-  extern Diode_Type      Diodes[6];               /* diodes (3 combinations in 2 directions) */
-  extern Semi_Type       Semi;                    /* common semiconductor (BJT, FET, ...) */
-  extern AltSemi_Type    AltSemi;                 /* special semiconductors */
+  extern Resistor_Type   Resistors[3];       /* resistors */
+  extern Capacitor_Type  Caps[3];            /* capacitors */
+  extern Diode_Type      Diodes[6];          /* diodes */
+  extern Semi_Type       Semi;               /* common semiconductor */
+  extern AltSemi_Type    AltSemi;            /* special semiconductor */
 
   #ifdef SW_INDUCTOR
-    extern Inductor_Type          Inductor;       /* inductor */
+    extern Inductor_Type Inductor;           /* inductor */
   #endif
 
   #ifdef SW_PROBE_COLORS
-    extern uint16_t      ProbeColors[3];          /* probe color coding */
+    extern uint16_t      ProbeColors[3];     /* probe color coding */
+  #endif
+
+  #ifdef HW_SPI
+    extern SPI_Type      SPI;                /* SPI */
   #endif
 
   #ifdef HW_I2C
-    extern I2C_Type      I2C;                     /* I2C */
+    extern I2C_Type      I2C;                /* I2C */
   #endif
 
 
@@ -280,8 +305,16 @@
    *  NVRAM values (stored in EEPROM) with their defaults
    */
 
-  extern const NV_Type   NV_EE;
-  extern const NV_Type   NV_EE2;
+  /* basic adjustment values: profile #1 */
+  extern const Adjust_Type    NV_Adjust_1;
+
+  /* basic adjustment values: profile #2 */
+  extern const Adjust_Type    NV_Adjust_2;
+
+  #ifdef HW_TOUCH
+    /* touch screen adjustment offsets */
+    extern const Touch_Type    NV_Touch;
+  #endif
 
 
   /*
@@ -377,6 +410,9 @@
   #ifdef SW_SERVO
     extern const unsigned char Servo_str[];
     extern const unsigned char Sweep_str[];
+  #endif
+  #ifdef HW_TOUCH
+    extern const unsigned char TouchSetup_str[];
   #endif
 
 

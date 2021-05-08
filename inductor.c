@@ -7,6 +7,11 @@
  *
  * ************************************************************************ */
 
+/* local includes */
+#include "config.h"           /* global configuration */
+
+#ifdef SW_INDUCTOR
+
 
 /*
  *  local constants
@@ -21,7 +26,6 @@
  */
 
 /* local includes */
-#include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
 #include "functions.h"        /* external functions */
@@ -114,9 +118,6 @@ Since the range overlaps with the low test current we may use a single table.
 
 */
 
-
-
-#ifdef SW_INDUCTOR
 
 
 /*
@@ -583,7 +584,7 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
      */
 
     /* calculate ratio */
-    Value = Config.Bandgap + NV.CompOffset;       /* = U_ref (in mV) */
+    Value = Cfg.Bandgap + NV.CompOffset;          /* = U_ref (in mV) */
     Value += Offset;                              /* +/- offset */
     Value *= R_total;                             /* * R_total (in 0.1 Ohms) */
     Value /= Factor;                              /* / R_shunt (in 0.1 Ohms) */
@@ -629,8 +630,6 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
   return Test;
 }
 
-#endif
-
 
 
 /* ************************************************************************
@@ -647,7 +646,7 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
 /* source management */
 #undef INDUCTOR_C
 
-
+#endif
 
 /* ************************************************************************
  *   EOF

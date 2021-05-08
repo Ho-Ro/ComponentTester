@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2017-04-10
+Last edit:  2017-07-07
 
 Content
   - About
@@ -22,13 +22,16 @@ Content
   - I2C/SPI
   - Displays
     - HD44780
-    - ST7565R
     - ILI9341/ILI9342
+    - ST7565R
     - ST7735
+    - ST7920
     - PCD8544
-  - Test Key
+  - Test push button and other input options
+    - Test Key
     - Rotary Encoder
     - Increase/Decrease Buttons
+    - Touch Screen
   - Startup
   - Probing
   - Power Off
@@ -162,7 +165,10 @@ UI, and change any default values if required. All settings and values are
 explained in the file, so I won't discuss them here in depth. 
 
 Hardware options:
-- rotary encoder or increase/decrease push buttons
+- additional keys
+  - rotary encoder
+  - increase/decrease push buttons
+  - touch screen
 - 2.5V voltage reference
 - relay based cap discharger
 - Zener voltage measurement
@@ -182,11 +188,11 @@ And of course the software options:
 - inductance measurement
 - ESR measurement and in-circuit ESR measurement
 - check for rotary encoders
-- squarewave signal generator (requires rotary encoder)
+- squarewave signal generator (requires additional keys)
 - IR detector/decoder for remote controls
   (IR receiver module connected to probes)
 - check for opto couplers
-- servo check (requires rotary encoder, display with >2 lines)
+- servo check (requires additional keys, display with >2 lines)
 - detection of UJTs
 - color coding for probes (requires color graphics display)
 
@@ -198,9 +204,13 @@ Available UI languages:
 - English
 - German
 - Czech (provided by Kapa)
+- Italian (privided by Gino_09@EEVblog)
 - Spanish (provided by pepe10000@EEVblog)
-- Russian (provided by indman@EEVblog)
-  just 8x16 font horizontally aligned
+- Russian (provided by indman@EEVblog and hapless@@EEVblog)
+  just 8x16 font (horizontally aligned) and HD44780 with Cyrillc font
+
+There's an alternative Russian text file (var_russian_2.h). If you prefer
+that one, simply rename it to var_russian.h.
 
 For MCU specific settings, like pin assignments and display, edit 
 config-<MCU>.h:
@@ -235,14 +245,10 @@ the circuit. The ATmega 324/644/1284 has more I/O pins and the different pin
 assignment for the circuit allows to use the dedicated bus pins for the
 hardware mode.
 
-The SPI drivers are included in the LCD module drivers for performance
-reasons. And SPI is used just by displays at the moment. So anything SPI
-related is configured in the display section of config-<MCU>.h.
-
-The drivers for I2C are stand-alone to support the usage by different IC
-drivers in a stacked fashion. I2C is enabled in config.h and for bit-bang
-mode port and pins are defined in config-<MCU>.h. IC related things like
-the I2C address are specified in their own sections.
+Since SPI or I2C are primarily used by the LCD module, they can be configured
+in the display section of config-<MCU>.h. Alternatively you can also enable I2C
+and SPI in config.h, and set ports and pins in dedicated sections in
+config-<MCU>.h (look for I2C_PORT or SPI_PORT).
 
 
 * Displays
@@ -269,56 +275,43 @@ the rotary encoder would screw up the display by interfering with the data bus.
 The HD44780 is driven in 4 bit mode. The pin assignment for the parallel
 port is:
 
-  display     config-<MCU>.h     default
-  DB4         LCD_DB4            PD0
-  DB5         LCD_DB5            PD1
-  DB6         LCD_DB6            PD2
-  DB7         LCD_DB7            PD3
-  RS          LCD_RS             PD4
-  R/W         Gnd
-  E           LCD_EN1            PD5
+  display     config-<MCU>.h   default
+                               ATmega 328
+  DB4         LCD_DB4          PD0
+  DB5         LCD_DB5          PD1
+  DB6         LCD_DB6          PD2
+  DB7         LCD_DB7          PD3
+  RS          LCD_RS           PD4
+  R/W                          Gnd
+  E           LCD_EN1          PD5
 
 You can also drive the LCD via a PCF8574 based I2C backpack which requires
 I2C to be enabled. The I2C address has to be specified too. The pin
 assignment defines how the LCD is connected to the PCF8574:
 
-  display     config-<MCU>.h     default
-  DB4         LCD_DB4            PCF8574_P4
-  DB5         LCD_DB5            PCF8574_P5
-  DB6         LCD_DB6            PCF8574_P6
-  DB7         LCD_DB7            PCF8574_P7
-  RS          LCD_RS             PCF8574_P0
-  R/W         LCD_RW             PCF8574_P1
-  E           LCD_EN1            PCF8574_P2
-  LED         LCD_LED            PCF8574_P3
-
-
-+ ST7565R
-
-The ST7565R is driven by 4/5 line SPI. The pin assignment is:
-
-  display     config-<MCU>.h     default   remark
-  /RES        LCD_RESET          PD0
-  A0          LCD_A0             PD1
-  SCL (DB6)   LCD_SCL            PD2
-  SI (DB7)    LCD_SI             PD3
-  /CS1        LCD_CS             PD5       optional
-
-You might need to play with the x/y flip and x-offset settings to get
-the correct orientation for your display. 
+  display     config-<MCU>.h   default
+  DB4         LCD_DB4          PCF8574_P4
+  DB5         LCD_DB5          PCF8574_P5
+  DB6         LCD_DB6          PCF8574_P6
+  DB7         LCD_DB7          PCF8574_P7
+  RS          LCD_RS           PCF8574_P0
+  R/W         LCD_RW           PCF8574_P1
+  E           LCD_EN1          PCF8574_P2
+  LED         LCD_LED          PCF8574_P3
 
 
 + ILI9341/ILI9342
 
 The ILI9341/ILI9342 is driven by SPI. The pin assignment is:
 
-  display     config-<MCU>.h     default   remark
-  /RES        LCD_RES            PD4       optional
-  /CS         LCD_CS             PD5       optional
-  D/C         LCD_DC             PD3
-  SCK         LCD_SCK            PD2
-  SDI         LCD_SDI            PD1
-  SDO         LCD_SDO            PD0       ILI9341 only, not used yet
+  display     config-<MCU>.h   default   remark
+                               328
+  /RES        LCD_RES          PD4       optional
+  /CS         LCD_CS           PD5       optional
+  D/C         LCD_DC           PD3
+  SCK         LCD_SCK          PD2
+  SDI         LCD_SDI          PD1
+  SDO         LCD_SDO          PD0       ILI9341 only, not used yet
 
 You might need to play with the x/y flip and rotate settings to get the
 correct orientation for your display. And don't forget to set x and y dots
@@ -333,16 +326,33 @@ slow. A complete screen clear takes about 3 seconds with a 8MHz MCU clock,
 when using the bit-bang SPI.
 
 
++ ST7565R
+
+The ST7565R is driven by 4/5 line SPI. The pin assignment is:
+
+  display     config-<MCU>.h   default    remark
+                               328
+  /RES        LCD_RESET        PD0        optional
+  /CS1        LCD_CS           PD5        optional
+  A0          LCD_A0           PD1
+  SCL (DB6)   LCD_SCL          PD2
+  SI (DB7)    LCD_SI           PD3
+
+You might need to play with the x/y flip and x-offset settings to get
+the correct orientation for your display. 
+
+
 + ST7735
 
 The ST7735 is driven by SPI. The pin assignment is:
 
-  display     config-<MCU>.h     default   remark
-  /RESX       LCD_RES            PD4
-  /CSX        LCD_CS             PD5       optional
-  D/CX        LCD_DC             PD3
-  SCL         LCD_SCL            PD2
-  SDA         LCD_SDA            PD1
+  display     config-<MCU>.h   default   remark
+                               328
+  /RESX       LCD_RES          PD4       optional
+  /CSX        LCD_CS           PD5       optional
+  D/CX        LCD_DC           PD3
+  SCL         LCD_SCL          PD2
+  SDA         LCD_SDA          PD1
 
 You might need to play with the x/y flip settings to get the correct
 orientation for your display. With LCD_LATE_ON enabled the tester starts
@@ -350,23 +360,60 @@ with a cleared display causing a slight delay at power-on. Otherwise you'll
 see some random pixels for a moment.
 
 
++ ST7920
+
+The ST7920 can be driven in 4 bit parallel mode or SPI. The pin assignment
+for the 4 bit paralllel interface is:
+
+  display     config-<MCU>.h   default   remark
+                               328
+
+  /XRESET     LCD_RESET        Vcc       optional
+  E           LCD_EN           PD5
+  RS          LCD_RS           PD4
+  RW          LCD_RW           Gnd       optional
+  D4          LCD_DB4          PD0
+  D5          LCD_DB5          PD1
+  D6          LCD_DB6          PD2
+  D7          LCD_DB7          PD3
+
+And for SPI:
+
+ /XRESET      LCD_RESET        PD4       optional
+ CS (RS)      LCD_CS           PD5       optional
+ SCLK (E)     LCD_SCLK         PD2
+ SID (RW)     LCD_SID          PD1
+
+Because of the ST7920's poor design only fonts with a width of 8 pixels can be
+used. To cope with the horizontal 16 bit addressing grid I had to add a screen
+buffer for characters.
+
+
 + PCD8544
 
 The PCD8544 is driven by SPI. The pin assignment is:
 
-  display     config-<MCU>.h     default   remark
-  /RES        LCD_RES            PD4
-  /SCE        LCD_SCE            PD5       optional
-  D/C         LCD_DC             PD3
-  SCLK        LCD_SCLK           PD2
-  SDIN        LCD_SDIN           PD1
+  display     config-<MCU>.h   default   remark
+                               328
+  /RES        LCD_RES          PD4       optional
+  /SCE        LCD_SCE          PD5       optional
+  D/C         LCD_DC           PD3
+  SCLK        LCD_SCLK         PD2
+  SDIN        LCD_SDIN         PD1
 
 Since the display has just 84 pixels in x direction you'll get 14 chars per
 line with a 6x8 font. So up to two chars might be not displayed. To mitigate
 that you could shorten some texts in variables.h.
 
 
-* Test Key
+* Test push button and other input options
+
+The tester's primary control is the test key, but additional input options
+are supported also for a more convenient usage, while some functions require
+those.
+
+
++ Test Key
 
 The test key starts the tester and also controls the user interface. For that
 purpose the tester differentiates between a short and a long key press (0.3s).
@@ -410,6 +457,39 @@ buttons as alternative. The push buttons are wired the same way as the rotary
 encoder (pull-up resistors, low active). For a speed-up functionality similar
 to the encoder's turning velocity keep pressing the push button. A long button
 press will increase the "speed" as long as you keep pressing the button.
+
+
++ Touch Screen (hardware option)
+
+Another input option is a touch screen. Please note that the screen should be
+large enough and support approximately 8 text lines with 16 characters each.
+To save precious space on the display the user interface doesn't show icons
+to touch. It simply has invisible touch bars at the left and right (each 3
+characters wide), also at the top and the bottom (2 lines high) and one at the
+center area. The left and top bars are for decreasing a value or moving up in
+a menu, while the bottom and right bars are for increasing a value or moving
+down in a menu. Actually they do the same as a rotary encoder. Touching a bar
+longer results in a speed-up if supported by a function or tool (similar to
+turning the rotary encoder faster). The center bar acts as a software version
+of the test key, i.e. it won't power the Zener diode test option for example.
+
+The touch screen needs an adjustment for proper operation. The adjustment is
+automatically started after powering the tester on, when no adjustment values
+are stored in the EEPROM. You can also run the adjustment via the main menu.
+The procedure is straight forward. If you see an asterisk (yellow * on color
+displays), simply touch it. The tester displays the native x/y position after
+each touch event. You can skip the procedure any time by pressing the test key.
+If you got problems with the adjustment like strange x/y positions, please
+check the orientation of the touch screen in relation to the display. The
+driver has options to flip or rotate the orientation. Don't forget to save
+the offsets after a successful adjustemnt (main menu: save).
+
+Supported touch screen controllers:
+- ADS7843 / XPT2046
+
+You'll find the configuration options below the display section in
+config-<MCU>.h (currently just config_644.h because of the lack of unused
+IO pins of the 328).  
 
 
 * Startup

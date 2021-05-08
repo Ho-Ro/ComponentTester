@@ -380,7 +380,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   }
 
   /* update Uref flag for next ADC run */
-  Config.RefFlag = ADC_REF_BANDGAP;     /* update flag */
+  Cfg.RefFlag = ADC_REF_BANDGAP;   /* update flag */
 
   return ESR;
 }
@@ -465,7 +465,7 @@ uint8_t LargeCap(Capacitor_Type *Cap)
   uint32_t          Value;         /* corrected capacitance value */
 
   /* set up mode */
-  Mode = FLAG_10MS | FLAG_PULLUP;       /* start with large caps */
+  Mode = PULL_10MS | PULL_UP;      /* start with large caps */
 
 
   /*
@@ -537,14 +537,14 @@ large_cap:
   /* if 1300mV are reached with one pulse, we got a small cap */
   if ((Pulses == 1) && (U_Cap > 1300))
   {
-    if (Mode & FLAG_10MS)                    /* 10ms pulses (>47µF) */
+    if (Mode & PULL_10MS)               /* 10ms pulses (>47µF) */
     {
-      Mode = FLAG_1MS | FLAG_PULLUP;         /* set mode to 1ms charging pulses (<47µF) */
-      goto large_cap;                        /* and re-run */
+      Mode = PULL_1MS | PULL_UP;        /* set mode to 1ms charging pulses (<47µF) */
+      goto large_cap;                   /* and re-run */
     }
-    else                                     /* 1ms pulses (<47µF) */
+    else                                /* 1ms pulses (<47µF) */
     {
-      Flag = 2;                              /* signal low capacitance (<4.7µF) */
+      Flag = 2;                         /* signal low capacitance (<4.7µF) */
     }
   }
 
@@ -584,7 +584,7 @@ large_cap:
 
     U_Zero = ReadU(Probes.ADC_1);       /* get start voltage */
 
-    if (Mode & FLAG_10MS)     /* > 47µF */
+    if (Mode & PULL_10MS)     /* > 47µF */
     {
       wait1000ms();
     }
@@ -614,7 +614,7 @@ large_cap:
     /* get interpolated factor from table */
     Raw = GetFactor(U_Cap + U_Drop, TABLE_LARGE_CAP);
     Raw *= Pulses;                        /* C = pulses * factor */
-    if (Mode & FLAG_10MS) Raw *= 10;      /* *10 for 10ms charging pulses */
+    if (Mode & PULL_10MS) Raw *= 10;      /* *10 for 10ms charging pulses */
 
     if (Raw > (UINT32_MAX / 1000))        /* scale down if C >4.3mF */
     {
@@ -629,7 +629,7 @@ large_cap:
      */
  
     Value *= 100;
-    if (Mode & FLAG_10MS) Value /= 109;   /* -9% for large cap */
+    if (Mode & PULL_10MS) Value /= 109;   /* -9% for large cap */
     else Value /= 104;                    /* -4% for mid-sized cap */
 
     /* copy data */
@@ -655,7 +655,7 @@ large_cap:
     /* I = C * U_diff / t */
     Value *= U_Zero;          /* * U_diff (mV) */
     Value /= 1000;            /* scale to V */
-    if (Mode & FLAG_1MS)      /* short pulses */
+    if (Mode & PULL_1MS)      /* short pulses */
     {
       Scale++;                /* / 0.1s */    
     }
@@ -838,7 +838,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
     }
 
     /* multiply with factor from table */
-    Raw *= GetFactor(Config.Bandgap + NV.CompOffset, TABLE_SMALL_CAP);
+    Raw *= GetFactor(Cfg.Bandgap + NV.CompOffset, TABLE_SMALL_CAP);
 
     /* divide by CPU frequency to get the time and multiply with table scale */
     Raw /= (CPU_FREQ / 10000);
@@ -895,15 +895,15 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
        R_DDR = 0;                       /* stop discharging */
 
-       Config.AutoScale = 0;            /* disable auto scaling */
+       Cfg.AutoScale = 0;               /* disable auto scaling */
        Ticks = ReadU(Probes.ADC_1);     /* U_c with Vcc reference */
-       Config.AutoScale = 1;            /* enable auto scaling again */
+       Cfg.AutoScale = 1;               /* enable auto scaling again */
        Ticks2 = ReadU(Probes.ADC_1);    /* U_c with bandgap reference */
 
        R_DDR = Probes.Rh_1;             /* resume discharging */
 
        Offset = Ticks - Ticks2;         /* difference */
-       Ticks = Config.Bandgap;          /* current U_bandgap incl. offset */
+       Ticks = Cfg.Bandgap;             /* current U_bandgap incl. offset */
 
        /* allow some difference caused by the different voltage resolutions
           (4.88 vs. 1.07) */
@@ -1234,15 +1234,15 @@ uint8_t RefCap(void)
 
     ADJUST_DDR &= ~(1 << ADJUST_RH);    /* stop discharging */
 
-    Config.AutoScale = 0;               /* disable auto scaling */
+    Cfg.AutoScale = 0;                  /* disable auto scaling */
     Ticks = ReadU(TP_CAP);              /* U_c with Vcc reference */
-    Config.AutoScale = 1;               /* enable auto scaling again */
+    Cfg.AutoScale = 1;                  /* enable auto scaling again */
     Ticks2 = ReadU(TP_CAP);             /* U_c with bandgap reference */
 
     ADJUST_DDR |= (1 << ADJUST_RH);     /* resume discharging */
 
     Offset = Ticks - Ticks2;            /* difference */
-    Ticks = Config.Bandgap;             /* current U_bandgap incl. offset */
+    Ticks = Cfg.Bandgap;                /* current U_bandgap incl. offset */
 
     /* allow some difference caused by the different voltage resolutions
        (4.88 vs. 1.07) */
@@ -1263,7 +1263,7 @@ uint8_t RefCap(void)
 
       NV.RefOffset += (int8_t)Value;    /* update offset */
       Ticks += (int8_t)Value;           /* update local U_bandgap */
-      Config.Bandgap = Ticks;           /* update global U_bandgap */
+      Cfg.Bandgap = Ticks;              /* update global U_bandgap */
     }
 
 

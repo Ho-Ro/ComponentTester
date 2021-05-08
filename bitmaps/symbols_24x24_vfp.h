@@ -1,9 +1,10 @@
 /* ************************************************************************
  *
  *   24x24 component symbols 
- *   vertically aligned with bank/page-wise grouping
+ *   vertically aligned, vertical bit order flipped
+ *   with bank/page-wise grouping
  *
- *   (c) 2015-2016 by Markus Reschke
+ *   (c) 2015-2017 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -12,7 +13,7 @@
  *   symbol data
  * ************************************************************************ */
 
-#ifdef SYMBOLS_24X24_VP
+#ifdef SYMBOLS_24X24_VFP
 
 
 /* symbol size */

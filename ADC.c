@@ -67,14 +67,14 @@ sample:
    */
 
   Bits = Probe & ADC_REF_MASK;     /* get reference bits */
-  if (Bits != Config.RefFlag)      /* reference has changed */
+  if (Bits != Cfg.RefFlag)         /* reference has changed */
   {
     wait100us();                   /* time for voltage stabilization */
 
     ADCSRA |= (1 << ADSC);         /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
 
-    Config.RefFlag = Bits;         /* update bits */
+    Cfg.RefFlag = Bits;            /* update bits */
   }
 
 
@@ -85,7 +85,7 @@ sample:
   Value = 0UL;                     /* reset sampling variable */
   Counter = 0;                     /* reset counter */
 
-  while (Counter < Config.Samples) /* take samples */
+  while (Counter < Cfg.Samples)    /* take samples */
   {
     ADCSRA |= (1 << ADSC);         /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
@@ -99,7 +99,7 @@ sample:
       {
         if (Bits != ADC_REF_BANDGAP)    /* bandgap ref not selected */
         {
-          if (Config.AutoScale == 1)    /* autoscaling enabled */
+          if (Cfg.AutoScale == 1)       /* autoscaling enabled */
           {
             Probe &= ~ADC_REF_MASK;     /* clear reference bits */
             Probe |= ADC_REF_BANDGAP;   /* select bandgap reference */
@@ -122,20 +122,20 @@ sample:
   /* get voltage of reference used */
   if (Bits == ADC_REF_BANDGAP)     /* bandgap reference */
   {
-    U = Config.Bandgap;       /* voltage of bandgap reference */
+    U = Cfg.Bandgap;          /* voltage of bandgap reference */
   }
   else                             /* - */
   {
-    U = Config.Vcc;           /* voltage of Vcc */   
+    U = Cfg.Vcc;              /* voltage of Vcc */   
   }
 
   /* convert to voltage; */
   Value *= U;                      /* ADC readings * U_ref */
-//  Value += 511 * Config.Samples;   /* automagic rounding */
+//  Value += 511 * Cfg.Samples;      /* automagic rounding */
   Value /= 1024;                   /* / 1024 for 10bit ADC */
 
   /* de-sample to get average voltage */
-  Value /= Config.Samples;
+  Value /= Cfg.Samples;
   U = (uint16_t)Value;
 
   return U; 

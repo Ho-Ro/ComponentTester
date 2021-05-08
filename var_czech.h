@@ -86,6 +86,10 @@
     const unsigned char Sweep_str[] EEMEM = "<->";
   #endif
 
+  #ifdef HW_TOUCH
+    const unsigned char TouchSetup_str[] EEMEM = "Touch Setup";
+  #endif
+
 #endif
 
 
