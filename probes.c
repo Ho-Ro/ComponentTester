@@ -362,9 +362,9 @@ unsigned int GetFactor(unsigned int U_in, uint8_t ID)
 
   /* get values for index and next entry */
   Table += Index;                       /* advance to index */
-  Fact1 = MEM_read_word(Table);
+  Fact1 = pgm_read_word(Table);
   Table++;                              /* next entry */
-  Fact2 = MEM_read_word(Table);
+  Fact2 = pgm_read_word(Table);
 
   /* interpolate values based on difference */
   Factor = Fact1 - Fact2;

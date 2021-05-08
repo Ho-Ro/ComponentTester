@@ -179,7 +179,7 @@ void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit)
     }    
 
     /* look up prefix in table (also prevent array overflow) */
-    if (Index <= 6) Prefix = pgm_read_byte(&Prefix_table[Index]);
+    if (Index <= 6) Prefix = MEM_read_byte(&Prefix_table[Index]);
   }
 
 

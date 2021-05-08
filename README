@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2012-11-9
+Last edit:  2012-11-14
 
 
 * About
@@ -226,6 +226,11 @@ hardware version of the tester.
 
 
 * Change Log
+
+v1.05m 2012-11
+- Moved LargeCap_table[] and SmallCap_table[] from EEPROM to flash to reduce
+  EEPROM usage. The size for a German firmware exceeded the 512 bytes of an
+  ATmega168s EEPROM.
 
 v1.04m 2012-11
 - Added a simple logic to the output function for diodes to prevent the
