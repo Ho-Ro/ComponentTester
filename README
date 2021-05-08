@@ -9,7 +9,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2012-11-8
+Last edit:  2012-11-9
 
 
 * About
@@ -55,7 +55,7 @@ them here.
 * Source Code
 
 A lot of cleaning up was done, like more remarks, renamed variables,
-re-strctured functions, large functions splitted up into several smaller
+re-structured functions, large functions splitted up into several smaller
 ones and what have you. I hope the code is easy to read and maintain now.
 
 
@@ -94,7 +94,7 @@ The selftest function runs each test just 5 times. You can skip a test by a
 short key press or skip the entire selfttest by a long key press (0.3s).
 
 In test #4 you have to remove the short circuit of the probes which triggered
-the selftest mode. The tester will wait until you realy removed the short
+the selftest mode. The tester will wait until you really removed the short
 circuit.
 
 
@@ -166,9 +166,9 @@ Also I found a simple correction solution for large caps. Without correction
 the measured values are too large. IMHO that is caused by the measurement
 method, since the ADC conversion after the charging impuls needs some time
 during which the cap looses some charge due to internal resistive losses. So
-it takes longer to charge the cap and it seems to have a larger capacitance.
-A discharge measurement later on tries to compensate that, but the capacitance
-is still too large. 
+it takes longer to charge the cap and the cap seems to have a larger
+capacitance. A discharge measurement later on tries to compensate that, but
+the capacitance is still too large. 
 
 A logic for preventing large caps to be detected as resistors was added.
 Resistors < 10 Ohms are checked for being large caps.
@@ -194,9 +194,10 @@ take more time resulting in slower measurements.
 * Displaying Results
 
 Several names and abbreviations are changed. The output for an enhancement
-mode MOSFET and diodes is splitted into two pages to have enough space to
-fully display all data. The display of BJTs may be splitted based on the
-size of hfe.
+mode MOSFET and for diodes is splitted into two pages to have sufficient space
+to fully display all data. Antiparallel diodes got only a single page (the
+capacitance will not be shown). The display of BJTs may be splitted based on
+the size of hfe.
 
 
 * Vf (V_BE) of BJTs
@@ -226,7 +227,11 @@ hardware version of the tester.
 
 * Change Log
 
-v1,03m 2012-11
+v1.04m 2012-11
+- Added a simple logic to the output function for diodes to prevent the
+  measurement of capacitance for antiparallel diodes. 
+
+v1.03m 2012-11
 - Fixed detection problem of power diodes with high leakage current (mistaken
   for resistors).
 - Fixed compiler warnings about possible uninitialized variables. That

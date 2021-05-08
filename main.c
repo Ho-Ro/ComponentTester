@@ -1152,6 +1152,7 @@ void ShowDiode(void)
 {
   Diode_Type        *D1;           /* pointer to diode #1 */
   Diode_Type        *D2 = NULL;    /* pointer to diode #2 */
+  uint8_t           CFlag = 1;     /* capacitance display flag */
   uint8_t           A = 5;         /* ID of common anode */
   uint8_t           C = 5;         /* ID of common cothode */
 
@@ -1174,10 +1175,11 @@ void ShowDiode(void)
     {
       C = D1->C;                   /* save common cathode */
     }
-    else if ((D1->A == D2->C) && (D1->C == D2->A))   /* anti parallel */
+    else if ((D1->A == D2->C) && (D1->C == D2->A))   /* anti-parallel */
     {
       A = D1->A;                   /* anode and cathode */
       C = A;                       /* are the same */
+      CFlag = 0;                   /* disable display of capacitance */
     } 
   }
   else if (DiodesFound == 3)       /* three diodes */
@@ -1210,9 +1212,9 @@ void ShowDiode(void)
       }
     }
 
-    if (n < 5) D2 = NULL;   /* no match found */
-    C = D1->C;              /* cathode of first diode */
-    A = 3;                  /* in series mode */
+    if (n < 5) D2 = NULL;          /* no match found */
+    C = D1->C;                     /* cathode of first diode */
+    A = 3;                         /* in series mode */
   }
   else                             /* to much diodes */
   {
@@ -1242,9 +1244,9 @@ void ShowDiode(void)
     if (A <= 3) lcd_fix_string(Diode_AC_str);   /* common anode or in series */
     else lcd_fix_string(Diode_CA_str);          /* common cathode */
 
-    if (A == C) lcd_testpin(D2->A);        /* anti parallel */
-    else if (A <= 3) lcd_testpin(D2->C);   /* common anode or in series */
-    else lcd_testpin(D2->A);               /* common cathode */
+    if (A == C) lcd_testpin(D2->A);          /* anti parallel */
+    else if (A <= 3) lcd_testpin(D2->C);     /* common anode or in series */
+    else lcd_testpin(D2->A);                 /* common cathode */
   }
 
 
@@ -1265,23 +1267,26 @@ void ShowDiode(void)
       DisplayValue(D2->V_f, -3, 'V');        /* display Vf */
     }
 
-    TestKey(3000, TesterMode);             /* next page */
-    lcd_clear_line(2);
-
-    /* capacity */
-    lcd_fix_string(DiodeCap_str);            /* display: C= */
-
-    /* get capacitance (opposite of flow direction) */
-    MeasureCap(D1->C, D1->A, 0);
-
-    /* and show capacitance */
-    DisplayValue(Caps[0].Value, Caps[0].Scale, 'F');
-
-    if (D2)                                  /* second diode */
+    /* capacitance */
+    if (CFlag == 1)
     {
-      lcd_space();
-      MeasureCap(D2->C, D2->A, 0);
+      TestKey(3000, TesterMode);             /* next page */
+      lcd_clear_line(2);
+
+      lcd_fix_string(DiodeCap_str);          /* display: C= */
+
+      /* get capacitance (opposite of flow direction) */
+      MeasureCap(D1->C, D1->A, 0);
+
+      /* and show capacitance */
       DisplayValue(Caps[0].Value, Caps[0].Scale, 'F');
+
+      if (D2)                                /* second diode */
+      {
+        lcd_space();
+        MeasureCap(D2->C, D2->A, 0);
+        DisplayValue(Caps[0].Value, Caps[0].Scale, 'F');
+      }
     }
   }
 }
@@ -1308,7 +1313,7 @@ void ShowBJT(void)
   lcd_fix_string(String);          /* display: NPN / PNP */
 
   /* protections diodes */
-  if (DiodesFound > 2)     /* transistor is a set of two diodes :-) */
+  if (DiodesFound > 2)        /* transistor is a set of two diodes :-) */
   {
     lcd_space();
     if (CompType == TYPE_NPN)           /* NPN */

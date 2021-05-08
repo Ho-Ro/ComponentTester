@@ -155,7 +155,7 @@
   const unsigned char Diodes_str[] MEM_TEXT = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
   const unsigned char Resistor_str[] MEM_TEXT = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
 
-  const unsigned char Version_str[] MEM_TEXT = "v1.03m";
+  const unsigned char Version_str[] MEM_TEXT = "v1.04m";
 
 
   /*
