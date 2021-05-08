@@ -106,10 +106,10 @@ void SetAdjustmentDefaults(void)
 
   #ifdef HW_TOUCH
   /* set defaults for touch screen */
-  Touch.X_Left = 0;
-  Touch.X_Right = 0;
-  Touch.Y_Top = 0;
-  Touch.Y_Bottom = 0;
+  Touch.X_Start = 0;
+  Touch.X_Stop = 0;
+  Touch.Y_Start = 0;
+  Touch.Y_Stop = 0;
   /* this triggers the touch adjustment at startup */
   #endif
 }
@@ -407,17 +407,17 @@ void ShowAdjustmentValues(void)
 {
   UI.LineMode = LINE_KEY;     /* next-line mode: wait for key/timeout */
 
-  /* display RiL and RiH */
+  /* display RiL and RiH (values are in 0.1 Ohms) */
   LCD_Clear();
   Display_EEString_Space(RiLow_str);              /* display: Ri- */
   Display_Value(NV.RiL, -1, LCD_CHAR_OMEGA);
   Display_NL_EEString_Space(RiHigh_str);          /* display: Ri+ */
   Display_Value(NV.RiH, -1, LCD_CHAR_OMEGA);
 
-  /* display C-Zero */
+  /* display C-Zero (values are in pF) */
   Display_NL_EEString_Space(CapOffset_str);       /* display: C0 */
   #ifdef CAP_MULTIOFFSET
-  /* show just the values for the first two (assuming pF) */
+  /* show the first two values without unit (assuming pF) */
   Display_Value(NV.CapZero[0], 0, 0);        /* display C0 offset for probes 1-2 */
   Display_Space();                           /* display space */
   Display_Value(NV.CapZero[1], 0, 0);        /* display C0 offset for probes 1-3 */
@@ -427,10 +427,10 @@ void ShowAdjustmentValues(void)
   Display_Value(NV.CapZero, -12, 'F');       /* display C0 offset */
   #endif
 
-  /* display R-Zero */
+  /* display R-Zero (values are in 0.01 Ohms) */
   Display_NL_EEString_Space(ROffset_str);    /* display: R0 */
   #ifdef R_MULTIOFFSET
-  /* split output to 2 lines */
+  /* show the first two values without unit and split output to 2 lines */
   Display_Value(NV.RZero[0], -2, 0);         /* display R0 offset for probes 1-2 */
   Display_Space();                           /* display space */
   Display_Value(NV.RZero[1], -2, 0);         /* display R0 offset for probes 1-3 */
@@ -441,11 +441,11 @@ void ShowAdjustmentValues(void)
   Display_Value(NV.RZero, -2, LCD_CHAR_OMEGA);    /* display R0 */
   #endif
 
-  /* display internal bandgap reference */
+  /* display internal bandgap reference (value is in mV) */
   Display_NL_EEString_Space(URef_str);       /* display: Vref */
   Display_Value(Cfg.Bandgap, -3, 'V');       /* display bandgap ref */
 
-  /* display Vcc */
+  /* display Vcc (value is in mV) */
   Display_NL_EEString_Space(Vcc_str);        /* display: Vcc */
   Display_Value(Cfg.Vcc, -3, 'V');           /* display Vcc */
 
@@ -457,7 +457,7 @@ void ShowAdjustmentValues(void)
   }
   #endif
 
-  /* display offset of analog comparator */
+  /* display offset of analog comparator (value is in mV) */
   Display_NL_EEString_Space(CompOffset_str);      /* display: AComp */
   Display_SignedValue(NV.CompOffset, -3, 'V');    /* display offset */
 
@@ -574,43 +574,46 @@ uint8_t SelfAdjustment(void)
            *  lower than 1.50 Ohms, i.e. 0.75 Ohms for a single probe.
            */
 
-          UpdateProbes(PROBE_2, PROBE_1, 0);
-          Val1 = SmallResistor(0);
-          if (Val1 < 150)                    /* within limit */
+          /* probe pair 1-2 */
+          UpdateProbes(PROBE_2, PROBE_1, 0); /* probes #2 and #1 */
+          Val1 = SmallResistor(0);           /* get R in 0.01 Ohm */
+          if (Val1 < 150)                    /* within limit (< 1.5 Ohm) */
           {
             #ifdef R_MULTIOFFSET
-            RSum1 += Val1;
+            RSum1 += Val1;                   /* add R to probe pair sum */
             #else
-            RSum += Val1;
+            RSum += Val1;                    /* add R to total sum */
             #endif
 
-            RCounter++;
+            RCounter++;                      /* valid measurement */
           }
 
-          UpdateProbes(PROBE_3, PROBE_1, 0);
-          Val2 = SmallResistor(0);
-          if (Val2 < 150)                    /* whithin limit */
+          /* probe pair 1-3 */
+          UpdateProbes(PROBE_3, PROBE_1, 0); /* probes #3 and #1 */
+          Val2 = SmallResistor(0);           /* get R in 0.01 Ohm */
+          if (Val2 < 150)                    /* within limit (< 1.5 Ohm) */
           {
             #ifdef R_MULTIOFFSET
-            RSum2 += Val2;
+            RSum2 += Val2;                   /* add R to probe pair sum */
             #else
-            RSum += Val2;
+            RSum += Val2;                    /* add R to total sum */
             #endif
 
-            RCounter++;
+            RCounter++;                      /* valid measurement */
           }
 
-          UpdateProbes(PROBE_3, PROBE_2, 0);
-          Val3 = SmallResistor(0);
-          if (Val3 < 150)                    /* within limit */
+          /* probe pair 2-3 */
+          UpdateProbes(PROBE_3, PROBE_2, 0); /* probes #3 and #2 */
+          Val3 = SmallResistor(0);           /* get R in 0.01 Ohm */
+          if (Val3 < 150)                    /* within limit (< 1.5 Ohm) */
           {
             #ifdef R_MULTIOFFSET
-            RSum3 += Val3;
+            RSum3 += Val3;                   /* add R to probe pair sum */
             #else
-            RSum += Val3;
+            RSum += Val3;                    /* add R to total sum */
             #endif
 
-            RCounter++;
+            RCounter++;                      /* valid measurement */
           }
 
           break;
@@ -629,22 +632,22 @@ uint8_t SelfAdjustment(void)
           ADC_DDR = (1 << TP1);
           R_PORT = (1 << R_RL_1);
           R_DDR = (1 << R_RL_1);
-          Val1 = ReadU_5ms(TP1);        /* U across RiL */
-          U_RiL += Val1;
+          Val1 = ReadU_5ms(TP1);             /* U across RiL */
+          U_RiL += Val1;                     /* add U to total sum */
 
           /* TP2: Gnd -- RiL -- probe-2 -- Rl -- RiH -- Vcc */
           ADC_DDR = (1 << TP2);
           R_PORT =  (1 << R_RL_2);
           R_DDR = (1 << R_RL_2);
-          Val2 = ReadU_5ms(TP2);        /* U across RiL */
-          U_RiL += Val2;
+          Val2 = ReadU_5ms(TP2);             /* U across RiL */
+          U_RiL += Val2;                     /* add U to total sum */
 
           /* TP3: Gnd -- RiL -- probe-3 -- Rl -- RiH -- Vcc */
           ADC_DDR = (1 << TP3);
           R_PORT =  (1 << R_RL_3);
           R_DDR = (1 << R_RL_3);
-          Val3 = ReadU_5ms(TP3);        /* U across RiL */
-          U_RiL += Val3;
+          Val3 = ReadU_5ms(TP3);             /* U across RiL */
+          U_RiL += Val3;                     /* add U to total sum */
 
           RiL_Counter += 3;
           break;
@@ -658,21 +661,21 @@ uint8_t SelfAdjustment(void)
           ADC_DDR = (1 << TP1);
           R_DDR = (1 << R_RL_1);
           Val1 = Cfg.Vcc - ReadU_5ms(TP1);   /* U across RiH */
-          U_RiH += Val1;
+          U_RiH += Val1;                     /* add U to total sum */
 
           /* TP2: Gnd -- RiL -- Rl -- probe-2 -- RiH -- Vcc */
           ADC_PORT = (1 << TP2);
           ADC_DDR = (1 << TP2);
           R_DDR = (1 << R_RL_2);
           Val2 = Cfg.Vcc - ReadU_5ms(TP2);   /* U across RiH */
-          U_RiH += Val2;
+          U_RiH += Val2;                     /* add U to total sum */
 
           /* TP3: Gnd -- RiL -- Rl -- probe-3 -- RiH -- Vcc */
           ADC_PORT = (1 << TP3);
           ADC_DDR = (1 << TP3);
           R_DDR = (1 << R_RL_3);
           Val3 = Cfg.Vcc - ReadU_5ms(TP3);   /* U across RiH */
-          U_RiH += Val3;
+          U_RiH += Val3;                     /* add U to total sum */
 
           RiH_Counter += 3;
           break;
@@ -687,48 +690,51 @@ uint8_t SelfAdjustment(void)
            */
 
           /* probe pair 1-2 */
-          MeasureCap(PROBE_2, PROBE_1, 0);
-          Val1 = (uint16_t)Caps[0].Raw;
+          MeasureCap(PROBE_2, PROBE_1, 0);   /* measure C */
           /* limit offset to 100pF */
-          if ((Caps[0].Scale == -12) && (Caps[0].Raw <= 100))
+          if ((Caps[0].Scale == -12) && (Caps[0].Raw <= 100UL))
           {
+            Val1 = (uint16_t)Caps[0].Raw;    /* get C (in pF) */
+
             #ifdef CAP_MULTIOFFSET
-            CapSum1 += Val1;
+            CapSum1 += Val1;                 /* add C to probe pair sum */
             #else
-            CapSum += Val1;
+            CapSum += Val1;                  /* add C to total sum */
             #endif
 
-            CapCounter++;            
+            CapCounter++;                    /* valid measurement */
           }
 
           /* probe pair 1-3 */
-          MeasureCap(PROBE_3, PROBE_1, 1);
-          Val2 = (uint16_t)Caps[1].Raw;
+          MeasureCap(PROBE_3, PROBE_1, 1);   /* measure C */
           /* limit offset to 100pF */
-          if ((Caps[1].Scale == -12) && (Caps[1].Raw <= 100))
+          if ((Caps[1].Scale == -12) && (Caps[1].Raw <= 100UL))
           {
+            Val2 = (uint16_t)Caps[1].Raw;    /* get C (in pF) */
+
             #ifdef CAP_MULTIOFFSET
-            CapSum2 += Val2;
+            CapSum2 += Val2;                 /* add C to probe pair sum */
             #else
-            CapSum += Val2;
+            CapSum += Val2;                  /* add C to total sum */
             #endif
 
-            CapCounter++;            
+            CapCounter++;                    /* valid measurement */
           }
 
           /* probe pair 2-3 */
-          MeasureCap(PROBE_3, PROBE_2, 2);
-          Val3 = (uint16_t)Caps[2].Raw;
+          MeasureCap(PROBE_3, PROBE_2, 2);   /* measure C */
           /* limit offset to 100pF */
-          if ((Caps[2].Scale == -12) && (Caps[2].Raw <= 100))
+          if ((Caps[2].Scale == -12) && (Caps[2].Raw <= 100UL))
           {
+            Val3 = (uint16_t)Caps[2].Raw;    /* get C (in pF) */
+
             #ifdef CAP_MULTIOFFSET
-            CapSum3 += Val3;
+            CapSum3 += Val3;                 /* add C to probe pair sum */
             #else
-            CapSum += Val3;
+            CapSum += Val3;                  /* add C to total sum */
             #endif
 
-            CapCounter++;            
+            CapCounter++;                    /* valid measurement */
           }
 
           break;
@@ -778,7 +784,7 @@ uint8_t SelfAdjustment(void)
 
   Flag = 0;                   /* reset adjustment counter */
 
-  /* capacitance auto-zero: calculate average value for all probe pairs */
+  /* capacitance auto-zero: calculate average value for probe pairs */
   if (CapCounter == 15)
   {
     #ifdef CAP_MULTIOFFSET
@@ -787,14 +793,14 @@ uint8_t SelfAdjustment(void)
     NV.CapZero[1] = CapSum2 / 5;        /* probes 1-3 */
     NV.CapZero[2] = CapSum3 / 5;        /* probes 2-3 */
     #else
-    /* calculate average offset (pF) */
+    /* calculate average offset (pF) for all probe pairs */
     NV.CapZero = CapSum / CapCounter;
     #endif
 
     Flag++;                   /* adjustment done */
   }
 
-  /* resistance auto-zero: calculate average value for all probes pairs */
+  /* resistance auto-zero: calculate average value for probe pairs */
   if (RCounter == 15)
   { 
     #ifdef R_MULTIOFFSET
@@ -803,7 +809,7 @@ uint8_t SelfAdjustment(void)
     NV.RZero[1] = RSum2 / 5;            /* probes 1-3 */
     NV.RZero[2] = RSum3 / 5;            /* probes 2-3 */
     #else
-    /* calculate average offset (0.01 Ohms) */
+    /* calculate average offset (0.01 Ohms) for all probe pairs */
     NV.RZero = RSum / RCounter;
     #endif
 
@@ -814,7 +820,7 @@ uint8_t SelfAdjustment(void)
   if ((RiL_Counter == 15) && (RiH_Counter == 15))
   {
     /*
-     *  Calculate RiL and RiH using the voltage divider rule:
+     *  Calculate RiL and RiH using the voltage divider equation:
      *  Ri = Rl * (U_Ri / U_Rl)
      *  - scale up by 100, round up/down and scale down by 10
      */

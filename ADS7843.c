@@ -15,7 +15,9 @@
  *    DOUT          SPI: MISO
  *    /CS           TOUCH_CS
  *    /PENIRQ       TOUCH_PEN
- *  - max. SPI clock: 2 MHz
+ *  - max. SPI clock
+ *    - ADS7843: 2.5 MHz
+ *    - XPT2046: 2.5 MHz
  */
 
 
@@ -69,7 +71,7 @@ uint8_t             OldClockRate;  /* SPI clock rate bits */
 
 void Touch_BusSetup(void)
 {
-  uint8_t           Bits;          /* bitmask */
+  uint8_t           Bits;          /* register bits */
 
   /*
    *  set control signals
@@ -89,9 +91,11 @@ void Touch_BusSetup(void)
 
   /*
    *  init SPI bus
+   *  - SPI bus is set up already in main()
    */
 
   #ifdef SPI_HARDWARE
+
   /*
    *  set SPI clock rate (max. 2MHz)
    */
@@ -117,8 +121,6 @@ void Touch_BusSetup(void)
   #endif
 
   #endif
-
-  SPI_Setup();                /* set up SPI bus */
 }
 
 
@@ -277,8 +279,8 @@ void Touch_CharPos(void)
    *  - 0/0 is assumed to be at top left 
    *
    *  Conversion:
-   *  - f_corr = (Offset_right - Offset_left) / CharMax_X
-   *  - CharPos_x = ((RawPos_x - Offset_left) / f_corr) + 1
+   *  - f_corr = (X_Stop - X_Start) / CharMax_X
+   *  - CharPos_x = ((RawPos_x - X_Start) / f_corr) + 1
    */
 
   #ifdef TOUCH_ROTATE
@@ -291,33 +293,33 @@ void Touch_CharPos(void)
      *  X direction, but take Y as input
      */
 
-    Factor = Touch.Y_Bottom - Touch.Y_Top;  /* delta of offsets */
+    Factor = Touch.Y_Stop - Touch.Y_Start;   /* delta of start and stop values */
     Factor /= UI.CharMax_Y;        /* correlation factor */
-    Pos = UI.TouchRaw_Y;           /* get raw position */
-    if (Pos < Touch.Y_Top)         /* prevent underun */
-    {
-      Pos = Touch.Y_Top;
-    }
-    if (Pos > Touch.Y_Bottom)      /* prevent overrun */
-    {
-      Pos = Touch.Y_Bottom;
-    }
 
-    #ifdef TOUCH_FLIP_X
-      /* flip X direction */
-      Pos -= Touch.Y_Bottom;       /* consider offset for right/bottom */
-    #else
-      /* native X direction */
-      Pos -= Touch.Y_Top;          /* consider offset for left/top */
-    #endif
+    Pos = UI.TouchRaw_Y;           /* get raw position */
+    if (Pos < Touch.Y_Start)       /* prevent underun */
+    {
+      Pos = Touch.Y_Start;         /* use start value */
+    }
+    if (Pos > Touch.Y_Stop)        /* prevent overrun */
+    {
+      Pos = Touch.Y_Stop;          /* use stop value */
+    }
+    Pos -= Touch.Y_Start;          /* consider start value */
 
     Pos /= Factor;                 /* convert to char position */
     CPos = (uint8_t)Pos;
     CPos++;                        /* starts at 1, not 0 */
     if (CPos > UI.CharMax_X)       /* prevent overrun */
     {
-      CPos = UI.CharMax_X;
+      CPos = UI.CharMax_X;         /* use maximum X char position */
     }
+
+    #ifdef TOUCH_FLIP_X
+    CPos = UI.CharMax_X - CPos;    /* flip X direction */
+    CPos++;                        /* fix offset caused by subtraction */
+    #endif
+
     UI.TouchPos_X = CPos;          /* update X position */
 
 
@@ -325,33 +327,33 @@ void Touch_CharPos(void)
      *  Y direction, but take X as input
      */
 
-    Factor = Touch.X_Right - Touch.X_Left;  /* delta of offsets */
+    Factor = Touch.X_Stop - Touch.X_Start;   /* delta of start and stop values */
     Factor /= UI.CharMax_Y;        /* correlation factor */
-    Pos = UI.TouchRaw_X;           /* get raw position */
-    if (Pos < Touch.X_Left)        /* prevent underun */
-    {
-      Pos = Touch.X_Left;
-    }
-    if (Pos > Touch.X_Right)       /* prevent overrun */
-    {
-      Pos = Touch.X_Right;  
-    }
 
-    #ifdef TOUCH_FLIP_Y
-      /* flip Y direction */
-      Pos -= Touch.X_Right;        /* consider offset for bottom/right */
-    #else
-      /* native Y direction */
-      Pos -= Touch.X_Left;         /* consider offset for top/left */
-    #endif
+    Pos = UI.TouchRaw_X;           /* get raw position */
+    if (Pos < Touch.X_Start)       /* prevent underun */
+    {
+      Pos = Touch.X_Start;         /* use start value */
+    }
+    if (Pos > Touch.X_Stop)        /* prevent overrun */
+    {
+      Pos = Touch.X_Stop;          /* use stop value */
+    }
+    Pos -= Touch.X_Start;          /* consider start value */
 
     Pos /= Factor;                 /* convert to char position */
     CPos = (uint8_t)Pos;
     CPos++;                        /* starts at 1, not 0 */
     if (CPos > UI.CharMax_Y)       /* prevent overrun */
     {
-      CPos = UI.CharMax_Y; 
+      CPos = UI.CharMax_Y;         /* use maximum Y char position */
     }
+
+    #ifdef TOUCH_FLIP_Y
+    CPos = UI.CharMax_Y - CPos;    /* flip Y direction */
+    CPos++;                        /* fix offset caused by subtraction */
+    #endif
+
     UI.TouchPos_Y = CPos;          /* update Y position */
 
   #else
@@ -364,33 +366,33 @@ void Touch_CharPos(void)
      *  X direction
      */
 
-    Factor = Touch.X_Right - Touch.X_Left;  /* delta of offsets */
+    Factor = Touch.X_Stop - Touch.X_Start;   /* delta of start and stop values */
     Factor /= UI.CharMax_X;        /* correlation factor */
-    Pos = UI.TouchRaw_X;           /* get raw position */
-    if (Pos < Touch.X_Left)        /* prevent underun */
-    {
-      Pos = Touch.X_Left;
-    }
-    if (Pos > Touch.X_Right)       /* prevent overrun */
-    {
-      Pos = Touch.X_Right;
-    }
 
-    #ifdef TOUCH_FLIP_X
-      /* flip X direction */
-      Pos -= Touch.X_Right;        /* consider offset for right side */
-    #else
-      /* native X direction */
-      Pos -= Touch.X_Left;         /* consider offset for left side */
-    #endif
+    Pos = UI.TouchRaw_X;           /* get raw position */
+    if (Pos < Touch.X_Start)       /* prevent underun */
+    {
+      Pos = Touch.X_Start;         /* use start value */
+    }
+    if (Pos > Touch.X_Stop)        /* prevent overrun */
+    {
+      Pos = Touch.X_Stop;          /* use stop value */
+    }
+    Pos -= Touch.X_Start;          /* consider start value */
 
     Pos /= Factor;                 /* convert to char position */
     CPos = (uint8_t)Pos;
     CPos++;                        /* starts at 1, not 0 */
     if (CPos > UI.CharMax_X)       /* prevent overrun */
     {
-      CPos = UI.CharMax_X;
+      CPos = UI.CharMax_X;         /* use maximum X char position */
     }
+
+    #ifdef TOUCH_FLIP_X
+    CPos = UI.CharMax_X - CPos;    /* flip X direction */
+    CPos++;                        /* fix offset caused by subtraction */
+    #endif
+
     UI.TouchPos_X = CPos;          /* update X position */
 
 
@@ -398,33 +400,33 @@ void Touch_CharPos(void)
      *  Y direction
      */
 
-    Factor = Touch.Y_Bottom - Touch.Y_Top;  /* delta of offsets */
+    Factor = Touch.Y_Stop - Touch.Y_Start;   /* delta of start and stop values */
     Factor /= UI.CharMax_Y;        /* correlation factor */
-    Pos = UI.TouchRaw_Y;           /* get raw position */
-    if (Pos < Touch.Y_Top)         /* prevent underun */
-    {
-      Pos = Touch.Y_Top;
-    }
-    if (Pos > Touch.Y_Bottom)      /* prevent overrun */
-    {
-      Pos = Touch.Y_Bottom;  
-    }
 
-    #ifdef TOUCH_FLIP_Y
-      /* flip Y direction */
-      Pos -= Touch.Y_Bottom;       /* consider offset for bottom */
-    #else
-      /* native Y direction */
-      Pos -= Touch.Y_Top;          /* consider offset for top */
-    #endif
+    Pos = UI.TouchRaw_Y;           /* get raw position */
+    if (Pos < Touch.Y_Start)       /* prevent underun */
+    {
+      Pos = Touch.Y_Start;         /* use start value */
+    }
+    if (Pos > Touch.Y_Stop)        /* prevent overrun */
+    {
+      Pos = Touch.Y_Stop;          /* use stop value */
+    }
+    Pos -= Touch.Y_Start;        /* consider start value */
 
     Pos /= Factor;                 /* convert to char position */
     CPos = (uint8_t)Pos;
     CPos++;                        /* starts at 1, not 0 */
     if (CPos > UI.CharMax_Y)       /* prevent overrun */
     {
-      CPos = UI.CharMax_Y; 
+      CPos = UI.CharMax_Y;         /* use maximum Y char position */
     }
+
+    #ifdef TOUCH_FLIP_Y
+    CPos = UI.CharMax_Y - CPos;    /* flip Y direction */
+    CPos++;                        /* fix offset caused by subtraction */
+    #endif
+
     UI.TouchPos_Y = CPos;          /* update Y position */
 
   #endif
@@ -546,7 +548,7 @@ uint8_t Touch_AdjustPos(uint8_t Char_X, uint8_t Char_Y)
     LCD_Char('y');
     Display_FullValue(UI.TouchRaw_Y, 0, 0);
 
-    MilliSleep(500);               /* delay */
+    MilliSleep(1000);              /* time to read */
   }
 
   return Flag;
@@ -556,8 +558,9 @@ uint8_t Touch_AdjustPos(uint8_t Char_X, uint8_t Char_Y)
 
 /*
  *  adjustment for touch screen
- *  - get offsets for left, right, top & bottom
- *  - we ignore any rotation (small screen, low resolution)
+ *  - get start/stop values for X and Y
+ *  - we ignore any rotational misalignment between display and touch screen
+ *    (small screen, low resolution)
  *
  *  returns:
  *  - 0 on error/abort
@@ -569,8 +572,10 @@ uint8_t Touch_Adjust(void)
   uint8_t           Flag1;         /* control flag */
   uint8_t           Flag2;         /* control flag */
   uint8_t           n;             /* counter */
-  uint16_t          X_Left, X_Right;    /* raw position */
-  uint16_t          Y_Top, Y_Bottom;    /* raw position #2 */
+  uint16_t          X_Start;       /* raw X start value */
+  uint16_t          X_Stop;        /* raw X stop value */
+  uint16_t          Y_Start;       /* raw Y start value */
+  uint16_t          Y_Stop;        /* raw Y stop value */
 
   /* tell user */
   LCD_Clear();                     /* clear display */
@@ -595,18 +600,18 @@ uint8_t Touch_Adjust(void)
 
     Flag1 = Touch_AdjustPos(UI.CharMax_X, 1);
 
-    /* get offset for X direction */
+    /* get start/stop value for X direction */
     #ifdef TOUCH_FLIP_X
-      X_Left = UI.TouchRaw_X;
+      X_Start = UI.TouchRaw_X;     /* start value */
     #else
-      X_Right = UI.TouchRaw_X;
+      X_Stop = UI.TouchRaw_X;      /* stop value */
     #endif
 
-    /* get offset for Y direction */
+    /* get start/stop value for Y direction */
     #ifdef TOUCH_FLIP_Y
-      Y_Bottom = UI.TouchRaw_Y;
+      Y_Stop = UI.TouchRaw_Y;      /* stop value */
     #else
-      Y_Top = UI.TouchRaw_Y;
+      Y_Start = UI.TouchRaw_Y;     /* start value */
     #endif
 
 
@@ -618,18 +623,18 @@ uint8_t Touch_Adjust(void)
     {
       Flag2 = Touch_AdjustPos(1, UI.CharMax_Y);
 
-      /* get offset for X direction */
+      /* get start/stop value for X direction */
       #ifdef TOUCH_FLIP_X
-        X_Right = UI.TouchRaw_X;
+        X_Stop = UI.TouchRaw_X;    /* stop value */
       #else
-        X_Left = UI.TouchRaw_X;
+        X_Start = UI.TouchRaw_X;   /* start value */
       #endif
 
-      /* get offset for Y direction */
+      /* get start/stop value for Y direction */
       #ifdef TOUCH_FLIP_Y
-        Y_Top = UI.TouchRaw_Y;
+        Y_Start = UI.TouchRaw_Y;   /* start value */
       #else
-       Y_Bottom = UI.TouchRaw_Y;
+        Y_Stop = UI.TouchRaw_Y;    /* stop value */
       #endif
     }
 
@@ -641,7 +646,7 @@ uint8_t Touch_Adjust(void)
     if (Flag1 && Flag2)            /* got both touch events */
     {
       /* sanity check */
-      if ((X_Right > X_Left) && (Y_Bottom > Y_Top))    /* valid offsets */
+      if ((X_Stop > X_Start) && (Y_Stop > Y_Start))    /* valid start/stop values */
       {
         /* check for matching char positions */
         Flag1 += Flag2;
@@ -651,11 +656,11 @@ uint8_t Touch_Adjust(void)
         }
         else                            /* no matching char pos */
         {
-          /* update offsets for next run */
-          Touch.X_Left = X_Left;
-          Touch.X_Right = X_Right;
-          Touch.Y_Top = Y_Top;
-          Touch.Y_Bottom = Y_Bottom;
+          /* update start/stop values for next run */
+          Touch.X_Start = X_Start;
+          Touch.X_Stop = X_Stop;
+          Touch.Y_Start = Y_Start;
+          Touch.Y_Stop = Y_Stop;
         }
       }
       else                                             /* invalid offsets */

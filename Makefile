@@ -7,17 +7,21 @@
 
 PROJECT = ComponentTester
 
+
 #
 # MCU settings
-# - Change to fit your setup!
+# - Edit to match your setup!
 #
 
 # avr-gcc: MCU model
 # - ATmega 328/328P        : atmega328
+# - ATmega 328PB           : atmega328pb
 # - ATmega 324P/324PA      : atmega324p
-# - ATmega 324PB           : atmega328pb
+# - ATmega 640             : atmega640
 # - ATmega 644/644P/644PA  : atmega644
+# - ATmega 1280            : atmega1280
 # - ATmega 1284/1284P      : atmega1284
+# - ATmega 2560            : atmega2560
 MCU = atmega328
 
 # MCU freqency:
@@ -46,34 +50,68 @@ ifeq (${OSCILLATOR},LowPower)
 endif
 
 
+#
+# avrdude settings
+# - Edit to match your setup!
+#
+
 # avrdude: part number of MCU
 # - ATmega 328    : m328
 # - ATmega 328P   : m328p
 # - ATmega 328PB  : m328pb
 # - ATmega 324P   : m324p
 # - ATmega 324PA  : m324pa
+# - ATmega 640    : m640
 # - ATmega 644    : m644
 # - ATmega 644P   : m644p
 # - ATmega 644PA  : m644p
+# - ATmega 1280   : m1280
 # - ATmega 1284   : m1284
 # - ATmega 1284P  : m1284p
+# - ATmega 2560   : m2650
 PARTNO = m328p
 
-# avrdude: ISP programmer
-#PROGRAMMER = buspirate
-#PROGRAMMER = USBasp
-#PROGRAMMER = usbtiny
-#PROGRAMMER = stk500v2
-PROGRAMMER = avrispmkII
+# avrdude: ISP programmer, port and options
 
-# avrdude: port of ISP programmer
-#PORT = /dev/bus_pirate
+# Arduino as ISP
+#PROGRAMMER = stk500v1
 #PORT = /dev/ttyACM0
-PORT = usb
+#OPTIONS = -b 19200
 
-# avrdude: bitclock
-BITCLOCK = 5.0
-#BITCLOCK = 10.0
+# Bus Pirate
+#PROGRAMMER = buspirate
+#PORT = /dev/bus_pirate
+#OPTIONS = -B 10.0
+
+# Diamex ALL-AVR/AVR-Prog
+PROGRAMMER = avrispmkII
+PORT = usb
+OPTIONS = -B 1.0
+
+# Pololu USB AVR Programmer
+#PROGRAMMER = stk500v2
+#PORT = /dev/ttyACM0
+#OPTIONS = -B 1.0
+
+# USBasp
+#PROGRAMMER = usbasp
+#PORT = usb
+#OPTIONS = -B 20
+
+# USBtinyISP
+#PROGRAMMER = usbtiny
+#PORT = usb
+#OPTIONS = -B 5.0
+
+# Arduino Uno bootloader via serial/USB
+#PROGRAMMER = arduino
+#PORT = /dev/ttyACM0
+#OPTIONS = -D -b 115200
+
+# Arduino Mega2560 bootloader via serial/USB
+#PROGRAMMER = wiring
+#PORT = /dev/ttyACM0
+#OPTIONS = -D -b 115200
 
 
 #
@@ -106,20 +144,20 @@ HEX_EEPROM_FLAGS += --set-section-flags=.eeprom="alloc,load"
 HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 # header files
-HEADERS = config.h config_328.h config_644.h colors.h
-HEADERS += common.h variables.h $(wildcard var_*.h) functions.h
-HEADERS += OneWire.h
-HEADERS += HD44780.h ST7565R.h ILI9341.h PCD8544.h ST7735.h ST7920.h
-HEADERS += SSD1306.h ILI9163.h STE2007.h PCF8814.h ST7036.h ADS7843.h
+HEADERS = config.h config_328.h config_644.h config_1280.h
+HEADERS += colors.h common.h functions.h variables.h $(wildcard var_*.h)
+HEADERS += OneWire.h ADS7843.h
+HEADERS += HD44780.h ILI9163.h ILI9341.h ILI9481.h ILI9486.h PCD8544.h
+HEADERS += PCF8814.h SSD1306.h ST7036.h ST7565R.h ST7735.h ST7920.h STE2007.h
 
 # objects
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o display.o
 OBJECTS_C += resistor.o cap.o semi.o inductor.o tools_misc.o tools_signal.o
 OBJECTS_C += SPI.o I2C.o serial.o commands.o OneWire.o
-OBJECTS_C += IR_RX.o IR_TX.o DHTxx.o
-OBJECTS_C += HD44780.o ST7565R.o ILI9341.o PCD8544.o ST7735.o ST7920.o
-OBJECTS_C += SSD1306.o ILI9163.o STE2007.o PCF8814.o ST7036.o VT100.o
-OBJECTS_C += ADS7843.o
+OBJECTS_C += IR_RX.o IR_TX.o DHTxx.o ADS7843.o
+OBJECTS_C += HD44780.o ILI9163.o ILI9341.o ILI9481.o ILI9486.o PCD8544.o
+OBJECTS_C += PCF8814.o SSD1306.o ST7036.o ST7565R.o ST7735.o ST7920.o
+OBJECTS_C += STE2007.o VT100.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 
@@ -179,17 +217,17 @@ ${OBJECTS_S}: %.o: %.S ${HEADERS} ${MAKEFILE_LIST}
 
 # program firmware and EEPROM data
 upload: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
-	avrdude -c ${PROGRAMMER} -B ${BITCLOCK} -p ${PARTNO} -P ${PORT} \
+	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
 	  -U flash:w:./${NAME}.hex:a -U eeprom:w:./${NAME}.eep:a
 
 # program firmware only
 prog_fw: ${NAME} ${NAME}.hex ${NAME}.lss size
-	avrdude -c ${PROGRAMMER} -B ${BITCLOCK} -p ${PARTNO} -P ${PORT} \
+	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
 	  -U flash:w:./${NAME}.hex:a
 
 # program EEPROM data only
 prog_ee: ${NAME} ${NAME}.eep ${NAME}.lss size
-	avrdude -c ${PROGRAMMER} -B ${BITCLOCK} -p ${PARTNO} -P ${PORT} \
+	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
 	  -U eeprom:w:./${NAME}.eep:a
 
 # create distribution package
@@ -208,12 +246,12 @@ clean:
 
 
 #
-#  MCU fuse bytes
+#  MCU fuses
 #
 
 # ATmega 328/328P
 ifeq (${MCU},atmega328)
-  FAMILY = atmega328_324
+  FAMILY = atmega328_324_640
 endif
 
 # ATmega 328PB
@@ -223,22 +261,37 @@ endif
 
 # ATmega 324P/324PA
 ifeq (${MCU},atmega324p)
-  FAMILY = atmega328_324
+  FAMILY = atmega328_324_640
+endif
+
+# ATmega 640
+ifeq (${MCU},atmega640)
+  FAMILY = atmega328_324_640
 endif
 
 # ATmega 644/644P/644PA
 ifeq (${MCU},atmega644)
-  FAMILY = atmega328_324
+  FAMILY = atmega328_324_640
+endif
+
+# ATmega 1280
+ifeq (${MCU},atmega1280)
+  FAMILY = atmega328_324_640
 endif
 
 # ATmega 1284/1284P
 ifeq (${MCU},atmega1284)
-  FAMILY = atmega328_324
+  FAMILY = atmega328_324_640
 endif
 
-# ATmega 328/324/644/1284
-ifeq (${FAMILY},atmega328_324)
-  # high byte: use default settings
+# ATmega 2560
+ifeq (${MCU},atmega2560)
+  FAMILY = atmega328_324_640
+endif
+
+# ATmega 328/324/640/644/1280/1284/2560
+ifeq (${FAMILY},atmega328_324_640)
+  # high byte: use default settings, disable JTAG
   HFUSE = -U hfuse:w:0xd9:m
   # extended byte: BOD level 4.3V
   EFUSE = -U efuse:w:0xfc:m
@@ -302,7 +355,7 @@ ifeq (${FAMILY},atmega328pb)
   endif
 endif
 
-# select LFUSE
+# select low fuse byte
 ifeq (${OSCILLATOR},RC)
   LFUSE = ${LFUSE_RC}
 endif
@@ -326,5 +379,5 @@ fuses:
   ifeq ($(strip ${FUSES}),)
 	@echo Invalid fuse settings!
   else
-	avrdude -c ${PROGRAMMER} -B ${BITCLOCK} -p ${PARTNO} -P ${PORT} ${FUSES}
+	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} ${FUSES}
   endif

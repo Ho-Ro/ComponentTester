@@ -2,7 +2,7 @@
  *
  *   TTL serial interface (hardware USART)
  *
- *   (c) 2019 by Markus Reschke
+ *   (c) 2019-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -15,9 +15,16 @@
  *    SERIAL_TX     pin for Tx (transmit)
  *    SERIAL_RX     pin for Rx (receive)
  *  - For hardware USART the MCU specific pins are used:
- *    ATmega 328:        RxD PD0 / TxD PD1
- *    ATmega 644: USART0 RxD PD0 / TxD PD1
- *                USART1 RxD PD2 / TxD PD3
+ *    ATmega 328:
+ *    - USART0: RxD PD0 and TxD PD1
+ *    ATmega 324/644/1284:
+ *    - USART0: RxD PD0 and TxD PD1
+ *    - USART1: RxD PD2 and TxD PD3
+ *    ATmega 640/1280/2560:
+ *    - USART0: RxD PE0 and TxD PE1
+ *    - USART1: RxD PD2 and TxD PD3
+ *    - USART2: RxD PH0 and TxD PH1
+ *    - USART3: RxD PJ0 and TxD PJ1
  */
 
 
@@ -117,6 +124,74 @@
   #define REG_UBRR       UBRR1     /* USART Baud Rate Register combined */
 
   #define ISR_USART_RX   USART1_RX_vect      /* ISR */
+#endif
+
+/* USART2 */
+#if SERIAL_USART == 2
+  #define REG_UDR        UDR2      /* USART I/O Data Register 2 */
+
+  #define REG_UCSR_A     UCSR2A    /* USART Control and Status Register A */
+  #define BIT_RXC        RXC2      /* USART Receive Complete */
+  #define BIT_TXC        TXC2      /* USART Transmit Complete */
+  #define BIT_UDRE       UDRE2     /* USART Data Register Empty */
+  #define BIT_FE         FE2       /* Frame Error */
+  #define BIT_DOR        DOR2      /* Data OverRun */
+  #define BIT_UPE        UPE2      /* USART Parity Error */
+
+  #define REG_UCSR_B     UCSR2B    /* USART Control and Status Register B */
+  #define BIT_RXCIE      RXCIE2    /* RX Complete Interrupt Enable */
+  #define BIT_RXEN       RXEN2     /* Receiver Enable */
+  #define BIT_TXEN       TXEN2     /* Transmitter Enable */
+  #define BIT_UCSZ_2     UCSZ22    /* Character Size 0 */
+
+  #define REG_UCSR_C     UCSR2C    /* USART Control and Status Register C */
+  #define BIT_UMSEL_0    UMSEL20   /* USART Mode Select 0 */
+  #define BIT_UMSEL_1    UMSEL21   /* USART Mode Select 1 */
+  #define BIT_UPM_0      UPM20     /* USART Parity Mode 0 */
+  #define BIT_UPM_1      UPM21     /* USART Parity Mode 1 */
+  #define BIT_USBS       USBS2     /* USART Stop Bit Select */
+  #define BIT_UCSZ_0     UCSZ20    /* USART Character Size 0 */
+  #define BIT_UCSZ_1     UCSZ21    /* USART Character Size 1 */
+
+  #define REG_UBRR_L     UBRR2L    /* USART Baud Rate Register Low */
+  #define REG_UBRR_H     UBRR2H    /* USART Baud Rate Register High */
+  #define REG_UBRR       UBRR2     /* USART Baud Rate Register combined */
+
+  #define ISR_USART_RX   USART2_RX_vect      /* ISR */
+#endif
+
+/* USART3 */
+#if SERIAL_USART == 3
+  #define REG_UDR        UDR3      /* USART I/O Data Register 3 */
+
+  #define REG_UCSR_A     UCSR3A    /* USART Control and Status Register A */
+  #define BIT_RXC        RXC3      /* USART Receive Complete */
+  #define BIT_TXC        TXC3      /* USART Transmit Complete */
+  #define BIT_UDRE       UDRE3     /* USART Data Register Empty */
+  #define BIT_FE         FE3       /* Frame Error */
+  #define BIT_DOR        DOR3      /* Data OverRun */
+  #define BIT_UPE        UPE3      /* USART Parity Error */
+
+  #define REG_UCSR_B     UCSR3B    /* USART Control and Status Register B */
+  #define BIT_RXCIE      RXCIE3    /* RX Complete Interrupt Enable */
+  #define BIT_RXEN       RXEN3     /* Receiver Enable */
+  #define BIT_TXEN       TXEN3     /* Transmitter Enable */
+  #define BIT_UCSZ_2     UCSZ32    /* Character Size 0 */
+
+  #define REG_UCSR_C     UCSR3C    /* USART Control and Status Register C */
+  #define BIT_UMSEL_0    UMSEL30   /* USART Mode Select 0 */
+  #define BIT_UMSEL_1    UMSEL31   /* USART Mode Select 1 */
+  #define BIT_UPM_0      UPM30     /* USART Parity Mode 0 */
+  #define BIT_UPM_1      UPM31     /* USART Parity Mode 1 */
+  #define BIT_USBS       USBS3     /* USART Stop Bit Select */
+  #define BIT_UCSZ_0     UCSZ30    /* USART Character Size 0 */
+  #define BIT_UCSZ_1     UCSZ31    /* USART Character Size 1 */
+
+  #define REG_UBRR_L     UBRR3L    /* USART Baud Rate Register Low */
+  #define REG_UBRR_H     UBRR3H    /* USART Baud Rate Register High */
+  #define REG_UBRR       UBRR3     /* USART Baud Rate Register combined */
+
+  #define ISR_USART_RX   USART3_RX_vect      /* ISR */
 #endif
 
 

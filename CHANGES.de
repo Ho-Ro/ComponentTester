@@ -1,12 +1,50 @@
 ------------------------------------------------------------------------------
 
-             Änderungen der Component Tester Firmware (m-firmware)
-
-           für ATmega 328/324/644/1284 mit Text- oder Grafikdisplay
+             Änderungen der Component-Tester-Firmware (m-firmware)
 
                        (c) 2012-2020 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.40m 2020-07
+- Fehler in SSD1306-Treiber beseitigt, der zur Falschplatzierung der Bauteile-
+  symbole führte (gemeldet von Andrei Paul).
+- Avrdude-Konfiguration im Makefile so geändert, dass sie mehr benutzer-
+  freundlich ist und Optionen erlaubt.
+- Treiber für Displays mit ILI9481 oder ILI9486 (8 und 16-Bit Parallel). Dank
+  an Bohu für ein Display mit ILI9486 zum Testen.
+- Logikfehler für Farbanzeigen bei abgeschalteter Farb-Funktion beseitigt.
+- Ergänzung von Konfigurationschalter für Farbanzeigen zum Vertauschen der
+  Farbkanäle für Rot und Blau (LCD_BGR).
+- R/L-Monitor verbessert, um Streuung der Messwerte zu reduzieren (gemeldet
+  von indman@EEVblog). Hilft nicht in allen Fällen.
+- Problem mit "#ifdef" für Funktionen Display_HexByte() and Display_HexDigit()
+  beseitigt (gemeldet von AlcidePiR2@EEVBlog).
+- Unterstützung von ATmega 640/1280/2560. Dank an Bohu für einen Arduino Mega
+  2560 zum Testen.
+- Die Erkennung der Drehrichtung in ReadEncoder() war umgedreht. Auf korrekte
+  Richtung geändert und Einstellungen in config_<MCU>.h und Clones
+  aktualisiert.
+- Initialisierungproblem bei Hardware-SPI beseitigt. Ebenfalls Fehler in
+  SPI_WriteRead_Byte() and I2C_ReadByte() für Bit-Bang-Modus korrigiert.
+- Alternativer Modus für Zenertest, wenn Boost-Konverter ständig läuft oder
+  gar nicht vorhanden ist (ZENER_UNSWITCHED, Vorschlag von indman@EEVblog).
+- Konfigurationsschalter für 100nF AREF-Pufferkondensator anstatt 1nF (
+  ADC_LARGE_BUFFER_CAP). Wird für bestimmte MCU-Platinen benötigt.
+- Alternative kyrillische Fonts 8x16 (FONT_8X16ALT_WIN1251_HF) und
+  8x8 (FONT_8X8ALT_WIN1251_VF, Dank an indman@EEVblog).
+- Russische Texte aktualisiert (Dank an indman@EEVblog).
+- Option zum Nutzen eines einfachen Ein/Aus-Schalters anstatt des standard-
+  mäßigen Soft-Latch-Schalters (POWER_SWITCH_MANUAL).
+- Erkennung von zwei kurzen Berührungen der Mitte in ReadTouchScreen()
+  ergänzt.
+- Algorithmusfehler bzgl. TOUCH_FLIP_X/TOUCH_FLIP_Y in Touch_CharPos()
+  beseitigt (gemeldet von Bohu).
+- Mehrere ISO8859-2-Zeichensätze durch aktualisierte Versionen von Bohu
+  ersetzt.
+- Option zum Prüfen von Widerständen auf E-Normwerte (SW_R_E*). Auch für
+  Kondensnatoren (SW_C_E*) und Induktivitäten (SW_L_E*). Optional Ausgabe
+  von Farbcode für Widerstände (benötigt grafisches Farbdisplay).
 
 v1.39m 2020-03
 - Polnische Texte nach ISO 8859-2 (Dank an Jacon).

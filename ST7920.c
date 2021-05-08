@@ -5,8 +5,10 @@
  *   - other resolutions are not supported because of different address
  *     to pixel mappings
  *     (64 x 32 pixels native, with ST7921s up to 256 x 64)
- *   - SPI interface (2-4 line)
- *   - 4 bit parallel interface
+ *   - interfaces
+ *     - 3 line SPI
+ *     - 4 bit parallel interface
+ *     - 8 bit parallel interface (not suppoprted)
  *
  *   (c) 2017-2020 by Markus Reschke
  *
@@ -30,10 +32,10 @@
  *    E          LCD_EN
  *    RS         LCD_RS
  *    RW         Gnd or LCD_RW (optional)
- *    D4         LCD_DB4 (default: LCD_PORT Bit #0)
- *    D5         LCD_DB5 (default: LCD_PORT Bit #1)
- *    D6         LCD_DB6 (default: LCD_PORT Bit #2)
- *    D7         LCD_DB7 (default: LCD_PORT Bit #3)
+ *    D4         LCD_DB4 (default: LCD_PORT pin #0)
+ *    D5         LCD_DB5 (default: LCD_PORT pin #1)
+ *    D6         LCD_DB6 (default: LCD_PORT pin #2)
+ *    D7         LCD_DB7 (default: LCD_PORT pin #3)
  *    PSB        pull-up resistor to Vcc (enable parallel mode)
  */
 
@@ -148,7 +150,7 @@ void LCD_Char(unsigned char Char);
 
 void LCD_BusSetup(void)
 {
-  uint8_t           Bits;          /* bitmask */
+  uint8_t           Bits;          /* register bits */
 
   /*
    *  set control signals
@@ -299,7 +301,7 @@ void LCD_Data(uint8_t Byte)
 
 
 /* ************************************************************************
- *   low level functions for SPI interface
+ *   low level functions for 3 line SPI interface
  * ************************************************************************ */
 
 
@@ -312,7 +314,7 @@ void LCD_Data(uint8_t Byte)
 
 void LCD_BusSetup(void)
 {
-  uint8_t           Bits;          /* bitmask */
+  uint8_t           Bits;          /* register bits */
 
   /*
    *  set control signals
@@ -342,9 +344,11 @@ void LCD_BusSetup(void)
 
   /*
    *  init SPI bus
+   *  - SPI bus is set up already in main()
    */
 
   #ifdef SPI_HARDWARE
+
   /*
    *  set SPI clock rate (max. 2.5MHz)
    */
@@ -369,9 +373,8 @@ void LCD_BusSetup(void)
     SPI.ClockRate = SPI_CLOCK_R0 | SPI_CLOCK_2X;
   #endif
 
+  SPI_Clock();                     /* update SPI clock */
   #endif
-
-  SPI_Setup();                     /* set up SPI bus */
 }
 
 

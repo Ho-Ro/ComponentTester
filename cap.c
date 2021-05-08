@@ -123,7 +123,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   uint16_t          U_4;           /* voltage at probe 1 with neg. pulse loaded */
   uint8_t           Probe1;        /* probe #1 */
   uint8_t           Probe2;        /* probe #2 */
-  uint8_t           ADC_Mask;      /* bit mask for ADC */
+  uint8_t           Bits;          /* register bits for ADC */
   uint8_t           n;             /* counter */
   uint32_t          Sum_1;         /* sum #1 */
   uint32_t          Sum_2;         /* sum #2 */
@@ -148,14 +148,14 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   if (Check.Found == COMP_ERROR) return ESR;   /* skip on error */
 
   UpdateProbes(Cap->A, Cap->B, 0);      /* update probes */
-  Probe1 = Probes.ADC_1;                /* ADC MUX for probe-1 */
-  Probe2 = Probes.ADC_2;                /* ADC MUX for probe-2 */
+  Probe1 = Probes.Ch_1;                 /* ADC MUX for probe-1 */
+  Probe2 = Probes.Ch_2;                 /* ADC MUX for probe-2 */
 
   Probe1 |= ADC_REF_BANDGAP;            /* select bandgap reference */
   Probe2 |= ADC_REF_BANDGAP;            /* select bandgap reference */
 
-  /* bitmask to enable and start ADC */
-  ADC_Mask = (1 << ADSC) | (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
+  /* register bit to enable and start ADC */
+  Bits = (1 << ADSC) | (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
 
   /* init variables */
   Sum_1 = 1;             /* 1 to prevent division by zero */
@@ -267,10 +267,10 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     R_DDR = Probes.Rl_1;           /* enable resistor */
     ADMUX = Probe1;                /* set input channel to probe-1 & set bandgap ref */
     /* run dummy conversion for ADMUX change */
-    ADCSRA = ADC_Mask;             /* start conversion */
+    ADCSRA = Bits;                 /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
     /* real conversion */
-    ADCSRA = ADC_Mask;             /* start conversion */
+    ADCSRA = Bits;                 /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
     U_1 = ADCW;                    /* save ADC value */
 
@@ -283,11 +283,11 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
     ADMUX = Probe2;                /* set input channel to probe-2 & set bandgap ref */
     /* run dummy conversion for ADMUX change */
-    ADCSRA = ADC_Mask;             /* start conversion */
+    ADCSRA = Bits;                 /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
 
     /* read ADC in the mid of a positive charging pulse */
-    ADCSRA = ADC_Mask;             /* start conversion with next ADC clock cycle */
+    ADCSRA = Bits;                 /* start conversion with next ADC clock cycle */
     wait10us();                    /* fixed pre-delay */
     DelayTimer();                  /* delay for pulse */
     R_PORT = Probes.Rl_2;          /* pull up probe-2 via Rl */
@@ -314,10 +314,10 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     R_DDR = Probes.Rl_2;           /* enable resistor */
     ADMUX = Probe2;                /* set input channel to probe-2 & set bandgap ref */
     /* run dummy conversion for ADMUX change */
-    ADCSRA = ADC_Mask;             /* start conversion */
+    ADCSRA = Bits;                 /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
     /* real conversion */
-    ADCSRA = ADC_Mask;             /* start conversion */
+    ADCSRA = Bits;                 /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
     U_3 = ADCW;                    /* save ADC value */
 
@@ -330,11 +330,11 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
     ADMUX = Probe1;                /* set input channel to probe-1 & set bandgap ref */
     /* run dummy conversion for ADMUX change */
-    ADCSRA = ADC_Mask;             /* start conversion */
+    ADCSRA = Bits;                 /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
 
     /* read ADC in the mid of a negatve charging pulse */
-    ADCSRA = ADC_Mask;             /* start conversion with next ADC clock cycle */
+    ADCSRA = Bits;                 /* start conversion with next ADC clock cycle */
     wait10us();                    /* fixed pre-delay */
     DelayTimer();                  /* delay for pulse */
     R_PORT = Probes.Rl_1;          /* pull up probe-1 via Rl */
@@ -509,7 +509,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   uint16_t          U_4;           /* voltage at probe 1 with neg. pulse loaded */
   uint8_t           Probe1;        /* probe #1 */
   uint8_t           Probe2;        /* probe #2 */
-  uint8_t           ADC_Mask;      /* bit mask for ADC */
+  uint8_t           Bits;          /* register bits for ADC */
   uint8_t           n;             /* counter */
   uint32_t          Sum_1;         /* sum #1 */
   uint32_t          Sum_2;         /* sum #2 */
@@ -528,14 +528,14 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   if (Check.Found == COMP_ERROR) return ESR;   /* skip on error */
 
   UpdateProbes(Cap->A, Cap->B, 0);      /* update probes */
-  Probe1 = Probes.ADC_1;                /* ADC MUX for probe-1 */
-  Probe2 = Probes.ADC_2;                /* ADC MUX for probe-2 */
+  Probe1 = Probes.Ch_1;                 /* ADC MUX for probe-1 */
+  Probe2 = Probes.Ch_2;                 /* ADC MUX for probe-2 */
 
   Probe1 |= ADC_REF_BANDGAP;            /* select bandgap reference */
   Probe2 |= ADC_REF_BANDGAP;            /* select bandgap reference */
 
-  /* bitmask to enable and start ADC */
-  ADC_Mask = (1 << ADSC) | (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
+  /* register bits to enable and start ADC */
+  Bits = (1 << ADSC) | (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
 
   /* init variables */
   Sum_1 = 1;             /* 1 to prevent division by zero */
@@ -605,10 +605,10 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     ADMUX = Probe1;                /* set input channel to probe-1 & set bandgap ref */
     wdt_reset();                   /* reset watchdog */
     /* run dummy conversion for ADMUX change */
-    ADCSRA = ADC_Mask;             /* start conversion */
+    ADCSRA = Bits;                 /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
     /* real conversion */
-    ADCSRA = ADC_Mask;             /* start conversion */
+    ADCSRA = Bits;                 /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
     U_1 = ADCW;                    /* save ADC value */
 
@@ -621,11 +621,11 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
     ADMUX = Probe2;                /* set input channel to probe-2 & set bandgap ref */
     /* run dummy conversion for ADMUX change */
-    ADCSRA = ADC_Mask;             /* start conversion */
+    ADCSRA = Bits;                 /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
 
     /* read ADC in the mid of a positive charging pulse */
-    ADCSRA = ADC_Mask;             /* start conversion with next ADC clock cycle */
+    ADCSRA = Bits;                 /* start conversion with next ADC clock cycle */
     wait5us();
     R_PORT = Probes.Rl_2;          /* pull up probe-2 via Rl */
     R_DDR = Probes.Rl_2;           /* enable resistor */
@@ -668,10 +668,10 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     ADMUX = Probe2;                /* set input channel to probe-2 & set bandgap ref */
     wdt_reset();                   /* reset watchdog */
     /* run dummy conversion for ADMUX change */
-    ADCSRA = ADC_Mask;             /* start conversion */
+    ADCSRA = Bits;                 /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
     /* real conversion */
-    ADCSRA = ADC_Mask;             /* start conversion */
+    ADCSRA = Bits;                 /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
     U_3 = ADCW;                    /* save ADC value */
 
@@ -684,11 +684,11 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
     ADMUX = Probe1;                /* set input channel to probe-1 & set bandgap ref */
     /* run dummy conversion for ADMUX change */
-    ADCSRA = ADC_Mask;             /* start conversion */
+    ADCSRA = Bits;                 /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
 
     /* read ADC in the mid of a negatve charging pulse */
-    ADCSRA = ADC_Mask;             /* start conversion with next ADC clock cycle */
+    ADCSRA = Bits;                 /* start conversion with next ADC clock cycle */
     wait5us();
     R_PORT = Probes.Rl_1;          /* pull up probe-1 via Rl */
     R_DDR = Probes.Rl_1;           /* enable resistor */
@@ -896,7 +896,7 @@ large_cap:
   ADC_DDR = Probes.Pin_2;          /* pull down probe-2 directly */
   R_PORT = 0;                      /* set resistor port to low */
   R_DDR = 0;                       /* set resistor port to HiZ */
-  U_Zero = ReadU(Probes.ADC_1);    /* get zero voltage (noise) */
+  U_Zero = ReadU(Probes.Ch_1);     /* get zero voltage (noise) */
 
   /* charge DUT with up to 500 pulses until it reaches 300mV */
   /* pulse: probe-1 -- Rl -- Vcc */
@@ -906,7 +906,7 @@ large_cap:
   {
     Pulses++;
     PullProbe(Probes.Rl_1, Mode);       /* charging pulse */
-    U_Cap = ReadU(Probes.ADC_1);        /* get voltage */
+    U_Cap = ReadU(Probes.Ch_1);         /* get voltage */
 
     /* zero offset */
     if (U_Cap > U_Zero)            /* voltage higher than zero offset */
@@ -963,7 +963,7 @@ large_cap:
     while (TempInt > 0)
     {
       TempInt--;                        /* descrease timeout */
-      U_Drop = ReadU(Probes.ADC_1);     /* get voltage */
+      U_Drop = ReadU(Probes.Ch_1);      /* get voltage */
       U_Drop -= U_Zero;                 /* zero offset */
       wdt_reset();                      /* reset watchdog */
     }
@@ -981,7 +981,7 @@ large_cap:
      *  determine the self-discharge leakage current.
      */
 
-    U_Zero = ReadU(Probes.ADC_1);       /* get start voltage */
+    U_Zero = ReadU(Probes.Ch_1);        /* get start voltage */
 
     if (Mode & PULL_10MS)     /* > 47µF */
     {
@@ -992,7 +992,7 @@ large_cap:
       wait100ms();
     }
 
-    TempInt = ReadU(Probes.ADC_1);      /* get voltage after delay */
+    TempInt = ReadU(Probes.Ch_1);       /* get voltage after delay */
 
     /* calculate voltage drop */
     if (U_Zero > TempInt) U_Zero -= TempInt;
@@ -1136,8 +1136,8 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
   /* set up analog comparator */
   ADCSRB = (1 << ACME);                 /* use ADC multiplexer as negative input */
-  ACSR =  (1 << ACBG) | (1 << ACIC);    /* use bandgap as positive input, trigger Timer1 */
-  ADMUX = ADC_REF_VCC | Probes.ADC_1;   /* switch ADC multiplexer to probe 1 */
+  ACSR = (1 << ACBG) | (1 << ACIC);     /* use bandgap as positive input, trigger Timer1 */
+  ADMUX = ADC_REF_VCC | Probes.Ch_1;    /* switch ADC multiplexer to probe 1 */
                                         /* and set AREF to Vcc */
   ADCSRA = ADC_CLOCK_DIV;               /* disable ADC, but keep clock dividers */
   wait200us();
@@ -1170,7 +1170,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   /*
    *  timer loop
    *  - run until voltage is reached
-   *  - detect timer overflows
+   *  - detect timer overflow
    */
 
    while (1)
@@ -1211,10 +1211,11 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
   /* enable ADC again */
   ADCSRA = (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
+  ADCSRB &= ~(1 << ACME);     /* disable ADC multiplexer as negative input */
 
   #ifndef HW_ADJUST_CAP
   /* get voltage of DUT */
-  U_c = ReadU(Probes.ADC_1);       /* get voltage of cap */
+  U_c = ReadU(Probes.Ch_1);        /* get voltage of cap */
   #endif
 
   /* start discharging DUT */
@@ -1317,7 +1318,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
        *  reference. The common voltage source is the cap we just measured.
        */
 
-       while (ReadU(Probes.ADC_1) > 980)     /* discharge below bandgap ref */ 
+       while (ReadU(Probes.Ch_1) > 980)      /* discharge below bandgap ref */ 
        {
          /* keep discharging */
        }
@@ -1325,9 +1326,9 @@ uint8_t SmallCap(Capacitor_Type *Cap)
        R_DDR = 0;                       /* stop discharging */
 
        Cfg.AutoScale = 0;               /* disable auto scaling */
-       Ticks = ReadU(Probes.ADC_1);     /* U_c with Vcc reference */
+       Ticks = ReadU(Probes.Ch_1);      /* U_c with Vcc reference */
        Cfg.AutoScale = 1;               /* enable auto scaling again */
-       Ticks2 = ReadU(Probes.ADC_1);    /* U_c with bandgap reference */
+       Ticks2 = ReadU(Probes.Ch_1);     /* U_c with bandgap reference */
 
        R_DDR = Probes.Rh_1;             /* resume discharging */
 
@@ -1463,7 +1464,7 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
    *  run measurements
    */
 
-  UpdateProbes(Probe1, Probe2, 0);           /* update bitmasks and probes */
+  UpdateProbes(Probe1, Probe2, 0);           /* update register bits and probes */
 
   /* first run measurement for large caps */ 
   TempByte = LargeCap(Cap);
@@ -1593,7 +1594,7 @@ uint8_t RefCap(void)
   /*
    *  timer loop
    *  - run until voltage is reached
-   *  - detect timer overflows
+   *  - detect timer overflow
    */
 
    while (1)
@@ -1631,6 +1632,7 @@ uint8_t RefCap(void)
 
   /* enable ADC again */
   ADCSRA = (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
+  ADCSRB &= ~(1 << ACME);     /* disable ADC multiplexer as negative input */
 
   /* get voltage of DUT */
   U_c = ReadU(TP_CAP);                  /* get voltage of cap */

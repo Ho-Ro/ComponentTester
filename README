@@ -3,13 +3,11 @@
 
             ReadMe for the Component Tester firmware (m-firmware)
 
-        for ATmega 328/324/644/1284 with character or graphic display
-
         (c) 2012-2020 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit: 2020-03-26
+Last edit: 2020-06-28
 
 Content
   - About
@@ -18,7 +16,8 @@ Content
     - Additional Disclaimer
   - Whats different?
   - Source Code
-  - Building the firmware
+  - Supported Hardware
+  - Building the Firmware
   - Busses & Interfaces
     - I2C/SPI
     - TTL Serial
@@ -27,6 +26,8 @@ Content
     - HD44780
     - ILI9163
     - ILI9341/ILI9342
+    - ILI9481
+    - ILI9486
     - PCD8544
     - PCF8814
     - SSD1306
@@ -45,7 +46,7 @@ Content
     - Serial Output
     - Automation
     - VT100 Output
-  - Startup
+  - Power-On
   - Probing
   - Battery Monitoring
   - Power Off
@@ -193,7 +194,41 @@ You can download the lastest firmware from following sites:
 - https://github.com/madires/Transistortester-Warehouse
 
 
-* Building the firmware
+* Supported Hardware
+
+The firmware runs on all testers which are compatible with the standard
+circuit shown in Karl-Heinz' documentation and which use one of the
+following MCUs:
+  - ATmega 328
+  - ATmega 324/644/1284
+  - ATmega 640/1280/2560
+
+You can customize pin assigments if required. The display may be a character
+or graphic type (monochrome or color). Please see section 'Displays' for
+supported controllers.
+
+Following hardware options are supported:
+
+  user interface
+  - rotary encoder
+  - additional push buttons (in/decrease)
+  - touch screen
+  - serial interface (TTL, RS232, USB-serial adpater) 
+
+  enhancements
+  - external 2.5V voltage reference
+  - fixed adjustment cap
+  - protection relay for discharging caps
+
+  additional checks and measurements
+  - Zener check / measurement of external voltage <50V
+  - basic frequency counter
+  - extended frequency counter
+    with prescaler and crystal oscillators for low and high frequencies
+  - fixed IR RC receiver
+
+
+* Building the Firmware
 
 First edit the Makefile to specify your MCU model, frequency, oscilator
 type and programmer settings. All other settings are moved to a global
@@ -246,6 +281,8 @@ And of course the software options:
 - output of components found also via TTL serial, e.g. to a PC
 - remote commands for automation via TTL serial
 - output of reverse hFE for BJTs
+- DHT11/22 temperature and humidity sensor
+- ...
 
 Please choose the options carefully to match your needs and the MCU's
 ressources, i.e. RAM, EEPROM and flash memory. If the firmware exceeds the
@@ -284,6 +321,7 @@ For MCU specific settings, like pin assignments and display, edit
 config_<MCU>.h:
 - ATmega 328                config_328.h
 - ATmega 324/644/1284       config_644.h
+- ATmega 640/1280/2560      config_1280.h
 
 The display has to provide 2 lines with 16 characters each, at least. For
 graphic displays select a font which is small enough to match the
@@ -379,14 +417,16 @@ Pin assignment for probes:
 
 * Displays
 
-At the moment following LCD controllers are supported:
+At the moment following display controllers are supported:
 - HD44780 (character display, 2-4 lines with 16-20 characters)
 - ILI9163 (color graphic display 128x160)
 - ILI9341/ILI9342 (color graphic display 240x320 or 320x240)
+- ILI9481 (color graphic display 320x480, untested)
+- ILI9486 (color graphic display 320x480, partly untested)
 - PCD8544 (graphic display 84x48)
 - PCF8814 (graphic display 96x65)
 - SSD1306 (graphic display 128x64)
-- ST7036 (character display, 3 lines with 16 characters)
+- ST7036 (character display, 3 lines with 16 characters, untested)
 - ST7565R (graphic display 128x64)
 - ST7735 (color graphic display 128x160)
 - ST7920 (graphic display up to 256x64)
@@ -400,6 +440,17 @@ wiring, please try different contrast settings (config_<MCU>.h).
 For most displays you can hardwire the /CS and /RES lines via pull-up/down
 resistors and comment out the corresponding IO pins when the display is the
 only device on a bus.
+
+Most graphic displays provide settings to change the image orientation, e.g.
+for rotating the image by 90° and mirroring the image horizontally or
+vertically. That way the image can be adjusted for each tester as needed.
+For color graphic displays additional settings are available. In the normal
+color mode the tester uses different colors which can be changed by editing
+the colors.h file. By commenting out LCD_COLOR the two-color mode is enabled
+and the pen color will be COLOR_PEN, while the background color is set to
+COLOR_BACKGROUND. In case the RGB base colors red and blue are reversed
+enable LCD_BGR to swap the red and blue color channels. Some displays have
+reversed RGB sub-pixels and the display controller doesn't know about that.
 
 Hint for ATmega 328:
 If you connect a rotary encoder to PD2/PD3, please connect the module's /CS to
@@ -461,7 +512,7 @@ for a moment.
 
 + ILI9341/ILI9342
 
-The ILI9341/ILI9342 is driven by SPI. The pin assignment is:
+The ILI9341/ILI9342 is driven by 4-line SPI. The pin assignment is:
 
   display     config-<MCU>.h   default      remark
                                ATmega 328
@@ -471,19 +522,64 @@ The ILI9341/ILI9342 is driven by SPI. The pin assignment is:
   D/C         LCD_DC           PD3
   SCK         LCD_SCK          PD2
   SDI         LCD_SDI          PD1
-  SDO         LCD_SDO          PD0          ILI9341 only, not used yet
+  SDO         LCD_SDO          -            ILI9341 only, not used yet
 
 You might need to play with the x/y flip and rotate settings to get the
 correct orientation for your display. And don't forget to set x and y dots
 based on the controller (ILI9341 is 240x320 and ILI9342 is 320x240).
 
-The ILI9341/ILI9342 is a color display controller and you can select whether
-you like single color (default) or multi color support by the "LCD_COLOR"
-definition in the display section of config.h.
-
 Based on the relative high number of pixels the display output is somewhat
-slow. A complete screen clear takes about 3 seconds with a 8MHz MCU clock,
+slow. A complete screen clear takes about 3 seconds with a 8MHz MCU clock
 when using the bit-bang SPI.
+
+
++ ILI9481 (untested)
+
+The ILI9481 is driven by 8-bit parallel or 16-bit parallel.
+
+The pin assignment for 8-bit parallel is:
+
+  display     config-<MCU>.h   default      remark
+                               ATmega 2560
+  ---------------------------------------------------------------
+              LCD_PORT         PORTB
+  /RESX       LCD_RES          PB4          optional
+  /CSX        LCD_CS           PB5          optional
+  D/CX        LCD_DC           PB7
+  WRX         LCD_WR           PB0
+  RDX         LCD_RD           PB6
+              LCD_PORT2        PORTL
+  DB0         LCD_DB0          PL0          LCD_PORT2 pin #0
+  DB1         LCD_DB1          PL1          LCD_PORT2 pin #1
+  DB2         LCD_DB2          PL2          LCD_PORT2 pin #2
+  DB3         LCD_DB3          PL3          LCD_PORT2 pin #3
+  DB4         LCD_DB4          PL4          LCD_PORT2 pin #4
+  DB5         LCD_DB5          PL5          LCD_PORT2 pin #5
+  DB6         LCD_DB6          PL6          LCD_PORT2 pin #6
+  DB7         LCD_DB7          PL7          LCD_PORT2 pin #7
+
+
+The pin assignment for 16-bit parallel is the same as for 8-bit parallel
+and additionally:
+
+              LCD_PORT3        PORTC
+  DB8         LCD_DB8          PC0          LCD_PORT3 pin #0
+  DB9         LCD_DB9          PC1          LCD_PORT3 pin #1
+  DB10        LCD_DB10         PC2          LCD_PORT3 pin #2
+  DB11        LCD_DB11         PC3          LCD_PORT3 pin #3
+  DB12        LCD_DB12         PC4          LCD_PORT3 pin #4
+  DB13        LCD_DB13         PC5          LCD_PORT3 pin #5
+  DB14        LCD_DB14         PC6          LCD_PORT3 pin #6
+  DB15        LCD_DB15         PC7          LCD_PORT3 pin #7
+
+Usually you need to rotate the display (LCD_ROTATE) for correct output.
+If neccessary you can also flip X and/or Y.
+
+
++ ILI9486 (partly untested)
+
+The ILI9486 is driven by 8-bit parallel or 16-bit parallel. And it uses the
+same pin assignment as the ILI9481.
 
 
 + PCD8544
@@ -506,7 +602,7 @@ that you could shorten some texts in variables.h.
 
 + PCF8814
 
-The PCF8814 is driven in the 3-wire SPI mode usually. The pin assignment for 
+The PCF8814 is driven usually in the 3-wire SPI mode. The pin assignment for 
 the 3-wire SPI (bit-bang only) is:
 
   display     config-<MCU>.h   default      remark
@@ -586,7 +682,7 @@ LCD_CONTRAST need to be commented out.
 
 + ST7565R
 
-The ST7565R is driven by 4/5 line SPI. The pin assignment is:
+The ST7565R is driven by 4-line SPI. The pin assignment is:
 
   display     config-<MCU>.h   default      remark
                                ATmega 328
@@ -623,7 +719,7 @@ see some random pixels for a moment.
 + ST7920
 
 The ST7920 can be driven in 4 bit parallel mode or SPI. The pin assignment
-for the 4 bit paralllel interface is:
+for the 4 bit parallel interface is:
 
   display     config-<MCU>.h   default      remark
                                ATmega 328
@@ -742,19 +838,23 @@ a menu, while the bottom and right bars are for increasing a value or moving
 down in a menu. Actually they do the same as a rotary encoder. Touching a bar
 longer results in a speed-up if supported by a function or tool (similar to
 turning the rotary encoder faster). The center bar acts as a software version
-of the test key, i.e. it won't power the Zener diode test option for example.
+of the test key, but it won't power the Zener diode test option for example.
 
 The touch screen needs an adjustment for proper operation. The adjustment is
 automatically started after powering the tester on, when no adjustment values
 are stored in the EEPROM. You can also run the adjustment via the main menu.
 The procedure is straight forward. If you see an asterisk (yellow * on color
-displays), simply touch it. The tester displays the native x/y position after
-each touch event. You can skip the procedure any time by pressing the test key.
-If you have problems with the adjustment like strange x/y positions, please
-check the orientation of the touch screen in relation to the display. The
-driver has options to flip or rotate the orientation. The display's top left
-is assumed to be the zero position. Some hints about the required settings
-for specific values of x and y:
+displays), simply touch it. After that the tester clears the asterisk and
+displays the native x/y position. The first adjustment point is at the top
+right, and the second point at the bottom left. Based on the result the tester
+may try the adjustment up to three times. You can skip the procedure any time
+by pressing the test key.
+
+If you have problems with the adjustment like bad x/y positions or an error
+after the first adjusment round, please check the orientation of the touch
+screen in relation to the display. The driver has options to flip or rotate
+the orientation. The display's top left is assumed to be the zero position.
+Some hints about the required settings for specific values of x and y:
 
   first adjustment point: top right
 
@@ -772,8 +872,8 @@ Supported touch screen controllers:
 - ADS7843 / XPT2046
 
 You'll find the configuration options below the display section in
-config-<MCU>.h (currently just config_644.h because of the lack of unused
-IO pins of the ATmega 328).  
+config-<MCU>.h (currently just config_644.h and config_1280.h because the
+ATmega 328 doesn't provide enough IO pins).
 
 
 * Communication with PC
@@ -832,7 +932,7 @@ see VT100 in section "Displays"). To keep the layout of the output undisturbed
 all other options for the serial interface are disabled.
 
 
-* Startup
+* Power-On
 
 A long key press while starting the tester selects the auto-hold mode. In that
 mode the tester waits for a short key press after displaying a result before
@@ -846,7 +946,11 @@ read the display anymore.
 
 If the tester detects a problem with the stored adjustments values, it will
 display a checksum error. That error indicates a corrupted EEPROM, and the
-tester will use the firmware defaults instead.
+tester will use firmware defaults instead.
+
+For a tester with a manual power switch instead of the soft-latching one used
+by the reference design please enable POWER_SWITCH_MANUAL in config.c. In that
+case the tester won't be able to power itself off.
 
 
 * Probing
@@ -989,8 +1093,15 @@ breakdown voltage of a Zener diode connected to dedicated probe pins. While
 the test button is pressed the boost converter runs and the tester displays
 the current voltage. After releasing the test button the minimum voltage
 measured is shown if the test button was pressed long enough for a stable test
-voltage. You may repeat this as long as you like :-) To exit the Zener tool
+voltage. You may repeat this as long as you like. :) To exit the Zener tool
 press the test button twice quickly.
+
+If your tester has just a 10:1 voltage divider without boost converter for
+measuring an external voltage or the boost converter runs all the time, you
+can choose the alternative mode (ZENER_UNSWITCHED) which measures the voltage 
+periodically without pressing the test button. When you see the cursor at the
+bottom right between measurements you can exit the Zener tool by two short
+presses of the test button.
 
 How to connect the Zener diode:
    Probe +: cathode
@@ -1633,7 +1744,19 @@ resistance values. For resistors lower than 10 Ohms an extra measurement with
 a higher resolution is performed.
 
 In some rare cases the tester might not be able to detect a very low
-resistance. In that case simply re-run the test.
+resistance. If that happens simply re-run the test.
+
+When the optional check for E series norm values (SW_R_E*) is enabled the
+tester takes the next lower and next higher norm value and compares them with
+the measured resistance while also considering component tolerances. There are
+two output modes. In the text mode the tester displays the E series and the
+tolerance applied followed by matching norm values. A "-" indicates that no
+norm value matches. In the color-code output mode the tester displays the
+E series and the resistor's color code including the color band for tolerance.
+Be aware that colors can differ with the display module and used color
+combinations. If any color is off simply adjust the color value (COLOR_CODE_*)
+in the file colors.h. An Internet search for "RGB565 tool" will list many
+online tools for creating/picking RGB565 color values.
 
 
 * Capacitors
@@ -1680,6 +1803,10 @@ cap seems to be about:
   - 470-820µF   4-7µA
   - >1000µF     5-7µA per 1000µF
 
+The optional check for E series norm values is also available for capacitors (
+SW_C_E*), but only in text mode because there are simply too many different
+color-codes for caps.
+
 
 * Inductors
 
@@ -1697,14 +1824,17 @@ function MeasureInductor() there the variable "Offset" for compensation. That
 variable is an offset for the reference voltage. A positive offset will
 decrease the inductance, and a negative value will increase the inductance.
 
-The compensation for the high current check is based on the MCU clock, and its
+The compensation for the high current check is based on the MCU clock, and it's
 divided in three time ranges, each one with a dedicated offset. For the low
 current check there's just a simple compensation at the moment, as it needs
 further tests. If you see any major deviations when compairing the measurement
-results with a proper LCR meter, you can adjust the offsets to match your
+results with a proper LCR meter, you can adjust the offset values of your
 tester.
 
 Hint: When getting unexpected results please re-run the test.
+
+If you like to have the check for E series norm values please enable the
+SW_L_E* switches in config.h (text mode only).
 
 
 * Discharging Components

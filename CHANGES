@@ -2,11 +2,48 @@
 
             Change Log for the Component Tester firmware (m-firmware)
 
-         for ATmega 328/324/644/1284 with character or graphic display
-
                        (c) 2012-2020 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.40m 2020-07
+- Fixed error in SSD1306 driver which caused component symbols placed wrongly
+  (reported by Andrei Paul).
+- Changed avrdude configuration in Makefile to be more user friendly and to
+  allow customized options.
+- Added drivers for ILI9481 and ILI9486 based displays (8 and 16 bit parallel).
+  Thanks to Bohu for providing an ILI9486 based display for testing.
+- Fixed logic error for color displays when color feature is disabled.
+- Added configuration switch for color displays to swap red and blue color
+  channels (LCD_BGR).
+- Improved R/L monitor to reduce spread of measurement values (reported by
+  indman@EEVblog). Might not help in all cases.
+- Fixed "#ifdef" issue for Display_HexByte() and Display_HexDigit() (reported
+  by AlcidePiR2@EEVBlog).
+- Support for ATmega 640/1280/2560. Thanks to Bohu for providing an Arduino
+  Mega 2560 for testing.
+- The detection of the rotation direction in ReadEncoder() was reversed.
+  Changed to correct direction and updated settings in config_<MCU>.h and
+  Clones.
+- Fixed initialisation issue for hardware SPI. Also fixed some faults
+  in SPI_WriteRead_Byte() and I2C_ReadByte() for bit-bang mode.
+- Added alternative mode to Zener check in case the boost converter runs
+  always or the circuit hasn't one (ZENER_UNSWITCHED, suggested by
+  indman@EEVblog).
+- Configuration switch for 100nF AREF buffer cap instead of 1nF to deal with
+  some MCU boards (ADC_LARGE_BUFFER_CAP).
+- Added alternative cyrillic fonts 8x16 (FONT_8X16ALT_WIN1251_HF) and 8x8 (
+  FONT_8X8ALT_WIN1251_VF, thanks to indman@EEVblog).
+- Updated Russian texts (thanks to indman@EEVblog).
+- Option to use a manual power switch instead of the default soft-latching
+  one (POWER_SWITCH_MANUAL).
+- Added detection of two short presses of the center bar in ReadTouchScreen().
+- Fixed fault in Touch_CharPos() regarding TOUCH_FLIP_X/TOUCH_FLIP_Y (reported
+  by Bohu).  
+- Replaced some ISO8859-2 fonts with updated versions provided by Bohu.
+- Option for checking resistors for E series norm value (SW_R_E*). Also
+  for capacitors (SW_C_E*) and inductors (SW_L_E*). Optional output of
+  color code for resistors (requires color graphics display). 
 
 v1.39m 2020-03
 - Added Polish texts based on ISO 8859-2 (Thanks to Jacon).

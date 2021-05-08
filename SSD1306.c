@@ -2,9 +2,12 @@
  *
  *   driver functions for SSD1306 compatible OLED grafic displays
  *   - 128 x 64 pixels
- *   - 8 bit parallel interface (not supported)
- *   - SPI interface (4 line, 3 line)
- *   - I2C
+ *   - interfaces
+ *      - 8 bit parallel in 6800 mode (not supported)
+ *      - 8 bit parallel in 8080 mode (not supported)
+ *      - 4 line SPI
+ *      - 3 line SPI
+ *      - I2C
  *
  *   (c) 2017-2020 by Markus Reschke
  *
@@ -12,7 +15,7 @@
 
 /*
  *  hints:
- *  - pin assignment for SPI (4 line)
+ *  - pin assignment for 4 line SPI
  *    /CS         Gnd or LCD_CS (optional)
  *    /RES        Vcc or LCD_RESET (optional)
  *    DC          LCD_DC
@@ -20,7 +23,7 @@
  *    SDIN (D1)   LCD_SDIN / SPI_MOSI
  *    For hardware SPI LCD_SCL and LCD_SI have to be the MCU's SCK and
  *    MOSI pins.
- *  - pin assignment for SPI (3 line)
+ *  - pin assignment for 3 line SPI
  *    /CS         Gnd or LCD_CS (optional)
  *    /RES        Vcc or LCD_RESET (optional)
  *    SCLK (D0)   LCD_SCLK / SPI_SCK
@@ -70,6 +73,7 @@
 #include "font_8x12t_iso8859-2_vfp.h"
 #include "font_8x16_iso8859-2_vfp.h"
 #include "font_8x8_win1251_vf.h"
+#include "font_8x8alt_win1251_vf.h"
 #include "font_8x8t_win1251_vf.h"
 #include "font_8x12t_win1251_vfp.h"
 #include "font_8x16_win1251_vfp.h"
@@ -116,7 +120,7 @@ uint8_t             Y_Start;       /* start position Y (page) */
 
 
 /* ************************************************************************
- *   low level functions for SPI interface (4 wire)
+ *   low level functions for 4 wire SPI interface
  * ************************************************************************ */
 
 
@@ -135,7 +139,7 @@ uint8_t             Y_Start;       /* start position Y (page) */
 
 void LCD_BusSetup(void)
 {
-  uint8_t           Bits;          /* bitmask */
+  uint8_t           Bits;          /* register bits */
 
 
   /*
@@ -171,9 +175,11 @@ void LCD_BusSetup(void)
 
   /*
    *  init SPI bus
+   *  - SPI bus is set up already in main()
    */
 
   #ifdef SPI_HARDWARE
+
   /*
    *  set SPI clock rate (max. 10MHz)
    *  - max. MCU clock 20MHz / 2 = 10MHz
@@ -181,9 +187,9 @@ void LCD_BusSetup(void)
    */
 
   SPI.ClockRate = SPI_CLOCK_2X;    /* set clock rate flags */
-  #endif
 
-  SPI_Setup();                     /* set up SPI bus */
+  SPI_Clock();                     /* update SPI clock */
+  #endif
 }
 
 
@@ -245,7 +251,7 @@ void LCD_Data(uint8_t Data)
 
 
 /* ************************************************************************
- *   low level functions for SPI interface (3 wire)
+ *   low level functions for 3 wire SPI interface
  * ************************************************************************ */
 
 
@@ -265,7 +271,7 @@ void LCD_Data(uint8_t Data)
 
 void LCD_BusSetup(void)
 {
-  uint8_t           Bits;          /* bitmask */
+  uint8_t           Bits;          /* register bits */
 
 
   /*
@@ -298,9 +304,8 @@ void LCD_BusSetup(void)
 
   /*
    *  init SPI bus
+   *  - SPI bus is set up already in main()
    */
-
-  SPI_Setup();                     /* set up SPI bus */
 }
 
 
@@ -397,7 +402,9 @@ uint8_t             MultiByte;     /* control flag */
 
 void LCD_BusSetup(void)
 {
-  /* I2C is set up in main() already */
+  /* I2C is set up already in main() */
+
+  /* set timing */
   I2C.Timeout = 1;            /* ACK timeout 10µs */
 
   /* init control flag */
@@ -738,8 +745,12 @@ void LCD_Init(void)
   UI.CharMax_X = LCD_CHAR_X;       /* characters per line */
   UI.CharMax_Y = LCD_CHAR_Y;       /* lines */
   UI.MaxContrast = 255;            /* maximum LCD contrast */
+  #ifdef SW_SYMBOLS
+  UI.SymbolSize_X = LCD_SYMBOL_CHAR_X;  /* x size in chars */
+  UI.SymbolSize_Y = LCD_SYMBOL_CHAR_Y;  /* y size in chars */
+  #endif
 
-  LCD_Clear();                /* clear display */
+  LCD_Clear();                     /* clear display */
 }
 
 

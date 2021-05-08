@@ -64,7 +64,7 @@
 #define IR_LSB                    1     /* LSB */
 #define IR_MSB                    2     /* MSB */
 
-/* bi-phase modes (bitmask) */
+/* bi-phase modes (bitfield) */
 #define IR_IEEE          0b00000001     /* IEEE bit encoding */
 #define IR_THOMAS        0b00000010     /* Thomas bit encoding */
 #define IR_PRE_PAUSE     0b00000100     /* heading pause */
@@ -124,12 +124,10 @@ void IR_Send_Pulse(uint8_t Type, uint16_t Time)
   while (Time > 0)
   {
     #if CPU_FREQ == 8000000
-      /* add 1 cycle */
+      /* add 1 cycle (one cycle is 62.5ns) */
       asm volatile("nop");
-    #endif
-
-    #if CPU_FREQ == 16000000
-      /* add 9 cycles */
+    #elif CPU_FREQ == 16000000
+      /* add 9 cycles (one cycle is 62.5ns) */
       asm volatile(
         "nop\n\t"
         "nop\n\t"
@@ -142,10 +140,8 @@ void IR_Send_Pulse(uint8_t Type, uint16_t Time)
         "nop\n\t"
         ::
       );
-    #endif
-
-    #if CPU_FREQ == 20000000
-      /* add 13 cycles */
+    #elif CPU_FREQ == 20000000
+      /* add 13 cycles (one cycle is 50ns) */
       asm volatile(
         "nop\n\t"
         "nop\n\t"
@@ -162,6 +158,8 @@ void IR_Send_Pulse(uint8_t Type, uint16_t Time)
         "nop\n\t"
         ::
       );
+    #else
+      #error <<< IR_Send_Pulse(): no supported MCU clock >>>
     #endif
 
     Time--;

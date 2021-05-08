@@ -83,11 +83,6 @@
   Info_Type         Info;                    /* additional component data */
   #endif
 
-  #ifdef SW_PROBE_COLORS
-  /* probe color coding */
-  uint16_t          ProbeColors[3] = {COLOR_PROBE_1, COLOR_PROBE_2, COLOR_PROBE_3};
-  #endif
-
   #ifdef HW_SPI
   SPI_Type          SPI;                     /* SPI */
   #endif
@@ -153,7 +148,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.39m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.40m";
 
 
   /* common terms and texts */
@@ -377,11 +372,11 @@
   const unsigned char Prefix_table[NUM_PREFIXES] MEM_TYPE = {'p', 'n', LCD_CHAR_MICRO, 'm', 0, 'k', 'M'};
 
   /* voltage based factors for large caps (using Rl) */
-  /* voltage in mV:                                       300    325    350    375    400    425    450    475    500    525    550    575    600    625    650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400 */
+  /* voltage in mV:                                          300    325    350    375    400    425    450    475    500    525    550    575    600    625    650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400 */
   const uint16_t LargeCap_table[NUM_LARGE_CAP] MEM_TYPE = {23022, 21195, 19629, 18272, 17084, 16036, 15104, 14271, 13520, 12841, 12224, 11660, 11143, 10668, 10229, 9822, 9445, 9093, 8765, 8458, 8170, 7900, 7645, 7405, 7178, 6963, 6760, 6567, 6384, 6209, 6043, 5885, 5733, 5589, 5450, 5318, 5191, 5069, 4952, 4839, 4731, 4627, 4526, 4430, 4336};
 
   /* voltage based factors for small caps (using Rh) */
-  /* voltages in mV:                                   1000 1050 1100 1150 1200 1250 1300 1350 1400 */
+  /* voltages in mV:                                       1000 1050 1100 1150 1200 1250 1300 1350 1400 */
   const uint16_t SmallCap_table[NUM_SMALL_CAP] MEM_TYPE = {954, 903, 856, 814, 775, 740, 707, 676, 648};
 //const uint16_t SmallCap_table[NUM_SMALL_CAP] MEM_TYPE = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
 
@@ -392,34 +387,68 @@
 
   #ifdef SW_INDUCTOR
   /* ratio based factors for inductors */
-  /* ratio:                                             200   225   250   275   300   325   350   375   400   425   450   475   500   525   550   575   600   625  650  675  700  725  750  775  800  825  850  875  900  925  950  975 */
+  /* ratio:                                                200   225   250   275   300   325   350   375   400   425   450   475   500   525   550   575   600   625  650  675  700  725  750  775  800  825  850  875  900  925  950  975 */
   const uint16_t Inductor_table[NUM_INDUCTOR] MEM_TYPE = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
   #endif
 
   #if defined (HW_FREQ_COUNTER) || defined (SW_SQUAREWAVE)
-  /* Timer1 prescalers and corresponding bitmasks */
+  /* Timer1 prescalers and corresponding register bits */
   const uint16_t T1_Prescaler_table[NUM_TIMER1] MEM_TYPE = {1, 8, 64, 256, 1024};
-  const uint8_t T1_Bitmask_table[NUM_TIMER1] MEM_TYPE = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
+  const uint8_t T1_RegBits_table[NUM_TIMER1] MEM_TYPE = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
+  #endif
+
+  #ifdef SW_PROBE_COLORS
+  /* probe color coding */
+  uint16_t          ProbeColors[NUM_PROBE_COLORS] = {COLOR_PROBE_1, COLOR_PROBE_2, COLOR_PROBE_3};
+  #endif
+
+  #ifdef SW_E6
+  /* E6 (in 0.01) */
+  const uint16_t E6_table[NUM_E6] MEM_TYPE = {100, 150, 220, 330, 470, 680};  
+  #endif
+
+  #ifdef SW_E12
+  /* E12 (in 0.01) */
+  const uint16_t E12_table[NUM_E12] MEM_TYPE = {100, 120, 150, 180, 220, 270, 330, 390, 470, 560, 680, 820};
+  #endif
+
+  #ifdef SW_E24
+  /* E24 (in 0.01) */
+  const uint16_t E24_table[NUM_E24] MEM_TYPE = {100, 110, 120, 130, 150, 160, 180, 200, 220, 240, 270, 300, 330, 360, 390, 420, 470, 510, 560, 620, 680, 750, 820, 910};
+  #endif
+
+  #ifdef SW_E96
+  /* E96 (in 0.01) */
+  const uint16_t E96_table[NUM_E96] MEM_TYPE = {
+    100, 102, 105, 107, 110, 113, 115, 118, 121, 124, 127, 130, 133, 137, 140, 143, 147, 150, 154, 158, 162, 165, 169, 174,
+    178, 182, 187, 191, 196, 200, 205, 210, 215, 221, 226, 232, 237, 243, 249, 255, 261, 267, 274, 280, 287, 294, 301, 309,
+    316, 324, 332, 340, 348, 357, 365, 374, 383, 392, 402, 412, 422, 432, 442, 453, 464, 475, 487, 499, 511, 523, 536, 549,
+    562, 576, 590, 604, 619, 634, 649, 665, 681, 698, 715, 732, 750, 768, 787, 806, 825, 845, 866, 887, 909, 931, 953, 976}; 
+  #endif
+
+  #ifdef FUNC_COLORCODE
+  /* band colors based on value                               0                 1                 2               3                  4                  5                 6                7                  8                9 */
+  const uint16_t ColorCode_table[NUM_COLOR_CODES] MEM_TYPE = {COLOR_CODE_BLACK, COLOR_CODE_BROWN, COLOR_CODE_RED, COLOR_CODE_ORANGE, COLOR_CODE_YELLOW, COLOR_CODE_GREEN, COLOR_CODE_BLUE, COLOR_CODE_VIOLET, COLOR_CODE_GREY, COLOR_CODE_WHITE};
   #endif
 
 
   /*
-   *  bitmask tables for probe settings
+   *  tables of register bits for probe settings
    *  - stored in EEPROM/Flash
    *  - this saves some bytes in the firmware
    */
 
-  /* bitmasks for Rl probe resistors based on probe ID */
+  /* register bits for Rl probe resistors based on probe ID */
   const unsigned char Rl_table[] MEM_TYPE = {(1 << R_RL_1), (1 << R_RL_2), (1 << R_RL_3)};
 
-  /* bitmasks for Rh probe resistors based on probe ID */
+  /* register bits for Rh probe resistors based on probe ID */
   const unsigned char Rh_table[] MEM_TYPE = {(1 << R_RH_1), (1 << R_RH_2), (1 << R_RH_3)};
 
-  /* bitmasks for pins (ADC port) based on probe ID */
+  /* register bits for ADC port pins based on probe ID */
   const unsigned char Pin_table[] MEM_TYPE = {(1 << TP1), (1 << TP2), (1 << TP3)};
 
-  /* bitmasks for ADC MUX input addresses based on probe ID */
-  const unsigned char ADC_table[] MEM_TYPE = {TP1, TP2, TP3};
+  /* register bits for ADC MUX input channels based on probe ID (ADC0-7 only) */
+  const unsigned char Channel_table[] MEM_TYPE = {TP1, TP2, TP3};
 
 
 
@@ -475,10 +504,6 @@
 
   #ifdef UI_SERIAL_COMMANDS
   extern Info_Type       Info;               /* additional component data */
-  #endif
-
-  #ifdef SW_PROBE_COLORS
-  extern uint16_t        ProbeColors[];      /* probe color coding */
   #endif
 
   #ifdef HW_SPI
@@ -807,28 +832,57 @@
   #endif
 
   #if defined (HW_FREQ_COUNTER) || defined (SW_SQUAREWAVE)
-  /* Timer1 prescalers and corresponding bitmasks */
+  /* Timer1 prescalers and corresponding register bits */
   extern const uint16_t T1_Prescaler_table[];
-  extern const uint8_t T1_Bitmask_table[];
+  extern const uint8_t T1_RegBits_table[];
+  #endif
+
+  #ifdef SW_PROBE_COLORS
+  extern uint16_t        ProbeColors[];      /* probe color coding */
+  #endif
+
+  #ifdef SW_E6
+  /* E6 (in 0.01) */
+  extern const uint16_t E6_table[];
+  #endif
+
+  #ifdef SW_E12
+  /* E12 (in 0.01) */
+  extern const uint16_t E12_table[];
+  #endif
+
+  #ifdef SW_E24
+  /* E24 (in 0.01) */
+  extern const uint16_t E24_table[];
+  #endif
+
+  #ifdef SW_E96
+  /* E96 (in 0.01) */
+  extern uint16_t E96_table[];
+  #endif
+
+  #ifdef FUNC_COLORCODE
+  /* band colors based on value */
+  extern const uint16_t ColorCode_table[];
   #endif
 
 
   /*
-   *  bitmask tables for probe settings
+   *  tables of register bits for probe settings
    *  - they save some bytes in the firmware
    */
 
-  /* bitmasks for Rl probe resistors based on probe ID */
+  /* register bits for Rl probe resistors based on probe ID */
   extern const unsigned char Rl_table[];
 
-  /* bitmasks for Rh probe resistors based on probe ID */
+  /* register bits for Rh probe resistors based on probe ID */
   extern const unsigned char Rh_table[];
 
-  /* bitmasks for pins (ADC port) based on probe ID */
+  /* register bits for ADC port pins based on probe ID */
   extern const unsigned char Pin_table[];
 
-  /* bitmasks for ADC MUX input addresses based on probe ID */
-  extern const unsigned char ADC_table[];
+  /* register bits for ADC MUX input channels based on probe ID (ADC0-7 only) */
+  extern const unsigned char Channel_table[];
 
 #endif
 

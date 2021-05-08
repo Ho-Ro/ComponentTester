@@ -2,7 +2,7 @@
  *
  *   ILI9163 color graphic display controller
  *
- *   (c) 2017 by Markus Reschke
+ *   (c) 2017-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -36,9 +36,9 @@
 #define CMD_READ_DISP_ID      0b00000100     /* read display ID */
 
 /* data byte #1: dummy byte */
-/* data byte #2: manufacturer ID */
-/* data byte #3: module/driver version ID */
-/* data byte #4: module/driver ID */
+/* data byte #2: manufacturer ID (0x54) */
+/* data byte #3: module/driver version ID (0x80) */
+/* data byte #4: module/driver version ID (0x66) */
 
 
 /*
@@ -55,14 +55,14 @@
 #define FLAG_STAT_HOR_NORM    0b00000000     /* increment, left to right */
 #define FLAG_STAT_HOR_REV     0b00000010     /* decrement, right to left */
   /* RGB/BGR order */
-#define FLAG_STAT_RGB         0b00000000     /* RGB */
-#define FLAG_STAT_BGR         0b00000100     /* BGR */
+#define FLAG_STAT_COLOR_RGB   0b00000000     /* RGB */
+#define FLAG_STAT_COLOR_BGR   0b00000100     /* BGR */
   /* vertical refresh (scan address order): */
 #define FLAG_STAT_VER_NORM    0b00000000     /* increment, top to bottom */
 #define FLAG_STAT_VER_REV     0b00001000     /* decrement, bottom to top */
   /* row/column exchange: */
-#define FLAG_STAT_EXCH_NORM   0b00000000     /* normal */
-#define FLAG_STAT_EXCH_REV    0b00010000     /* row/column swapped */
+#define FLAG_STAT_XY_NORM     0b00000000     /* normal */
+#define FLAG_STAT_XY_REV      0b00010000     /* rreversed (X & Y swapped) */
   /* column address order: */
 #define FLAG_STAT_COL_NORM    0b00000000     /* increment, left to right */
 #define FLAG_STAT_COL_REV     0b00100000     /* decrement, right to left */
@@ -93,7 +93,7 @@
 #define FLAG_STAT_PIX_18      0b01100000     /* 18 bits per pixel */
 
 /* data byte #4: status */
-  /* gamma curve bit #2: always 0 */
+  /* gamma curve - bit 2: bit 0 (always 0) */
   /* tearing effect line: */
 #define FLAG_STAT_TEAR_OFF    0b00000000     /* off */
 #define FLAG_STAT_TEAR_ON     0b00000010     /* on */
@@ -111,7 +111,7 @@
   /* tearing effect line mode: */
 #define FLAG_STAT_TEAR_MODE1  0b00000000     /* mode 1: V-blanking */
 #define FLAG_STAT_TEAR_MODE2  0b00100000     /* mode 2: V-blanking and H-blanking */
-  /* gamma curve bits #1 and #0 (bit #2 is always 0): */
+  /* gamma curve - bits 1 and 0: */
 #define FLAG_STAT_GAMMA1      0b00000000     /* gamma curve 1 */
 #define FLAG_STAT_GAMMA2      0b01000000     /* gamma curve 2 */
 #define FLAG_STAT_GAMMA3      0b10000000     /* gamma curve 3 */
@@ -160,23 +160,23 @@
 /* data byte #2: status */
 /* same as byte #1 of CMD_MEM_CTRL */
   /* horizontal refereshing direction: */
-#define RFLAG_MH_NORM         0b00000000     /* left to right */
-#define RFLAG_MH_REV          0b00000100     /* right to left */
+#define RFLAG_HREFRESH_NORM   0b00000000     /* left to right */
+#define RFLAG_HREFRESH_REV    0b00000100     /* right to left */
   /* color order: */
-#define RFLAG_RGB_RGB         0b00000000     /* RGB color filter */
-#define RFLAG_RGB_BGR         0b00001000     /* BGR color filter */
+#define RFLAG_COLOR_RGB       0b00000000     /* RGB color filter */
+#define RFLAG_COLOR_BGR       0b00001000     /* BGR color filter */
   /* vertical refereshing direction: */
-#define RFLAG_ML_NORM         0b00000000     /* top to bottom */
-#define RFLAG_ML_REV          0b00010000     /* bottom to top */
+#define RFLAG_VREFRESH_NORM   0b00000000     /* top to bottom */
+#define RFLAG_VREFRESH_REV    0b00010000     /* bottom to top */
   /* row/column exchange (MCU to memory): */
-#define RFLAG_MV_NORM         0b00000000     /* normal */
-#define RFLAG_MV_REV          0b00100000     /* row/column swapped */
+#define RFLAG_XY_NORM         0b00000000     /* normal */
+#define RFLAG_XY_REV          0b00100000     /* reversed (X & Y swapped) */
   /* column address direction (MCU to memory): */
-#define RFLAG_MX_NORM         0b00000000     /* left to right */
-#define RFLAG_MX_REV          0b01000000     /* right to left */
+#define RFLAG_COL_NORM        0b00000000     /* left to right */
+#define RFLAG_COL_REV         0b01000000     /* right to left */
   /* row address direction (MCU to memory): */
-#define RFLAG_MY_NORM         0b00000000     /* top to bottom */
-#define RFLAG_MY_REV          0b10000000     /* bottom to top */
+#define RFLAG_ROW_NORM        0b00000000     /* top to bottom */
+#define RFLAG_ROW_REV         0b10000000     /* bottom to top */
 
 
 /*
@@ -340,10 +340,10 @@
 
 #define CMD_COL_ADDR_SET      0b00101010     /* set column address */
 
-/* data byte #1: start column, MSB (bits 15-8) */
-/* data byte #2: start column, LSB (bits 7-0) */
-/* data byte #3: end column, MSB (bits 15-8) */
-/* data byte #4: end column, LSB (bits 7-0) */
+/* data byte #1: start column - MSB (bits 15-8) */
+/* data byte #2: start column - LSB (bits 7-0) */
+/* data byte #3: end column - MSB (bits 15-8) */
+/* data byte #4: end column - LSB (bits 7-0) */
 /* valid range: 0x0000 - 0x007f/0x007f (128x128) */
 /*              0x0000 - 0x007f/0x009f (128x160) */
 /*              0x0000 - 0x0083/0x00a1 (132x162) */
@@ -356,10 +356,10 @@
 
 #define CMD_ROW_ADDR_SET      0b00101011     /* set row address */
 
-/* data byte #1: start row, MSB (bits 15-8) */
-/* data byte #2: start row, LSB (bits 7-0) */
-/* data byte #3: end row, MSB (bits 15-8) */
-/* data byte #4: end row, LSB (bits 7-0) */
+/* data byte #1: start row - MSB (bits 15-8) */
+/* data byte #2: start row - LSB (bits 7-0) */
+/* data byte #3: end row - MSB (bits 15-8) */
+/* data byte #4: end row - LSB (bits 7-0) */
 /* valid range: 0x0000 - 0x007f/0x007f (128x128) */
 /*              0x0000 - 0x009f/0x007f (128x160) */
 /*              0x0000 - 0x00a1/0x0083 (132x162) */
@@ -403,10 +403,10 @@
 
 #define CMD_PARTIAL_AREA      0b00110000     /* set partial area */
 
-/* data byte #1: start row, MSB (bits 15-8) */
-/* data byte #2: start row, LSB (bits 7-0) */
-/* data byte #3: end row, MSB (bits 15-8) */
-/* data byte #4: end row, LSB (bits 7-0) */
+/* data byte #1: start row - MSB (bits 15-8) */
+/* data byte #2: start row - LSB (bits 7-0) */
+/* data byte #3: end row - MSB (bits 15-8) */
+/* data byte #4: end row - LSB (bits 7-0) */
 /* valid range: 0x0000 - 0x09f/0x00a1 */
 
 
@@ -417,12 +417,12 @@
 
 #define CMD_VSCROLL_AREA      0b00110011     /* set v-scroll area */
 
-/* data byte #1: top fixed area, MSB (bits 15-8) */
-/* data byte #2: top fixed area, LSB (bits 7-0) */
-/* data byte #3: vertical scrolling area, MSB (bits 15-8) */
-/* data byte #4: vertical scrolling area, LSB (bits 7-0) */
-/* data byte #5: bottom fixed area, MSB (bits 15-8) */
-/* data byte #6: bottom fixed area, LSB (bits 7-0) */
+/* data byte #1: top fixed area - MSB (bits 15-8) */
+/* data byte #2: top fixed area - LSB (bits 7-0) */
+/* data byte #3: vertical scrolling area - MSB (bits 15-8) */
+/* data byte #4: vertical scrolling area - LSB (bits 7-0) */
+/* data byte #5: bottom fixed area - MSB (bits 15-8) */
+/* data byte #6: bottom fixed area - LSB (bits 7-0) */
 
 
 /*
@@ -442,8 +442,8 @@
 
 /* data byte #1: mode */
   /* tearing effect mode: */
-#define FLAG_M_0              0b00000000     /* V-blanking only */
-#define FLAG_M_1              0b00000001     /* V-blanking and H-blanking */
+#define FLAG_TEAR_MODE_0      0b00000000     /* V-blanking only */
+#define FLAG_TEAR_MODE_1      0b00000001     /* V-blanking and H-blanking */
 
 
 /*
@@ -456,23 +456,23 @@
 /* data byte #1: read/write scanning direction of frame memory */
 /* same as byte #2 of CMD_READ_MADCTL */
   /* horizontal refereshing direction: */
-#define FLAG_MH_NORM          0b00000000     /* left to right */
-#define FLAG_MH_REV           0b00000100     /* right to left */
+#define FLAG_HREFRESH_NORM    0b00000000     /* left to right */
+#define FLAG_HREFRESH_REV     0b00000100     /* right to left */
   /* color order: */
-#define FLAG_RGB_RGB          0b00000000     /* RGB color filter */
-#define FLAG_RGB_BGR          0b00001000     /* BGR color filter */
+#define FLAG_COLOR_RGB        0b00000000     /* RGB color filter */
+#define FLAG_COLOR_BGR        0b00001000     /* BGR color filter */
   /* vertical refereshing direction: */
-#define FLAG_ML_NORM          0b00000000     /* top to bottom */
-#define FLAG_ML_REV           0b00010000     /* bottom to top */
+#define FLAG_VREFRESH_NORM    0b00000000     /* top to bottom */
+#define FLAG_VREFRESH_REV     0b00010000     /* bottom to top */
   /* row/column exchange (MCU to memory): */
-#define FLAG_MV_NORM          0b00000000     /* normal */
-#define FLAG_MV_REV           0b00100000     /* row/column swapped */
+#define FLAG_XY_NORM          0b00000000     /* normal */
+#define FLAG_XY_REV           0b00100000     /* reversed (X & Y swapped) */
   /* column address direction (MCU to memory): */
-#define FLAG_MX_NORM          0b00000000     /* left to right */
-#define FLAG_MX_REV           0b01000000     /* right to left */
+#define FLAG_COL_NORM         0b00000000     /* left to right */
+#define FLAG_COL_REV          0b01000000     /* right to left */
   /* row address direction (MCU to memory): */
-#define FLAG_MY_NORM          0b00000000     /* top to bottom */
-#define FLAG_MY_REV           0b10000000     /* bottom to top */
+#define FLAG_ROW_NORM         0b00000000     /* top to bottom */
+#define FLAG_ROW_REV          0b10000000     /* bottom to top */
 
 
 /*
@@ -482,8 +482,8 @@
 
 #define CMD_VSCROLL_START     0b00110111     /* set v-scroll start */
 
-/* data byte #1: start row, MSB (bits 15-8) */
-/* data byte #2: start row, LSB (bits 7-0) */
+/* data byte #1: start row - MSB (bits 15-8) */
+/* data byte #2: start row - LSB (bits 7-0) */
 
 
 /*

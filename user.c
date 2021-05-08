@@ -301,6 +301,7 @@ uint8_t EEStringLength(const unsigned char *String)
 /*
  *  read rotary encoder
  *  - adds delay of 0.5ms
+ *  - A & B have pull-up resistors
  *  - encoder might be in parallel with LCD signal lines
  *
  *  returns user action:
@@ -321,7 +322,7 @@ uint8_t ReadEncoder(void)
   ENCODER_DDR &= ~((1 << ENCODER_A) | (1 << ENCODER_B));
   wait500us();                          /* settle time */
 
-  /* get A & B signals */
+  /* get A & B signals (1 = open / 0 = closed) */
   Temp = ENCODER_PIN;
   if (Temp & (1 << ENCODER_A)) AB = 0b00000010;
   if (Temp & (1 << ENCODER_B)) AB |= 0b00000001;
@@ -354,12 +355,21 @@ uint8_t ReadEncoder(void)
   {
     /* check if only one bit has changed (Gray code) */
     Temp = AB ^ Old_AB;                 /* get bit difference */
-    if (!(Temp & 0b00000001)) Temp >>= 1;
+    if (!(Temp & 0b00000001))           /* B hasn't changed */
+    {
+      Temp >>= 1;                       /* shift right to get A */
+    }
     if (Temp == 1)                      /* valid change */
     {
-      /* determine direction */
-      /* Gray code: 00 01 11 10 */
-      Temp = 0b10001101;                /* expected values for a right turn */
+      /*
+       *  detect direction
+       *  - right turn (CW):
+       *    Gray code for AB: 00-10-11-01 -> check sequence 01110010
+       *  - left turn (CCW):
+       *    Gray code for AB: 00-01-11-10 -> check sequence 10001101
+       */
+
+      Temp = 0b01110010;                /* expected values for a right turn */
       Temp >>= (Old_AB * 2);            /* get expected value by shifting */
       Temp &= 0b00000011;               /* select value */
       if (Temp == AB)                   /* value matches */
@@ -409,7 +419,7 @@ uint8_t ReadEncoder(void)
  *  - KEY_NONE for no button press
  *  - KEY_RIGHT for increase
  *  - KEY_LEFT for decrease
- *  - KEY_INCDEC for increase and decrease
+ *  - KEY_INCDEC for increase and decrease (both at the same time)
  */
 
 uint8_t ReadIncDecKeys(void)
@@ -517,13 +527,20 @@ uint8_t ReadIncDecKeys(void)
 /*
  *  check touch screen
  *
+ *  requires:
+ *  - Mode (bitfield):
+ *    CHECK_KEY_TWICE   check for two short test key presses
+ *    any other flags   ignore
+ *
  *  returns:
  *  - KEY_NONE for no touch event
- *  - KEY_RIGHT for increase
- *  - KEY_LEFT for decrease
+ *  - KEY_SHORT for short press of center area
+ *  - KEY_LONG for long press of center area
+ *  - KEY_RIGHT for increase (right & bottom bar)
+ *  - KEY_LEFT for decrease (left & top bar)
  */
 
-uint8_t ReadTouchScreen(void)
+uint8_t ReadTouchScreen(uint8_t Mode)
 {
   uint8_t           Key = KEY_NONE;          /* return value */
   uint8_t           OldKey = KEY_NONE;       /* former key action */
@@ -547,19 +564,19 @@ uint8_t ReadTouchScreen(void)
       Y = UI.TouchPos_Y;
 
       /* derive "button" */
-      if (X <= 3)                  /* left touch bar */
+      if (X <= 3)                  /* left touch bar (3 columns) */
       {
         Key = KEY_LEFT;
       }
-      else if (X >= (X_Max - 2))   /* right touch bar */
+      else if (X >= (X_Max - 2))   /* right touch bar (3 columns) */
       {
         Key = KEY_RIGHT;
       }
-      else if (Y <= 2)             /* top touch bar */
+      else if (Y <= 2)             /* top touch bar (2 rows) */
       {
         Key = KEY_LEFT;
       }
-      else if (Y >= (Y_Max - 1))   /* bottom touch bar */
+      else if (Y >= (Y_Max - 1))   /* bottom touch bar (2 rows) */
       {
         Key = KEY_RIGHT;
       }
@@ -593,7 +610,7 @@ uint8_t ReadTouchScreen(void)
       {
         Run = 2;              /* end loop & signal long press */
       }
-      else                    /* */
+      else                    /* less than 300ms */
       {
         MilliSleep(30);       /* time to debounce and delay */
       }
@@ -634,6 +651,40 @@ uint8_t ReadTouchScreen(void)
     UI.KeyStep = n;                /* set new step size */
   }
 
+  /* check for second key press (center area) if requested */
+  if ((Mode & CHECK_KEY_TWICE) && (Key == KEY_SHORT))
+  {
+    MilliSleep(30);                /* delay for checking key again */
+    Run = 20;                      /* timeout of 200ms */
+ 
+    while (Run > 0)                /* timeout loop */
+    {
+      Flag = Touch_Check();        /* check touch controller */
+
+      if (Flag)                    /* touch event */
+      {
+        X = UI.TouchPos_X;         /* get char pos */
+        Y = UI.TouchPos_Y;
+
+        /* check for center area */
+        if ((X > 3) && (X < (X_Max - 2)) &&
+            (Y > 2) && (Y < (Y_Max - 1)))
+        {
+          Key = KEY_TWICE;         /* signal two key presses */
+          MilliSleep(200);         /* smooth UI */
+        }
+
+        /* either way (center area or some other bar) */
+        Run = 0;                  /* end loop */
+      }
+      else
+      {
+        Run--;                     /* decrease timeout */
+        MilliSleep(10);            /* wait 10ms */
+      }
+    }
+  }
+
   return Key;
 }
 
@@ -655,7 +706,7 @@ uint8_t ReadTouchScreen(void)
  *  requires:
  *  - Timeout in ms 
  *    0 = no timeout, wait for key press or any other feedback
- *  - Mode (bitmask):
+ *  - Mode (bitfield):
  *    CURSOR_NONE      no cursor
  *    CURSOR_STEADY    steady cursor
  *    CURSOR_BLINK     blinking cursor
@@ -864,7 +915,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
        */
 
       #ifdef HW_TOUCH
-      Test = ReadTouchScreen();
+      Test = ReadTouchScreen(Mode);
 
       if (Test)               /* got user input */
       {

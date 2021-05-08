@@ -2,7 +2,7 @@
  *
  *   STE2007 graphic display controller
  *
- *   (c) 2019 by Markus Reschke
+ *   (c) 2019-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -53,6 +53,7 @@
 
 /*
  *  set display: on/off
+ *  - 1 byte cmd
  */
 
 #define CMD_DISPLAY           0b10101110     /* display on/off */
@@ -63,16 +64,18 @@
 
 /*
  *  set display mode: normal/reversed
+ *  - 1 byte cmd
  */
 
 #define CMD_DISP_MODE         0b10100110     /* display normal/reversed */
 
 #define FLAG_DISP_NORMAL      0b00000000     /* normal display */
-#define FLAG_DISP_REVERSED    0b00000000     /* reversed display */
+#define FLAG_DISP_REVERSED    0b00000001     /* reversed display */
 
 
 /*
  *  set pixel mode: normal/all-on
+ *  - 1 byte cmd
  */
 
 #define CMD_PIXEL_MODE        0b10100100     /* pixel mode */
@@ -83,6 +86,7 @@
 
 /*
  *  set page address
+ *  - 1 byte cmd
  *  - valid range: 0 - 8
  *  - last page is 4 pixels high
  */
@@ -91,23 +95,22 @@
 
 
 /*
- *  set upper nibble of column address (bits 4-6)
- *  - valid range: 0 - 7 (both nibbles 0 - 95)
+ *  set column address
+ *  - 2 commands (1 byte each)
+ *  - valid range: 0 - 95)
  */
 
-#define CMD_COLUMN_H          0b00010000     /* set upper nibble of column address */
+/* set upper nibble of column address (bits 4-6): bits 0-2 */
+#define CMD_COLUMN_H          0b00010000     /* set upper nibble */
 
 
-/*
- *  set lower nibble of column address (bits 0-3)
- *  - valid range: 0 - 15 (both nibbles 0 - 95)
- */
-
-#define CMD_COLUMN_L          0b00000000     /* set lower nibble column address */
+/* set lower nibble of column address (bits 0-3): bits 0-3 */
+#define CMD_COLUMN_L          0b00000000     /* set lower nibble */
 
 
 /*
  *  set start line address
+ *  - 1 byte cmd
  *  - valid range: 0 - 63
  */ 
 
@@ -116,6 +119,7 @@
 
 /*
  *  select segment driver direction
+ *  - 1 byte cmd
  */
 
 #define CMD_SEG_DIR           0b10100000     /* set segment driver direction */
@@ -126,6 +130,7 @@
 
 /*
  *  select common driver direction
+ *  - 1 byte cmd
  */
 
 #define CMD_COM_DIR           0b11000000     /* set common driver direction */
@@ -136,6 +141,7 @@
 
 /*
  *  read ID
+ *  - 1 byte cmd + 1 byte data (read)
  *  - after issuing this command STE2007 sends the indentification byte
  */
 
@@ -144,6 +150,7 @@
 
 /*
  *  set power control
+ *  - 1 byte cmd
  *  - booster, voltage regulator and voltage folower
  */
 
@@ -154,7 +161,8 @@
 
 
 /*
- *  set voltage range (V0R) 
+ *  set voltage range (V0R)
+ *  - 1 byte cmd
  */
 
 #define CMD_V0R               0b00100000     /* set V0R */
@@ -190,6 +198,7 @@
 
 /*
  *  set electronic volume (EV)
+ *  - 1 byte cmd
  *  - contrast setting for user
  *  - valid range: 0 - 31
  */
@@ -199,6 +208,7 @@
 
 /*
  *  initialize/reset driver
+ *  - 1 byte cmd
  */
 
 #define CMD_RESET             0b11100010     /* reset driver */
@@ -206,6 +216,7 @@
 
 /*
  *  no operation (NOP)
+ *  - 1 byte cmd
  */
 
 #define CMD_NOP               0b11100011     /* NOP */
@@ -232,6 +243,7 @@
 
 /*
  *  set bias ratio
+ *  - 1 byte cmd
  */
 
 #define CMD_BIAS_RATIO        0b00110000     /* set bias ratio */
@@ -295,6 +307,7 @@
 
 /*
  *  set icon mode
+ *  - 1 byte cmd
  */
 
 #define CMD_ICON_MODE         0b11111000     /* set icon mode */
@@ -323,6 +336,7 @@
 
 /*
  *  number of lines
+ *  - 1 byte cmd
  *  - multiplexing rate
  */
 

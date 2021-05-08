@@ -93,7 +93,7 @@
 uint8_t I2C_Setup(void)
 {
   uint8_t           Flag = I2C_ERROR;   /* return value */
-  uint8_t           Bits;               /* bits/bitmask */
+  uint8_t           Bits;               /* register bits */
 
   /* default is SDA and SCL pulled up by external resistors */
   /* set both pins to HiZ input mode */
@@ -110,7 +110,11 @@ uint8_t I2C_Setup(void)
     Flag = I2C_OK;       /* signal success */
   }
 
-  /* current state: SDA high / SCL high */
+  /*
+   *  current state:
+   *  - SDA high
+   *  - SCL high
+   */
 
   return Flag;
 }
@@ -131,11 +135,15 @@ uint8_t I2C_Setup(void)
 uint8_t I2C_Start(uint8_t Type)
 {
   uint8_t           Flag = I2C_OK;      /* return value */
-  uint8_t           Bits;               /* bits/bitmask */
+  uint8_t           Bits;               /* register bits */
 
   if (Type == I2C_START)      /* start */
   {
-    /* expected state: SDA high / SCL high */
+    /*
+     *  expected state:
+     *  - SDA high
+     *  - SCL high
+     */
 
     /*
      *  todo: clock hold
@@ -162,12 +170,20 @@ uint8_t I2C_Start(uint8_t Type)
     Bits |= (1 << I2C_SCL);        /* set output mode */
     I2C_DDR = Bits;                /* enable pull down */
 
-    /* current state: SDA low / SCL low */
+    /*
+     *  current state:
+     *  - SDA low
+     *  - SCL low
+     */
   }
 #if 0
   else                        /* repeated start */
   {
-    /* expected state: SDA undefined / SCL low */
+    /*
+     *  expected state:
+     *  - SDA undefined
+     *  - SCL low
+     */
 
     /* set SDA high */
     I2C_DDR &= ~(1 << I2C_SDA);
@@ -196,7 +212,11 @@ uint8_t I2C_Start(uint8_t Type)
     /* follow common start condition */
     I2C_Start();
 
-    /* current state: SDA low / SCL low */
+    /*
+     *  current state:
+     *  - SDA low
+     *  - SCL low
+     */
   }
 #endif
 
@@ -231,7 +251,11 @@ uint8_t I2C_WriteByte(uint8_t Type)
   uint8_t           Byte;               /* byte */
   uint8_t           n = 8;              /* counter */
 
-  /* expected state: SDA undefined / SCL low */
+  /*
+   *  expected state:
+   *  - SDA undefined
+   *  - SCL low
+   */
 
   /*
    *  send byte
@@ -302,7 +326,7 @@ uint8_t I2C_WriteByte(uint8_t Type)
     /* standard mode: min. 300ns */
     wait1us();
 
-    /* new SDA has to become valid t_VD;DAT after SCL falls */
+    /* new SDA has to become valid in t_VD;DAT after SCL falls */
     /* fast mode: max. 0.9탎 */
     /* standard mode: max. 3.45탎 */
 
@@ -310,14 +334,22 @@ uint8_t I2C_WriteByte(uint8_t Type)
     n--;                      /* next bit */
   }
 
-  /* current state: SDA undefined / SCL low */
+  /*
+   *  current state:
+   *  - SDA undefined
+   *  - SCL low
+   */
 
 
   /*
    *  get ACK/NACK
    */
 
-  /* expected state: SDA undefined / SCL low */
+  /*
+   *  expected state:
+   *  - SDA undefined
+   *  - SCL low
+   */
 
   /* release SDA (SDA high) for slave */
   I2C_DDR &= ~(1 << I2C_SDA);
@@ -417,7 +449,11 @@ uint8_t I2C_WriteByte(uint8_t Type)
     Flag = I2C_ERROR;              /* signal error */
   }
 
-  /* current state: SDA high / SCL low */
+  /*
+   *  current state:
+   *  - SDA high
+   *  - SCL low
+   */
 
   return Flag;
 }
@@ -449,14 +485,18 @@ uint8_t I2C_ReadByte(uint8_t Type)
   uint8_t           Byte = 0;           /* byte */
   uint8_t           n = 8;              /* counter */
 
-  /* expected state: SDA undefined / SCL low */
+  /*
+   *  expected state:
+   *  - SDA undefined
+   *  - SCL low
+   */
 
   /*
    *  read byte
    */
 
   /* release SDA for slave (SDA high) */
-  I2C_DDR &= ~(1 << I2C_SCA);
+  I2C_DDR &= ~(1 << I2C_SDA);
 
   /* bit-bang 8 bits */
   while (n > 0)               /* 8 bits */
@@ -493,7 +533,7 @@ uint8_t I2C_ReadByte(uint8_t Type)
     /* fast mode: min. 300ns */
     /* standard mode: min. 300ns */
 
-    /* new SDA has to become valid t_VD;DAT after SCL falls */
+    /* new SDA has to become valid in t_VD;DAT after SCL falls */
     /* fast mode: max. 0.9탎 */
     /* standard mode: max. 3.45탎 */
 
@@ -513,17 +553,23 @@ uint8_t I2C_ReadByte(uint8_t Type)
 
   I2C.Byte = Byte;            /* save byte */
 
-  /* current state: SDA undefined / SCL low */
+  /*
+   *  current state:
+   *  - SDA undefined
+   *  - SCL low
+   */
 
 
   /*
    *  send ACK/NACK
    */
 
-  uint8_t           Flag = I2C_OK;      /* return value */
 
-
-  /* expected state: SDA undefined / SCL low */
+  /*
+   *  expected state:
+   *  - SDA undefined
+   *  - SCL low
+   */
 
   /* check if slave has released SDA */
   n = I2C_PIN;                     /* get current state */
@@ -535,7 +581,7 @@ uint8_t I2C_ReadByte(uint8_t Type)
     return Flag;
   }  
 
-  /* SDA has to become valid t_VD;ACK after read's last SCL fall */
+  /* SDA has to become valid in t_VD;ACK after read's last SCL fall */
   /* fast mode: max. 0.9탎 */
   /* standard mode: max. 3.45탎 */
 
@@ -583,7 +629,11 @@ uint8_t I2C_ReadByte(uint8_t Type)
   /* standard mode: min. 300ns */
   wait1us();
 
-  /* current state: SDA undefined / SCL low */
+  /*
+   *  current state:
+   *  - SDA undefined
+   *  - SCL low
+   */
 
   return Flag;
 }
@@ -598,9 +648,13 @@ uint8_t I2C_ReadByte(uint8_t Type)
 
 void I2C_Stop(void)
 {
-  uint8_t           Bits;     /* bitmask */
+  uint8_t           Bits;     /* register bits */
 
-  /* expected state: SDA undefined / SCL low */
+  /*
+   *  expected state:
+   *  - SDA undefined
+   *  - SCL low
+   */
 
   Bits = I2C_DDR;        /* get current state */
 
@@ -641,7 +695,11 @@ void I2C_Stop(void)
    *  - fast mode: min. 1.3탎
    */
 
-  /* current state: SDA high / SCL high */
+  /*
+   *  current state:
+   *  - SDA high
+   *  - SCL high
+   */
 }
 
 #endif
@@ -774,9 +832,9 @@ uint8_t I2C_Start(uint8_t Type)
 uint8_t I2C_WriteByte(uint8_t Type)
 {
   uint8_t           Flag = I2C_ERROR;   /* return value */
-  uint8_t           Bits;               /* bits/bitmask */
-  uint8_t           AckMask;            /* bitmask for ACK */
-  uint8_t           NackMask;           /* bitmask for NACK */
+  uint8_t           Bits;               /* register bits */
+  uint8_t           AckBits;            /* register bits for ACK */
+  uint8_t           NackBits;           /* register bits for NACK */
 
   /*
    *  MCU's state maschine for TWI:
@@ -787,23 +845,23 @@ uint8_t I2C_WriteByte(uint8_t Type)
 
   Bits = I2C.Byte;            /* get byte */
 
-  /* set status bitmasks */
+  /* set status register bits */
   if (Type == I2C_DATA)            /* data byte */
   {
-    AckMask = (1 << TWS5) | (1 << TWS3);     /* 0x28 data & ACK */
-    NackMask = (1 << TWS5) | (1 << TWS4);    /* 0x30 data & NACK */
+    AckBits = (1 << TWS5) | (1 << TWS3);     /* 0x28 data & ACK */
+    NackBits = (1 << TWS5) | (1 << TWS4);    /* 0x30 data & NACK */
   }
   else                             /* address byte */
   {
     if (Bits & 0b00000001)         /* read address (bit #0 = 1) */
     {
-      AckMask = (1 << TWS6);                 /* 0x40 SLA+R & ACK */
-      NackMask = (1 << TWS6) | (1 << TWS3);  /* 0x48 SLA+R & NACK */
+      AckBits = (1 << TWS6);                 /* 0x40 SLA+R & ACK */
+      NackBits = (1 << TWS6) | (1 << TWS3);  /* 0x48 SLA+R & NACK */
     }
     else                           /* write address (bit #0 = 0) */
     {
-      AckMask = (1 << TWS4) | (1 << TWS3);   /* 0x18 SLA+W & ACK */
-      NackMask = (1 << TWS5);                /* 0x20 SLA+W & NACK */
+      AckBits = (1 << TWS4) | (1 << TWS3);   /* 0x18 SLA+W & ACK */
+      NackBits = (1 << TWS5);                /* 0x20 SLA+W & NACK */
     }
   }
 
@@ -821,11 +879,11 @@ uint8_t I2C_WriteByte(uint8_t Type)
   /* filter status bits */
   Bits &= (1 << TWS7) | (1 << TWS6) | (1 << TWS5) | (1 << TWS4) | (1 << TWS3);
 
-  if (Bits == AckMask)        /* got expected bits for ACK */
+  if (Bits == AckBits)        /* got expected bits for ACK */
   {
     Flag = I2C_ACK;           /* signal ACK */
   }
-  else if (Bits == NackMask)  /* got expected bits for NACK */
+  else if (Bits == NackBits)  /* got expected bits for NACK */
   {
     Flag = I2C_NACK;          /* signal NACK */
   }
@@ -857,8 +915,8 @@ uint8_t I2C_WriteByte(uint8_t Type)
 uint8_t I2C_ReadByte(uint8_t Type)
 {
   uint8_t           Flag = I2C_ERROR;   /* return value */
-  uint8_t           Bits;               /* bits/bitmask */
-  uint8_t           StatusMask;         /* bitmask */
+  uint8_t           Bits;               /* register bits */
+  uint8_t           StatusBits;         /* status register bits */
 
   /*
    *  MCU's state maschine for TWI:
@@ -871,14 +929,14 @@ uint8_t I2C_ReadByte(uint8_t Type)
     /* read and respond with ACK */
     TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWEA);
 
-    StatusMask = (1 << TWS6) | (1 << TWS4);  /* 0x50 data read & ACK */
+    StatusBits = (1 << TWS6) | (1 << TWS4);  /* 0x50 data read & ACK */
   }
   else                             /* NACK */
   {
     /* read and respond with NACK */
     TWCR = (1 << TWINT) | (1 << TWEN);
 
-    StatusMask = (1 << TWS6) | (1 << TWS4) | (1 << TWS3);  /* 0x58 data read & NACK */
+    StatusBits = (1 << TWS6) | (1 << TWS4) | (1 << TWS3);  /* 0x58 data read & NACK */
   }
 
   /* wait for job done */
@@ -889,7 +947,7 @@ uint8_t I2C_ReadByte(uint8_t Type)
   /* filter status bits */
   Bits &= (1 << TWS7) | (1 << TWS6) | (1 << TWS5) | (1 << TWS4) | (1 << TWS3);
 
-  if (Bits == StatusMask)     /* got expected bits */
+  if (Bits == StatusBits)     /* got expected bits */
   {
     Flag = I2C_OK;            /* signal success */
   }

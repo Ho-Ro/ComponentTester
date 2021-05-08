@@ -2,7 +2,10 @@
  *
  *   driver functions for ST7735 compatible color graphic displays
  *   - 128 x 160 (132 x 162) pixels
- *   - SPI interface (4 line)
+ *   - interfaces
+ *     - 8, 9, 16 and 18 bit parallel (not supported)
+ *     - 3 line SPI (not supported)
+ *     - 4 line SPI
  *
  *   (c) 2016-2020 by Markus Reschke
  *
@@ -53,6 +56,7 @@
 #include "font_10x16_hf.h"
 #include "font_10x16_iso8859-2_hf.h"
 #include "font_8x16_win1251_hf.h"
+#include "font_8x16alt_win1251_hf.h"
 #include "symbols_24x24_hf.h"
 #include "symbols_30x32_hf.h"
 
@@ -116,12 +120,12 @@ uint16_t            Y_Start;       /* start position Y (row) */
 uint16_t            Y_End;         /* end position Y (row) */
 
 /* text line management */
-uint16_t            LineMask;      /* bit mask for up to 16 lines */
+uint16_t            LineFlags;     /* bitfield for up to 16 lines */
 
 
 
 /* ************************************************************************
- *   low level functions for SPI interface (4 wire)
+ *   low level functions for 4 wire SPI interface
  * ************************************************************************ */
 
 
@@ -134,7 +138,7 @@ uint16_t            LineMask;      /* bit mask for up to 16 lines */
 
 void LCD_BusSetup(void)
 {
-  uint8_t           Bits;          /* bitmask */
+  uint8_t           Bits;          /* register bits */
 
 
   /*
@@ -170,9 +174,11 @@ void LCD_BusSetup(void)
 
   /*
    *  init SPI bus
+   *  - SPI bus is set up already in main()
    */
 
   #ifdef SPI_HARDWARE
+
   /*
    *  set SPI clock rate (max. 15 MHz)
    *  - max. MCU clock 20MHz / 2 = 10MHz
@@ -180,9 +186,9 @@ void LCD_BusSetup(void)
    */
 
   SPI.ClockRate = SPI_CLOCK_2X;    /* set clock rate flags */
-  #endif
 
-  SPI_Setup();                     /* set up SPI bus */
+  SPI_Clock();                     /* update SPI clock */
+  #endif
 }
 
 
@@ -323,7 +329,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   if (y < 16)                 /* prevent overflow */
   {
     Mask <<= y;               /* shift to bit position for line */
-    LineMask |= Mask;         /* set bit for line */
+    LineFlags |= Mask;        /* set bit for line */
   }
 
   /*
@@ -376,11 +382,11 @@ void LCD_ClearLine(uint8_t Line)
   /* have we to clear this line? */
   if (Line <= 16)                  /* prevent overflow */
   {
-    y = Line - 1;                  /* bitmask starts at zero */
+    y = Line - 1;                  /* bitfield starts at zero */
     x = 1;                         /* set start bit */
     x <<= y;                       /* bit for this line */
 
-    if (! (LineMask & x))          /* bit not set */
+    if (! (LineFlags & x))         /* bit not set */
     {
       return;                      /* nothing do to */
     }
@@ -393,7 +399,7 @@ void LCD_ClearLine(uint8_t Line)
   {
     if (x > 0)                    /* got line bit */
     {
-      LineMask &= ~x;             /* clear bit */
+      LineFlags &= ~x;            /* clear bit */
     }
   }
 
@@ -495,15 +501,20 @@ void LCD_Init(void)
 
   /* memory access control */
   LCD_Cmd(CMD_MEM_CTRL);
-  Bits = FLAG_RGB_RGB;             /* color bit order: RGB */
+  #ifdef LCD_BGR
+  /* reverse red and blue color channels */
+  Bits = FLAG_COLOR_BGR;           /* color bit order: BGR */
+  #else
+  Bits = FLAG_COLOR_RGB;           /* color bit order: RGB */
+  #endif
   #ifdef LCD_ROTATE
-    Bits |= FLAG_MV_REV;           /* swap x and y */
+    Bits |= FLAG_XY_REV;           /* swap x and y */
   #endif
   #ifdef LCD_FLIP_X 
-    Bits |= FLAG_MX_REV;           /* flip x */
+    Bits |= FLAG_COL_REV;          /* flip x */
   #endif
   #ifdef LCD_FLIP_Y
-    Bits |= FLAG_MY_REV;           /* flip y */
+    Bits |= FLAG_ROW_REV;          /* flip y */
   #endif
   LCD_Data(Bits);
 
@@ -535,12 +546,7 @@ void LCD_Init(void)
   UI.SymbolSize_Y = LCD_SYMBOL_CHAR_Y;  /* y size in chars */
   #endif
 
-  /* set default color in case the color feature is disabled */
-  #ifndef LCD_COLOR
-    UI.PenColor = COLOR_PEN;       /* set pen color */
-  #endif
-
-  LineMask = 0xffff;               /* clear all lines by default */
+  LineFlags = 0xffff;              /* clear all lines by default */
   LCD_Clear();                     /* clear display */
   #ifdef LCD_LATE_ON
   /* turn on display after clearing it */
@@ -589,7 +595,14 @@ void LCD_Char(unsigned char Char)
   Y_End = Y_Start + FONT_SIZE_Y - 1;   /* offset for end */
   LCD_AddressWindow();                 /* set address window */
 
-  Offset = UI.PenColor;                /* get pen color */
+  #ifdef LCD_COLOR
+  /* color feature enabled */
+  Offset = UI.PenColor;                 /* get pen color */
+  #else
+  /* color feature disabled */
+  Offset = COLOR_PEN;                   /* use default pen color */
+  #endif
+
   LCD_Cmd(CMD_MEM_WRITE);              /* start writing */
 
   /* read character bitmap and send it to display */
@@ -602,9 +615,15 @@ void LCD_Char(unsigned char Char)
     while (x <= FONT_BYTES_X)
     {
       /* track x bits */
-      if (Pixels >= 8) Bits = 8;
-      else Bits = Pixels;
-      Pixels -= Bits;
+      if (Pixels >= 8)             /* a byte or more left */
+      {
+        Bits = 8;                  /* send full byte */
+      }
+      else                         /* less than a byte left */
+      {
+        Bits = Pixels;             /* send remaining bits */
+      }
+      Pixels -= Bits;              /* update counter */
 
       Index = pgm_read_byte(Table);     /* read byte */
 
@@ -682,12 +701,12 @@ void LCD_Symbol(uint8_t ID)
   uint8_t           *Table2;       /* pointer */
   uint8_t           Data;          /* symbol data */
   uint16_t          Offset;        /* address offset */
-  uint8_t           Pixels;        /* pixels in y direction */
+  uint8_t           Pixels;        /* pixels in x direction */
   uint8_t           x;             /* bitmap x byte counter */
   uint8_t           y = 1;         /* bitmap y byte counter */
   uint8_t           Bits;          /* number of bits to be sent */
   uint8_t           n;             /* bitmap bit counter */
-  uint8_t           factor = SYMBOL_RESIZE;  /* resize factor */
+  uint8_t           Factor = SYMBOL_RESIZE;  /* resize factor */
 
   /* calculate start address of character bitmap */
   Table = (uint8_t *)&SymbolData;       /* start address of symbol data */
@@ -701,7 +720,14 @@ void LCD_Symbol(uint8_t ID)
   Y_End = Y_Start + (SYMBOL_SIZE_Y * SYMBOL_RESIZE) - 1;  /* offset for end */
   LCD_AddressWindow();                  /* set address window */
 
+  #ifdef LCD_COLOR
+  /* color feature enabled */
   Offset = UI.PenColor;                 /* get pen color */
+  #else
+  /* color feature disabled */
+  Offset = COLOR_PEN;                   /* use default pen color */
+  #endif
+
   LCD_Cmd(CMD_MEM_WRITE);               /* start writing */
 
   /* read character bitmap and send it to display */
@@ -709,26 +735,32 @@ void LCD_Symbol(uint8_t ID)
   {
     Table2 = Table;           /* save current pointer */
 
-    while (factor > 0)        /* resize symbol */
+    while (Factor > 0)        /* resize symbol */
     {
       Table = Table2;                   /* reset start pointer */
 
-      Pixels = SYMBOL_SIZE_X;           /* track x bits to be sent */
+      Pixels = SYMBOL_SIZE_X;           /* x bits to be sent */
       x = 1;                            /* reset counter */
 
       /* read and send all bytes for this row */
       while (x <= SYMBOL_BYTES_X)
       {
         /* track x bits */
-        if (Pixels >= 8) Bits = 8;
-        else Bits = Pixels;
-        Pixels -= Bits;
+        if (Pixels >= 8)           /* a byte or more left */
+        {
+          Bits = 8;                /* send full byte */
+        }
+        else                       /* less than a byte left */
+        {
+          Bits = Pixels;           /* send remaining bits */
+        }
+        Pixels -= Bits;            /* update counter */
 
         Data = pgm_read_byte(Table);    /* read byte */
 
         /* send color for each bit */
         n = Bits;                       /* reset counter */
-        n *= SYMBOL_RESIZE;             /* and consider size factor */
+        n *= SYMBOL_RESIZE;             /* and consider resize factor */
 
         while (n > 0)                   /* x pixels */
         {
@@ -753,12 +785,13 @@ void LCD_Symbol(uint8_t ID)
         x++;                            /* next byte */
       }
 
-      factor--;                    /* one part done */
+      Factor--;                    /* one y resizing step done */
     }
 
-    if (factor == 0)               /* all parts done */
+    /* manage y direction */
+    if (Factor == 0)               /* all y resizing steps done */
     {
-      factor = SYMBOL_RESIZE;      /* reset resize factor */
+      Factor = SYMBOL_RESIZE;      /* reset resize factor */
       y++;                         /* next row */
     }              
   }
@@ -772,6 +805,113 @@ void LCD_Symbol(uint8_t ID)
     LCD_CharPos(1, x);             /* mark line */
     n--;                           /* next line */
   }
+}
+
+#endif
+
+
+
+#ifdef FUNC_COLORCODE
+
+/*
+ *  draw filled box
+ *  - takes X_start, X_End, Y_Start and Y_End as coordinates 
+ *
+ *  requires:
+ *  - Color: RGB565 color code
+ */
+
+void LCD_Box(uint16_t Color)
+{
+  uint16_t          x_Size;             /* x size */
+  uint16_t          x;                  /* x counter */
+  uint16_t          y_Size;             /* y size/counter */
+
+  LCD_AddressWindow();             /* set address window */
+
+  /* calculate sizes */
+  x_Size = X_End - X_Start + 1;
+  y_Size = Y_End - Y_Start + 1;
+
+  LCD_Cmd(CMD_MEM_WRITE);          /* start writing */
+
+  while (y_Size > 0)               /* loop trough rows */
+  {
+    x = x_Size;                    /* reset counter */    
+
+    while (x > 0)                  /* loop through columns */
+    {
+      LCD_Data2(Color);            /* send color code for dot */
+      x--;                         /* next one */
+    }
+
+    y_Size--;                      /* next one */
+  }
+}
+
+
+
+/*
+ *  display color band of a component color code
+ *  - aligned to charactor position
+ *  - size: 2x1 chars
+ *
+ *  requires:
+ *  - Color: RGB565 color code
+ *  - Align: ALIGN_LEFT   align band left
+ *           ALIGN_RIGHT  align band right
+ */
+
+void LCD_Band(uint16_t Color, uint8_t Align)
+{
+  /* prevent x overflow */
+  if (UI.CharPos_X > LCD_CHAR_X) return;
+
+  /* update character position, also updates X_Start and Y_Start */
+  LCD_CharPos(UI.CharPos_X, UI.CharPos_Y);
+
+  /*
+   *  box for component body
+   *  - height: nearly one char
+   *    top and bottom margin: 1/8 char heigth
+   *  - width: two chars
+   */
+ 
+  X_End = X_Start + (2 * FONT_SIZE_X) - 1;   /* offset for end */
+  /* offset for end & bottom margin */
+  Y_End = Y_Start + FONT_SIZE_Y - 1 - (FONT_SIZE_Y / 8);   
+  Y_Start += (FONT_SIZE_Y / 8);              /* top margin */
+
+  /* draw body using the component's body color */
+  LCD_Box(COLOR_CODE_NONE);
+
+
+  /*
+   *  box for band
+   *  - heigth: same as body but -1 dot at top and bottom
+   *  - width: 1 char
+   *    left and right margin: 1/3 char width
+   */
+
+  /* create thin outline */
+  Y_Start += 1;
+  Y_End -= 1;
+
+  if (Align == ALIGN_LEFT)    /* align band left */
+  {
+    X_Start += (FONT_SIZE_X / 3);       /* left margin */
+    X_End = X_Start + FONT_SIZE_X - 1;  /* offset for end */
+  }
+  else                        /* align band right */
+  {
+    X_End -= (FONT_SIZE_X / 3);         /* right margin */
+    X_Start = X_End - FONT_SIZE_X + 1;  /* offset for start */
+  }
+
+  /* draw band */
+  LCD_Box(Color);
+
+  UI.CharPos_X += 2;          /* update character position */
 }
 
 #endif

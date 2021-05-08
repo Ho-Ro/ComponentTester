@@ -2,7 +2,7 @@
  *
  *   global configuration, setup and settings
  *
- *   (c) 2012-2019 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -30,7 +30,7 @@
  *  rotary encoder for user interface
  *  - default pins: PD2 & PD3 (ATmega 328)
  *  - could be in parallel with LCD module
- *  - see ENCODER_PORT for port pins (config-<MCU>.h)
+ *  - see ENCODER_PORT in config-<MCU>.h for port pins
  *  - uncomment to enable and also set ENCODER_PULSES & ENCODER_STEPS below
  *    to match your rotary encoder
  */
@@ -63,7 +63,7 @@
 /*
  *  increase/decrease push buttons for user interface
  *  - alternative for rotary encoder
- *  - see KEY_PORT for port pins (config-<MCU>.h)
+ *  - see KEY_PORT in config-<MCU>.h for port pins
  *  - uncomment to enable
  */
 
@@ -74,7 +74,7 @@
  *  2.5V voltage reference for Vcc check
  *  - default pin: PC4 (ATmega 328)
  *  - should be at least 10 times more precise than the voltage regulator
- *  - see TP_REF for port pin (config-<MCU>.h)
+ *  - see TP_REF in config-<MCU>.h for port pin
  *  - uncomment to enable and also adjust UREF_25 below for your voltage
  *    reference
  */
@@ -95,7 +95,8 @@
  *  Probe protection relay for discharging caps
  *  - default pin: PC4 (ATmega 328)
  *  - low signal: short circuit probe pins
- *    high signal via external reference: remove short circuit 
+ *    high signal via external reference: remove short circuit
+ *  - see TP_REF in config_<MCU>.h for port pin
  *  - uncomment to enable
  */
 
@@ -103,15 +104,25 @@
 
 
 /*
- *  voltage measurement up to 50V DC / Zener check
+ *  Zener check / voltage measurement up to 50V DC
  *  - default pin: PC3 (ATmega 328)
  *  - 10:1 voltage divider
  *  - DC-DC boost converter controled by test push button
- *  - see TP_ZENER for port pin
+ *  - see TP_ZENER in config_<MCU>.h for port pin
  *  - uncomment to enable
  */
 
 //#define HW_ZENER
+
+
+/*
+ *  alternative mode for Zener check: don't switch boost converter
+ *  - when the DC-DC boost converter runs all the time
+ *  - when measuring an external voltage (circuit without boost converter)
+ *  - uncomment to enable
+ */
+
+//#define ZENER_UNSWITCHED
 
 
 /*
@@ -150,7 +161,7 @@
  *  - low and high frequency crystal oscillators
  *    and buffered frequency input
  *  - prescalers 1:1 and 16:1 (32:1)
- *  - see COUNTER_PORT for port pins (config-<MCU>.h)
+ *  - see COUNTER_PORT in config-<MCU>.h for port pins
  *  - requires a display with more than 2 text lines
  *  - uncomment to enable
  *  - select the circuit's prescaler setting: either 16:1 or 32:1 
@@ -189,7 +200,7 @@
  *  IR remote control detection/decoder (via dedicated MCU pin)
  *  - requires IR receiver module, e.g. TSOP series
  *  - module is connected to fixed I/O pin
- *  - see IR_PORT for port pin (config-<MCU>.h)
+ *  - see IR_PORT in config-<MCU>.h for port pin
  *  - uncomment to enable
  *  - for additional protocols also enable SW_IR_RX_EXTRA
  */
@@ -199,7 +210,7 @@
 
 /*
  *  fixed cap for self-adjustment
- *  - see TP_CAP and ADJUST_PORT for port pins (config-<MCU>.h)
+ *  - see TP_CAP and ADJUST_PORT in config-<MCU>.h for port pins
  *  - uncomment to enable
  */
 
@@ -431,6 +442,41 @@
 //#define SW_FONT_TEST
 
 
+/*
+ *  check resistor for matching E series norm value
+ *  - requires a display with more than 2 text lines
+ *  - color-code mode requires a color graphics display
+ *  - uncomment to enable (one or more)
+ */
+
+//#define SW_R_E24_5_T          /* E24 5% tolerance, text */
+//#define SW_R_E24_5_CC         /* E24 5% tolerance, color-code */
+//#define SW_R_E24_1_T          /* E24 1% tolerance, text */
+//#define SW_R_E24_1_CC         /* E24 1% tolerance, color-code */
+//#define SW_R_E96_T            /* E96 1% tolerance, text */
+//#define SW_R_E96_CC           /* E96 1% tolerance, color-code */
+
+
+/*
+ *  check capacitor for matching E series norm value
+ *  - requires a display with more than 2 text lines
+ *  - uncomment to enable (one or more)
+ */
+
+//#define SW_C_E6_T             /* E6 20% tolerance, text */
+//#define SW_C_E12_T            /* E12 10% tolerance, text */
+
+
+/*
+ *  check inductor for matching E series norm value
+ *  - requires a display with more than 2 text lines
+ *  - uncomment to enable (one or more)
+ */
+
+//#define SW_L_E6_T             /* E6 20% tolerance, text */
+//#define SW_L_E12_T            /* E12 10% tolerance, text */
+
+
 
 /* ************************************************************************
  *   workarounds for some testers
@@ -642,6 +688,20 @@
 
 
 /*
+ *  type of power switch
+ *  - soft-latching power switch (default)
+ *    - as in the tester's reference circuit 
+ *    - tester is able to power itself off
+ *  - manual power switch
+ *    - tester isn't able to power itself off
+ *  - enable one
+ */
+
+#define POWER_SWITCH_SOFT
+//#define POWER_SWITCH_MANUAL
+
+
+/*
  *  Battery monitoring mode:
  *  - BAT_NONE     disable battery monitoring completely
  *  - BAT_DIRECT   direct measurement of battary voltage (< 5V)
@@ -778,7 +838,7 @@
  *  - uncomment to enable
  */
 
-#define R_MULTIOFFSET
+//#define R_MULTIOFFSET
 
 
 /* 
@@ -836,6 +896,17 @@
 #define ADC_SAMPLES      25
 
 
+/*
+ *  100nF AREF buffer capacitor
+ *  - used by some MCU boards
+ *  - will increase measurement time
+ *  - recommendation: replace with 1nF capacitor
+ *  - uncomment to enable
+ */
+
+//#define ADC_LARGE_BUFFER_CAP
+
+
 
 /* ************************************************************************
  *   MCU specific setup to support different AVRs
@@ -851,7 +922,6 @@
  */
 
 #if defined(__AVR_ATmega328__)
-
   #include "config_328.h"
 
 
@@ -860,8 +930,15 @@
  */
 
 #elif defined(__AVR_ATmega324P__) || defined(__AVR_ATmega644__) || defined(__AVR_ATmega1284__)
-
   #include "config_644.h"
+
+
+/*
+ *  ATmega 640/1280/2560
+ */
+
+#elif defined(__AVR_ATmega640__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  #include "config_1280.h"
 
 
 /*
@@ -1051,9 +1128,17 @@
 #endif
 
 
+
 /*
  *  hardware/software options
  */
+
+/* power switch: prefer soft-latching type */
+#ifdef POWER_SWITCH_SOFT
+  #ifdef POWER_SWITCH_MANUAL
+    #undef POWER_SWITCH_MANUAL
+  #endif
+#endif
 
 
 /* additional keys */
@@ -1195,11 +1280,29 @@
 #endif
 
 
-/* color coding for probes requires a color graphics display */
-#ifdef SW_PROBE_COLORS
-  #ifndef LCD_COLOR
+/* options which require a color graphics display */
+#ifndef LCD_COLOR
+
+  /* color coding for probes */
+  #ifdef SW_PROBE_COLORS
     #undef SW_PROBE_COLORS
   #endif
+
+  /* resistor color-codes */
+  #ifdef SW_R_E24_5_CC
+    #undef SW_R_E24_5_CC
+  #endif
+  #ifdef SW_R_E24_1_CC
+    #undef SW_R_E24_1_CC
+  #endif
+  #ifdef SW_R_E96_CC
+    #undef SW_R_E96_CC
+  #endif
+
+  /* capacitor color-codes */
+
+  /* inductor color-codes */
+
 #endif
 
 
@@ -1244,6 +1347,89 @@
 #ifdef UI_ROUND_DS18B20
   #ifndef SW_DS18B20
     #undef UI_ROUND_DS18B20
+  #endif
+#endif
+
+
+
+/* ************************************************************************
+ *   simplify ifdefs
+ * ************************************************************************ */
+
+
+/* E6 */
+#if defined (SW_C_E6_T) || defined (SW_L_E6_T)
+  #define SW_E6
+#endif
+
+/* E12 */
+#if defined (SW_C_E12_T) || defined (SW_L_E12_T)
+  #define SW_E12
+#endif
+
+/* E24 */
+#if defined (SW_R_E24_5_T) || defined (SW_R_E24_5_CC) || defined (SW_R_E24_1_T) || defined (SW_R_E24_1_CC)
+  #define SW_E24
+#endif
+
+/* E96 */
+#if defined (SW_R_E96_T) || defined (SW_R_E96_CC)
+  #define SW_E86
+#endif
+
+
+/* Show_ENormValues(), Display_EValue() */
+#if defined (SW_R_E24_5_T) || defined (SW_R_E24_1_T) || defined (SW_R_E96_T)
+  #ifndef FUNC_EVALUE
+    #define FUNC_EVALUE
+  #endif
+  #ifndef SW_R_EXX
+    #define SW_R_EXX
+  #endif
+#endif
+
+#if defined (SW_C_E6_T) || defined (SW_C_E12_T) || defined (SW_L_E6_T) || defined (SW_L_E12_T)
+  #ifndef FUNC_EVALUE
+    #define FUNC_EVALUE
+  #endif
+#endif
+
+
+/* Show_ENormCodes(), Display_ColorCode() */
+#if defined (SW_R_E24_5_CC) || defined (SW_R_E24_1_CC) || defined (SW_R_E96_CC)
+  #ifndef FUNC_COLORCODE
+    #define FUNC_COLORCODE
+  #endif
+  #ifndef SW_R_EXX
+    #define SW_R_EXX
+  #endif
+#endif
+
+
+/* Display_FullValue() */
+#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO)
+  #ifndef FUNC_DISPLAY_FULLVALUE
+    #define FUNC_DISPLAY_FULLVALUE
+  #endif
+#endif
+
+#if defined (SW_DS18B20) || defined (HW_EVENT_COUNTER) || defined (SW_DHTXX)
+  #ifndef FUNC_DISPLAY_FULLVALUE
+    #define FUNC_DISPLAY_FULLVALUE
+  #endif
+#endif
+
+#if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE)
+  #ifndef FUNC_DISPLAY_FULLVALUE
+    #define FUNC_DISPLAY_FULLVALUE
+  #endif
+#endif
+
+
+/* Display_HexByte() */
+#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_ONEWIRE_SCAN) || defined (SW_FONT_TEST)
+  #ifndef FUNC_DISPLAY_HEXBYTE
+    #define FUNC_DISPLAY_HEXBYTE
   #endif
 #endif
 

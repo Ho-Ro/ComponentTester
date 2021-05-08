@@ -13,10 +13,10 @@
 /*
  *  hints:
  *  - pin assignment for 4 bit parallel
- *    DB4    LCD_DB4 (default: LCD_PORT Bit #0)
- *    DB5    LCD_DB5 (default: LCD_PORT Bit #1)
- *    DB6    LCD_DB6 (default: LCD_PORT Bit #2)
- *    DB7    LCD_DB7 (default: LCD_PORT Bit #3)
+ *    DB4    LCD_DB4 (default: LCD_PORT pin #0)
+ *    DB5    LCD_DB5 (default: LCD_PORT pin #1)
+ *    DB6    LCD_DB6 (default: LCD_PORT pin #2)
+ *    DB7    LCD_DB7 (default: LCD_PORT pin #3)
  *    RS     LCD_RS
  *    R/W    Gnd
  *    E      LCD_EN1
@@ -158,7 +158,7 @@ void LCD_SendNibble(uint8_t Nibble)
  *  - byte value to send
  */
 
-void LCD_Send(uint8_t Byte)
+void LCD_SendByte(uint8_t Byte)
 {
   uint8_t           Nibble;
 
@@ -191,7 +191,7 @@ void LCD_Cmd(uint8_t Cmd)
   /* indicate command mode */
   LCD_PORT &= ~(1 << LCD_RS);      /* set RS low */
 
-  LCD_Send(Cmd);                   /* send command */
+  LCD_SendByte(Cmd);               /* send command */
 }
 
 
@@ -235,7 +235,7 @@ void LCD_CustomChar(uint8_t ID)
   for (i = 0; i < 8; i++)               /* 8 bytes */
   {
     Byte = pgm_read_byte(Table);        /* read byte */
-    LCD_Send(Byte);                     /* send byte */
+    LCD_SendByte(Byte);                 /* send byte */
 
     Table++;                            /* next byte */
   }
@@ -267,7 +267,7 @@ void LCD_Char(unsigned char Char)
   /* indicate data mode */
   LCD_PORT |= (1 << LCD_RS);       /* set RS high */
  
-  LCD_Send(ID);                    /* send character ID */
+  LCD_SendByte(ID);                /* send character ID */
 
   /* update character position */
   UI.CharPos_X++;                  /* next character in current line */
@@ -455,7 +455,7 @@ void LCD_SendNibble(uint8_t Nibble)
 {
   uint8_t           Data;
 
-  Data = Control;        /* get current control bitmask */
+  Data = Control;        /* get current control bits */
 
   #ifdef LCD_DB_STD
     /* standard pins: shift nibble */

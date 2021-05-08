@@ -1,11 +1,13 @@
 /* ************************************************************************
  *
  *   driver functions for PCF8814 compatible grafic displays
- *   - aka Nokia 1100 display
+ *   - AKA Nokia 1100 display
  *   - 96 x 65 pixels
- *   - SPI interface (4 line (not supported yet), 3 line)
- *     modules are wired for 3-line SPI usually
- *   - I2C (not supported yet)
+ *   - interfaces
+ *     - 3 line SPI
+ *       modules are wired for 3-line SPI usually
+ *     - 4 line SPI (not supported yet)
+ *     - I2C (not supported yet)
  *
  *   (c) 2019-2020 by Markus Reschke
  *
@@ -98,7 +100,7 @@ uint8_t             Y_Start;       /* start position Y (bank) */
 
 
 /* ************************************************************************
- *   low level functions for SPI interface (3 wire)
+ *   low level functions for 3 wire SPI interface
  * ************************************************************************ */
 
 
@@ -118,7 +120,7 @@ uint8_t             Y_Start;       /* start position Y (bank) */
 
 void LCD_BusSetup(void)
 {
-  uint8_t           Bits;          /* bitmask */
+  uint8_t           Bits;          /* register bits */
 
 
   /*
@@ -151,9 +153,8 @@ void LCD_BusSetup(void)
 
   /*
    *  init SPI bus
+   *  - SPI bus is set up already in main()
    */
-
-  SPI_Setup();                     /* set up SPI bus */
 }
 
 

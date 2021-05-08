@@ -40,7 +40,7 @@
  * ************************************************************************ */
 
 
-/* UI feedback mode for TestKey() (bit mask) */
+/* UI feedback mode for TestKey() (bitfield) */
 #define CURSOR_NONE           0b00000000     /* no cursor */
 #define CURSOR_STEADY         0b00000001     /* steady cursor */
 #define CURSOR_BLINK          0b00000010     /* blinking cursor */
@@ -70,7 +70,7 @@
 #define KEY_PROBE             104  /* probe component */
 
 
-/* operation mode/state flags (bitmask) */
+/* operation mode/state flags (bitfield) */
 #define OP_NONE               0b00000000     /* no flags */
 #define OP_AUTOHOLD           0b00000001     /* auto-hold mode (instead of continuous) */
 #define OP_EXT_REF            0b00000100     /* external voltage reference used */
@@ -78,7 +78,7 @@
 #define OP_I2C                0b00010000     /* I2C is set up */
 
 
-/* operation control/signaling flags (bitmask) */
+/* operation control/signaling flags (bitfield) */
 #define OP_BREAK_KEY          0b00000001     /* exit key processing */
 #define OP_OUT_LCD            0b00000010     /* output to LCD display */
 #define OP_OUT_SER            0b00000100     /* output to TTL serial */
@@ -87,7 +87,7 @@
 #define OP_PWR_TIMEOUT        0b00100000     /* auto-power-off for auto-hold mode */
 
 
-/* UI line modes (bitmask) */
+/* UI line modes (bitfield) */
 #define LINE_STD              0b00000000     /* standard mode */
 #define LINE_KEY              0b00000001     /* wait for key press */
 #define LINE_KEEP             0b00000010     /* keep first line */
@@ -99,7 +99,7 @@
 
 
 /* SPI */
-/* clock rate bitmask */
+/* clock rate flags (bitfield) */
 #define SPI_CLOCK_R0          0b00000001     /* divider bit 0 (SPR0) */
 #define SPI_CLOCK_R1          0b00000010     /* divider bit 1 (SPR1) */
 #define SPI_CLOCK_2X          0b00000100     /* double clock rate (SPI2X) */
@@ -132,6 +132,20 @@
 #define PROBES_RCL            2         /* monitoring RCL */
 
 
+/* E series */
+#define E6                    6         /* E6 */
+#define E12                  12         /* E12 */
+#define E24                  24         /* E24 */
+#define E48                  48         /* E48 */
+#define E96                  96         /* E96 */
+#define E192                192         /* E192 */
+
+
+/* alignment */
+#define ALIGN_LEFT            3         /* align left */
+#define ALIGN_RIGHT           4         /* align right */
+
+
 
 /* ************************************************************************
  *   constants for arrays in variables.h
@@ -149,6 +163,12 @@
 #define NUM_PWM_FREQ          8         /* PWM frequencies */
 #define NUM_INDUCTOR          32        /* inductance factors */
 #define NUM_TIMER1            5         /* Timer1 prescalers and bits */
+#define NUM_PROBE_COLORS      3         /* probe colors */
+#define NUM_E6                6         /* E6 norm values */
+#define NUM_E12              12         /* E12 norm values */
+#define NUM_E24              24         /* E24 norm values */
+#define NUM_E96              96         /* E24 norm values */
+#define NUM_COLOR_CODES      10         /* color codes */
 
 /* IR code buffer size */
 #define IR_CODE_BYTES         6         /* 6 bytes = 48 bit */
@@ -248,10 +268,11 @@
 /* non-components */
 #define COMP_NONE             0
 #define COMP_ERROR            1
-/* misc components */
+/* passive components */
 #define COMP_RESISTOR        10
 #define COMP_CAPACITOR       11
 #define COMP_INDUCTOR        12
+/* 2 pin semiconductors */
 #define COMP_DIODE           20
 /* 3 pin semiconductors */
 #define COMP_BJT             30
@@ -268,7 +289,7 @@
 #define TYPE_DETECTION        2    /* detection error */
 
 
-/* FET types, also used for IGBTs (bit mask) */
+/* FET types, also used for IGBTs (bitfield) */
 #define TYPE_N_CHANNEL        0b00000001     /* n channel */
 #define TYPE_P_CHANNEL        0b00000010     /* p channel */
 #define TYPE_ENHANCEMENT      0b00000100     /* enhancement mode */
@@ -278,17 +299,17 @@
 #define TYPE_SYMMETRICAL      0b01000000     /* symmetrical drain/source */
 
 
-/* BJT types (bit mask) */ 
+/* BJT types (bitfield) */ 
 #define TYPE_NPN              0b00000001     /* NPN */
 #define TYPE_PNP              0b00000010     /* PNP */
 #define TYPE_PARASITIC        0b00000100     /* parasitic BJT */
 
 
-/* diode types (bit mask) */
+/* diode types (bitfield) */
 #define TYPE_STANDARD         0b00000001     /* standard diode */
 
 
-/* flags for semicondutor detection logic (bit mask) */
+/* flags for semicondutor detection logic (bitfield) */
 #define DONE_NONE             0b00000000     /* detected nothing / not sure yet */
 #define DONE_SEMI             0b00000001     /* detected semi */
 #define DONE_ALTSEMI          0b00000010     /* detected alternative semi */
@@ -300,7 +321,7 @@
 #define TABLE_INDUCTOR        3              /* table for inductors */
 
 
-/* bit flags for PullProbe() (bit mask) */
+/* bit flags for PullProbe() (bitfield) */
 #define PULL_DOWN             0b00000000     /* pull down */
 #define PULL_UP               0b00000001     /* pull up */
 #define PULL_1MS              0b00001000     /* pull for 1ms */
@@ -341,7 +362,7 @@
 #define SYMBOL_UJT           13    /* UJT */
 
 
-/* pinout positions (bit mask) */
+/* pinout positions (bitfield) */
 #define PIN_NONE              0b00000000     /* no output */
 #define PIN_LEFT              0b00000001     /* left of symbol */
 #define PIN_RIGHT             0b00000010     /* right of symbol */
@@ -417,13 +438,13 @@ typedef struct
 } Adjust_Type;
 
 
-/* touch screen adjustment offsets (stored in EEPROM) */
+/* touch screen adjustment values (stored in EEPROM) */
 typedef struct
 {
-  uint16_t          X_Left;        /* offset for left side */
-  uint16_t          X_Right;       /* offset for right side */
-  uint16_t          Y_Top;         /* offset for top */
-  uint16_t          Y_Bottom;      /* offset for bottom */
+  uint16_t          X_Start;       /* X start value */
+  uint16_t          X_Stop;        /* X stop value */
+  uint16_t          Y_Start;       /* Y start value */
+  uint16_t          Y_Stop;        /* Y stop value */
   uint8_t           CheckSum;      /* checksum for stored values */
 } Touch_Type;
 
@@ -502,7 +523,7 @@ typedef struct
   uint8_t           ID2_2;         /* probe-2 */
   uint8_t           ID2_3;         /* probe-3 */
 
-  /* bit masks for switching probes and test resistors */
+  /* register bits for switching probes and test resistors */
   uint8_t           Rl_1;          /* Rl mask for probe-1 */
   uint8_t           Rl_2;          /* Rl mask for probe-2 */
   uint8_t           Rl_3;          /* Rl mask for probe-3 */
@@ -512,9 +533,9 @@ typedef struct
   uint8_t           Pin_1;         /* pin mask for probe-1 */
   uint8_t           Pin_2;         /* pin mask for probe-2 */
   uint8_t           Pin_3;         /* pin mask for probe-3 */
-  uint8_t           ADC_1;         /* ADC MUX input address for probe-1 */
-  uint8_t           ADC_2;         /* ADC MUX input address for probe-2 */
-  uint8_t           ADC_3;         /* ADC MUX input address for probe-3 */
+  uint8_t           Ch_1;         /* ADC MUX input channel for probe-1 */
+  uint8_t           Ch_2;         /* ADC MUX input channel for probe-2 */
+  uint8_t           Ch_3;         /* ADC MUX input channel for probe-3 */
 } Probe_Type;
 
 

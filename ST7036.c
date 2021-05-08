@@ -2,13 +2,14 @@
  *
  *   driver functions for ST7036 compatible character displays
  *   - 1 to 3 lines, 16 characters
- *   - 4 bit parallel interface
- *   - 8 bit parallel interface (not supported)
- *   - SPI interface (4-wire)
- *   - I2C interface (ST7036i, not supported yet)
+ *   - interfaces
+ *     - 4 bit parallel
+ *     - 8 bit parallel (not supported)
+ *     - 4-wire SPI
+ *     - I2C (ST7036i, not supported)
  *   - untested!!!
  *
- *   (c) 2019 by Markus Reschke
+ *   (c) 2019-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -17,10 +18,10 @@
  *  - pin assignment for 4 bit parallel
  *    XRESET  Vcc or LCD_RESET (optional)
  *    CSB     Gnd or LCD_CS (optional)
- *    DB4     LCD_DB4 (default: LCD_PORT Bit #0)
- *    DB5     LCD_DB5 (default: LCD_PORT Bit #1)
- *    DB6     LCD_DB6 (default: LCD_PORT Bit #2)
- *    DB7     LCD_DB7 (default: LCD_PORT Bit #3)
+ *    DB4     LCD_DB4 (default: LCD_PORT pin #0)
+ *    DB5     LCD_DB5 (default: LCD_PORT pin #1)
+ *    DB6     LCD_DB6 (default: LCD_PORT pin #2)
+ *    DB7     LCD_DB7 (default: LCD_PORT pin #3)
  *    RS      LCD_RS
  *    R/W     Gnd (read only) or LCD_RW (optional)
  *    E       LCD_EN
@@ -91,7 +92,7 @@
 
 void LCD_BusSetup(void)
 {
-  uint8_t           Bits;          /* bitmask */
+  uint8_t           Bits;          /* register bits */
 
   /*
    *  set control signals
@@ -427,7 +428,7 @@ void LCD_DisplaySetup(void)
 
 
 /* ************************************************************************
- *   low level functions for SPI (4-wire) interface
+ *   low level functions for 4-wire SPI interface
  * ************************************************************************ */
 
 
@@ -441,7 +442,7 @@ void LCD_DisplaySetup(void)
 
 void LCD_BusSetup(void)
 {
-  uint8_t           Bits;          /* bitmask */
+  uint8_t           Bits;          /* register bits */
 
 
   /*
@@ -477,9 +478,11 @@ void LCD_BusSetup(void)
 
   /*
    *  init SPI bus
+   *  - SPI bus is set up already in main()
    */
 
   #ifdef SPI_HARDWARE
+
   /*
    *  set SPI clock rate (max. 2.5MHz)
    */
@@ -504,9 +507,8 @@ void LCD_BusSetup(void)
     SPI.ClockRate = SPI_CLOCK_R0 | SPI_CLOCK_2X;
   #endif
 
+  SPI_Clock();                     /* update SPI clock */
   #endif
-
-  SPI_Setup();                     /* set up SPI bus */
 }
 
 

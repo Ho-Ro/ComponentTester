@@ -2,7 +2,7 @@
  *
  *   misc tools (hardware and software options)
  *
- *   (c) 2012-2019 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -92,15 +92,17 @@ void ProbePinout(uint8_t Mode)
 
 
 /* ************************************************************************
- *   Zener tool
+ *   Zener tool / external voltage
  * ************************************************************************ */
 
 
 #ifdef HW_ZENER
 
+  #ifndef ZENER_UNSWITCHED
+
 /*
- *  Zener tool:
- *  - Zener diode voltage measurement hardware option
+ *  Zener tool (standard mode)
+ *  - hardware option for voltage measurement of Zener diode 
  *  - uses dedicated analog input (TP_ZENER) with 10:1 voltage divider
  *  - test push button enables boost converter
  */
@@ -125,8 +127,17 @@ void Zener_Tool(void)
   Display_NextLine();
   Display_Char('-');               /* display "no value" */
 
-  while (Run > 0)             /* processing loop */
+
+  /*
+   *  processing loop
+   */
+
+  while (Run > 0)
   {
+    /*
+     *  manage timing
+     */
+
     Counter = 0;              /* reset key press time */
     MilliSleep(30);           /* delay by 30ms */
     Counter2++;               /* increase delay time counter */
@@ -138,6 +149,7 @@ void Zener_Tool(void)
       #endif
     }
 
+
     /*
      *  key press triggers measurement
      *  - also enables boost converter via hardware
@@ -147,8 +159,8 @@ void Zener_Tool(void)
     while (!(BUTTON_PIN & (1 << TEST_BUTTON)))    /* as long as key is pressed */
     {
       /* get voltage (10:1 voltage divider) */
-      U1 = ReadU(TP_ZENER);        /* dedicated probe pin (in mV) */
-                                   /* with 10:1 divider 10mV */
+      U1 = ReadU(TP_ZENER);        /* read voltage (in mV) */
+                                   /* with 10:1 divider: 10mV */
 
       #ifndef ZENER_HIGH_RES
       U1 /= 10;                    /* scale to 100mV */
@@ -232,6 +244,72 @@ void Zener_Tool(void)
   #undef SCALE
 }
 
+  #endif
+
+
+
+  #ifdef ZENER_UNSWITCHED
+
+/*
+ *  Zener tool (alternative mode)
+ *  - hardware option for voltage measurement of Zener diode
+ *    or external voltage
+ *  - uses dedicated analog input (TP_ZENER) with 10:1 voltage divider
+ *  - boost converter runs all the time or circuit without boost converter
+ */
+
+void Zener_Tool(void)
+{
+  uint8_t                Run = 1;            /* control flag */
+  uint8_t                Test;               /* user feedback */
+  uint16_t               U1;                 /* current voltage */
+
+  #ifdef ZENER_HIGH_RES
+    #define SCALE   -2        /* 10mV resolution */
+  #else
+    #define SCALE   -1        /* 100mV resolution */
+  #endif
+
+  /* show info */
+  LCD_Clear();
+  Display_EEString(Zener_str);     /* display: Zener */
+
+
+  /*
+   *  processing loop
+   */
+
+  while (Run)
+  {
+    /* check voltage references */
+    CheckVoltageRefs();
+
+    /* get voltage (10:1 voltage divider) */
+    U1 = ReadU(TP_ZENER);          /* read voltage (in mV) */
+                                   /* with 10:1 divider: 10mV */
+    #ifndef ZENER_HIGH_RES
+    U1 /= 10;                      /* scale to 100mV */
+    #endif
+
+    /* display voltage */
+    LCD_ClearLine2();               /* clear line #2 */
+    Display_Value(U1, SCALE, 'V');  /* display current voltage */
+
+    /* user feedback (1s delay) */
+    Test = TestKey(1000, CHECK_KEY_TWICE | CHECK_BAT | CURSOR_STEADY);
+
+    if (Test == KEY_TWICE)         /* two short key presses */
+    {
+      Run = 0;                     /* end processing loop */
+    }
+  }
+
+  /* clean up */
+  #undef SCALE
+}
+
+  #endif
+
 #endif
 
 
@@ -259,7 +337,9 @@ void ESR_Tool(void)
   Cap = &Caps[0];                  /* pointer to first cap */
 
   #ifdef HW_DISCHARGE_RELAY
-  ADC_DDR = (1 << TP_REF);         /* short circuit probes */
+  /* discharge relay: short circuit probes */
+                                   /* ADC_PORT should be 0 */
+  ADC_DDR = (1 << TP_REF);         /* disable relay */
   #endif
 
   /* show tool info */
@@ -287,7 +367,9 @@ void ESR_Tool(void)
     if (Run > 0)                        /* key pressed */
     {
       #ifdef HW_DISCHARGE_RELAY
-      ADC_DDR = 0;                      /* remove short circuit */
+      /* discharge relay: remove short circuit */
+                                        /* ADC_PORT should be 0 */
+      ADC_DDR = 0;                      /* enable relay (via extrenal reference) */
       #endif
 
       LCD_ClearLine2();                 /* update line #2 */
@@ -584,7 +666,7 @@ void Check_LED(uint8_t Probe1, uint8_t Probe2)
   ADC_DDR = Probes.Pin_1;          /* set probe-1 to output */
   ADC_PORT = Probes.Pin_1;         /* pull-up probe-1 directly */
 
-  U1 = ReadU_5ms(Probes.ADC_2);    /* voltage at Rl (cathode) */
+  U1 = ReadU_5ms(Probes.Ch_2);     /* voltage at Rl (cathode) */
 
   if (U1 >= 977)         /*  not just a leakage current (> 1.4mA) */
   {
@@ -692,7 +774,7 @@ void OptoCoupler_Tool(void)
         ADC_PORT = 0;                        /* pull down probe-2 directly */
         R_DDR = Probes.Rl_1 | Probes.Rl_3;   /* select Rl for probe-1 & Rl for probe-3 */
         R_PORT = Probes.Rl_3;                /* pull up collector via Rl */
-        U1 = ReadU_5ms(Probes.ADC_3);        /* voltage at collector when LED is off */
+        U1 = ReadU_5ms(Probes.Ch_3);         /* voltage at collector when LED is off */
 
         /* make sure we have no conduction without the LED lit */
         if (U1 > 4000)        /* allow a leakage current of 1.5mA */
@@ -701,10 +783,10 @@ void OptoCoupler_Tool(void)
           R_PORT = Probes.Rl_1;                /* turn on LED */
           wait1ms();                           /* wait a tad */
           R_PORT = Probes.Rl_1 | Probes.Rl_3;  /* also pull up collector via Rl */
-          U1 = ReadU_5ms(Probes.ADC_3);        /* voltage at collector when LED is on */
+          U1 = ReadU_5ms(Probes.Ch_3);         /* voltage at collector when LED is on */
 
           R_PORT = Probes.Rl_3;                /* turn off LED */
-          U2 = ReadU_5ms(Probes.ADC_3);        /* voltage at collector when LED is off */
+          U2 = ReadU_5ms(Probes.Ch_3);         /* voltage at collector when LED is off */
 
           /* we should have conduction when the LED is lit */
           if (U1 <= 4000)          /* more than 1.5mA */
@@ -746,8 +828,8 @@ void OptoCoupler_Tool(void)
         Cfg.Samples = 10;               /* just a few samples for 1ms runtime */
         R_PORT = Probes.Rl_1;           /* turn LED on */
         wait1ms();                      /* time for propagation delay */
-        U1 = ReadU(Probes.ADC_1);       /* voltage at LED's anode (Rl) */
-        U2 = ReadU(Probes.ADC_2);       /* voltage at emitter (RiL) */
+        U1 = ReadU(Probes.Ch_1);        /* voltage at LED's anode (Rl) */
+        U2 = ReadU(Probes.Ch_2);        /* voltage at emitter (RiL) */
         R_PORT = 0;                     /* turn LED off */
         Cfg.Samples = ADC_SAMPLES;      /* reset samples to default */
 
@@ -791,7 +873,7 @@ void OptoCoupler_Tool(void)
         R_DDR = Probes.Rl_1 | Probes.Rl_3;   /* select Rl for probe-1 & Rl for probe-3 */
         R_PORT = Probes.Rl_3;                /* pull up collector via Rl */
 
-        U1 = ReadU_5ms(Probes.ADC_3);        /* voltage at collector when LED is off */
+        U1 = ReadU_5ms(Probes.Ch_3);         /* voltage at collector when LED is off */
 
         /* make sure we have no conduction without the LED lit */
         if (U1 > 4000)        /* allow a leakage current of 1.5mA */
@@ -936,7 +1018,7 @@ void Cap_Leakage(void)
   uint16_t          U1 = 0;             /* voltage #1 */
   uint32_t          Value;              /* temp. value */
 
-  /* control flags */
+  /* control flags (bitfield) */
   #define RUN_FLAG            0b00000001     /* run flag */
   #define CHANGED_MODE        0b00000100     /* mode has changed */
 
@@ -954,7 +1036,7 @@ void Cap_Leakage(void)
   Flag = RUN_FLAG | CHANGED_MODE;
   Mode = MODE_NONE;
 
-  UpdateProbes(PROBE_1, 0, PROBE_3);    /* update bitmasks and probes */
+  UpdateProbes(PROBE_1, 0, PROBE_3);    /* update register bits and probes */
 
   while (Flag > 0)       /* processing loop */
   {
@@ -1024,7 +1106,7 @@ void Cap_Leakage(void)
       {
         case MODE_HIGH:            /* charge cap with high current (Rl) */
           /* voltage across Rl and RiL at probe-3 */
-          U1 = ReadU(Probes.ADC_3);          /* read voltage at probe-3 */
+          U1 = ReadU(Probes.Ch_3);           /* read voltage at probe-3 */
 
           /* calculate current: I = U / R (ignore R_Zero) */
           Value = U1;                        /* U across Rl and RiL in mV */
@@ -1042,7 +1124,7 @@ void Cap_Leakage(void)
 
         case MODE_LOW:             /* charge cap with low current (Rh) */
           /* voltage across Rh at probe-3 (ignore RiL) */
-          U1 = ReadU(Probes.ADC_3);          /* read voltage at probe-3 */
+          U1 = ReadU(Probes.Ch_3);           /* read voltage at probe-3 */
 
           if (U1 > CAP_DISCHARGED)      /* minimum exceeded */
           {
@@ -1060,7 +1142,7 @@ void Cap_Leakage(void)
 
         case MODE_DISCHARGE:       /* discharge cap */
           /* voltage at cap (probe-1) */
-          U1 = ReadU(Probes.ADC_1);          /* read voltage at probe-1 */
+          U1 = ReadU(Probes.Ch_1);           /* read voltage at probe-1 */
           Display_Value(U1, -3, 'V');        /* display voltage */
 
           /* check if cap is discharged */
@@ -1168,6 +1250,9 @@ void Monitor_RL(void)
   /* init */
   UpdateProbes(PROBE_1, PROBE_3, 0);    /* set probes */
   R1 = &Resistors[0];                   /* pointer to first resistor */
+  /* increase number of samples to lower spread of measurement values */
+  Cfg.Samples = 100;                    /* perform 100 ADC samples */
+
 
   /*
    *  processing loop
@@ -1175,6 +1260,9 @@ void Monitor_RL(void)
 
   while (Flag)
   {
+    /* check voltage references to update voltages */
+    CheckVoltageRefs();
+
     /* measure R and display value */
     Check.Resistors = 0;                /* reset resistor counter */
     CheckResistor();                    /* check for resistor */
@@ -1199,14 +1287,17 @@ void Monitor_RL(void)
       Display_Char('-');                /* display: nothing */
     }
 
-    /* user feedback (2s delay) */
-    Test = TestKey(2000, CHECK_KEY_TWICE | CHECK_BAT | CURSOR_STEADY);
+    /* user feedback (1s delay) */
+    Test = TestKey(1000, CHECK_KEY_TWICE | CHECK_BAT | CURSOR_STEADY);
 
     if (Test == KEY_TWICE)         /* two short key presses */
     {
       Flag = 0;                    /* end processing loop */
     }
   }
+
+  /* clean up */
+  Cfg.Samples = ADC_SAMPLES;       /* set ADC samples back to default */
 }
 
 #endif

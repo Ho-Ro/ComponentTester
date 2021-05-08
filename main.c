@@ -2,7 +2,7 @@
  *
  *   main part
  *
- *   (c) 2012-2019 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -135,6 +135,218 @@ void Show_SimplePinout(uint8_t ID_1, uint8_t ID_2, uint8_t ID_3)
     }
   }
 }
+
+
+
+#ifdef FUNC_EVALUE
+
+/*
+ *  show E series norm values
+ *
+ *  requires:
+ *  - Value: unsigned value
+ *  - Scale: exponent/multiplier (* 10^n)
+ *  - ESeries: E6-192
+ *  - Tolerance: in 0.1%
+ */
+
+void Show_ENormValues(uint32_t Value, int8_t Scale, uint8_t ESeries, uint8_t Tolerance)
+{
+  uint8_t           n;             /* number of norm values (1 or 2) */
+  uint8_t           Pos;           /* char x position */
+  uint8_t           Temp;          /* temporary value */
+
+
+  /*
+   *  get E series norm values
+   *  - 1st: Semi.I_value, Semi.I_scale
+   *  - 2nd: Semi.C_value, Semi.C_scale
+   */
+
+  n = GetENormValue(Value, Scale, ESeries, Tolerance);
+
+
+  /*
+   *  show E series and tolerance
+   */
+
+  Display_NextLine();                   /* move to next line */
+
+  /* display E series */
+  Display_Char('E');                    /* display: E */
+  Display_FullValue(ESeries, 0 , 0);    /* display E series */
+
+  Display_Space();                      /* display: " " */
+
+  /* display tolerance */
+  Temp = Tolerance;                     /* copy tolerance */
+  Pos = 0;                              /* reset decimal places */
+
+  if (Temp < 10)                        /* < 1% */
+  {
+    Pos = 1;                            /* one decimal place */
+  }
+  Temp /= 10;                           /* scale to 1 */
+
+  Display_FullValue(Temp, Pos, '%');    /* display tolerance */
+
+  Display_Space();                      /* display: " " */
+
+
+  /*
+   *  show norm values
+   */
+
+  if (n)                      /* got norm value(s) */
+  {
+    Pos = UI.CharPos_X;       /* get current char position */
+
+    /* display first norm value */
+    Display_EValue(Semi.I_value, Semi.I_scale, 0);
+
+    if (n == 2)               /* got two norm values */
+    {
+      if (ESeries >= E48)     /* second value in another line */
+      {
+        /* move to next line at same position (after E series) */
+        Display_NextLine();
+        LCD_CharPos(Pos, UI.CharPos_Y);
+      }
+      else                    /* both values in one line */
+      {
+        Display_Space();      /* display: " " */
+      }
+
+      /* display second norm value */
+      Display_EValue(Semi.C_value, Semi.C_scale, 0);
+    }
+  }
+  else                        /* no norm value */
+  {
+    Display_Char('-');        /* display: - */
+  }
+}
+
+#endif
+
+
+
+#ifdef FUNC_COLORCODE
+
+/*
+ *  show E series norm value color-codes
+ *
+ *  requires:
+ *  - Value: unsigned value
+ *  - Scale: exponent/multiplier (* 10^n)
+ *  - ESeries: E6-192
+ *  - Tolerance: in 0.1%
+ *  - TolBand: color of tolerance band
+ */
+
+void Show_ENormCodes(uint32_t Value, int8_t Scale, uint8_t ESeries, uint8_t Tolerance, uint16_t TolBand)
+{
+  uint8_t           n;             /* number of norm values (1 or 2) */
+  uint8_t           Pos;           /* char x position */
+
+  /*
+   *  tolerance band
+   *  - resistor
+   *    20%  10%    5%   2%  1%    0.5%  0.25% 0.1%   0.05%
+   *    none silver gold red brown green blue  violet grey
+   *  - inductor
+   *    20%   10%    5%   4%     3%     2%  1%    0.5%  0.25% 0.1%   0.05%
+   *    black silver gold yellow orange red brown green blue  violet grey
+   *  - caps: many different schemas
+   *
+   *  multiplier reference
+   *  - R:   0 (10^0)   -> 1 Ohms
+   *    C: -12 (10^-12) -> 1 pF
+   *    L:  -6 (10^-6)  -> 1 µH
+   *  - ref_scale as function argument?
+   *    scale = scale - ref_scale
+   */
+
+  /*
+   *  get E series norm values
+   *  - 1st: Semi.I_value, Semi.I_scale
+   *  - 2nd: Semi.C_value, Semi.C_scale
+   */
+
+  n = GetENormValue(Value, Scale, ESeries, Tolerance);
+
+
+  /*
+   *  show E series
+   */
+
+  Display_NextLine();                   /* move to next line */
+
+  /* display E series */
+  Display_Char('E');                    /* display: E */
+  Display_FullValue(ESeries, 0 , 0);    /* display E series */
+
+  Display_Space();                      /* display: " " */
+
+
+  /*
+   *  show color-codes of norm values
+   */
+
+  if (n)                      /* got norm value(s) */
+  {
+    Pos = UI.CharPos_X;       /* get current char position */
+
+    /* display color-code of first norm value */
+    Display_ColorCode(Semi.I_value, Semi.I_scale, TolBand);
+
+    if (n == 2)               /* got two norm values */
+    {
+      /* move to next line at same position (after E series) */
+      Display_NextLine();
+      LCD_CharPos(Pos, UI.CharPos_Y);
+
+      /* display color-code of second norm value */
+      Display_ColorCode(Semi.C_value, Semi.C_scale, TolBand);
+    }
+  }
+
+
+  #if 0
+  /*
+   *  color testing
+   */
+
+  uint16_t Color;
+
+  Display_NextLine();
+
+  /* first 5 colors plus gold */
+  n = 0;
+  while (n < 5)
+  {
+    Color = DATA_read_word((uint16_t *)&ColorCode_table[n]);
+    LCD_Band(Color, ALIGN_LEFT);
+    n++;
+  }
+  LCD_Band(COLOR_CODE_GOLD, ALIGN_RIGHT);
+
+  Display_NextLine();
+
+  /* last 5 colors plus silver */
+  while (n < 10)
+  {
+    Color = DATA_read_word((uint16_t *)&ColorCode_table[n]);
+    LCD_Band(Color, ALIGN_LEFT);
+    n++;
+  }
+  LCD_Band(COLOR_CODE_SILVER, ALIGN_RIGHT);
+
+  TestKey(0, CURSOR_BLINK);
+  #endif
+}
+
+#endif
 
 
 
@@ -326,7 +538,7 @@ void Show_Resistor(void)
   else                   /* single resistor */
   {
     /* get inductance and display if relevant */
-    if (MeasureInductor(R1) == 1)
+    if (MeasureInductor(R1) == 1)       /* inductor */
     {
       Display_Space();
       Display_Value(Inductor.Value, Inductor.Scale, 'H');
@@ -335,7 +547,84 @@ void Show_Resistor(void)
       /* set data for remote commands */
       Info.Flags |= INFO_R_L;      /* inductance measured */
       #endif
+
+      #ifdef SW_L_E6_T
+      /* show E series norm values for E6 20% */
+      Show_ENormValues(Inductor.Value, Inductor.Scale, E6, 200);
+      #endif
+
+      #ifdef SW_L_E12_T
+      /* show E series norm values for E12 10% */
+      Show_ENormValues(Inductor.Value, Inductor.Scale, E12, 100);
+      #endif
     }
+    #ifdef SW_R_EXX
+    else                           /* no inductance */
+    {
+      #ifdef SW_R_E24_5_T
+      /* show E series norm values for E24 5% */
+      Show_ENormValues(R1->Value, R1->Scale, E24, 50);
+      #endif
+
+      #ifdef SW_R_E24_5_CC
+      /* show E series norm value color-codes for E24 5% */
+      Show_ENormCodes(R1->Value, R1->Scale, E24, 50, COLOR_CODE_GOLD);
+      #endif
+
+      #ifdef SW_R_E24_1_T
+      /* show E series norm values for E24 1% */
+      Show_ENormValues(R1->Value, R1->Scale, E24, 10);
+      #endif
+
+      #ifdef SW_R_E24_1_CC
+      /* show E series norm value color-codes for E24 1% */
+      Show_ENormCodes(R1->Value, R1->Scale, E24, 10, COLOR_CODE_BROWN);
+      #endif
+
+      #ifdef SW_R_E96_T
+      /* show E series norm values for E96 1% */
+      Show_ENormValues(R1->Value, R1->Scale, E96, 10);
+      #endif
+
+      #ifdef SW_R_E96_CC
+      /* show E series norm value color-codes for E96 1% */
+      Show_ENormCodes(R1->Value, R1->Scale, E96, 10, COLOR_CODE_BROWN);
+      #endif
+    }
+    #endif
+  }
+  #elif defined (SW_R_EXX)
+  else                             /* single resistor */
+  {
+    #ifdef SW_R_E24_5_T
+    /* show E series norm values for E24 5% */
+    Show_ENormValues(R1->Value, R1->Scale, E24, 50);
+    #endif
+
+    #ifdef SW_R_E24_5_CC
+    /* show E series norm value color-codes for E24 5% */
+    Show_ENormCodes(R1->Value, R1->Scale, E24, 50, COLOR_CODE_GOLD);
+    #endif
+
+    #ifdef SW_R_E24_1_T
+    /* show E series norm values for E24 1% */
+    Show_ENormValues(R1->Value, R1->Scale, E24, 10);
+    #endif
+
+    #ifdef SW_R_E24_1_CC
+    /* show E series norm value color-codes for E24 1% */
+    Show_ENormCodes(R1->Value, R1->Scale, E24, 10, COLOR_CODE_BROWN);
+    #endif
+
+    #ifdef SW_R_E96_T
+    /* show E series norm values for E96 1% */
+    Show_ENormValues(R1->Value, R1->Scale, E96, 10);
+    #endif
+
+    #ifdef SW_R_E96_CC
+    /* show E series norm value color-codes for E96 1% */
+    Show_ENormCodes(R1->Value, R1->Scale, E96, 10, COLOR_CODE_BROWN);
+    #endif
   }
   #endif
 }
@@ -402,6 +691,16 @@ void Show_Capacitor(void)
     Display_NL_EEString_Space(I_leak_str);
     Display_Value(MaxCap->I_leak, -8, 'A');  /* in 10nA */
   }
+
+  #ifdef SW_C_E6_T
+  /* show E series norm values for E6 20% */
+  Show_ENormValues(MaxCap->Value, MaxCap->Scale, E6, 200);
+  #endif
+
+  #ifdef SW_C_E12_T
+  /* show E series norm values for E12 10% */
+  Show_ENormValues(MaxCap->Value, MaxCap->Scale, E12, 100);
+  #endif
 }
 
 
@@ -1260,20 +1559,25 @@ void Show_UJT(void)
  * ************************************************************************ */
 
 
-#ifdef HW_REF25
-
 /*
- *  external 2.5V voltage reference
+ *  manage voltage references
  */
 
-void Reference_2V5(void)
+void CheckVoltageRefs(void)
 {
+  #ifdef HW_REF25
   uint16_t          U_Ref;         /* reference voltage */
   uint32_t          Temp;          /* temporary value */
+  #endif
 
-  Cfg.Samples = 200;               /* do a lot of samples for high accuracy */
+
+  /*
+   *  external 2.5V voltage reference
+   */
+
+  #ifdef HW_REF25
+  Cfg.Samples = 200;               /* perform 200 ADC samples for high accuracy */
   U_Ref = ReadU(TP_REF);           /* read voltage of reference (mV) */
-  Cfg.Samples = ADC_SAMPLES;       /* set samples back to default */
 
   /* check for valid voltage range */
   if ((U_Ref > 2250) && (U_Ref < 2750))      /* voltage is fine */
@@ -1288,9 +1592,21 @@ void Reference_2V5(void)
   {
     Cfg.OP_Mode &= ~OP_EXT_REF;         /* clear flag */
   }
-}
+  #endif
 
-#endif
+
+  /*
+   *  internal 1.1V bandgap reference
+   */
+
+  Cfg.Bandgap = ReadU(ADC_BANDGAP);     /* dummy read for bandgap stabilization */
+  Cfg.Samples = 200;                    /* perform 200 ADC samples for high accuracy */
+  Cfg.Bandgap = ReadU(ADC_BANDGAP);     /* get voltage of bandgap reference (mV) */
+  Cfg.Bandgap += NV.RefOffset;          /* add voltage offset */
+
+  /* clean up */
+  Cfg.Samples = ADC_SAMPLES;            /* set ADC samples back to default */
+}
 
 
 
@@ -1314,12 +1630,14 @@ void PowerOff(void)
 
   cli();                                /* disable interrupts */
   wdt_disable();                        /* disable watchdog */
+  #ifdef POWER_SWITCH_SOFT
   POWER_PORT &= ~(1 << POWER_CTRL);     /* power off myself */
+  #endif
 
   /*
    *  As long as the user keeps the test button pressed the MCU is still
-   *  powered. Therefor we make sure that nothing happens by making the
-   *  MCU sleep which also saves power.
+   *  powered. Therefor we make sure that nothing happens by forcing the
+   *  MCU to sleep which also saves power. Same for a classic power switch.
    */
 
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);  /* set sleep mode to "power down" */
@@ -1457,18 +1775,20 @@ int main(void)
    *  init hardware
    */
 
+  #ifdef POWER_SWITCH_SOFT
   /* switch on power to keep me alive */
   POWER_DDR = (1 << POWER_CTRL);        /* set pin as output */
   POWER_PORT = (1 << POWER_CTRL);       /* set pin to drive power management transistor */
+  #endif
 
   /* set up MCU */
   MCUCR = (1 << PUD);                   /* disable pull-up resistors globally */
   ADCSRA = (1 << ADEN) | ADC_CLOCK_DIV; /* enable ADC and set clock divider */
 
   #ifdef HW_DISCHARGE_RELAY
-  /* init discharge relay (safe mode) */
+  /* init discharge relay (safe mode): short circuit probes */
                                         /* ADC_PORT should be 0 */
-  ADC_DDR = (1 << TP_REF);              /* short circuit probes */
+  ADC_DDR = (1 << TP_REF);              /* disable relay */
   #endif
 
   /* catch watchdog */  
@@ -1503,20 +1823,30 @@ int main(void)
   /* set to input by default */
 
   #ifdef HW_SERIAL
+  /* hardware or bitbang USART */
   Serial_Setup();                       /* set up TTL serial interface */
   #endif
 
   #ifdef HW_I2C
+  /* hardware or bitbang I2C */
   I2C_Setup();                          /* set up I2C bus */
   #endif
 
-  /* LCD module */
-  LCD_BusSetup();                       /* set up LCD bus */
+  #ifdef HW_SPI
+  /* hardware or bitbang SPI */
+  SPI_Setup();                          /* set up SPI bus */
+  #endif
+
+  /* display module */
+  LCD_BusSetup();                       /* set up display bus */
+
+  /* touch screen */
   #ifdef HW_TOUCH
   Touch_BusSetup();                     /* set up touch screen */
   #endif
 
   #ifdef ONEWIRE_IO_PIN
+  /* OneWire with dedicated IO pin */
   OneWire_Setup();                      /* set up OneWire bus */
   #endif
 
@@ -1540,7 +1870,15 @@ int main(void)
     Display_EEString(Timeout_str);      /* display: timeout */
     Display_NL_EEString(Error_str);     /* display: error */
     MilliSleep(2000);                   /* give user some time to read */
-    POWER_PORT &= ~(1 << POWER_CTRL);   /* power off myself */
+    #ifdef POWER_SWITCH_SOFT
+      POWER_PORT &= ~(1 << POWER_CTRL);      /* power off myself */
+    #elif defined (POWER_SWITCH_MANUAL)
+      /* enter sleep mode to prevent any further action */
+      /* user should power off tester */
+      set_sleep_mode(SLEEP_MODE_PWR_DOWN);   /* set sleep mode to "power down" */
+      sleep_mode();                          /* enter sleep mode */
+    #endif
+
     return 0;                           /* exit program */
   }
 
@@ -1664,11 +2002,11 @@ int main(void)
   Cfg.AutoScale = 1;                    /* enable ADC auto scaling */
   Cfg.RefFlag = 1;                      /* no ADC reference set yet */
   Cfg.Vcc = UREF_VCC;                   /* voltage of Vcc */
-  wdt_enable(WDTO_2S);		        /* enable watchdog (timeout 2s) */
+  wdt_enable(WDTO_2S);		        /* enable watchdog: timeout 2s */
 
   #ifdef HW_TOUCH
   /* adjust touch screen if not done yet */
-  if ((Touch.X_Left == 0) && (Touch.X_Right == 0))
+  if ((Touch.X_Start == 0) && (Touch.X_Stop == 0))     /* defaults */
   {
     Test = Touch_Adjust();         /* adjust touch screen */
 
@@ -1686,7 +2024,7 @@ int main(void)
 
 
   /*
-   *  main processing cycle
+   *  main processing loop (probing cycle)
    */
 
 cycle_start:
@@ -1725,7 +2063,10 @@ cycle_start:
   /* reset hardware */
   ADC_DDR = 0;                     /* set all pins of ADC port as input */
   #ifdef HW_DISCHARGE_RELAY
-    /* this also switches the discharge relay to remove the short circuit */
+    /*
+     *  This also enables the discharge relay via the external reference
+     *  and removes the short circuit.
+     */
   #endif
 
   UI.LineMode = LINE_KEEP;              /* next-line mode: keep first line */
@@ -1733,20 +2074,10 @@ cycle_start:
 
 
   /*
-   *  voltage reference
+   *  voltage references
    */
 
-  #ifdef HW_REF25
-  /* external 2.5V reference */
-  Reference_2V5();                      /* consider 2.5V reference */
-  #endif
-
-  /* internal bandgap reference */
-  Cfg.Bandgap = ReadU(ADC_BANDGAP);     /* dummy read for bandgap stabilization */
-  Cfg.Samples = 200;                    /* do a lot of samples for high accuracy */
-  Cfg.Bandgap = ReadU(ADC_BANDGAP);     /* get voltage of bandgap reference (mV) */
-  Cfg.Samples = ADC_SAMPLES;            /* set samples back to default */
-  Cfg.Bandgap += NV.RefOffset;          /* add voltage offset */ 
+  CheckVoltageRefs();                   /* manage voltage references */
 
 
   /*
@@ -1945,7 +2276,9 @@ show_component:
 cycle_control:
 
   #ifdef HW_DISCHARGE_RELAY
-  ADC_DDR = (1 << TP_REF);         /* short circuit probes */
+  /* discharge relay: short circuit probes */
+                                   /* ADC_PORT should be 0 */
+  ADC_DDR = (1 << TP_REF);         /* disable relay */
   #endif
 
   #ifdef SERIAL_RW
@@ -2024,7 +2357,8 @@ cycle_action:
     #endif
 
     #ifdef HW_DISCHARGE_RELAY
-    ADC_DDR = 0;                   /* remove short circuit */
+    /* discharge relay: remove short circuit */
+    ADC_DDR = 0;                   /* enable relay (via external reference) */
     /* todo: move this to MainMenu()? (after selecting item) */
     #endif
 

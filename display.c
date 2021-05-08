@@ -359,7 +359,7 @@ void Display_EEString_NL(const unsigned char *String)
  * ************************************************************************ */
 
 
-#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
+#if defined (FUNC_DISPLAY_HEXBYTE) || defined (SW_IR_TRANSMITTER)
 
 /*
  *  display single hexadecimal digit
@@ -385,7 +385,7 @@ void Display_HexDigit(uint8_t Digit)
 
 
 
-#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_ONEWIRE_SCAN) || defined (SW_FONT_TEST)
+#ifdef FUNC_DISPLAY_HEXBYTE
 
 /*
  *  display byte as hexadecimal number
@@ -452,7 +452,7 @@ void Display_HexValue(uint16_t Value, uint8_t Bits)
 
 
 
-#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO) || defined (SW_DS18B20) || defined (HW_EVENT_COUNTER) || defined (SW_DHTXX)
+#ifdef FUNC_DISPLAY_FULLVALUE
 
 /*
  *  display unsigned value plus unit
@@ -503,6 +503,7 @@ void Display_FullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
       #else
       Display_Char('.');                /* display: . */
       #endif
+
       while (DecPlaces > 0)             /* fill in more zeros if needed */
       {
         Display_Char('0');              /* display: 0 */
@@ -565,7 +566,7 @@ void Display_SignedFullValue(int32_t Value, uint8_t DecPlaces, unsigned char Uni
 void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit)
 {
   unsigned char     Prefix = 0;         /* prefix character */
-  uint8_t           Offset = 0;         /* exponent offset to next 10^3 step */
+  uint8_t           Offset = 0;         /* exponent offset to lower 10^3 step */
   uint8_t           Index;              /* index ID */
   uint8_t           Length;             /* string length */
 
@@ -584,7 +585,7 @@ void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit)
 
   if (Exponent >= -12)                  /* prevent index underflow */
   {
-    Exponent += 12;                     /* shift exponent to be >= 0 */ 
+    Exponent += 12;                     /* shift exponent to be >= 0 */
     Index = Exponent / 3;               /* number of 10^3 steps */
     Offset = Exponent % 3;              /* offset to lower 10^3 step */
 
@@ -622,10 +623,16 @@ void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit)
     #else
     Display_Char('.');                  /* display: . */
     #endif
-    if (Exponent < 0) Display_Char('0');     /* extra 0 for factor 100 */
+    if (Exponent < 0)                   /* factor 100 */
+    {
+      Display_Char('0');                /* additional 0 */
+    }
   }
 
-  if (Offset == 0) Exponent = -1;       /* disable dot if not needed */
+  if (Offset == 0)                 /* no dot needed */
+  {
+    Exponent = -1;                 /* disable dot */
+  }
 
   /* adjust position to match array or disable dot if set to 0 */ 
   Exponent--;
@@ -635,6 +642,7 @@ void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit)
   while (Index < Length)                /* loop through string */
   {
     Display_Char(OutBuffer[Index]);     /* display char/digit */
+
     if (Index == Exponent)              /* starting point of decimal fraction */
     {
       #ifdef UI_COMMA
@@ -680,6 +688,54 @@ void Display_SignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
 
 
 
+#ifdef FUNC_EVALUE
+
+/*
+ *  display E norm value
+ *
+ *  requires:
+ *  - Value: unsigned value (2 or 3 digits)
+ *  - Scale: exponent/multiplier (10^n)
+ */
+
+void Display_EValue(uint16_t Value, int8_t Scale, unsigned char Unit)
+{
+  uint8_t           Offset = 0;         /* exponent offset to lower 10^3 step */
+  int8_t            Temp;               /* temporary value */
+
+  /* calculate exponent offset to lower 10^3 step */
+  Temp = Scale;                    /* copy exponent */
+  Temp += 12;                      /* shift exponent to be >= 0 */
+  Offset = Temp % 3;               /* offset to lower 10^3 step */
+
+  /*
+   *  Since Display_Value() scales values to the next higher 10^3 step
+   *  we have to beautify some special cases to prevent things like
+   *  0.15M (150k looks much nicer).
+   */
+
+  if ((Offset == 1) && (Value < 100))      /* 0.01u and 0.11u */  
+  {
+    /* scale value to lower 10^3 step */
+    Value *= 10;              /* *10 */
+    Scale--;                  /* /10 */
+  }
+  #if 0
+  else if ((Offset == 2) && (Value < 10))  /* 0.1u */
+  {
+    /* scale value to lower 10^3 step */
+    Value *= 100;             /* *100 */
+    Scale -= 2;               /* /100 */
+  }
+  #endif
+
+  Display_Value(Value, Scale, Unit);       /* display value */
+}
+
+#endif
+
+
+
 /* ************************************************************************
  *   fancy pinout
  * ************************************************************************ */
@@ -691,7 +747,7 @@ void Display_SignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
  *  external variables
  */
 
-/* pin position lookup table from symbol_xy.h */
+/* pin position lookup table from symbols_<size>_<format>.h */
 extern const uint8_t PinTable[];
 
 
@@ -789,7 +845,7 @@ void LCD_FancySemiPinout(uint8_t Line)
       Line = 2;                    /* simply line #2 */
       Pos = 3;                     /* align to left side with tiny offset */
     }
-    else                      /* fit's on current screen */
+    else                      /* fits on current screen */
     {
       /* default x position */
       Pos = UI.CharMax_X - UI.SymbolSize_X;  /* align to right side */
@@ -912,6 +968,97 @@ void FontTest(void)
       }
     }
   }
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   color code
+ * ************************************************************************ */
+
+
+#ifdef FUNC_COLORCODE
+
+/*
+ *  display color code
+ *
+ *  requires:
+ *  - Value: unsigned value (2 or 3 digits)
+ *  - Scale: exponent/multiplier (10^n)
+ *  - TolBand: color of tolerance band
+ */
+
+void Display_ColorCode(uint16_t Value, int8_t Scale, uint16_t TolBand)
+{
+  uint8_t           Length;             /* string length */
+  uint8_t           n;                  /* counter */
+  uint8_t           Digit;              /* digit */
+  uint16_t          *Table;             /* pointer to table */
+  uint16_t          Color = 0;          /* display color */
+
+  /* convert value into string */
+  utoa(Value, OutBuffer, 10);           /* radix 10: max. 3 chars + /0 */
+  Length = strlen(OutBuffer);           /* get string length */
+
+
+  /*
+   *  value
+   */
+
+  n = 0;                           /* reset counter */
+  while (n < Length)               /* loop through string */
+  {
+    /* get digit */
+    Digit = OutBuffer[n];          /* get char */
+    Digit -= 48;                   /* convert to number */
+
+    /* read color value from table */
+    Table = (uint16_t *)&ColorCode_table[0];      /* pointer to table */
+    Table += Digit;                               /* add index */
+    Color = DATA_read_word(Table);                /* read color */
+
+    /* display band (left-aligned) */
+    LCD_Band(Color, ALIGN_LEFT);
+
+    n++;                           /* next one */
+  }
+
+
+  /*
+   *  multiplier
+   */
+
+  if (Scale >= 0)             /* use color code table */
+  {
+    /* read color value from table */
+    Table = (uint16_t *)&ColorCode_table[0];      /* pointer to table */
+    Table += Scale;                               /* add index */
+    Color = DATA_read_word(Table);                /* read color */
+  }
+  else                        /* assign color manually */
+  {
+    if (Scale == -1)          /* -1 / 0.1 */
+    {
+      Color = COLOR_CODE_SILVER;
+    }
+    else if (Scale == -2)     /* -2 / 0.01 */
+    {
+      Color = COLOR_CODE_GOLD;
+    }
+  }
+
+  /* display band (left-aligned) */
+  LCD_Band(Color, ALIGN_LEFT);
+
+
+  /*
+   *  tolerance
+   */
+
+  /* display band (right-aligned) */
+  LCD_Band(TolBand, ALIGN_RIGHT);
 }
 
 #endif

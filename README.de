@@ -3,30 +3,31 @@
 
             ReadMe für die Component-Tester-Firmware (m-Firmware)
 
-           für ATmega328/324/644/1284 mit Text- oder Grafikdisplay
-
         (c) 2012-2020 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2020-03-26
+Letzte Änderung: 2020-06-28
 
 Inhaltsübersicht:
   - Über den Tester
   - Sicherheitshinweise
   - Lizenz
     - Zusätzliche Hinweise
-  - Unterschiede
+  - Unterschiede zur k-Firmware
   - Quellcode
+  - Unterstützte Hardware
   - Firmware übersetzen
   - Busse & Schnittstellen
     - I2C/SPI
     - Serielle TTL-Schnittstelle
     - OneWire
-  - LCD-Module
+  - Anzeige-Module
     - HD44780
     - ILI9163
     - ILI9341/ILI9342
+    - ILI9481
+    - ILI9486
     - PCD8544
     - PCF8814
     - SSD1306
@@ -142,7 +143,7 @@ Produkt- oder Firmennamen können geschützte Marken der jeweiligen Eigentümer
 sein.
 
 
-* Unterschiede
+* Unterschiede zur k-Firmware
 
 Karl-Heinz hat eine richtig gute Doumentation für den Tester geschrieben.
 Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
@@ -192,6 +193,39 @@ hoffe, daß der Quellcode einfach zu lesen und gut verständlich ist.
 Du findest die aktuelle Firmware auf folgenden Webseiten:
 - https://www.mikrocontroller.net/svnbrowser/transistortester/Software/Markus
 - https://github.com/madires/Transistortester-Warehouse
+
+
+* Unterstützte Hardware
+
+Die Firmware läuft auf allen Testern, die zur Grundschaltung in Karl-Heinz's
+Dokumentation kompatibel sind und eine der folgenden MCUs nutzen:
+  - ATmega 328
+  - ATmega 324/644/1284
+  - ATmega 640/1280/2560
+
+Anpassungen an unterschiedliche Pin-Belegungen sind möglich. Als Anzeige kann
+man Text- oder Grafikdisplays (monochrom oder farbig) nutzen. Für die unter-
+stützen Controller bitte den Abschnitt "Anzeige-Module" konsultieren.
+
+Folgende Hardware-Optionen werden unterstützt:
+
+  Bedienung
+  - Drehimpulsgeber
+  - zusätzliche Tasten (mehr/weniger)
+  - Touch-Screen
+  - serielle Schnittstelle (TTL, RS232, USB-Seriell-Adapter)
+
+  Verbesserungen
+  - externe Spannungsreferenz 2,5V
+  - fester Abgleichkondensator
+  - Schutz-Relais zum Entladen von Kondensatoren
+
+  zusätzliche Tests und Messungen
+  - Zener-Test / Messung einer externen Spannung <50V
+  - einfacher Frequenzzähler
+  - erweiterter Frequenzzähler
+    mit Vorteiler und Quarzoszillatoren für niedrige und hohe Frequenzen 
+  - fester IR-RC-Empfänger
 
 
 * Firmware übersetzen
@@ -249,6 +283,8 @@ Und natürlich die Software-Optionen:
 - Ausgabe der gefundenen Bauteile parallel über TTL-Serielle, z.B auf PC
 - Fernsteuerkommandos über TTL-Serielle.
 - Ausgabe des umgekehrten hFE (C & E verdreht) für Bipolartransistoren
+- DHT11/22 Temperatur- und Luftfeuchtigkeitssensor
+- ...
 
 Bitte die Optionen entprechend Deinen Wünschen und den begrenzten Ressourcen 
 der MCU, d.h. RAM, EEPROM und Flash-Speicher, auswählen. Sollte die Firmware
@@ -287,9 +323,10 @@ Für die MCU-spezifischen Einstellungen, wie Pin-Zuordnungen und Display,
 editiere config_<MCU>.h:
 - ATmega 328                config_328.h
 - ATmega 324/644/1284       config_644.h
+- ATmega 640/1280/2560      config_1280.h
 
-Das LCD-Modul sollte min. 2 Zeilen mit min. 16 Zeichen haben. Für Grafikmodule
-einen Zeichensatz wählen, der die obige Bedingung erfüllt.
+Das Anzeige-Modul sollte min. 2 Zeilen mit min. 16 Zeichen haben. Für
+Grafikmodule einen Zeichensatz wählen, der die obige Bedingung erfüllt.
 
 Nach dem Editieren vom Makefile, config.h und config-<MCU>.h bitte "make"
 ausführen oder Dein IDE, um die Firmware zu übersetzen.
@@ -382,35 +419,48 @@ Beschaltung von Test-Pins:
   benötigt!
 
 
-* LCD-Module
+* Anzeige-Module
 
-Im Augenblick werden folgende LCD-Module bzw. Controller unterstützt:
+Im Augenblick werden folgende Controller unterstützt:
 - HD44780 (textbasiertes Display, 2-4 Zeilen mit je 16-20 Zeichen)
 - ILI9163 (grafisches Farb-Display 128x160)
 - ILI9341/ILI9342 (grafisches Farb-Display 240x320 oder 320x240)
+- ILI9481 (grafisches Farb-Display 320x480, ungetestet)
+- ILI9486 (grafisches Farb-Display 320x480, teilweise ungetestet)
 - PCD8544 (grafisches Display 84x48)
 - PCF8814 (grafisches Display 96x65)
 - SSD1306 (grafisches Display 128x64)
-- ST7036 (textbasiertes Display, 3 Zeilen mit je 16 Zeichen)
+- ST7036 (textbasiertes Display, 3 Zeilen mit je 16 Zeichen, ungetestet)
 - ST7565R (grafisches Display 128x64)
 - ST7735 (grafisches Farb-Display 128x160)
 - ST7920 (grafisches Display bis zu 256x64)
 - STE2007/HX1230 (grafisches Display 96x68)
 - VT100 Terminal
 
-Beachte die Versorgungsspannung und die Logikpegel des LCD-Moduls! Benutze
+Beachte die Versorgungsspannung und die Logikpegel des Anzeige-Moduls! Benutze
 Pegelumsetzer, sofern notwendig. Wenn das Display trotz korrekter Beschaltung
 nichts anzeigt, versuche den Kontrast zu ändern (config_<MCU>.h).
 
-Bei den meisten LCD-Modulen kannst Du die /CS und /RES Signale per Pullup/down-
-Widerstände fest verdrahten und die entsprechenden IO-Pins auskommentieren,
-sofern nur das LCD-Modul am Bus hängt. 
+Bei den meisten Anzeige-Modulen kannst Du die /CS und /RES Signale per Pullup/
+down-Widerstände fest verdrahten und die entsprechenden IO-Pins aus-
+kommentieren, sofern das Anzeige-Modul allein am Bus hängt. 
+
+Grafik-Anzeigen haben meistens Einstellmöglichkeiten für die Orientierung der
+Ausgabe, z.B. Bild um 90° rotieren, Bild horizontal spiegeln oder auch
+vertikal. Damit läßt sich das Bild an den jeweiligen Tester anpassen. Für
+grafische Farbanzeigen gibt es zusätzliche Einstellungen. Im normalen Farbmodus
+werden mehrere Farben verwendet, die mittels der Datei colors.h änderbar sind.
+Durch Auskommentieren von LCD_COLOR wird der Zwei-Farb-Modus aktiviert. Die
+Schriftfarbe ist dann COLOR_PEN und die Hintergrundfarbe COLOR_BACKGROUND.  
+Sollten die RGB-Grundfarben Rot und Blau vertauscht sein, kannst Du per LCD_BGR
+die entsprechenden Farbkanäle tauschen. Bei manchen Anzeigen ist die
+Reihenfolge der RGB-Unterpixel verdreht und der Controller weiss nichts davon.
 
 Hinweis zu ATmega 328:
-Wenn Du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom LCD-Modul
-mit PD5 und setze LCD_CS in config_328.h (nur für grafische LCD-Module).
-Anderenfalls würde der Drehencoder den Datenbus durcheinander bringen und
-zu fehlerhaften Ausgaben führen.
+Wenn Du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom Anzeige-
+Modul mit PD5 und setze LCD_CS in config_328.h (nur für grafische Anzeige-
+Module). Anderenfalls würde der Drehencoder den Datenbus durcheinander bringen
+und zu fehlerhaften Ausgaben führen.
 
 
 + HD44780
@@ -467,7 +517,7 @@ Anschalten kurz zufällige Pixel zu sehen.
 
 + ILI9341/ILI9342
 
-Der ILI9341/ILI9342 wird mittels SPI gesteuert. Die Pins sind:
+Der ILI9341/ILI9342 wird mittels 4-Line-SPI gesteuert. Die Pins sind:
 
   Modul       config-<MCU>.h   Standard     Hinweis
                                ATmega 328
@@ -477,19 +527,64 @@ Der ILI9341/ILI9342 wird mittels SPI gesteuert. Die Pins sind:
   D/C         LCD_DC           PD3
   SCK         LCD_SCK          PD2
   SDI         LCD_SDI          PD1
-  SDO         LCD_SDO          PD0          nur ILI9341, noch nicht benutzt
+  SDO         LCD_SDO          -            nur ILI9341, noch nicht benutzt
 
 Für eine korrekte Anzeige mußt Du evtl. mit den Einstellungen X/Y-Flip und
 Rotate experimentieren. Und nicht vergessen die X und Y-AUflösung korrekt
 zu setzen (ILI9341 ist 240x320 und ILI9342 ist 320x240).
 
-Der ILI9341/ILI9342 ist ein Farbdisplay-Controller, und Du kannst zwischen
-Einfarben oder Mehrfarben-Modus über die LCD_COLOR Definition im LCD-Bereich
-in config.h wählen (Standard: Einfarben-Modus).
-
 Aufgrund der hohen Pixelzahl ist die Ausgabe etwas langsam. Das Löschen der
 kompletten Anzeige dauert etwa 3 Sekunden bei 8MHz MCU-Takt, wenn Bit-Bang-
 SPI genutzt wird.
+
+
++ ILI9481 (ungetestet)
+
+Der ILI9481 wird per 8-Bit-Parallel oder 16-Bit-Parallel gesteuert.
+
+Das Pinout für 8-Bit-Parallel ist:
+
+  Modul       config-<MCU>.h   Standard     Hinweis
+                               ATmega 2560
+  ---------------------------------------------------------------
+              LCD_PORT         PORTB
+  /RESX       LCD_RES          PB4          optional
+  /CSX        LCD_CS           PB5          optional
+  D/CX        LCD_DC           PB7
+  WRX         LCD_WR           PB0
+  RDX         LCD_RD           PB6
+              LCD_PORT2        PORTL
+  DB0         LCD_DB0          PL0          LCD_PORT2 Pin #0
+  DB1         LCD_DB1          PL1          LCD_PORT2 Pin #1
+  DB2         LCD_DB2          PL2          LCD_PORT2 Pin #2
+  DB3         LCD_DB3          PL3          LCD_PORT2 Pin #3
+  DB4         LCD_DB4          PL4          LCD_PORT2 Pin #4
+  DB5         LCD_DB5          PL5          LCD_PORT2 Pin #5
+  DB6         LCD_DB6          PL6          LCD_PORT2 Pin #6
+  DB7         LCD_DB7          PL7          LCD_PORT2 Pin #7
+
+
+Die Pin-Belegung für 16-Bit-Parallel ist die gleiche wie bei 8-Bit-Parallel
+plus zusätzlich:
+
+              LCD_PORT3        PORTC
+  DB8         LCD_DB8          PC0          LCD_PORT3 Pin #0
+  DB9         LCD_DB9          PC1          LCD_PORT3 Pin #1
+  DB10        LCD_DB10         PC2          LCD_PORT3 Pin #2
+  DB11        LCD_DB11         PC3          LCD_PORT3 Pin #3
+  DB12        LCD_DB12         PC4          LCD_PORT3 Pin #4
+  DB13        LCD_DB13         PC5          LCD_PORT3 Pin #5
+  DB14        LCD_DB14         PC6          LCD_PORT3 Pin #6
+  DB15        LCD_DB15         PC7          LCD_PORT3 Pin #7
+
+Üblicherweise muß die Anzeige für die korrekte Darstellung rotiert werden (
+LCD_ROTATE). Falls nötig, kannst Du die auch X und/oder Y umdrehen. 
+
+
++ ILI9486 (teilweise ungetestet)
+
+Der ILI9486 wird per 8-Bit-Parallel oder 16-Bit-Parallel gesteuert. Und er
+benutzt die gleiche Pin-Belegung wie der ILI9481.
 
 
 + PCD8544
@@ -594,7 +689,7 @@ auszukommentieren.
 
 + ST7565R
 
-Der ST7565R wird mittels 4/5-Line-SPI gesteuert. Die Pins sind:
+Der ST7565R wird mittels 4-Line-SPI gesteuert. Die Pins sind:
 
   Modul       config-<MCU>.h   Standard     Hinweis
                                ATmega 328
@@ -611,7 +706,7 @@ X-Offset experimentieren.
 
 + ST7735
 
-Der ST7735 wird mittels 4-Draht-SPI gesteuert. Die Pins sind:
+Der ST7735 wird mittels 4-Line-SPI gesteuert. Die Pins sind:
 
   Modul       config-<MCU>.h   Standard     Hinweis
                                ATmega 328
@@ -753,19 +848,23 @@ rechts und unten entsprechend für "mehr" oder "Menüpunkt runter". Also die
 gleiche Funktion wie beim Drehencoder. Ein langes Berühren beschleunigt
 Änderungen in manchen Funktionen, ähnlich der Drehgeschwindigkeit beim Dreh-
 encoder. Die Fläche in der Mitte ist eine Software-Version der Test-Taste,
-d.h. damit wird z.B. nicht die Zener-Test-Option mit Strom versorgt.
+sie kann aber z.B. nicht die Zener-Test-Option mit Strom versorgen.
 
 Für die Benutzung des Touch-Screen ist ein Abgleich notwendig. Dieser wird
 automatisch nach dem Einschalten des Testers gestartet, wenn noch keine
 Abgleichwerte im EEPROM gespeichert sind. Man kann ihn auch über das Haupt-
 menü starten. Die Prozedur ist recht einfach. Wenn Du ein Sternchen (gelbes *
-bei Farb-LCDs) siehst, drauf drücken. Der Tester zeigt nach jeder Berührung
-die native x/y-Position an. Den Abgleich kannst Du jeder Zeit mit der Test-
-Taste abbrechen. Wenn Du Probleme mit dem Abgleich, wie z.B. seltsame x/y-
-Positionen, hast, überprüfe bitte die Orientierung des Touch-Screen zum LCD-
-Modul. Der Treiber hat Schalter zum Verdrehen und Vertauschen der Orientierung.
-Oben links wird als Nullpunkt angenommen. Hinweise zu den benötigten
-Einstellungen je nach x/y-Werten:
+bei Farb-LCDs) siehst, drauf drücken. Danach löscht der Tester das Sternchen
+und zeigt die native x/y-Position an. Der erste Abgleichspunkt ist oben rechts,
+und der zweite unten links. Je nach Ergebnis wiederholt der Tester den Abgleich
+bis zu dreimal. Den Abgleich kannst Du aber jeder Zeit mit der Test-Taste
+abbrechen.
+
+Wenn Du Probleme mit dem Abgleich, wie z.B. falsche x/y-Positionen oder einen
+Fehler nach der ersten Abgleichsrunde, hast, überprüfe bitte die Orientierung
+des Touch-Screen zum LCD-Modul. Der Treiber hat Schalter zum Verdrehen und
+Vertauschen der Orientierung. Oben links wird als Nullpunkt angenommen.
+Hinweise zu den benötigten Einstellungen je nach x/y-Werten:
 
   Erster Abgleichspunkt: oben rechts
 
@@ -783,8 +882,8 @@ Unterstützte Touch-Screen-Controller:
 - ADS7843 / XPT2046
 
 Du findest die Konfiguration dazu unterhalb des Bereichs für LCD-Module in
-config-<MCU>.h (momentan nur config_644.h, da der 328 zu wenig unbenutze
-IO-Pins hat).
+config-<MCU>.h (momentan nur config_644.h und config_1280.h, da der 328 zu
+wenig unbenutze IO-Pins hat).
 
 
 * Kommunikation mit PC
@@ -860,8 +959,13 @@ Abgleichwerte auf ihre Standards zurück setzen. Das kann praktisch sein, wenn
 z.B. der Kontrast vom LCD-Modul so verstellt ist, daß man nichts mehr sieht. 
 
 Wenn der Tester ein Problem mit den gespeicherten Abgleichwerten entdeckt (
-Problem mit dem EEPROM), zeigt er einen Prüfsummenfehler an und benutzt die
-Standardwerte stattdessen.
+Problem mit dem EEPROM), zeigt er einen Prüfsummenfehler an und benutzt 
+stattdessen die Firmware-Standardwerte.
+
+Bei einem Tester mit einem manuellen Ein/Aus-Schalter statt dem Soft-Latch-
+Schalter der Referenzschaltung bitte POWER_SWITCH_MANUAL in config.c
+aktivieren. In diesem Fall kann sich der Tester leider nicht selbst
+abschalten.
 
 
 * Bauteilesuche
@@ -1012,8 +1116,15 @@ Testpins. Solange die Test-Taste gedrückt wird, erzeugt der Konverter die
 Testspannung und die aktuelle Spannung wird angezeigt. Nach dem Loslassen
 der Taste wird die kleinste gemessene Spannung angezeigt, sofern der Test
 ausreichend lange für eine stabile Testspannung lief. Dieser Vorgang kann
-beliebig oft wiedrholt werden. Zum Beenden die Test-Taste zweimal kurz
+beliebig oft wiederholt werden. Zum Beenden die Test-Taste zweimal kurz
 hintereinander drücken.
+
+Wenn Dein Tester nur den 10:1 Spannungsteiler ohne Boost-Konverter zum
+Messen einer externen Spannung hat, oder der Boost-Konverter ständig läuft,
+kannst Du den alternativen Modus (ZENER_UNSWITCHED) aktivieren, welcher
+die Spannung periodisch ohne Drücken der Test-Taste misst. Zeigt der Tester
+zwischen den Messungen unten rechts einen Cursor an, kannst Du den Zenertest 
+über zweimaliges Drücken der Test-Taste beenden.
 
 Beschaltung für Zenerdiode:
    Pin +: Kathode
@@ -1674,6 +1785,18 @@ Messung mit höherer Auflösung durchgeführt.
 In seltenen Fällen kann der Tester sehr kleine Widerstände nicht erkennen. Am
 besten dann die Messung einfach wiederholen. 
 
+Wenn die optionale Prüfung auf E-Normwerte (SW_R_E*) aktiviert ist, nimmt
+der Tester den nächst kleineren und nächst größeren Normwert, und vergleicht
+diese mit dem gemessenen Widerstand unter Berücksichtigung der Bauteiltoleranz.
+Es gibt zwei Ausgabemodi. Im Text-Modus gibt der Tester die E-Serie plus
+Toleranz und passende Normwerte aus. Ein "-" bedeutet, dass kein Normwert
+passt. Im Farbcode-Modus zeigt der Tester die E-Serie und den Farbcode des
+Normwertes inklusive Farbband für die Toleranz. Die Farben können je nach
+Displaymodul und Farbkombinationen unterschiedlich ausfallen. Falls eine Farbe
+danebenliegt, einfach den Farbwert (COLOR_CODE_*) in der Datei colors.h
+entsprechend ändern. Eine Internetsuche nach "RGB565 tool" listet viele
+Online-Tools zum Auswählen der RGB565-Farbwerte. 
+
 
 * Kondensatoren
 
@@ -1720,10 +1843,14 @@ Von meinen Tests her scheinen folgende Werte typisch für Elkos zu sein:
   - 470-820µF   4-7µA
   - >1000µF     5-7µA pro 1000µF
 
+Die optionale Prüfung auf E-Normwerte gibt es ebenfalls für Kondensatoren (
+SW_C_E*), aber nur im Text-Modus, da es einfach zu viele unterschiedliche
+Farbcodes für Kondensatoren gibt.
+
 
 * Induktivitäten
 
-The Induktivitätsmessung ist nicht sonderloch genau, und Dinge wie z.B. der
+Die Induktivitätsmessung ist nicht sonderlich genau, und Dinge wie z.B. der
 MCU-Takt und die Platine haben Auswirkungen auf das Ergebnis. Die Messung
 selber basiert auf der Bestimmung der Zeit zwischen dem Einschalten des
 Stroms und dem Erreichen eines bestimmten Stroms. Für große Induktivitäten
@@ -1742,10 +1869,13 @@ Induktivität.
 Die Kompensation für die Hochstrommessung basiert auf den MCU-Takt und ist in
 drei Zeitbereiche unterteilt. Für die Niedrigstrommessung gibt es momentan nur
 eine einfache Kompensation, da hier noch weitere Tests notwendig sind. Wenn Du
-größere Abweichungen beim Vergleich mit einem "richtigen" LCR-Meter siehst,
+größere Abweichungen beim Vergleich mit einem richtigen LCR-Meter siehst,
 kannst Du die Offsetwerte entsprechend deinem Tester anpassen.
 
 Hinweis: Bei unerwarteten Messwerten bitte die Messung wiederholen.
+
+Wenn Du eine Prüfung auf E-Normwerte möchtest, bitte die SW_L_E*-Schalter
+in config.h aktivieren (nur Text-Modus).
 
 
 * Bauteile entladen

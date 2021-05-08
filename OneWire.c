@@ -588,7 +588,7 @@ uint8_t OneWire_Next_ROM_Code(void)
   uint8_t      Bit2;          /* bit complement */
   uint8_t      NewBit;        /* bit to send */
   uint8_t      CodeByte = 0;  /* byte counter for ROM code */
-  uint8_t      CodeBit = 1;   /* bit mask for ROM code */
+  uint8_t      CodeBit = 1;   /* bitmask for ROM code */
   uint8_t      Temp;          /* temporary value */
 
   wdt_reset();                /* reset watchdog */
@@ -670,9 +670,9 @@ uint8_t OneWire_Next_ROM_Code(void)
       }
 
       /* loop management */
-      if (CodeBit & 0b10000000)    /* bit mask overflow */
+      if (CodeBit & 0b10000000)    /* bitmask overflow */
       {
-        CodeBit = 0b00000001;      /* reset bit mask to first bit */
+        CodeBit = 0b00000001;      /* reset bitmask to first bit */
         CodeByte++;                /* next byte */
       }
       else                         /* no overflow */

@@ -1,9 +1,10 @@
 /* ************************************************************************
  *
  *   driver functions for PCD8544 compatible grafic displays
- *   - aka Nokia 3310/5110 display (LPH7366)
+ *   - AKA Nokia 3310/5110 display (LPH7366)
  *   - 84 x 48 pixels
- *   - SPI interface (4 and 5 line)
+ *   - interfaces
+ *     - 4 line SPI
  *
  *   (c) 2016-2020 by Markus Reschke
  *
@@ -105,7 +106,7 @@ uint8_t             Y_Start;       /* start position Y (bank) */
 
 
 /* ************************************************************************
- *   low level functions for SPI interface
+ *   low level functions for 4 line SPI interface
  * ************************************************************************ */
 
 
@@ -118,7 +119,7 @@ uint8_t             Y_Start;       /* start position Y (bank) */
 
 void LCD_BusSetup(void)
 {
-  uint8_t           Bits;          /* bitmask */
+  uint8_t           Bits;          /* register bits */
 
   /*
    *  set control signals
@@ -155,11 +156,14 @@ void LCD_BusSetup(void)
    *  - time window: 30 - 100ms after V_DD?
    */
 
+
   /*
    *  init SPI bus
+   *  - SPI bus is set up already in main()
    */
 
   #ifdef SPI_HARDWARE
+
   /*
    *  set SPI clock rate (max. 4MHz)
    */
@@ -184,9 +188,8 @@ void LCD_BusSetup(void)
     SPI.ClockRate = SPI_CLOCK_R0 | SPI_CLOCK_2X;
   #endif
 
+  SPI_Clock();                     /* update SPI clock */
   #endif
-
-  SPI_Setup();                     /* set up SPI bus */
 }
 
 

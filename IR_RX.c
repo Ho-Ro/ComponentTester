@@ -42,12 +42,12 @@
 #define IR_LSB                    1     /* LSB */
 #define IR_MSB                    2     /* MSB */
 
-/* bi-phase modes (bitmask) */
+/* bi-phase modes (bitfield) */
 #define IR_IEEE          0b00000001     /* IEEE bit encoding */
 #define IR_THOMAS        0b00000010     /* Thomas bit encoding */
 #define IR_PRE_PAUSE     0b00000100     /* heading pause */
 
-/* timing control flags (bitmask) */
+/* timing control flags (bitfield) */
 #define IR_STD_TOLER     0b00000000     /* use default tolerance */
 #define IR_RELAX_SHORT   0b00000001     /* relax short pulses */
 #define IR_RELAX_LONG    0b00000010     /* relax long pulses */

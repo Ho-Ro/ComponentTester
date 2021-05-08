@@ -29,12 +29,12 @@
 
 
 /* ************************************************************************
- *   support functions
+ *   probe management
  * ************************************************************************ */
 
 
 /*
- *  set up probes, bitmasks for probes and test resistors
+ *  set up probes, register bits for probes and test resistors
  *
  *  requires:
  *  - Probe1: pin ID [0-2], mostly high level pin
@@ -49,21 +49,23 @@ void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   Probes.ID_2 = Probe2;
   Probes.ID_3 = Probe3;
 
-  /* set masks using bitmask tables */
+  /* set register bits for probe resistors based on ID */
   Probes.Rl_1 = DATA_read_byte(&Rl_table[Probe1]);
   Probes.Rl_2 = DATA_read_byte(&Rl_table[Probe2]);
   Probes.Rl_3 = DATA_read_byte(&Rl_table[Probe3]);
   Probes.Rh_1 = DATA_read_byte(&Rh_table[Probe1]);
   Probes.Rh_2 = DATA_read_byte(&Rh_table[Probe2]);
   Probes.Rh_3 = DATA_read_byte(&Rh_table[Probe3]);
+
+  /* set register bits for ADC port pins based on ID */ 
   Probes.Pin_1 = DATA_read_byte(&Pin_table[Probe1]);
   Probes.Pin_2 = DATA_read_byte(&Pin_table[Probe2]);
   Probes.Pin_3 = DATA_read_byte(&Pin_table[Probe3]);
 
-  /* set ADC MUX input addresses */
-  Probes.ADC_1 = DATA_read_byte(&ADC_table[Probe1]);
-  Probes.ADC_2 = DATA_read_byte(&ADC_table[Probe2]);
-  Probes.ADC_3 = DATA_read_byte(&ADC_table[Probe3]);
+  /* set register bits for ADC MUX input channels based on ID */
+  Probes.Ch_1 = DATA_read_byte(&Channel_table[Probe1]);
+  Probes.Ch_2 = DATA_read_byte(&Channel_table[Probe2]);
+  Probes.Ch_3 = DATA_read_byte(&Channel_table[Probe3]);
 }
 
 
@@ -160,8 +162,8 @@ uint8_t ShortedPair(uint8_t Probe1, uint8_t Probe2)
   R_DDR = Probes.Rl_1 | Probes.Rl_2;    /* and pull down probe-2 via Rl */
 
   /* read voltages */
-  U1 = ReadU_5ms(Probes.ADC_1);
-  U2 = ReadU(Probes.ADC_2);
+  U1 = ReadU_5ms(Probes.Ch_1);
+  U2 = ReadU(Probes.Ch_2);
 
   /*
    *  We expect both probe voltages to be about the same and
@@ -219,7 +221,7 @@ void DischargeProbes(void)
   uint8_t           Counter;            /* loop control */
   uint8_t           Limit = 40;         /* sliding timeout (2s) */
   uint8_t           ID;                 /* test pin */
-  uint8_t           DischargeMask;      /* bitmask */
+  uint8_t           Flags;              /* discharge state flags */
   uint16_t          U_c;                /* current voltage */
   uint16_t          U_old[3];           /* old voltages */
 
@@ -249,18 +251,21 @@ void DischargeProbes(void)
    *    large caps.
    *  - A very large cap will discharge too slowly and an external voltage
    *    maybe never :)
+   *  - The voltage measured is the voltage across the divider formed by
+   *    the probe resistors. In case of a battery it's not the battery's
+   *    voltage.
    */
 
   Counter = 1;
   ID = 2;
-  DischargeMask = 0;
+  Flags = 0;
 
   while (Counter > 0)
   {
     ID++;                               /* next probe */
     if (ID > 2) ID = 0;                 /* start with probe #1 again */
 
-    if (DischargeMask & (1 << ID))      /* skip discharged probe */
+    if (Flags & (1 << ID))              /* skip discharged probe */
       continue;
 
     U_c = ReadU(ID);                    /* get voltage of probe */
@@ -288,7 +293,7 @@ void DischargeProbes(void)
 
     if (U_c <= CAP_DISCHARGED)          /* seems to be discharged */
     {
-      DischargeMask |= (1 << ID);       /* set flag */
+      Flags |= (1 << ID);               /* set flag for probe */
     }
     else if (U_c < 800)                 /* extra pull-down */
     {
@@ -296,7 +301,7 @@ void DischargeProbes(void)
       ADC_DDR |= DATA_read_byte(&Pin_table[ID]);
     }
 
-    if (DischargeMask == 0b00000111)    /* all probes discharged */
+    if (Flags == 0b00000111)              /* all probes discharged */
     {
       Counter = 0;                        /* end loop */
     }
@@ -352,6 +357,11 @@ void PullProbe(uint8_t Mask, uint8_t Mode)
 
 
 
+/* ************************************************************************
+ *   calculation support
+ * ************************************************************************ */
+
+
 /*
  *  lookup a voltage/ratio based factor in a table and interpolate it's value
  *  - value decreases with index position
@@ -385,14 +395,14 @@ uint16_t GetFactor(uint16_t U_in, uint8_t ID)
     TabStart = 1000;                         /* table starts at 1000mV */
     TabStep = 50;                            /* 50mV steps between entries */
     TabIndex = (NUM_SMALL_CAP - 2);          /* entries in table - 2 */
-    Table = (uint16_t *)&SmallCap_table[0];  /* pointer to table start */
+    Table = (uint16_t *)&SmallCap_table[0];  /* pointer to table */
   }
   else if (ID == TABLE_LARGE_CAP)
   {
     TabStart = 300;                          /* table starts at 1000mV */
     TabStep = 25;                            /* 25mV steps between entries */
     TabIndex = (NUM_LARGE_CAP - 2);          /* entries in table - 2 */
-    Table = (uint16_t *)&LargeCap_table[0];  /* pointer to table start */
+    Table = (uint16_t *)&LargeCap_table[0];  /* pointer to table */
   }
   #ifdef SW_INDUCTOR
   else if (ID == TABLE_INDUCTOR)
@@ -400,12 +410,12 @@ uint16_t GetFactor(uint16_t U_in, uint8_t ID)
     TabStart = 200;                          /* table starts at 200 */
     TabStep = 25;                            /* steps between entries */
     TabIndex = (NUM_INDUCTOR - 2);           /* entries in table - 2 */
-    Table = (uint16_t *)&Inductor_table[0];  /* pointer to table start */
+    Table = (uint16_t *)&Inductor_table[0];  /* pointer to table */
   }
   #endif
   else
   {
-    return 0;
+    return 0;                 /* signal error */
   }
 
   /*
@@ -442,6 +452,235 @@ uint16_t GetFactor(uint16_t U_in, uint8_t ID)
 
 
 
+#if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE)
+
+/*
+ *  get E series norm value(s)
+ *  - sets:
+ *    first value   second value   description
+ *    --------------------------------------------------------
+ *    Semi.I_value  Semi.C_value   norm value (10-99, 100-999)
+ *    Semi.I_scale  Semi.C_scale   multiplicator (10^n)
+ *  - range 10-99 for E series <= E24
+ *    range 100-999 for E series >= E48
+ *
+ *  requires:
+ *  - Value: unsigned value
+ *  - Scale: exponent/multiplier (* 10^n)
+ *  - E_Series: E24, E96
+ *  - Tolerance: tolerance (in 0.1%)
+ *
+ *  returns:
+ *  - 0 on any error or no matching norm values
+ *  - 1 for one matching norm value
+ *  - 2 for two matching norm values
+ */
+
+uint8_t GetENormValue(uint32_t Value, int8_t Scale, uint8_t E_Series, uint8_t Tolerance)
+{
+  uint8_t           Flag = 0;           /* return values */
+  uint16_t          *Table;             /* pointer to table */
+  uint8_t           Index;              /* table index */
+  uint8_t           n;                  /* counter */
+  uint16_t          Norm;               /* norm value */
+  uint16_t          LowVal = 0;         /* lower norm value */
+  uint16_t          HighVal = 0;        /* higher norm value */
+  int8_t            HighScale;          /* multiplier for higher norm value */
+  uint32_t          Value2;             /* normalized value */
+  uint32_t          Offset;             /* offset */
+
+  /*
+   *  E series implicates maximum tolerance (may be tighter)
+   *  E series:   E3   E6   E12   E24   E48   E96   E192
+   *  tolerance:  40%  20%  10%   5%    2%    1%    0.5%
+   *
+   *  E series <= E24 rounded to 1 trailing digit
+   *  E series >= E48 rounded to 2 trailing digits
+   */
+
+
+  /*
+   *  set up table specific stuff
+   *  - the norm values stored in the tables are scaled to 0.01
+   */
+
+  switch (E_Series)
+  {
+    #ifdef SW_E6
+    case E6:                                /* E6 */
+      Table = (uint16_t *)&E6_table[0];     /* pointer to table */
+      Index = NUM_E6;                       /* 6 values */
+      break;
+    #endif
+
+    #ifdef SW_E12
+    case E12:                                /* E12 */
+      Table = (uint16_t *)&E12_table[0];     /* pointer to table */
+      Index = NUM_E12;                       /* 12 values */
+      break;
+    #endif
+
+    #ifdef SW_E24
+    case E24:                                /* E24 */
+      Table = (uint16_t *)&E24_table[0];     /* pointer to table */
+      Index = NUM_E24;                       /* 24 values */
+      break;
+    #endif
+
+    #ifdef SW_E96
+    case E96:                                /* E96 */
+      Table = (uint16_t *)&E96_table[0];     /* pointer to table */
+      Index = NUM_E96;                       /* 96 values */
+      break;
+    #endif
+
+    default:                                 /* no matching E series */
+      return Flag;                           /* signal error */
+      break;
+  }
+
+
+  /*
+   *  normalize component value: 10000 - 99999
+   *  - for checking tolerance (2 decimal places)
+   */
+
+  while (Value >= 100000)     /* upper limit */
+  {
+    /* todo: round? */
+    Value /= 10;              /* /10 */
+    Scale++;                  /* +1 */
+  }
+
+  while (Value < 10000)       /* lower limit */
+  {
+    Value *= 10;              /* *10 */
+    Scale--;                  /* decrease multiplier */
+  }
+
+  Value2 = Value;             /* save normalized value */
+
+
+  /*
+   *  normalize component value: 100 - 999
+   *  - for finding norm values
+   */
+
+  while (Value >= 1000)       /* upper limit */
+  {
+    /* todo: round? */
+    Value /= 10;              /* /10 */
+    Scale++;                  /* increase multiplier */
+  }
+
+  HighScale = Scale;          /* save multiplier */
+
+
+  /*
+   *  get lower and higher norm value from table
+   */
+
+  n = 0;                      /* reset counter */
+
+  while (n < Index)           /* loop through table */
+  {
+    Norm = DATA_read_word(Table);  /* read norm value */
+
+    if (Norm < (uint16_t)Value)    /* norm value lower */
+    {
+      LowVal = Norm;               /* update lower norm value */
+    }
+    else                           /* norm value higher */
+    {
+      HighVal = Norm;              /* save higher norm value */
+      break;                       /* end loop */
+    }
+
+    Table++;                       /* next element */
+    n++;                           /* next one */
+  }
+
+  /* manage table index overflow */
+  if (n == Index)                  /* reached last element */
+  {
+    /* higher norm value is 1000 (100 and multiplier + 1) */
+    HighVal = 1000;
+  }
+
+
+  /*
+   *  check for match with lower norm value
+   */
+
+  /* calculate top limit */
+  Value = (uint32_t)LowVal * 100;  /* lower norm value plus two digits */
+  Offset = Value * Tolerance;      /* * tolerance (in 0.1%) */
+  Offset /= 1000;                  /* / (1000 * 0.1%) */
+  Value += Offset;                 /* add tolerance offset */
+
+  if (Value2 <= Value)             /* within tolerance */
+  {
+    if (Tolerance >= 50)           /* two digit value (>= 5%) */
+    {
+      LowVal /= 10;                /* scale to two digits */
+      Scale++;                     /* increase multiplier */
+    }
+
+    /* save result as first value (misuse Semi) */
+    Semi.I_value = LowVal;         /* norm value */
+    Semi.I_scale = Scale;          /* multiplier (10^n) */
+
+    Flag++;                        /* got a match */
+  }
+
+
+  /*
+   *  check for match with higher norm value
+   */
+
+  /* calculate bottom limit */
+  Value = (uint32_t)HighVal * 100; /* higher norm value plus two digits */
+  Offset = Value * Tolerance;      /* * tolerance (in 0.1%) */
+  Offset /= 1000;                  /* / (1000 * 0.1%) */
+  Value -= Offset;                 /* subtract tolerance offset */
+
+  if (Value2 >= Value)             /* within tolerance */
+  {
+    /* rescale special case (norm value 1000) */
+    if (HighVal == 1000)
+    {
+      HighVal = 100;               /* /10 */
+      HighScale++;                 /* increase multiplier */
+    }
+
+    if (Tolerance >= 50)           /* two digit value (>= 5%) */
+    {
+      HighVal /= 10;               /* scale to two digits */
+      HighScale++;                 /* increase multiplier */
+    }
+
+    if (Flag == 0)                 /* first match */
+    {
+      /* save result as first value (misuse Semi) */
+      Semi.I_value = HighVal;      /* norm value */
+      Semi.I_scale = HighScale;    /* multiplier (10^n) */
+    }
+    else                           /* second match */
+    {
+      /* save result as second value (misuse Semi) */
+      Semi.C_value = HighVal;      /* norm value */
+      Semi.C_scale = HighScale;    /* multiplier (10^n) */
+    }
+
+    Flag++;                        /* got a match */
+  }
+
+  return Flag;
+}
+#endif
+
+
+
 /* ************************************************************************
  *   identify component
  * ************************************************************************ */
@@ -465,7 +704,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   /* init */
   if (Check.Found == COMP_ERROR) return;   /* skip check on any error */
   wdt_reset();                             /* reset watchdog */
-  UpdateProbes(Probe1, Probe2, Probe3);    /* update bitmasks */
+  UpdateProbes(Probe1, Probe2, Probe3);    /* update register bits */
 
   /*
    *  We measure the current from probe 2 to ground with probe 1 pulled up
@@ -491,7 +730,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
    */
 
   PullProbe(Probes.Rl_3, PULL_10MS | PULL_DOWN);  /* discharge gate via Rl */
-  U_Rl = ReadU_5ms(Probes.ADC_2);                 /* get voltage at Rl */
+  U_Rl = ReadU_5ms(Probes.Ch_2);                  /* get voltage at Rl */
 
   /*
    *  If we got conduction we could have a p-channel FET. For any
@@ -506,7 +745,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
      */
 
     PullProbe(Probes.Rl_3, PULL_10MS | PULL_UP);  /* discharge gate via Rl */
-    U_Rl = ReadU_5ms(Probes.ADC_2);               /* get voltage at Rl */
+    U_Rl = ReadU_5ms(Probes.Ch_2);                /* get voltage at Rl */
   }
 
 

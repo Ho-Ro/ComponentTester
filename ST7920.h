@@ -2,7 +2,7 @@
  *
  *   ST7920 graphic display controller with built-in fonts
  *
- *   (c) 2017 by Markus Reschke
+ *   (c) 2017-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -92,6 +92,7 @@
 
 /*
  *  clear display (DDRAM)
+ *  - 1 byte cmd
  *  - fill with spaces and go to first character in first line
  *  - exec time: 1.6ms
  */
@@ -101,6 +102,7 @@
 
 /*
  *  return home (DDRAM)
+ *  - 1 byte cmd
  *  - go to first character in first line
  *  - exec time: 72탎
  */
@@ -110,6 +112,7 @@
 
 /*
  *  set entry mode
+ *  - 1 byte cmd
  *  - set cursor movement and display shifting
  *  - exec time: 72탎
  */
@@ -124,6 +127,7 @@
 
 /*
  *  display status
+ *  - 1 byte cmd
  *  - exec time: 72탎
  */
 
@@ -139,6 +143,7 @@
 
 /*
  *  cursor and display shift control
+ *  - 1 byte cmd
  *  - exec time: 72탎
  */
 
@@ -152,6 +157,7 @@
 
 /*
  *  function set
+ *  - 1 byte cmd
  *  - exec time: 72탎
  *  - can't set interface and instruction set at once
  */
@@ -166,6 +172,7 @@
 
 /*
  *  set CGRAM address
+ *  - 1 byte cmd
  *  - exec time: 72탎
  *  - valid range: 0x00 - 0x3F
  */
@@ -175,6 +182,7 @@
 
 /*
  *  set DDRAM address
+ *  - 1 byte cmd
  *  - exec time: 72탎
  */
 
@@ -189,6 +197,7 @@
 
 /*
  *  stand-by mode
+ *  - 1 byte cmd
  *  - any other new command disables stand-by
  *  - exec time: 72탎
  */
@@ -198,6 +207,7 @@
 
 /*
  *  vertical scroll or RAM address select
+ *  - 1 byte cmd
  *  - exec time: 72탎
  */
 
@@ -209,6 +219,7 @@
 
 /*
  *  reverse
+ *  - 1 byte cmd
  *  - another reverse command toggles the reverse condition
  *  - exec time: 72탎
  */
@@ -223,6 +234,7 @@
 
 /*
  *  extended function set
+ *  - 1 byte cmd
  *  - exec time: 72탎
  *  - can't set interface, instruction set or graphic display at once
  */
@@ -239,6 +251,7 @@
 
 /*
  *  set vertical scroll address
+ *  - 1 byte cmd
  *  - exec time: 72탎
  *  - 6 bits
  */
@@ -248,6 +261,7 @@
 
 /*
  *  set graphic RAM address
+ *  - 1 byte cmd
  *  - exec time: 72탎
  *  - 2 byte command
  */

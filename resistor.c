@@ -88,8 +88,14 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
   while (Mode > 0)
   {
     /* set up measurement */
-    if (Mode & MODE_HIGH) Probe = Probes.ADC_1;
-    else Probe = Probes.ADC_2;
+    if (Mode & MODE_HIGH)     /* high side mode */
+    {
+      Probe = Probes.Ch_1;    /* measure at probe 1 */
+    }
+    else                      /* low side mode */
+    {
+      Probe = Probes.Ch_2;    /* measure at probe 2 */
+    }
 
     wdt_reset();              /* reset watchdog */
     Counter = 0;              /* reset loop counter */
@@ -221,19 +227,25 @@ void CheckResistor(void)
 
   wdt_reset();                     /* reset watchdog */
 
+  #if 0
+  DischargeProbes();                         /* try to discharge probes */
+  if (Check.Found == COMP_ERROR) return;     /* skip on error */
+  #endif
+
   /*
    *  resistor measurement
    *  - We assume: resistor between probe-1 and probe-2
-   *  - Set up a voltage divider with well known probe resistors and
-   *    measure the voltage at the DUT.
+   *  - Set up a voltage divider with the DUT and a probe resistor, and
+   *    measure the voltage at the DUT. Do that for all variations (
+   *    DUT at bottom, DUT at top, Rl and Rh).
    *  - For low resistance consider the internal resistors of the MCU
    *    for pulling up/down.
    *  - Calculate resistance via the total current and the voltage
    *    at the DUT.
    *  - We could also use the voltage divider rule:
    *    (Ra / Rb) = (Ua / Ub) -> Ra = Rb * (Ua / Ub)
-   *  - A resistor has the same resistance in both directions.
-   *  - We measure both directions with both probe resistors.
+   *  - A resistor has the same resistance in both directions. So we compare
+   *    measurements for both directions to make sure it's a resistor.
    */
 
 
@@ -254,8 +266,8 @@ void CheckResistor(void)
   ADC_DDR = Probes.Pin_2;               /* pull down probe-2 directly */
   R_DDR = Probes.Rl_1;                  /* enable Rl for probe-1 */
   R_PORT = Probes.Rl_1;                 /* pull up probe-1 via Rl */
-  U_Ri_L = ReadU_5ms(Probes.ADC_2);     /* get voltage at internal R of MCU */
-  U_Rl_H = ReadU(Probes.ADC_1);         /* get voltage at Rl pulled up */
+  U_Ri_L = ReadU_5ms(Probes.Ch_2);      /* get voltage at internal R of MCU */
+  U_Rl_H = ReadU(Probes.Ch_1);          /* get voltage at Rl pulled up */
 
 
   /*
@@ -265,22 +277,22 @@ void CheckResistor(void)
   /* set probes: Gnd -- probe-2 / Gnd -- Rh -- probe-1 */
   R_PORT = 0;                           /* set resistor port low */
   R_DDR = Probes.Rh_1;                  /* pull down probe-1 via Rh */
-  U_Rh_L = ReadU_5ms(Probes.ADC_1);     /* get voltage at probe-1 */
+  U_Rh_L = ReadU_5ms(Probes.Ch_1);      /* get voltage at probe-1 */
 
   /* we got a resistor if the voltage is near Gnd */
   if (U_Rh_L <= 20)
   {
     /*
-     *  get voltage at Rh pulled up
+     *  get voltage for Rh pulled up
      */
 
     /* set probes: Gnd -- probe-2 / probe-1 -- Rh -- Vcc */
     R_PORT = Probes.Rh_1;                    /* pull up probe-1 via Rh */
-    U_Rh_H = ReadU_5ms(Probes.ADC_1);        /* get voltage at Rh pulled up */
+    U_Rh_H = ReadU_5ms(Probes.Ch_1);         /* get voltage at Rh pulled up */
 
 
     /*
-     *  get voltage at Rl pulled down and Rh pulled down
+     *  get voltage for Rl pulled down and Rh pulled down
      */
 
     /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
@@ -288,12 +300,12 @@ void CheckResistor(void)
     ADC_PORT = Probes.Pin_1;                 /* pull up probe-1 directly */
     R_PORT = 0;                              /* set resistor port to low */ 
     R_DDR = Probes.Rl_2;                     /* pull down probe-2 via Rl */
-    U_Ri_H = ReadU_5ms(Probes.ADC_1);        /* get voltage at internal R of MCU */
-    U_Rl_L = ReadU(Probes.ADC_2);            /* get voltage at Rl pulled down */
+    U_Ri_H = ReadU_5ms(Probes.Ch_1);         /* get voltage at internal R of MCU */
+    U_Rl_L = ReadU(Probes.Ch_2);             /* get voltage at Rl pulled down */
 
     /* set probes: Gnd -- Rh -- probe-2 / probe-1 -- Vcc */
     R_DDR = Probes.Rh_2;                /* pull down probe-2 via Rh */
-    U_Rh_L = ReadU_5ms(Probes.ADC_2);   /* get voltage at Rh pulled down */
+    U_Rh_L = ReadU_5ms(Probes.Ch_2);    /* get voltage at Rh pulled down */
 
     /* if voltage breakdown is sufficient */
     if ((U_Rl_H >= 4400) || (U_Rh_H <= 97))   /* R >= 5.1k or R < 9.3k */
@@ -611,10 +623,10 @@ void CheckResistor(void)
  *  check for a specific single resistor
  *
  *  requires:
- *  - HighPin = pin facing Vcc
- *  - LowPin = pin facing Gnd
- *  - maximum resistance in kOhms
- *    0: don't check limit
+ *  - HighPin: pin facing Vcc
+ *  - LowPin: pin facing Gnd
+ *  - Max: maximum resistance in kOhms
+ *         0: don't check limit
  */
 
 uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin, uint8_t Max)

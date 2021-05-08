@@ -2,7 +2,7 @@
  *
  *   ADC functions
  *
- *   (c) 2012-2019 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -33,7 +33,7 @@
 
 
 /*
- *  read ADC and return voltage in mV
+ *  read ADC channel and return voltage in mV
  *  - use Vcc as reference by default
  *  - switch to bandgap reference for low voltages (< 1.0V) to improve
  *    ADC resolution
@@ -41,24 +41,38 @@
  *    with 25 samples we end up with about 2.6ms
  *
  *  requires:
- *  - Probe: input channel of ADC MUX (lower 4 or 5 bits)
- *           must not include setting of voltage reference
- *
+ *  - Channel: ADC MUX input channel (register bits corresponding with MUX0-4)
+ *             (or MUX0-5 when support for pins ADC8-15 is enabled)
  */
 
-uint16_t ReadU(uint8_t Probe)
+uint16_t ReadU(uint8_t Channel)
 {
   uint16_t          U;             /* return value (mV) */
   uint8_t           Counter;       /* loop counter */
-  uint8_t           Bits;          /* reference bits */
+  uint8_t           Ref;           /* voltage reference register bits */
   uint32_t          Value;         /* ADC value */
 
-  Probe |= ADC_REF_VCC;            /* use AVcc as default reference */
-                                   /* and external buffer cap anyway */
+  /* AREF pin is connected to external buffer cap (1nF) */
+
+  #if 0
+  /* manage channels ADC8-15 */
+  if (Channel & 0b00100000)        /* bit 6 set: ADC8-15 */
+  {
+    ADCSRB |= (1 << MUX5);         /* set MUX5 */
+  }
+  else                             /* bit 6 not set: ADC0-7 */
+  {
+    ADCSRB &= ~(1 << MUX5);        /* clear MUX5 */
+  }
+
+  Channel &= 0b00011111;           /* filter bits 0-4 (MUX0-4) */
+  #endif
+
+  Channel |= ADC_REF_VCC;          /* add voltage reference: AVcc */
 
 sample:
 
-  ADMUX = Probe;                   /* set input channel and U reference */
+  ADMUX = Channel;                 /* set input channel and U reference */
 
   /* 
    *  dummy conversion
@@ -66,15 +80,22 @@ sample:
    *  - recommended by datasheet
    */
 
-  Bits = Probe & ADC_REF_MASK;     /* get bits for voltage reference */
-  if (Bits != Cfg.RefFlag)         /* reference has changed */
+  Ref = Channel & ADC_REF_MASK;    /* get register bits for voltage reference */
+  if (Ref != Cfg.RefFlag)          /* reference has changed */
   {
-    wait100us();                   /* time for voltage stabilization */
+    /* wait some time for voltage stabilization */
+    #ifndef ADC_LARGE_BUFFER_CAP
+      /* buffer cap: 1nF or none at all */
+      wait100us();                   /* 100µs */
+    #else
+      /* buffer cap: 100nF */
+      wait10ms();                    /* 10ms */
+    #endif
 
     ADCSRA |= (1 << ADSC);         /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
 
-    Cfg.RefFlag = Bits;            /* update bits */
+    Cfg.RefFlag = Ref;             /* update voltage reference */
   }
 
 
@@ -97,12 +118,12 @@ sample:
     {
       if ((uint16_t)Value < 1024)       /* < 1V (5V / 5 samples) */
       {
-        if (Bits != ADC_REF_BANDGAP)    /* bandgap ref not selected */
+        if (Ref != ADC_REF_BANDGAP)     /* bandgap ref not selected */
         {
           if (Cfg.AutoScale == 1)       /* autoscaling enabled */
           {
-            Probe &= ~ADC_REF_MASK;     /* clear reference bits */
-            Probe |= ADC_REF_BANDGAP;   /* select bandgap reference */
+            Channel &= ~ADC_REF_MASK;     /* clear reference bits */
+            Channel |= ADC_REF_BANDGAP;   /* select bandgap reference */
 
             goto sample;                /* re-run sampling */
           }
@@ -120,7 +141,7 @@ sample:
    */
 
   /* get voltage of reference used */
-  if (Bits == ADC_REF_BANDGAP)     /* bandgap reference */
+  if (Ref == ADC_REF_BANDGAP)      /* bandgap reference */
   {
     U = Cfg.Bandgap;                 /* voltage of bandgap reference */
   }
@@ -153,11 +174,11 @@ sample:
  *  - same as ReadU()
  */
 
-uint16_t ReadU_5ms(uint8_t Probe)
+uint16_t ReadU_5ms(uint8_t Channel)
 {
    wait5ms();       /* wait 5ms */
 
-   return (ReadU(Probe));
+   return (ReadU(Channel));
 }
 
 
@@ -167,11 +188,11 @@ uint16_t ReadU_5ms(uint8_t Probe)
  *  - same as ReadU()
  */
 
-uint16_t ReadU_20ms(uint8_t Probe)
+uint16_t ReadU_20ms(uint8_t Channel)
 {
   wait20ms();       /* wait 20ms */
 
-  return (ReadU(Probe));
+  return (ReadU(Channel));
 }
 
 

@@ -35,7 +35,7 @@
  *  local defines
  */
 
-/* mode bitmask */
+/* mode bitfield */
 #define MODE_LOW_CURRENT      0b00000001     /* low test current */
 #define MODE_HIGH_CURRENT     0b00000010     /* high test current */
 #define MODE_DELAYED_START    0b00000100     /* delayed start */
@@ -183,7 +183,7 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
   /* set up analog comparator */
   ADCSRA = ADC_CLOCK_DIV;               /* disable ADC, but keep clock dividers */
   ADCSRB = (1 << ACME);                 /* use ADC multiplexer as negative input */
-  ADMUX = ADC_REF_BANDGAP | Probes.ADC_2;   /* switch ADC multiplexer to probe-2 */
+  ADMUX = ADC_REF_BANDGAP | Probes.Ch_2;     /* switch ADC multiplexer to probe-2 */
                                         /* and set AREF to Vcc */
   ACSR = (1 << ACBG) | (1 << ACIC);     /* use bandgap as positive input, trigger timer1 */
   wait1ms();                            /* allow bandgap reference to settle */
@@ -282,6 +282,7 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
 
   /* enable ADC again */
   ADCSRA = (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
+  ADCSRB &= ~(1 << ACME);     /* disable ADC multiplexer as negative input */
 
 
   /*

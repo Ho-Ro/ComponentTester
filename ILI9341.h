@@ -2,13 +2,13 @@
  *
  *   ILI9341 color graphic display controller
  *
- *   (c) 2015-2016 by Markus Reschke
+ *   (c) 2015-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
 
 /* ************************************************************************
- *   regulative command set
+ *   regular command set
  * ************************************************************************ */
 
 
@@ -55,14 +55,14 @@
 #define FLAG_STAT_HOR_NORM    0b00000000     /* left to right */
 #define FLAG_STAT_HOR_REV     0b00000010     /* right to left */
   /* RGB/BGR order */
-#define FLAG_STAT_RGB         0b00000000     /* RGB */
-#define FLAG_STAT_BGR         0b00000100     /* BGR */
+#define FLAG_STAT_COLOR_RGB   0b00000000     /* RGB */
+#define FLAG_STAT_COLOR_BGR   0b00000100     /* BGR */
   /* vertical refresh: */
 #define FLAG_STAT_VER_NORM    0b00000000     /* top to bottom */
 #define FLAG_STAT_VER_REV     0b00001000     /* bottom to top */
   /* row/column exchange: */
-#define FLAG_STAT_EXCH_NORM   0b00000000     /* normal */
-#define FLAG_STAT_EXCH_REV    0b00010000     /* reversed */
+#define FLAG_STAT_XY_NORM     0b00000000     /* normal */
+#define FLAG_STAT_XY_REV      0b00010000     /* reversed (X & Y swapped) */
   /* column address order: */
 #define FLAG_STAT_COL_NORM    0b00000000     /* left to right */
 #define FLAG_STAT_COL_REV     0b00100000     /* right to left */
@@ -91,7 +91,7 @@
 #define FLAG_STAT_PIX_18      0b01100000     /* 18 bits per pixel */
 
 /* data byte #4: status */
-  /* gamma curve bit #2: always 0 */
+  /* gamma curve - bit 2: bit 0 (always 0) */
   /* tearing effect line: */
 #define FLAG_STAT_TEAR_OFF    0b00000000     /* off */
 #define FLAG_STAT_TEAR_ON     0b00000010     /* on */
@@ -103,8 +103,14 @@
   /* tearing effect line mode: */
 #define FLAG_STAT_TEAR_MODE1  0b00000000     /* mode 1: V-blanking */
 #define FLAG_STAT_TEAR_MODE2  0b00100000     /* mode 2: V-blanking and H-blanking */
-  /* gamma curve bits #1 and #0 (bit #2 is always 0): */
-#define FLAG_STAT_GAMMA1      0b00000000     /* gamma curve 1 */
+  /* gamma curve - bits 1 and 0: */
+#define FLAG_STAT_GAMMA1      0b00000000     /* gamma curve 1 (GG2.2) */
+                                             /* ILI9342 only: */
+#define FLAG_STAT_GAMMA2      0b01000000     /* gamma curve 2 (GC1.8) */
+#define FLAG_STAT_GAMMA3      0b10000000     /* gamma curve 3 (GC2.5) */
+#define FLAG_STAT_GAMMA4      0b11000000     /* gamma curve 4 (GC1.0) */
+
+
 
 
 /*
@@ -149,23 +155,23 @@
 /* data byte #2: status */
 /* same as byte #1 of CMD_MEM_CTRL */
   /* horizontal refereshing direction: */
-#define RFLAG_MH_NORM         0b00000000     /* left to right */
-#define RFLAG_MH_REV          0b00000100     /* right to left */
+#define RFLAG_HREFRESH_NORM   0b00000000     /* left to right */
+#define RFLAG_HREFRESH_REV    0b00000100     /* right to left */
   /* color selector switch: */
-#define RFLAG_BGR_RGB         0b00000000     /* RGB color filter */
-#define RFLAG_BGR_BGR         0b00001000     /* BGR color filter */
+#define RFLAG_COLOR_RGB       0b00000000     /* RGB color filter */
+#define RFLAG_COLOR_BGR       0b00001000     /* BGR color filter */
   /* vertical refereshing direction: */
-#define RFLAG_ML_NORM         0b00000000     /* top to bottom */
-#define RFLAG_ML_REV          0b00010000     /* bottom to top */
-  /* MCU to memory direction for row column exchange: */
-#define RFLAG_MV_NORM         0b00000000     /* normal */
-#define RFLAG_MV_REV          0b00100000     /* reversed */
-  /* MCU to memory direction for columns: */
-#define RFLAG_MX_NORM         0b00000000     /* left to right */
-#define RFLAG_MX_REV          0b01000000     /* right to left */
-  /* MCU to memory direction for rows: */
-#define RFLAG_MY_NORM         0b00000000     /* top to bottom */
-#define RFLAG_MY_REV          0b10000000     /* bottom to top */
+#define RFLAG_VREFRESH_NORM   0b00000000     /* top to bottom */
+#define RFLAG_VREFRESH_REV    0b00010000     /* bottom to top */
+  /* page/column order (exchange): */
+#define RFLAG_XY_NORM         0b00000000     /* normal */
+#define RFLAG_XY_REV          0b00100000     /* reversed */
+  /* column address order: */
+#define RFLAG_COL_NORM        0b00000000     /* left to right */
+#define RFLAG_COL_REV         0b01000000     /* right to left */
+  /* page (row) address order: */
+#define RFLAG_PAGE_NORM       0b00000000     /* top to bottom */
+#define RFLAG_PAGE_REV        0b10000000     /* bottom to top */
 
 
 /*
@@ -178,11 +184,11 @@
 /* data byte #1: dummy data */
 
 /* data byte #2: status */
-/* same as byte #1 of CMD_PIX_FORMAT_SET */
-  /* pixel format of MCU interface: */
+/* same as byte #1 of CMD_SET_PIX_FORMAT */
+  /* pixel format of display bus interface (MCU interface): */
 #define RFLAG_DBI_16          0b00000101     /* 16 bits per pixel */
 #define RFLAG_DBI_18          0b00000110     /* 18 bits per pixel */
-  /* pixel format of RGB interface: */
+  /* pixel format of display pixel interface (RGB interface): */
 #define RFLAG_DPI_16          0b01010000     /* 16 bits per pixel */
 #define RFLAG_DPI_18          0b01100000     /* 18 bits per pixel */
   /* data transfer: */
@@ -201,7 +207,11 @@
 
 /* data byte #2: status */
   /* gamma curve */
-#define FLAG_IMG_GAMMA1       0b00000000     /* gamma curve 1 */
+#define FLAG_IMG_GAMMA1       0b00000000     /* gamma curve 1 (GC0) */
+                                             /* ILI9342 only: */
+#define FLAG_IMG_GAMMA2       0b00000001     /* gamma curve 2 (GC1.8) */
+#define FLAG_IMG_GAMMA3       0b00000010     /* gamma curve 3 (GC2.5) */
+#define FLAG_IMG_GAMMA4       0b00000011     /* gamma curve 4 (GC1.0) */
 
 
 /*
@@ -257,7 +267,7 @@
 
 
 /*
- *  leave sleep mode (sleep out)
+ *  exit sleep mode (sleep out)
  *  - 1 byte cmd
  */
 
@@ -304,7 +314,11 @@
 #define CMD_GAMMA_SET         0b00100110     /* gamma set */
 
 /* data byte #1: gamma curve */
-#define FLAG_GC_1             0b00000001     /* gamma curve 1 */
+#define FLAG_GC_1             0b00000001     /* gamma curve 1 (G2.2) */
+                                             /* ILI9342 only: */
+#define FLAG_GC_2             0b00000010     /* gamma curve 2 (GC1.8) */
+#define FLAG_GC_3             0b00000100     /* gamma curve 3 (GC2.5) */
+#define FLAG_GC_4             0b00001000     /* gamma curve 4 (GC1.0) */
 
 
 /*
@@ -324,35 +338,35 @@
 
 
 /*
- *  set column address (accessable frame area)
+ *  set column address (accessible frame area)
  *  - 1 byte cmd + 4 bytes data
  */
 
 #define CMD_COL_ADDR_SET      0b00101010     /* set column address */
 
-/* data byte #1: start column, MSB (bits 15-8) */
-/* data byte #2: start column, LSB (bits 7-0) */
-/* data byte #3: end column, MSB (bits 15-8) */
-/* data byte #4: end column, LSB (bits 7-0) */
+/* data byte #1: start column - MSB (bits 15-8) */
+/* data byte #2: start column - LSB (bits 7-0) */
+/* data byte #3: end column - MSB (bits 15-8) */
+/* data byte #4: end column - LSB (bits 7-0) */
 /* valid range: 0x0000 - 0x00ef/0x013f */
 
 
 /*
- *  set page address (row, accessable frame area)
+ *  set page address (row, accessible frame area)
  *  - 1 byte cmd + 4 bytes data
  */
 
 #define CMD_PAGE_ADDR_SET     0b00101011     /* set page address */
 
-/* data byte #1: start page, MSB (bits 15-8) */
-/* data byte #2: start page, LSB (bits 7-0) */
-/* data byte #3: end page, MSB (bits 15-8) */
-/* data byte #4: end page, LSB (bits 7-0) */
+/* data byte #1: start page - MSB (bits 15-8) */
+/* data byte #2: start page - LSB (bits 7-0) */
+/* data byte #3: end page - MSB (bits 15-8) */
+/* data byte #4: end page - LSB (bits 7-0) */
 /* valid range: 0x0000 - 0x013f/0x00ef */
 
 
 /*
- *  write memory (starting at SC, SP)
+ *  write memory (starting at Start Column and Start Page)
  *  - 1 byte cmd + x bytes data
  */
 
@@ -374,7 +388,7 @@
 
 
 /*
- *  read memory (starting at SC, SP)
+ *  read memory (starting at Start Column and Start Page)
  *  - 1 byte cmd + x bytes data (read mode)
  */
 
@@ -391,10 +405,10 @@
 
 #define CMD_PARTIAL_AREA      0b00110000     /* set partial area */
 
-/* data byte #1: start row, MSB (bits 15-8) */
-/* data byte #2: start row, LSB (bits 7-0) */
-/* data byte #3: end row, MSB (bits 15-8) */
-/* data byte #4: end row, LSB (bits 7-0) */
+/* data byte #1: start row - MSB (bits 15-8) */
+/* data byte #2: start row - LSB (bits 7-0) */
+/* data byte #3: end row - MSB (bits 15-8) */
+/* data byte #4: end row - LSB (bits 7-0) */
 /* valid range: 0x0000 - 0x013f */
 
 
@@ -405,12 +419,12 @@
 
 #define CMD_V_SCROLL_DEF      0b00110011     /* set vertical scrolling area */
 
-/* data byte #1: top fixed area line number, MSB (bits 15-8) */
-/* data byte #2: top fixed area line number, LSB (bits 7-0) */
-/* data byte #3: height of scrolling area, MSB (bits 15-8) */
-/* data byte #4: height of scrolling area, LSB (bits 7-0) */
-/* data byte #5: bottom fixed area line number, MSB (bits 15-8) */
-/* data byte #6: bottom fixed area line number, LSB (bits 7-0) */
+/* data byte #1: top fixed area line number - MSB (bits 15-8) */
+/* data byte #2: top fixed area line number - LSB (bits 7-0) */
+/* data byte #3: height of scrolling area - MSB (bits 15-8) */
+/* data byte #4: height of scrolling area - LSB (bits 7-0) */
+/* data byte #5: bottom fixed area line number - MSB (bits 15-8) */
+/* data byte #6: bottom fixed area line number - LSB (bits 7-0) */
 
 
 /*
@@ -429,8 +443,8 @@
 #define CMD_TEAR_ON           0b00110101     /* enable tearing effect */
 
 /* data byte #1: mode */
-#define FLAG_M_0              0b00000000     /* V-blanking only */
-#define FLAG_M_1              0b00000001     /* V-blanking and H-blanking */
+#define FLAG_TEAR_MODE_0      0b00000000     /* V-blanking only */
+#define FLAG_TEAR_MODE_1      0b00000001     /* V-blanking and H-blanking */
 
 
 /*
@@ -443,23 +457,23 @@
 /* data byte #1: read/write scanning direction of frame memory */
 /* same as byte #2 of CMD_READ_MADCTL */
   /* horizontal refereshing direction: */
-#define FLAG_MH_NORM          0b00000000     /* left to right */
-#define FLAG_MH_REV           0b00000100     /* right to left */
+#define FLAG_HREFRESH_NORM    0b00000000     /* left to right */
+#define FLAG_HREFRESH_REV     0b00000100     /* right to left */
   /* color selector switch: */
-#define FLAG_BGR_RGB          0b00000000     /* RGB color filter */
-#define FLAG_BGR_BGR          0b00001000     /* BGR color filter */
+#define FLAG_COLOR_RGB        0b00000000     /* RGB color filter */
+#define FLAG_COLOR_BGR        0b00001000     /* BGR color filter */
   /* vertical refereshing direction: */
-#define FLAG_ML_NORM          0b00000000     /* top to bottom */
-#define FLAG_ML_REV           0b00010000     /* bottom to top */
-  /* MCU to memory direction for row column exchange: */
-#define FLAG_MV_NORM          0b00000000     /* normal */
-#define FLAG_MV_REV           0b00100000     /* reversed (swap x and y) */
-  /* MCU to memory direction for columns: */
-#define FLAG_MX_NORM          0b00000000     /* left to right */
-#define FLAG_MX_REV           0b01000000     /* right to left */
-  /* MCU to memory direction for rows: */
-#define FLAG_MY_NORM          0b00000000     /* top to bottom */
-#define FLAG_MY_REV           0b10000000     /* bottom to top */
+#define FLAG_VREFRESH_NORM    0b00000000     /* top to bottom */
+#define FLAG_VREFRESH_REV     0b00010000     /* bottom to top */
+  /* page/column order (exchange): */
+#define FLAG_XY_NORM          0b00000000     /* normal */
+#define FLAG_XY_REV           0b00100000     /* reversed (swap x and y) */
+  /* column address order: */
+#define FLAG_COL_NORM         0b00000000     /* left to right */
+#define FLAG_COL_REV          0b01000000     /* right to left */
+  /* page (row) address order: */
+#define FLAG_PAGE_NORM        0b00000000     /* top to bottom */
+#define FLAG_PAGE_REV         0b10000000     /* bottom to top */
 
 
 /*
@@ -474,11 +488,11 @@
 
 
 /*
- *  leave idle mode (full color depth)
+ *  exit idle mode (full color depth)
  *  - 1 byte cmd
  */
 
-#define CMD_IDLE_OFF          0b00111000     /* disable idle mode */
+#define CMD_IDLE_OFF          0b00111000     /* idle mode off */
 
 
 /*
@@ -486,7 +500,7 @@
  *  - 1 byte cmd
  */
 
-#define CMD_IDLE_ON           0b00111001     /* enable idle mode */
+#define CMD_IDLE_ON           0b00111001     /* idle mode on */
 
 
 /*
@@ -494,14 +508,14 @@
  *  - 1 byte cmd + 1 byte data
  */
 
-#define CMD_PIX_FORMAT_SET    0b00111010     /* set pixel format */
+#define CMD_SET_PIX_FORMAT    0b00111010     /* set pixel format */
 
 /* data byte #1: formats */
 /* same as byte #2 of CMD_READ_PIX_FORMAT */
-  /* pixel format of MCU interface: */
+  /* pixel format of display bus interface (MCU interface): */
 #define FLAG_DBI_16           0b00000101     /* 16 bits per pixel */
 #define FLAG_DBI_18           0b00000110     /* 18 bits per pixel */
-  /* pixel format of RGB interface: */
+  /* pixel format of display pixel interface (RGB interface): */
 #define FLAG_DPI_16           0b01010000     /* 16 bits per pixel */
 #define FLAG_DPI_18           0b01100000     /* 18 bits per pixel */
 
@@ -534,11 +548,11 @@
 
 #define CMD_SET_SCANLINE      0b01000100     /* set scanline */
 
-/* data byte #1: line number, MSB (bit 8) */
+/* data byte #1: line number - MSB (bit 8) */
 #define FLAG_STS_HIGH_MIN     0b00000000     /* minimum value */
 #define FLAG_STS_HIGH_MAX     0b00000001     /* maximum value */
 
-/* data byte #2: line number, LSB (bits 7-0)*/
+/* data byte #2: line number - LSB (bits 7-0) */
 #define FLAG_STS_LOW_MIN      0b00000000     /* minimum value */
 #define FLAG_STS_LOW_MAX      0b11111111     /* maximum value */
 
@@ -548,11 +562,11 @@
  *  - 1 byte cmd + 3 bytes data (read mode)
  */
 
-#define CMD_GET_SCANLINE      0b01000100     /* get scanline  */
+#define CMD_READ_SCANLINE     0b01000100     /* read scanline  */
 
 /* data byte #1: dummy data */
-/* data byte #2: line number, MSB (bits 9-8) */
-/* data byte #3: line number, LSB (bits 7-0) */
+/* data byte #2: line number - MSB (bits 9-8) */
+/* data byte #3: line number - LSB (bits 7-0) */
 
 
 /*
@@ -563,8 +577,8 @@
 #define CMD_WRITE_BRIGHT      0b01010001     /* write display brightness */
 
 /* data byte #1: brightness value */
-#define FLAG_DBV_MIN          0b00000000     /* minimum value */
-#define FLAG_DBV_MAX          0b11111111     /* maximum value */
+#define FLAG_BRIGHT_MIN       0b00000000     /* minimum value */
+#define FLAG_BRIGHT_MAX       0b11111111     /* maximum value */
 
 
 /*
@@ -587,11 +601,11 @@
 
 /* data byte #1: settings */
   /* backlight: */
-#define FLAG_BL_OFF           0b00000000     /* off */
-#define FLAG_BL_ON            0b00000100     /* on */
+#define FLAG_BACKLIGHT_OFF    0b00000000     /* off */
+#define FLAG_BACKLIGHT_ON     0b00000100     /* on */
   /* display dimming for manual brightness setting: */
-#define FLAG_DD_OFF           0b00000000     /* off */
-#define FLAG_DD_ON            0b00001000     /* on */
+#define FLAG_DIMMING_OFF      0b00000000     /* off */
+#define FLAG_DIMMING_ON       0b00001000     /* on */
   /* brightness control block: */
 #define FLAG_BCTRL_OFF        0b00000000     /* off (registers are 0x00) */
 #define FLAG_BCTRL_ON         0b00100000     /* on (registers are active) */
@@ -616,10 +630,10 @@
 #define CMD_WRITE_CABC        0b01010101     /* write content adaptive brightness control */
 
 /* data byte #1: mode */
-#define FLAG_C_OFF            0b00000000     /* off */
-#define FLAG_C_INTERFACE      0b00000001     /* user interface image */
-#define FLAG_C_STILL          0b00000010     /* still picture */
-#define FLAG_C_MOVING         0b00000011     /* moving image */
+#define FLAG_CABC_OFF         0b00000000     /* off */
+#define FLAG_CABC_INTERFACE   0b00000001     /* user interface image */
+#define FLAG_CABC_STILL       0b00000010     /* still picture */
+#define FLAG_CABC_MOVING      0b00000011     /* moving image */
 
 
 /*
@@ -630,7 +644,7 @@
 #define CMD_READ_CABC         0b01010110     /* read CABC */
 
 /* data byte #1: dummy data */
-/* data byte #2: mode, please see FLAG_C_* above */
+/* data byte #2: mode, please see FLAG_CABC_* above */
 
 
 /*
@@ -657,33 +671,33 @@
 
 
 /*
- *  read ID1
+ *  read ID1 (manufacturer)
  *  - 1 byte cmd + 2 bytes data (read mode)
  */
 
-#define CMD_READ_ID1          0b11011010     /* read ID1 (manufacturer) */
+#define CMD_READ_ID1          0b11011010     /* read ID1 */
 
 /* data byte #1: dummy data */
-/* data byte #2: LCD module manufacturer ID */
+/* data byte #2: LCD module's manufacturer ID */
 
 
 /*
- *  read ID2
+ *  read ID2 (driver version)
  *  - 1 byte cmd + 2 bytes data (read mode)
  */
 
-#define CMD_READ_ID2          0b11011011     /* read ID2 (driver version) */
+#define CMD_READ_ID2          0b11011011     /* read ID2 */
 
 /* data byte #1: dummy data */
 /* data byte #2: LCD module/driver version */
 
 
 /*
- *  read ID3
+ *  read ID3 (module/driver)
  *  - 1 byte cmd + 2 bytes data (read mode)
  */
 
-#define CMD_READ_ID3          0b11011100     /* read ID3 (driver) */
+#define CMD_READ_ID3          0b11011100     /* read ID3 */
 
 /* data byte #1: dummy data */
 /* data byte #2: LCD module/driver */
@@ -704,7 +718,7 @@
 /* data byte #1: switches */
   /* DE polarity: */
 #define FLAG_EPL_HIGH         0b00000000     /* high enable */
-#define FLAG_EPL_LOW          0b00000001     /* lwo enable */
+#define FLAG_EPL_LOW          0b00000001     /* low enable */
   /* DOTCLK polarity: */
 #define FLAG_DPL_RISE         0b00000000     /* data fetched at rising edge */
 #define FLAG_DPL_FALL         0b00000010     /* data fetched at falling edge */
@@ -723,19 +737,19 @@
 
 
 /*
- *  frame control in normal mode (full color)
+ *  frame rate control in normal mode (full colors)
  *  - 1 byte cmd + 2 bytes data
  */
 
-#define CMD_FRAME_CTRL_NORM   0b10110001     /* frame control in normal mode */
+#define CMD_FRAME_CTRL_NORM   0b10110001     /* frame rate in normal mode */
 
-/* data byte #1: division ratio for normal mode */
+/* data byte #1: division ratio of internal clock */
 #define FLAG_DIVA_1           0b00000000     /* f_OSC */
 #define FLAG_DIVA_2           0b00000001     /* f_OSC/2 */
 #define FLAG_DIVA_4           0b00000010     /* f_OSC/4 */
 #define FLAG_DIVA_8           0b00000011     /* f_OSC/8 */
 
-/* data byte #2: line period for normal mode (clocks per line) */
+/* data byte #2: line period  (clocks per line) */
 #define FLAG_RTNA_16          0b00010000     /* 16 clocks */
 #define FLAG_RTNA_17          0b00010001     /* 17 clocks */
 #define FLAG_RTNA_18          0b00010010     /* 18 clocks */
@@ -755,19 +769,19 @@
 
 
 /*
- *  frame control in idle mode (8bit color depth)
+ *  frame rate control for idle mode (8bit color depth)
  *  - 1 byte cmd + 2 bytes data
  */
 
-#define CMD_FRAME_CTRL_IDLE   0b10110010     /* frame control in idle mode */
+#define CMD_FRAME_CTRL_IDLE   0b10110010     /* frame rate for idle mode */
 
-/* data byte #1: division ratio for idle mode */
+/* data byte #1: division ratio of internal clock */
 #define FLAG_DIVB_1           0b00000000     /* f_OSC */
 #define FLAG_DIVB_2           0b00000001     /* f_OSC/2 */
 #define FLAG_DIVB_4           0b00000010     /* f_OSC/4 */
 #define FLAG_DIVB_8           0b00000011     /* f_OSC/8 */
 
-/* data byte #2: line period for idle mode (clocks per line) */
+/* data byte #2: line period (clocks per line) */
 #define FLAG_RTNB_16          0b00010000     /* 16 clocks */
 #define FLAG_RTNB_17          0b00010001     /* 17 clocks */
 #define FLAG_RTNB_18          0b00010010     /* 18 clocks */
@@ -787,19 +801,19 @@
 
 
 /*
- *  frame control in partial mode
+ *  frame rate control for partial mode (full colors)
  *  - 1 byte cmd + 2 bytes data
  */
 
-#define CMD_FRAME_CTRL_PART   0b10110011     /* frame control in partial mode */
+#define CMD_FRAME_CTRL_PART   0b10110011     /* frame rate for partial mode */
 
-/* data byte #1: division ratio for partial mode */
+/* data byte #1: division ratio of internal clock */
 #define FLAG_DIVC_1           0b00000000     /* f_OSC */
 #define FLAG_DIVC_2           0b00000001     /* f_OSC/2 */
 #define FLAG_DIVC_4           0b00000010     /* f_OSC/4 */
 #define FLAG_DIVC_8           0b00000011     /* f_OSC/8 */
 
-/* data byte #2: line period for partial mode (clocks per line) */
+/* data byte #2: line period (clocks per line) */
 #define FLAG_RTNC_16          0b00010000     /* 16 clocks */
 #define FLAG_RTNC_17          0b00010001     /* 17 clocks */
 #define FLAG_RTNC_18          0b00010010     /* 18 clocks */
@@ -851,8 +865,8 @@
 
 /* data byte #2: line number of vertical back porch period */
   /* number of HSYNCs, please see datasheet: */
-#define FLAG_VFP_MIN          0b00000010     /* minimum value */
-#define FLAG_VFP_MAX          0b01111111     /* maximum value */
+#define FLAG_VBP_MIN          0b00000010     /* minimum value */
+#define FLAG_VBP_MAX          0b01111111     /* maximum value */
 
 /* data byte #3: line number of horizontal front porch period */
   /* number of DOTCLKs, please see datasheet: */
@@ -874,86 +888,86 @@
 
 /* data byte #1: */
   /* source/VCOM output in non-display area in partial display mode: */
-                             /* source pos / source neg - VCOM pos / VCOM neg */
-#define FLAG_PT_0            0b00000000     /* V63 / V0 - VCOML / VCOMH */
-#define FLAG_PT_1            0b00000001     /* V0 / V63 - VCOML / VCOMH */
-#define FLAG_PT_2            0b00000010     /* AGND / AGND - AGND / AGND */
-#define FLAG_PT_3            0b00000011     /* Hi-Z / Hi-Z - AGND / AGND */
+                              /* source pos / source neg - VCOM pos / VCOM neg */
+#define FLAG_PT_0             0b00000000     /* V63 / V0 - VCOML / VCOMH */
+#define FLAG_PT_1             0b00000001     /* V0 / V63 - VCOML / VCOMH */
+#define FLAG_PT_2             0b00000010     /* AGND / AGND - AGND / AGND */
+#define FLAG_PT_3             0b00000011     /* Hi-Z / Hi-Z - AGND / AGND */
   /* scan mode in non-display area: */
-#define FLAG_PTG_0           0b00000000     /* normal scan */
-#define FLAG_PTG_2           0b00001000     /* interval scan */
+#define FLAG_PTG_0            0b00000000     /* normal scan */
+#define FLAG_PTG_2            0b00001000     /* interval scan */
 
 /* data byte #2: */
   /* scan cycle interval of gate driver in non-display area: */
-#define FLAG_ISC_01          0b00000000     /* 1 frame */
-#define FLAG_ISC_03          0b00000001     /* 3 frames */
-#define FLAG_ISC_05          0b00000010     /* 5 frames */
-#define FLAG_ISC_07          0b00000011     /* 7 frames */
-#define FLAG_ISC_09          0b00000100     /* 9 frames */
-#define FLAG_ISC_11          0b00000101     /* 11 frames */
-#define FLAG_ISC_13          0b00000110     /* 13 frames */
-#define FLAG_ISC_15          0b00000111     /* 15 frames */
-#define FLAG_ISC_17          0b00001000     /* 17 frames */
-#define FLAG_ISC_19          0b00001001     /* 19 frames */
-#define FLAG_ISC_21          0b00001010     /* 21 frames */
-#define FLAG_ISC_23          0b00001011     /* 24 frames */
-#define FLAG_ISC_25          0b00001100     /* 25 frames */
-#define FLAG_ISC_27          0b00001101     /* 27 frames */
-#define FLAG_ISC_29          0b00001110     /* 29 frames */
-#define FLAG_ISC_31          0b00001111     /* 31 frames */
+#define FLAG_ISC_01           0b00000000     /* 1 frame */
+#define FLAG_ISC_03           0b00000001     /* 3 frames */
+#define FLAG_ISC_05           0b00000010     /* 5 frames */
+#define FLAG_ISC_07           0b00000011     /* 7 frames */
+#define FLAG_ISC_09           0b00000100     /* 9 frames */
+#define FLAG_ISC_11           0b00000101     /* 11 frames */
+#define FLAG_ISC_13           0b00000110     /* 13 frames */
+#define FLAG_ISC_15           0b00000111     /* 15 frames */
+#define FLAG_ISC_17           0b00001000     /* 17 frames */
+#define FLAG_ISC_19           0b00001001     /* 19 frames */
+#define FLAG_ISC_21           0b00001010     /* 21 frames */
+#define FLAG_ISC_23           0b00001011     /* 24 frames */
+#define FLAG_ISC_25           0b00001100     /* 25 frames */
+#define FLAG_ISC_27           0b00001101     /* 27 frames */
+#define FLAG_ISC_29           0b00001110     /* 29 frames */
+#define FLAG_ISC_31           0b00001111     /* 31 frames */
   /* gate driver pin arrangement (in combination with GS): */
-#define FLAG_SM_0            0b00000000     /* in sequence */
-#define FLAG_SM_1            0b00010000     /* even/odd separated */
+#define FLAG_SM_0             0b00000000     /* in sequence */
+#define FLAG_SM_1             0b00010000     /* even/odd separated */
   /* output shift direction / source driver scan direction: */
-#define FLAG_SS_0            0b00000000     /* S1 -> S720 */
-#define FLAG_SS_1            0b00100000     /* S720 -> S1 */
+#define FLAG_SS_0             0b00000000     /* S1 -> S720 */
+#define FLAG_SS_1             0b00100000     /* S720 -> S1 */
   /* gate driver scan direction: */
-#define FLAG_GS_0            0b00000000     /* G1 -> G320 */
-#define FLAG_GS_1            0b01000000     /* G320 -> G1 */
+#define FLAG_GS_0             0b00000000     /* G1 -> G320 */
+#define FLAG_GS_1             0b01000000     /* G320 -> G1 */
   /* liquid crytal type: */
-#define FLAG_REV_0           0b00000000     /* normally black */
-#define FLAG_REV_1           0b10000000     /* normally white */
+#define FLAG_REV_0            0b00000000     /* normally black */
+#define FLAG_REV_1            0b10000000     /* normally white */
 
 /* data byte #3: number of lines to drive LCD at an interval of 8 lines: */
-#define FLAG_NL_016          0b00000001     /* 16 lines */
-#define FLAG_NL_024          0b00000010     /* 24 lines */
-#define FLAG_NL_036          0b00000011     /* 36 lines */
-#define FLAG_NL_040          0b00000100     /* 40 lines */
-#define FLAG_NL_048          0b00000101     /* 48 lines */
-#define FLAG_NL_056          0b00000110     /* 56 lines */
-#define FLAG_NL_064          0b00000111     /* 64 lines */
-#define FLAG_NL_072          0b00001000     /* 72 lines */
-#define FLAG_NL_080          0b00001001     /* 80 lines */
-#define FLAG_NL_088          0b00001010     /* 88 lines */
-#define FLAG_NL_096          0b00001011     /* 96 lines */
-#define FLAG_NL_104          0b00001100     /* 104 lines */
-#define FLAG_NL_112          0b00001101     /* 112 lines */
-#define FLAG_NL_120          0b00001110     /* 120 lines */
-#define FLAG_NL_128          0b00001111     /* 128 lines */
-#define FLAG_NL_136          0b00010000     /* 136 lines */
-#define FLAG_NL_144          0b00010001     /* 144 lines */
-#define FLAG_NL_152          0b00010010     /* 152 lines */
-#define FLAG_NL_160          0b00010011     /* 160 lines */
-#define FLAG_NL_168          0b00010100     /* 168 lines */
-#define FLAG_NL_176          0b00010101     /* 176 lines */
-#define FLAG_NL_184          0b00010110     /* 184 lines */
-#define FLAG_NL_192          0b00010111     /* 192 lines */
-#define FLAG_NL_200          0b00011000     /* 200 lines */
-#define FLAG_NL_208          0b00011001     /* 208 lines */
-#define FLAG_NL_216          0b00011010     /* 216 lines */
-#define FLAG_NL_224          0b00011011     /* 224 lines */
-#define FLAG_NL_232          0b00011100     /* 232 lines */
-#define FLAG_NL_240          0b00011101     /* 240 lines */
-#define FLAG_NL_248          0b00011110     /* 248 lines */
-#define FLAG_NL_256          0b00011111     /* 256 lines */
-#define FLAG_NL_264          0b00100000     /* 264 lines */
-#define FLAG_NL_272          0b00100001     /* 272 lines */
-#define FLAG_NL_280          0b00100010     /* 280 lines */
-#define FLAG_NL_288          0b00100011     /* 288 lines */
-#define FLAG_NL_296          0b00100100     /* 296 lines */
-#define FLAG_NL_304          0b00100101     /* 304 lines */
-#define FLAG_NL_312          0b00100110     /* 312 lines */
-#define FLAG_NL_320          0b00100111     /* 320 lines */
+#define FLAG_NL_016           0b00000001     /* 16 lines */
+#define FLAG_NL_024           0b00000010     /* 24 lines */
+#define FLAG_NL_036           0b00000011     /* 32 lines */
+#define FLAG_NL_040           0b00000100     /* 40 lines */
+#define FLAG_NL_048           0b00000101     /* 48 lines */
+#define FLAG_NL_056           0b00000110     /* 56 lines */
+#define FLAG_NL_064           0b00000111     /* 64 lines */
+#define FLAG_NL_072           0b00001000     /* 72 lines */
+#define FLAG_NL_080           0b00001001     /* 80 lines */
+#define FLAG_NL_088           0b00001010     /* 88 lines */
+#define FLAG_NL_096           0b00001011     /* 96 lines */
+#define FLAG_NL_104           0b00001100     /* 104 lines */
+#define FLAG_NL_112           0b00001101     /* 112 lines */
+#define FLAG_NL_120           0b00001110     /* 120 lines */
+#define FLAG_NL_128           0b00001111     /* 128 lines */
+#define FLAG_NL_136           0b00010000     /* 136 lines */
+#define FLAG_NL_144           0b00010001     /* 144 lines */
+#define FLAG_NL_152           0b00010010     /* 152 lines */
+#define FLAG_NL_160           0b00010011     /* 160 lines */
+#define FLAG_NL_168           0b00010100     /* 168 lines */
+#define FLAG_NL_176           0b00010101     /* 176 lines */
+#define FLAG_NL_184           0b00010110     /* 184 lines */
+#define FLAG_NL_192           0b00010111     /* 192 lines */
+#define FLAG_NL_200           0b00011000     /* 200 lines */
+#define FLAG_NL_208           0b00011001     /* 208 lines */
+#define FLAG_NL_216           0b00011010     /* 216 lines */
+#define FLAG_NL_224           0b00011011     /* 224 lines */
+#define FLAG_NL_232           0b00011100     /* 232 lines */
+#define FLAG_NL_240           0b00011101     /* 240 lines */
+#define FLAG_NL_248           0b00011110     /* 248 lines */
+#define FLAG_NL_256           0b00011111     /* 256 lines */
+#define FLAG_NL_264           0b00100000     /* 264 lines */
+#define FLAG_NL_272           0b00100001     /* 272 lines */
+#define FLAG_NL_280           0b00100010     /* 280 lines */
+#define FLAG_NL_288           0b00100011     /* 288 lines */
+#define FLAG_NL_296           0b00100100     /* 296 lines */
+#define FLAG_NL_304           0b00100101     /* 304 lines */
+#define FLAG_NL_312           0b00100110     /* 312 lines */
+#define FLAG_NL_320           0b00100111     /* 320 lines */
 
 /* data byte #4: PCDIV (please see datasheet) */
 
@@ -1257,7 +1271,7 @@
 
 #define CMD_POWER_CTRL_2      0b11000001     /* power control 2 */
 
-/* data byte #1: factor used in step-up converter */
+/* data byte #1: factor for the step-up converter */
 #define FLAG_BT_0             0b00000000     /* DDVDH=2*VCI, VGH=7*VCI, VGL=-4*VCI */
 #define FLAG_BT_1             0b00000001     /* DDVDH=2*VCI, VGH=7*VCI, VGL=-3*VCI */
 #define FLAG_BT_2             0b00000010     /* DDVDH=2*VCI, VGH=6*VCI, VGL=-4*VCI */
@@ -1658,7 +1672,7 @@
  *  - 1 byte cmd + 2 bytes data
  */
 
-#define CMD_NV_WRITE          0b11010000     /* write NV memory */
+#define CMD_WRITE_NV          0b11010000     /* write NV memory */
 
 /* data byte #1: address */
 #define FLAG_NV_ADDR_ID1      0b00000000     /* ID1 */
@@ -1670,19 +1684,19 @@
 
 
 /*
- *  NV memory protection key
+ *  NV memory protection key (for writing)
  *  - 1 byte cmd + 3 bytes data
  */
 
 #define CMD_NV_KEY            0b11010001     /* NV memory protection key */
 
-/* data byte #1: key bits 23-16 */
+/* data byte #1: key, bits 16-23 */
 #define FLAG_KEY_2            0x55           /* fixed key */
 
-/* data byte #2: key bits 15-8 */
+/* data byte #2: key, bits 8-15 */
 #define FLAG_KEY_1            0xAA           /* fixed key */
 
-/* data byte #3: key bits 7-0 */
+/* data byte #3: key, bits 0-7 */
 #define FLAG_KEY_0            0x66           /* fixed key */
 
 
@@ -1691,14 +1705,18 @@
  *  - 1 byte cmd + 3 bytes data (read mode)
  */
 
-#define CMD_NV_STAT_READ      0b11010010     /* read NV memory status  */
+#define CMD_READ_NV_STATUS    0b11010010     /* read NV memory status  */
 
 /* data byte #1: dummy byte */
-/* data byte #2: write counter, please see dataheet */
-/* data byte #3: write counter, please see dataheet */
-  /* status of NV mem programming: */
-#define FLAG_BUSY_0           0b00000000     /* idle */
-#define FLAG_BUSY_1           0b10000000     /* busy */
+
+/* data byte #2: */
+  /* write counter, please see dataheet */
+
+/* data byte #3: */
+  /* write counter, please see dataheet */
+  /* status of NV memory programming: */
+#define FLAG_NV_IDLE          0b00000000     /* idle */
+#define FLAG_NV_BUSY          0b10000000     /* busy */
 
 
 /*
@@ -1709,9 +1727,9 @@
 #define CMD_READ_ID4          0b11010011     /* read ID4 (device code) */
 
 /* data byte #1: dummy byte */
-/* data byte #2: IC version */
-/* data byte #3: IC model name */
-/* data byte #4: IC model name */
+/* data byte #2: IC version (0x00) */
+/* data byte #3: IC model name - MSB (0x93) */
+/* data byte #4: IC model name - LSB (ILI9341: 0x41 / ILI9342: 0x42) */
 
 
 /*
@@ -1770,10 +1788,10 @@
 #define FLAG_WE_MODE_1        0b00000001     /* memory write control: next */
 /* The set value of MADCTL is used in the IC is derived as exclusive
    OR between 1st Parameter of IFCTL and MADCTL Parameter. */
-#define FLAG_BGR_EOR          0b00001000     /* ? */
-#define FLAG_MV_EOR           0b00100000     /* ? */
-#define FLAG_MX_EOR           0b01000000     /* ? */
-#define FLAG_MY_EOR           0b10000000     /* ? */
+#define FLAG_COLOR_EOR        0b00001000     /* ? */
+#define FLAG_XY_EOR           0b00100000     /* ? */
+#define FLAG_COL_EOR          0b01000000     /* ? */
+#define FLAG_PAGE_EOR         0b10000000     /* ? */
 
 /* data byte #2: misc switches */
 #define MASK_INTERFACE_CTRL_2 0b00000000     /* mask: 00ff00ff */
@@ -1899,26 +1917,26 @@
 #define CMD_TIME_CTRL_B       0b11101010     /* driver timing control B */
 
 /* data byte #1: gate driver timing */
-#define MASK_TIME_CTRL_B_1     0b00000000     /* mask: ffffffff */
-#define FLAG_VG_SW_T1_0        0b00000000     /* VG_SW_T1: 0 units */
-#define FLAG_VG_SW_T1_1        0b00000001     /* VG_SW_T1: 1 unit */
-#define FLAG_VG_SW_T1_2        0b00000010     /* VG_SW_T1: 2 units */
-#define FLAG_VG_SW_T1_3        0b00000011     /* VG_SW_T1: 3 units */
-#define FLAG_VG_SW_T2_0        0b00000000     /* VG_SW_T2: 0 units */
-#define FLAG_VG_SW_T2_1        0b00000100     /* VG_SW_T2: 1 unit */
-#define FLAG_VG_SW_T2_2        0b00001000     /* VG_SW_T2: 2 units */
-#define FLAG_VG_SW_T2_3        0b00001100     /* VG_SW_T2: 3 units */
-#define FLAG_VG_SW_T3_0        0b00000000     /* VG_SW_T3: 0 units */
-#define FLAG_VG_SW_T3_1        0b00010000     /* VG_SW_T3: 1 unit */
-#define FLAG_VG_SW_T3_2        0b00100000     /* VG_SW_T3: 2 units */
-#define FLAG_VG_SW_T3_3        0b00110000     /* VG_SW_T3: 3 units */
-#define FLAG_VG_SW_T4_0        0b00000000     /* VG_SW_T4: 0 units */
-#define FLAG_VG_SW_T4_1        0b01000000     /* VG_SW_T4: 1 unit */
-#define FLAG_VG_SW_T4_2        0b10000000     /* VG_SW_T4: 2 units */
-#define FLAG_VG_SW_T4_3        0b11000000     /* VG_SW_T4: 3 units */
+#define MASK_TIME_CTRL_B_1    0b00000000     /* mask: ffffffff */
+#define FLAG_VG_SW_T1_0       0b00000000     /* VG_SW_T1: 0 units */
+#define FLAG_VG_SW_T1_1       0b00000001     /* VG_SW_T1: 1 unit */
+#define FLAG_VG_SW_T1_2       0b00000010     /* VG_SW_T1: 2 units */
+#define FLAG_VG_SW_T1_3       0b00000011     /* VG_SW_T1: 3 units */
+#define FLAG_VG_SW_T2_0       0b00000000     /* VG_SW_T2: 0 units */
+#define FLAG_VG_SW_T2_1       0b00000100     /* VG_SW_T2: 1 unit */
+#define FLAG_VG_SW_T2_2       0b00001000     /* VG_SW_T2: 2 units */
+#define FLAG_VG_SW_T2_3       0b00001100     /* VG_SW_T2: 3 units */
+#define FLAG_VG_SW_T3_0       0b00000000     /* VG_SW_T3: 0 units */
+#define FLAG_VG_SW_T3_1       0b00010000     /* VG_SW_T3: 1 unit */
+#define FLAG_VG_SW_T3_2       0b00100000     /* VG_SW_T3: 2 units */
+#define FLAG_VG_SW_T3_3       0b00110000     /* VG_SW_T3: 3 units */
+#define FLAG_VG_SW_T4_0       0b00000000     /* VG_SW_T4: 0 units */
+#define FLAG_VG_SW_T4_1       0b01000000     /* VG_SW_T4: 1 unit */
+#define FLAG_VG_SW_T4_2       0b10000000     /* VG_SW_T4: 2 units */
+#define FLAG_VG_SW_T4_3       0b11000000     /* VG_SW_T4: 3 units */
 
 /* data byte #2 (mask: xxxxxx00) */
-#define MASK_TIME_CTRL_B_2     0b00000000     /* mask: xxxxxx00 */
+#define MASK_TIME_CTRL_B_2    0b00000000     /* mask: xxxxxx00 */
 
 
 /*

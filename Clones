@@ -58,8 +58,8 @@ Rotary Encoder:
 #define ENCODER_PORT     PORTD     /* port data register */
 #define ENCODER_DDR      DDRD      /* port data direction register */
 #define ENCODER_PIN      PIND      /* port input pins register */
-#define ENCODER_A        PD1       /* rotary encoder A signal */
-#define ENCODER_B        PD3       /* rotary encoder B signal */
+#define ENCODER_A        PD3       /* rotary encoder A signal */
+#define ENCODER_B        PD1       /* rotary encoder B signal */
 
 Input for the frequency counter is PD4 (T0).
 
@@ -128,8 +128,8 @@ Rotary Encoder:
 #define ENCODER_PORT     PORTD     /* port data register */
 #define ENCODER_DDR      DDRD      /* port data direction register */
 #define ENCODER_PIN      PIND      /* port input pins register */
-#define ENCODER_A        PD1       /* rotary encoder A signal */
-#define ENCODER_B        PD3       /* rotary encoder B signal */
+#define ENCODER_A        PD3       /* rotary encoder A signal */
+#define ENCODER_B        PD1       /* rotary encoder B signal */
 
 
 ------------------------------------------------------------------------------
@@ -249,7 +249,7 @@ Multifunction Tester TC-1
 - fixed adjustment cap
 - powered by Li-Ion cell 3.7V
 - sample testers provided by jellytot@EEVblog and joystik@EEVblog
-- initial information provided by indman@EEVblog 
+- initial information provided by indman@EEVblog
 
 Hints:
 - Control MCU U4 needs to be replaced with a simple control circuit (TC1-Mod,
@@ -431,8 +431,8 @@ Rotary Encoder:
 #define ENCODER_PORT     PORTB     /* port data register */
 #define ENCODER_DDR      DDRB      /* port data direction register */
 #define ENCODER_PIN      PINB      /* port input pins register */
-#define ENCODER_A        PB7       /* rotary encoder A signal */
-#define ENCODER_B        PB5       /* rotary encoder B signal */
+#define ENCODER_A        PB5       /* rotary encoder A signal */
+#define ENCODER_B        PB7       /* rotary encoder B signal */
 
 Pinout for extended frequency counter (matches defaults):
 #define COUNTER_PORT          PORTB     /* port data register */
@@ -451,3 +451,67 @@ Pinout for fixed cap for self-adjustment:
 
 ------------------------------------------------------------------------------
 
+BSide ESR02 (DTU-1701)
+- ATmega 328, 8MHz clock
+- ST7565 display (bit-bang SPI)
+- external 2.5V voltage reference (TL431)
+- settings provided by indman@EEVblog
+
+Hardware Options:
+#define HW_REF25
+
+Power management:
+#define BAT_DIVIDER
+#define BAT_EXT_UNMONITORED
+#define BAT_R1           47000
+#define BAT_R2           47000
+#define BAT_OFFSET       420
+
+LCD module:
+#define LCD_ST7565R                     /* display controller ST7565R */
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_SPI                         /* SPI interface */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RESET        PD0            /* port pin used for /RES (optional) */
+#define LCD_A0           PD1            /* port pin used for A0 */
+#define LCD_SCL          PD2            /* port pin used for SCL */
+#define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       64             /* number of vertical dots */
+#define LCD_FLIP_X                      /* enable horizontal flip */
+#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
+#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_START_Y      0              /* start line (0-63) */
+#define LCD_CONTRAST     15             /* default contrast (0-63) */
+#define FONT_8X8_VF                     /* 8x8 font */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+#define SPI_BITBANG                     /* bit-bang SPI */
+#define SPI_PORT         LCD_PORT       /* SPI port data register */
+#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
+#define SPI_SCK          LCD_SCL        /* port pin used for SCK */
+#define SPI_MOSI         LCD_SI         /* port pin used for MOSI */
+
+------------------------------------------------------------------------------
+
+Arduino Uno or Mega 2560
+- Uno: ATmega 328, 16MHz clock
+  Mega 2560: ATmega 2560, 16MHz clock
+- Download the Arduino pinout diagram to get the mapping between Arduino and
+  ATmega pins.
+- only the essential settings are listed
+
+Hardware options:
+#define HW_FIXED_SIGNAL_OUTPUT
+
+User interface:
+#define UI_AUTOHOLD
+
+Power management:
+#define POWER_SWITCH_MANUAL
+#define BAT_NONE
+
+Measurement settings and offsets:
+#define ADC_LARGE_BUFFER_CAP
+
+------------------------------------------------------------------------------

@@ -2,11 +2,13 @@
  *
  *   driver functions for STE2007 compatible grafic displays
  *   - compatible controllers: HX1230
- *   - aka Nokia 1202 display
+ *   - AKA Nokia 1202 display
  *   - 96 x 68 pixels
- *   - SPI interface (4 line (not supported yet), 3 line)
- *     modules are wired for 3-line SPI usually
- *   - I2C (not supported yet)
+ *   - interfaces
+ *     - 3 line SPI
+ *       modules are wired usually for 3-line SPI
+ *     - 4 line SPI (not supported yet)
+ *     - I2C (not supported yet)
  *
  *   (c) 2019-2020 by Markus Reschke
  *
@@ -14,7 +16,7 @@
 
 /*
  *  hints:
- *  - pin assignment for SPI (3-line)
+ *  - pin assignment for 3-line SPI
  *    /RES        LCD_RESET (optional)
  *    /CS         LCD_CS  (optional)
  *    SCLK        LCD_SCLK
@@ -99,7 +101,7 @@ uint8_t             Y_Start;       /* start position Y (page) */
 
 
 /* ************************************************************************
- *   low level functions for SPI interface (3 wire)
+ *   low level functions for 3 wire SPI interface
  * ************************************************************************ */
 
 
@@ -119,7 +121,7 @@ uint8_t             Y_Start;       /* start position Y (page) */
 
 void LCD_BusSetup(void)
 {
-  uint8_t           Bits;          /* bitmask */
+  uint8_t           Bits;          /* register bits */
 
 
   /*
@@ -152,9 +154,8 @@ void LCD_BusSetup(void)
 
   /*
    *  init SPI bus
+   *  - SPI bus is set up already in main()
    */
-
-  SPI_Setup();                     /* set up SPI bus */
 }
 
 

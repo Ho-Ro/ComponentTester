@@ -1,9 +1,16 @@
 /* ************************************************************************
  *
- *   driver functions for ILI9341 and ILI9342 compatible 
+ *   driver functions for ILI9341 and ILI9342 compatible
  *   color graphic displays
- *   - 240 x 320 (ILI9341) or 320 x 240 (ILI9342) pixels
- *   - using SPI interface (4 line)
+ *   - ILI9341: 240 x 320 pixels
+ *     ILI9342: 320 x 240 pixels
+ *   - interfaces
+ *     - 8 bit parallel in 8080-I and 8080-II mode (untested)
+ *     - 9 bit parallel in 8080-I and 8080-II mode (not supported)
+ *     - 16 bit parallel in 8080-I and 8080-II mode (not supported)
+ *     - 18 bit parallel in 8080-I and 8080-II mode (not supported)
+ *     - 4 line SPI
+ *     - 3 line SPI (not supported)
  *
  *   (c) 2015-2020 by Markus Reschke
  *
@@ -12,15 +19,36 @@
 /*
  *  hints:
  *  - pin assignment for SPI
- *    /RES     LCD_RES (optional)
- *    /CS      LCD_CS (optional)
- *    D/C      LCD_DC
- *    SCK      LCD_SCK
- *    SDI      LCD_SDI
- *    SDO      LCD_SDO (ILI9341 only, not used yet)
+ *    /RES         LCD_RES (optional)
+ *    /CS          LCD_CS (optional)
+ *    D/C (WRX)    LCD_DC
+ *    SCK (DC/X)   LCD_SCK
+ *    SDI          LCD_SDI
+ *    SDO          LCD_SDO (ILI9341 only, not used yet)
  *    For hardware SPI LCD_SCK and LCD_SDI have to be the MCU's SCK and
  *    MOSI pins.
- *  - max. SPI clock: 10MHz, but up to 36 or 48MHz works also fine
+ *  - max. SPI clock: 10MHz write and 6.6MHz read
+ *    there are reports about 36, 48, and even 78MHz for the write mode
+ *  - pin assignment for 8 bit parallel interface in 8080-I mode
+ *             LCD_PORT/LCD_DDR:
+ *    /RESX    LCD_RES (optional)
+ *    /CSX     LCD_CS (optional)
+ *    D/CX     LCD_DC
+ *    WRX      LCD_WR
+ *    RDX      LCD_RD
+ *             LCD_PORT2/LCD_DDR2/LCD_PIN2:
+ *    D0       LCD_DB0 (LCD_PORT2 pin #0)
+ *    D1       LCD_DB1 (LCD_PORT2 pin #1)
+ *    D2       LCD_DB2 (LCD_PORT2 pin #2)
+ *    D3       LCD_DB3 (LCD_PORT2 pin #3)
+ *    D4       LCD_DB4 (LCD_PORT2 pin #4)
+ *    D5       LCD_DB5 (LCD_PORT2 pin #5)
+ *    D6       LCD_DB6 (LCD_PORT2 pin #6)
+ *    D7       LCD_DB7 (LCD_PORT2 pin #7)
+ *  - max. clock rate for parallel bus
+ *    15MHz write
+ *    6.25MHz read register data
+ *    2.2MHz read frame memory
  */
 
 
@@ -107,13 +135,23 @@ uint16_t            Y_Start;       /* start position Y (page/row) */
 uint16_t            Y_End;         /* end position Y (page/row) */
 
 /* text line management */
-uint16_t            LineMask;      /* bit mask for up to 16 lines */
+uint16_t            LineFlags;     /* bitfield for up to 16 lines */
 
 
 
 /* ************************************************************************
- *   low level functions for SPI interface
+ *   low level functions for 4 line SPI interface
  * ************************************************************************ */
+
+
+/*
+ *  protocol:
+ *  - CSX -> D/CX -> D7-0 with rising edge of SCL
+ *  - D/CX: high = data / low = command
+ *
+ *  hints:
+ *  - RGB565 and RGB666 are supported when using 4-line SPI
+ */
 
 
 #ifdef LCD_SPI
@@ -125,7 +163,7 @@ uint16_t            LineMask;      /* bit mask for up to 16 lines */
 
 void LCD_BusSetup(void)
 {
-  uint8_t           Bits;          /* bitmask */
+  uint8_t           Bits;          /* register bits */
 
 
   /*
@@ -139,10 +177,10 @@ void LCD_BusSetup(void)
 
   /* optional output pins */
   #ifdef LCD_RES
-    Bits |= (1 << LCD_RES);             /* /RES */
+  Bits |= (1 << LCD_RES);               /* /RES */
   #endif 
   #ifdef LCD_CS
-    Bits |= (1 << LCD_CS);              /* /CS */
+  Bits |= (1 << LCD_CS);                /* /CS */
   #endif
 
   LCD_DDR = Bits;                       /* set new directions */
@@ -150,16 +188,22 @@ void LCD_BusSetup(void)
 
   /* set default levels */
   #ifdef LCD_CS
-    /* disable chip */
-    LCD_PORT |= (1 << LCD_CS);          /* set /CS high */
+  /* disable chip */
+  LCD_PORT |= (1 << LCD_CS);            /* set /CS high */
   #endif
   #ifdef LCD_RES
-    /* disable reset */
-    LCD_PORT |= (1 << LCD_RES);         /* set /RES high */
+  /* disable reset */
+  LCD_PORT |= (1 << LCD_RES);           /* set /RES high */
   #endif
 
 
+  /*
+   *  init SPI bus
+   *  - SPI bus is set up already in main()
+   */
+
   #ifdef SPI_HARDWARE
+
   /*
    *  set SPI clock rate (10MHz worst case)
    *  - max. MCU clock 20MHz / 2 = 10MHz
@@ -167,9 +211,9 @@ void LCD_BusSetup(void)
    */
 
   SPI.ClockRate = SPI_CLOCK_2X;    /* set clock rate flags */
-  #endif
 
-  SPI_Setup();                     /* set up SPI bus */
+  SPI_Clock();                     /* update SPI clock */
+  #endif
 }
 
 
@@ -178,7 +222,7 @@ void LCD_BusSetup(void)
  *  send a command to the LCD
  *
  *  requires:
- *  - byte value to send
+ *  - Cmd: byte value to send
  */
  
 void LCD_Cmd(uint8_t Cmd)
@@ -186,16 +230,16 @@ void LCD_Cmd(uint8_t Cmd)
   /* indicate command mode */
   LCD_PORT &= ~(1 << LCD_DC);      /* set D/C low */
 
-  /* select chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS1 low */
+  /* select chip */
+  LCD_PORT &= ~(1 << LCD_CS);      /* set /CS1 low */
   #endif
 
   SPI_Write_Byte(Cmd);             /* write command byte */
 
-  /* deselect chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS1 high */
+  /* deselect chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CS1 high */
   #endif
 }
 
@@ -205,7 +249,7 @@ void LCD_Cmd(uint8_t Cmd)
  *  send data to the LCD
  *
  *  requires:
- *  - byte value to send
+ *  - Data: byte value to send
  */
 
 void LCD_Data(uint8_t Data)
@@ -213,16 +257,16 @@ void LCD_Data(uint8_t Data)
   /* indicate data mode */
   LCD_PORT |= (1 << LCD_DC);       /* set D/C high */
 
-  /* select chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS1 low */
+  /* select chip */
+  LCD_PORT &= ~(1 << LCD_CS);      /* set /CS1 low */
   #endif
 
   SPI_Write_Byte(Data);            /* write data byte */
 
-  /* deselect chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS1 high */
+  /* deselect chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CS1 high */
   #endif
 }
 
@@ -232,7 +276,7 @@ void LCD_Data(uint8_t Data)
  *  send data to the LCD
  *
  *  requires:
- *  - 2-byte value to send
+ *  - Data: 2-byte value to send
  */
 
 void LCD_Data2(uint16_t Data)
@@ -242,9 +286,9 @@ void LCD_Data2(uint16_t Data)
   /* indicate data mode */
   LCD_PORT |= (1 << LCD_DC);       /* set D/C high */
 
-  /* select chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT &= ~(1 << LCD_CS);    /* set /CS1 low */
+  /* select chip */
+  LCD_PORT &= ~(1 << LCD_CS);      /* set /CS1 low */
   #endif
 
   Byte = (uint8_t)Data;            /* save LSB */
@@ -253,9 +297,267 @@ void LCD_Data2(uint16_t Data)
   SPI_Write_Byte((uint8_t)Data);   /* write MSB of data */
   SPI_Write_Byte(Byte);            /* write LSB of data */
 
-  /* deselect chip, if pin available */
   #ifdef LCD_CS
-    LCD_PORT |= (1 << LCD_CS);     /* set /CS1 high */
+  /* deselect chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CS1 high */
+  #endif
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   low level functions for 8 bit parallel interface
+ *   - LCD_PORT (LCD_DDR) for control signals
+ *   - LCD_PORT2 (LCD_DDR2/LCD_PIN2) for data signals 0-7
+ * ************************************************************************ */
+
+
+/*
+ *  protocol:
+ *  - CSX -> D/CX -> D7-0 with rising edge of WRX
+ *  - D/CX: high = data / low = command
+ *
+ *  hints:
+ *  - RGB565 and RGB666 are supported when using the 8-bit parallel interface
+ */
+
+
+#ifdef LCD_PAR_8
+
+/*
+ *  set up interface bus
+ *  - should be called at firmware startup
+ */
+
+void LCD_BusSetup(void)
+{
+  uint8_t           Bits;          /* register bits */
+
+
+  /*
+   *  set data signals
+   *  - LCD_PORT2
+   */
+
+  /* all data pins are in output mode by default */
+  LCD_DDR2 = 0b11111111;                /* D0-7 */
+
+
+  /*
+   *  set control signals
+   *  - LCD_PORT
+   */
+
+  Bits = LCD_DDR;                       /* get current directions */
+
+  /* basic output pins */
+  Bits |= (1 << LCD_DC) | (1 << LCD_WR) | (1 << LCD_RD);    /* D/CX, WRX, RDX */
+
+  /* optional output pins */
+  #ifdef LCD_RES
+  Bits |= (1 << LCD_RES);               /* /RES */
+  #endif 
+  #ifdef LCD_CS
+  Bits |= (1 << LCD_CS);                /* /CS */
+  #endif
+
+  LCD_DDR = Bits;                       /* set new directions */
+
+  /* set default levels */
+  Bits = LCD_PORT;                      /* get current levels */
+
+  /* set WRX and RDX high */
+  Bits |= (1 << LCD_WR) | (1 << LCD_RD);
+
+  /* optional output pins */
+  #ifdef LCD_CS
+  /* disable chip */
+  Bits |= (1 << LCD_CS);                /* set /CSX high */
+  #endif
+  #ifdef LCD_RES
+  /* disable reset */
+  Bits |= (1 << LCD_RES);               /* set /RESX high */
+  #endif
+
+  LCD_PORT = Bits;                      /* set new levels */
+}
+
+
+
+/*
+ *  send a byte (data or command) to the LCD
+ *
+ *  requires:
+ *  - Byte: byte value to send
+ */
+
+void LCD_SendByte(uint8_t Byte)
+{
+  /* set data signals */
+  LCD_PORT2 = Byte;                /* D0-7 */
+
+  /* create write strobe (rising edge takes data in) */
+  LCD_PORT &= ~(1 << LCD_WR);      /* set WRX low */
+                                   /* wait 15ns */
+  LCD_PORT |= (1 << LCD_WR);       /* set WRX high */
+
+  /* data hold time 10ns */
+  /* next write cycle after 15ns WRX being high */
+}
+
+
+
+#if 0
+
+/*
+ *  read byte from LCD
+ *  - timing for register data
+ *  - not suitable for frame memory
+ *
+ *  returns:
+ *  - byte
+ */
+
+uint8_t LCD_ReadByte(void)
+{
+  uint8_t           Byte;     /* return value */
+
+  /* set data pins to input mode */
+  LCD_DDR2 = 0b00000000;           /* D0-7 */
+
+  #ifdef LCD_CS
+  /* select chip */
+  LCD_PORT &= ~(1 << LCD_CD);      /* set /CSX low */
+  #endif
+
+  /* indicate data mode */
+  LCD_PORT |= (1 << LCD_DC);       /* set D/CX high */
+
+  /* start read cycle (RDX low for min. 45ns) */
+  LCD_PORT &= ~(1 << LCD_RD);      /* set RDX low */
+
+  /* wait for LCD to fetch data: max. 40ns */
+  asm volatile("nop\n\t"::);       /* burn a clock cycle */
+
+  /* read data */
+  Byte = LCD_PIN2;
+
+  /* end read cycle */
+  LCD_PORT |= (1 << LCD_RD);       /* set RDX high */
+
+  /* wait for LCD to release data lines: max. 80ns */
+  #ifndef LCD_CS
+  /* burn two clock cycles */
+  asm volatile(
+    "nop\n\t"
+    "nop\n\t"
+    ::
+  );
+  #endif
+
+  /* next read cycle after 90ns RDX being high */
+
+  #ifdef LCD_CS
+  /* deselect chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CSX high */
+  #endif
+
+  /* set data pins back to output mode */
+  LCD_DDR2 = 0b11111111;           /* D0-7 */
+
+  return Byte;
+}
+
+#endif
+
+
+
+/*
+ *  send a command to the LCD
+ *
+ *  requires:
+ *  - Cmd: byte value to send
+ */
+ 
+void LCD_Cmd(uint8_t Cmd)
+{
+  #ifdef LCD_CS
+  /* select chip */
+  LCD_PORT &= ~(1 << LCD_CS);      /* set /CSX low */
+  #endif
+
+  /* indicate command mode */
+  LCD_PORT &= ~(1 << LCD_DC);      /* set D/CX low */
+
+  /* send command */
+  LCD_SendByte(Cmd);               /* send command byte */
+
+  #ifdef LCD_CS
+  /* deselect chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CSX high */
+  #endif
+}
+
+
+
+/*
+ *  send data to the LCD
+ *
+ *  requires:
+ *  - Data: byte value to send
+ */
+
+void LCD_Data(uint8_t Data)
+{
+  #ifdef LCD_CS
+  /* select chip */
+  LCD_PORT &= ~(1 << LCD_CS);      /* set /CSX low */
+  #endif
+
+  /* indicate data mode */
+  LCD_PORT |= (1 << LCD_DC);       /* set D/CX high */
+
+  /* send data */
+  LCD_SendByte(Data);              /* send data byte */
+
+  #ifdef LCD_CS
+  /* deselect chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CSX high */
+  #endif
+}
+
+
+
+/*
+ *  send data to the LCD
+ *
+ *  requires:
+ *  - Data: 2-byte value to send
+ */
+
+void LCD_Data2(uint16_t Data)
+{
+  uint8_t           Byte;     /* data byte */
+
+  #ifdef LCD_CS
+  /* select chip */
+  LCD_PORT &= ~(1 << LCD_CS);      /* set /CSX low */
+  #endif
+
+  /* indicate data mode */
+  LCD_PORT |= (1 << LCD_DC);       /* set D/CX high */
+
+  /* send data */
+  Byte = (uint8_t)Data;            /* save LSB */
+  Data >>= 8;                      /* get MSB */
+  LCD_SendByte((uint8_t)Data);     /* send MSB */
+  LCD_SendByte(Byte);              /* send LSB */
+
+  #ifdef LCD_CS
+  /* deselect chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set /CSX high */
   #endif
 }
 
@@ -311,7 +613,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   if (y < 16)                 /* prevent overflow */
   {
     Mask <<= y;               /* shift to bit position for line */
-    LineMask |= Mask;         /* set bit for line */
+    LineFlags |= Mask;        /* set bit for line */
   }
 
   /*
@@ -358,11 +660,11 @@ void LCD_ClearLine(uint8_t Line)
   /* have we to clear this line? */
   if (Line <= 16)                  /* prevent overflow */
   {
-    y = Line - 1;                  /* bitmask starts at zero */
+    y = Line - 1;                  /* bitfield starts at zero */
     x = 1;                         /* set start bit */
     x <<= y;                       /* bit for this line */
 
-    if (! (LineMask & x))          /* bit not set */
+    if (! (LineFlags & x))         /* bit not set */
     {
       return;                      /* nothing do to */
     }
@@ -375,7 +677,7 @@ void LCD_ClearLine(uint8_t Line)
   {
     if (x > 0)                    /* got line bit */
     {
-      LineMask &= ~x;             /* clear bit */
+      LineFlags &= ~x;            /* clear bit */
     }
   }
 
@@ -445,9 +747,9 @@ void LCD_Init(void)
 
   /* hardware reset */
   #ifdef LCD_RES
-  LCD_PORT = LCD_PORT & ~(1 << LCD_RES);     /* set /RES low */
+  LCD_PORT &= ~(1 << LCD_RES);               /* set /RES low */
   wait10us();                                /* wait 10µs */
-  LCD_PORT = LCD_PORT | (1 << LCD_RES);      /* set /RES high */
+  LCD_PORT |= (1 << LCD_RES);                /* set /RES high */
   /* blanking sequence needs up to 120ms */
   /* but we may send command after 5ms */
   MilliSleep(5);                             /* wait 5ms */
@@ -505,8 +807,8 @@ void LCD_Init(void)
   LCD_Data(MASK_TIME_CTRL_B_2);                   /* fixed value */
 
   /* set pixel format for RGB image data */
-  LCD_Cmd(CMD_PIX_FORMAT_SET);
-  LCD_Data(FLAG_DBI_16);           /* 16 Bits per pixel */
+  LCD_Cmd(CMD_SET_PIX_FORMAT);
+  LCD_Data(FLAG_DBI_16);           /* 16 Bits / RGB565 */
 
   /* frame control for normal display mode */
   LCD_Cmd(CMD_FRAME_CTRL_NORM);
@@ -520,21 +822,28 @@ void LCD_Init(void)
   LCD_Data(FLAG_NL_320);                /* 320 lines */
   LCD_Data(0x00);                       /* DOTCLK / 2 */
 
+  #if 0
   /* gamma set */
   LCD_Cmd(CMD_GAMMA_SET);
   LCD_Data(FLAG_GC_1);             /* gamma curve 1 */
+  #endif
 
   /* memory access control */
   LCD_Cmd(CMD_MEM_CTRL);
-  Bits = FLAG_BGR_RGB;             /* color bit order: RGB */
+  #ifdef LCD_BGR
+  /* reverse red and blue color channels */
+  Bits = FLAG_COLOR_BGR;           /* color bit order: BGR */
+  #else
+  Bits = FLAG_COLOR_RGB;           /* color bit order: RGB */
+  #endif
   #ifdef LCD_ROTATE
-    Bits |= FLAG_MV_REV;           /* swap x and y */
+  Bits |= FLAG_XY_REV;             /* swap x and y */
   #endif
   #ifdef LCD_FLIP_X 
-    Bits |= FLAG_MX_REV;           /* flip x */
+  Bits |= FLAG_COL_REV;            /* flip x */
   #endif
   #ifdef LCD_FLIP_Y
-    Bits |= FLAG_MY_REV;           /* flip y */
+  Bits |= FLAG_PAGE_REV;           /* flip y */
   #endif
   LCD_Data(Bits);
 
@@ -547,7 +856,7 @@ void LCD_Init(void)
 
   /* power on */
   MilliSleep(120);                 /* pause for 120ms */
-  LCD_Cmd(CMD_SLEEP_OUT);          /* leave sleep mode */
+  LCD_Cmd(CMD_SLEEP_OUT);          /* exit sleep mode */
   MilliSleep(60);                  /* pause for 60ms */
   LCD_Cmd(CMD_DISPLAY_ON);         /* enable display output */
   MilliSleep(80);                  /* pause for 80ms */
@@ -560,17 +869,13 @@ void LCD_Init(void)
   UI.SymbolSize_Y = LCD_SYMBOL_CHAR_Y;  /* y size in chars */
   #endif
 
-  /* set default color in case the color feature is disabled */
-  #ifndef LCD_COLOR
-    UI.PenColor = COLOR_PEN;       /* set pen color */
-  #endif
-
-  LineMask = 0xffff;            /* clear all lines by default */
+  /* init character stuff */
+  LineFlags = 0xffff;           /* clear all lines by default */
   LCD_CharPos(1, 1);            /* reset character position */
 
-  /* For bit-bang SPI we don't clear the display now, because it's quite slow */
   #ifdef SPI_HARDWARE
-    LCD_Clear();
+  /* For bit-bang SPI we don't clear the display now, because it's quite slow */
+  LCD_Clear();
   #endif
 }
 
@@ -615,7 +920,14 @@ void LCD_Char(unsigned char Char)
   Y_End = Y_Start + FONT_SIZE_Y - 1;   /* offset for end */
   LCD_AddressWindow();                 /* set address window */
 
-  Offset = UI.PenColor;                /* get pen color */
+  #ifdef LCD_COLOR
+  /* color feature enabled */
+  Offset = UI.PenColor;                 /* get pen color */
+  #else
+  /* color feature disabled */
+  Offset = COLOR_PEN;                   /* use default pen color */
+  #endif
+
   LCD_Cmd(CMD_MEM_WRITE);              /* start writing */
 
   /* read character bitmap and send it to display */
@@ -628,9 +940,15 @@ void LCD_Char(unsigned char Char)
     while (x <= FONT_BYTES_X)
     {
       /* track x bits */
-      if (Pixels >= 8) Bits = 8;
-      else Bits = Pixels;
-      Pixels -= Bits;
+      if (Pixels >= 8)             /* a byte or more left */
+      {
+        Bits = 8;                  /* send full byte */
+      }
+      else                         /* less than a byte left */
+      {
+        Bits = Pixels;             /* send remaining bits */
+      }
+      Pixels -= Bits;              /* update counter */
 
       Index = pgm_read_byte(Table);     /* read byte */
 
@@ -708,12 +1026,12 @@ void LCD_Symbol(uint8_t ID)
   uint8_t           *Table2;       /* pointer */
   uint8_t           Data;          /* symbol data */
   uint16_t          Offset;        /* address offset */
-  uint8_t           Pixels;        /* pixels in y direction */
+  uint8_t           Pixels;        /* pixels in x direction */
   uint8_t           x;             /* bitmap x byte counter */
   uint8_t           y = 1;         /* bitmap y byte counter */
   uint8_t           Bits;          /* number of bits to be sent */
   uint8_t           n;             /* bitmap bit counter */
-  uint8_t           factor = SYMBOL_RESIZE;  /* resize factor */
+  uint8_t           Factor = SYMBOL_RESIZE;  /* resize factor */
 
   /* calculate start address of character bitmap */
   Table = (uint8_t *)&SymbolData;       /* start address of symbol data */
@@ -727,7 +1045,14 @@ void LCD_Symbol(uint8_t ID)
   Y_End = Y_Start + (SYMBOL_SIZE_Y * SYMBOL_RESIZE) - 1;  /* offset for end */
   LCD_AddressWindow();                  /* set address window */
 
+  #ifdef LCD_COLOR
+  /* color feature enabled */
   Offset = UI.PenColor;                 /* get pen color */
+  #else
+  /* color feature disabled */
+  Offset = COLOR_PEN;                   /* use default pen color */
+  #endif
+
   LCD_Cmd(CMD_MEM_WRITE);               /* start writing */
 
   /* read character bitmap and send it to display */
@@ -735,26 +1060,32 @@ void LCD_Symbol(uint8_t ID)
   {
     Table2 = Table;           /* save current pointer */
 
-    while (factor > 0)        /* resize symbol */
+    while (Factor > 0)        /* resize symbol */
     {
       Table = Table2;                   /* reset start pointer */
 
-      Pixels = SYMBOL_SIZE_X;           /* track x bits to be sent */
+      Pixels = SYMBOL_SIZE_X;           /* x bits to be sent */
       x = 1;                            /* reset counter */
 
       /* read and send all bytes for this row */
       while (x <= SYMBOL_BYTES_X)
       {
         /* track x bits */
-        if (Pixels >= 8) Bits = 8;
-        else Bits = Pixels;
-        Pixels -= Bits;
+        if (Pixels >= 8)           /* a byte or more left */
+        {
+          Bits = 8;                /* send full byte */
+        }
+        else                       /* less than a byte left */
+        {
+          Bits = Pixels;           /* send remaining bits */
+        }
+        Pixels -= Bits;            /* update counter */
 
         Data = pgm_read_byte(Table);    /* read byte */
 
         /* send color for each bit */
         n = Bits;                       /* reset counter */
-        n *= SYMBOL_RESIZE;             /* and consider size factor */
+        n *= SYMBOL_RESIZE;             /* and consider resize factor */
 
         while (n > 0)                   /* x pixels */
         {
@@ -779,12 +1110,13 @@ void LCD_Symbol(uint8_t ID)
         x++;                            /* next byte */
       }
 
-      factor--;                    /* one part done */
+      Factor--;                    /* one y resizing step done */
     }
 
-    if (factor == 0)               /* all parts done */
+    /* manage y direction */
+    if (Factor == 0)               /* all y resizing steps done */
     {
-      factor = SYMBOL_RESIZE;      /* reset resize factor */
+      Factor = SYMBOL_RESIZE;      /* reset resize factor */
       y++;                         /* next row */
     }              
   }
@@ -798,6 +1130,113 @@ void LCD_Symbol(uint8_t ID)
     LCD_CharPos(1, x);             /* mark line */
     n--;                           /* next line */
   }
+}
+
+#endif
+
+
+
+#ifdef FUNC_COLORCODE
+
+/*
+ *  draw filled box
+ *  - takes X_start, X_End, Y_Start and Y_End as coordinates 
+ *
+ *  requires:
+ *  - Color: RGB565 color code
+ */
+
+void LCD_Box(uint16_t Color)
+{
+  uint16_t          x_Size;             /* x size */
+  uint16_t          x;                  /* x counter */
+  uint16_t          y_Size;             /* y size/counter */
+
+  LCD_AddressWindow();             /* set address window */
+
+  /* calculate sizes */
+  x_Size = X_End - X_Start + 1;
+  y_Size = Y_End - Y_Start + 1;
+
+  LCD_Cmd(CMD_MEM_WRITE);          /* start writing */
+
+  while (y_Size > 0)               /* loop trough rows */
+  {
+    x = x_Size;                    /* reset counter */    
+
+    while (x > 0)                  /* loop through columns */
+    {
+      LCD_Data2(Color);            /* send color code for dot */
+      x--;                         /* next one */
+    }
+
+    y_Size--;                      /* next one */
+  }
+}
+
+
+
+/*
+ *  display color band of a component color code
+ *  - aligned to charactor position
+ *  - size: 2x1 chars
+ *
+ *  requires:
+ *  - Color: RGB565 color code
+ *  - Align: ALIGN_LEFT   align band left
+ *           ALIGN_RIGHT  align band right
+ */
+
+void LCD_Band(uint16_t Color, uint8_t Align)
+{
+  /* prevent x overflow */
+  if (UI.CharPos_X > LCD_CHAR_X) return;
+
+  /* update character position, also updates X_Start and Y_Start */
+  LCD_CharPos(UI.CharPos_X, UI.CharPos_Y);
+
+  /*
+   *  box for component body
+   *  - height: nearly one char
+   *    top and bottom margin: 1/8 char heigth
+   *  - width: two chars
+   */
+ 
+  X_End = X_Start + (2 * FONT_SIZE_X) - 1;   /* offset for end */
+  /* offset for end & bottom margin */
+  Y_End = Y_Start + FONT_SIZE_Y - 1 - (FONT_SIZE_Y / 8);   
+  Y_Start += (FONT_SIZE_Y / 8);              /* top margin */
+
+  /* draw body using the component's body color */
+  LCD_Box(COLOR_CODE_NONE);
+
+
+  /*
+   *  box for band
+   *  - heigth: same as body but -1 dot at top and bottom
+   *  - width: 1 char
+   *    left and right margin: 1/3 char width
+   */
+
+  /* create thin outline */
+  Y_Start += 1;
+  Y_End -= 1;
+
+  if (Align == ALIGN_LEFT)    /* align band left */
+  {
+    X_Start += (FONT_SIZE_X / 3);       /* left margin */
+    X_End = X_Start + FONT_SIZE_X - 1;  /* offset for end */
+  }
+  else                        /* align band right */
+  {
+    X_End -= (FONT_SIZE_X / 3);         /* right margin */
+    X_Start = X_End - FONT_SIZE_X + 1;  /* offset for start */
+  }
+
+  /* draw band */
+  LCD_Box(Color);
+
+  UI.CharPos_X += 2;          /* update character position */
 }
 
 #endif

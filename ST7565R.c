@@ -3,7 +3,10 @@
  *   driver functions for ST7565R compatible grafic displays
  *   - compatibles: UC1701
  *   - 128 x 64 (132 x 64) pixels
- *   - SPI interface (4 and 5 line)
+ *   - interfaces
+ *     - 8 bit parallel in 6800 mode (not supported)
+ *     - 8 bit parallel in 8080 mode (not supported)
+ *     - 4 line SPI
  *
  *   (c) 2015-2020 by Markus Reschke
  *
@@ -60,6 +63,7 @@
 #include "font_8x12t_iso8859-2_vfp.h"
 #include "font_8x16_iso8859-2_vfp.h"
 #include "font_8x8_win1251_vf.h"
+#include "font_8x8alt_win1251_vf.h"
 #include "font_8x8t_win1251_vf.h"
 #include "font_8x12t_win1251_vfp.h"
 #include "font_8x16_win1251_vfp.h"
@@ -105,7 +109,7 @@ uint8_t             Y_Start;       /* start position Y (page) */
 
 
 /* ************************************************************************
- *   low level functions for SPI interface
+ *   low level functions for 4 line SPI interface
  * ************************************************************************ */
 
 
@@ -119,7 +123,7 @@ uint8_t             Y_Start;       /* start position Y (page) */
 
 void LCD_BusSetup(void)
 {
-  uint8_t           Bits;          /* bitmask */
+  uint8_t           Bits;          /* register bits */
 
 
   /*
@@ -155,9 +159,11 @@ void LCD_BusSetup(void)
 
   /*
    *  init SPI bus
+   *  - SPI bus is set up already in main()
    */
 
   #ifdef SPI_HARDWARE
+
   /*
    *  set SPI clock rate (max. 20MHz)
    *  - max. MCU clock 20MHz / 2 = 10MHz
@@ -165,9 +171,9 @@ void LCD_BusSetup(void)
    */
 
   SPI.ClockRate = SPI_CLOCK_2X;    /* set clock rate flags */
-  #endif
 
-  SPI_Setup();                     /* set up SPI bus */
+  SPI_Clock();                     /* update SPI clock */
+  #endif
 }
 
 

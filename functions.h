@@ -22,11 +22,13 @@
   extern void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C);
   extern void Show_SimplePinout(uint8_t ID_1, uint8_t ID_2, uint8_t ID_3);
 
+  extern void CheckVoltageRefs(void);
+
   extern void PowerOff(void);
 
   #ifndef BAT_NONE
-  void ShowBattery(void);
-  void CheckBattery(void);
+  extern void ShowBattery(void);
+  extern void CheckBattery(void);
   #endif
 
 #endif
@@ -57,6 +59,10 @@
 
   #ifdef SW_SYMBOLS
   extern void LCD_Symbol(uint8_t ID);
+  #endif
+
+  #ifdef FUNC_COLORCODE
+  extern void LCD_Band(uint16_t Color, uint8_t Align);
   #endif
 
 #endif
@@ -216,11 +222,11 @@
   extern void Display_EEString_NL(const unsigned char *String);
   #endif
 
-  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
+  #if defined (FUNC_DISPLAY_HEXBYTE) || defined (SW_IR_TRANSMITTER)
   extern void Display_HexDigit(uint8_t Digit);
   #endif
 
-  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_ONEWIRE_SCAN)
+  #ifdef FUNC_DISPLAY_HEXBYTE
   extern void Display_HexByte(uint8_t Value);
   #endif
 
@@ -228,7 +234,7 @@
   extern void Display_HexValue(uint16_t Value, uint8_t Bits);
   #endif
 
-  #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO) || defined (SW_DS18B20) || defined (HW_EVENT_COUNTER) || defined (SW_DHTXX)
+  #ifdef FUNC_DISPLAY_FULLVALUE
   extern void Display_FullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
@@ -239,12 +245,20 @@
   extern void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit);
   extern void Display_SignedValue(int32_t Value, int8_t Exponent, unsigned char Unit);
 
+  #ifdef FUNC_EVALUE
+    extern void Display_EValue(uint16_t Value, int8_t Scale, unsigned char Unit);
+  #endif
+
   #ifdef SW_SYMBOLS
   extern void LCD_FancySemiPinout(uint8_t Line);
   #endif
 
   #ifdef SW_FONT_TEST
   extern void FontTest(void);
+  #endif
+
+  #ifdef FUNC_COLORCODE
+  extern void Display_ColorCode(uint16_t Value, int8_t Scale, uint16_t TolBand);
   #endif
 
 #endif
@@ -513,7 +527,11 @@
   extern uint8_t ShortedProbes(void);
   extern void DischargeProbes(void);
   extern void PullProbe(uint8_t Probe, uint8_t Mode);
+
   extern uint16_t GetFactor(uint16_t U_in, uint8_t ID);
+  #if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE)
+  extern uint8_t GetENormValue(uint32_t Value, int8_t Scale, uint8_t E_Series, uint8_t Tolerance);
+  #endif
 
   extern void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);
   extern void CheckAlternatives(void);
@@ -527,10 +545,10 @@
 
 #ifndef ADC_C
 
-  extern uint16_t ReadU(uint8_t Probe);
+  extern uint16_t ReadU(uint8_t Channel);
 
-  extern uint16_t ReadU_5ms(uint8_t Probe);
-  extern uint16_t ReadU_20ms(uint8_t Probe);
+  extern uint16_t ReadU_5ms(uint8_t Channel);
+  extern uint16_t ReadU_20ms(uint8_t Channel);
 
 #endif
 

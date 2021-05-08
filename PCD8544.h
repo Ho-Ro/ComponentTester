@@ -2,7 +2,7 @@
  *
  *   PCD8544 graphic display controller
  *
- *   (c) 2016 by Markus Reschke
+ *   (c) 2016-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -14,6 +14,7 @@
 
 /*
  *  no operation
+ *  - 1 byte cmd
  */
 
 #define CMD_NOP               0b00000000     /* no operation */
@@ -21,6 +22,7 @@
 
 /*
  *  function set
+ *  - 1 byte cmd
  */
 
 #define CMD_FUNCTION_SET      0b00100000     /* function set */
@@ -43,6 +45,7 @@
 
 /*
  *  display control
+ *  - 1 byte cmd
  */
 
 #define CMD_DISP_CONTROL      0b00001000     /* display control */
@@ -55,6 +58,7 @@
 
 /*
  *  set Y address of RAM
+ *  - 1 byte cmd
  *  - bank number
  *  - valid range: 0 - 5
  */
@@ -64,6 +68,7 @@
 
 /*
  *  set X address of RAM
+ *  - 1 byte cmd
  *  - column number
  *  - valid range: 0 - 83
  */
@@ -79,6 +84,7 @@
 
 /*
  *  temperature control
+ *  - 1 byte cmd
  */
 
 #define CMD_TEMP_CONTROL      0b00000100     /* set temperature coefficient */
@@ -92,6 +98,7 @@
 
 /* 
  *  bias system
+ *  - 1 byte cmd
  *  - 1/(n + 4) 
  */
 
@@ -110,6 +117,7 @@
 
 /*
  *  set V_OP (V_LCD)
+ *  - 1 byte cmd
  *  - a = 3.06  b = 0.06
  *  - V_LCD = a + (VOP6 to VOP0) × b
  *    -> 3.00 - 10.68 at room temperature

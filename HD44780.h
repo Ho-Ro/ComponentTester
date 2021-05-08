@@ -48,6 +48,7 @@
 
 /*
  *  clear display
+ *  - 1 byte cmd
  */
 
 #define CMD_CLEAR_DISPLAY     0x01    /* clear display */
@@ -55,6 +56,7 @@
 
 /*
  *  return home
+ *  - 1 byte cmd
  *  - exec time: 1.52ms
  */
 
@@ -63,6 +65,7 @@
 
 /*
  *  entry mode set
+ *  - 1 byte cmd
  *  - exec time: 37µs
  */
 
@@ -76,6 +79,7 @@
 
 /*
  *  display control
+ *  - 1 byte cmd
  */
 
 #define CMD_DISPLAY_CONTROL   0x08    /* display control */
@@ -90,6 +94,7 @@
 
 /*
  *  shift
+ *  - 1 byte cmd
  */
 
 #define CMD_SHIFT             0x10    /* shift */
@@ -102,6 +107,7 @@
 
 /*
  *  function set
+ *  - 1 byte cmd
  */
 
 #define CMD_FUNCTION_SET      0x20    /* function set */
@@ -116,6 +122,7 @@
 
 /*
  *  set CG RAM address
+ *  - 1 byte cmd
  */
 
 #define CMD_SET_CG_RAM_ADDR   0x40    /* set CG RAM address (custom character) */
@@ -123,6 +130,7 @@
 
 /*
  *  set DD RAM address
+ *  - 1 byte cmd
  */
 
 #define CMD_SET_DD_RAM_ADDR   0x80    /* set DD RAM address (cursor position) */

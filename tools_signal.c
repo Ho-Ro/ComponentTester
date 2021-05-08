@@ -2,7 +2,7 @@
  *
  *   signal tools (hardware and software options)
  *
- *   (c) 2012-2019 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -268,14 +268,14 @@ void PWM_Tool(void)
   uint8_t           Step;               /* step size */
   uint8_t           Ratio;              /* PWM ratio (in %) */
   uint8_t           Index;              /* prescaler table index */
-  uint8_t           Bitmask = 0;        /* prescaler bitmask */
+  uint8_t           Bits = 0;           /* prescaler register bits */
   uint16_t          Prescaler;          /* timer prescaler */
   uint16_t          Top;                /* top value */
   uint16_t          Step2;              /* step size */
   uint16_t          Temp;               /* temporary value */
   uint32_t          Value;              /* temporary value */
 
-  /* local constants for Flag (bitmask) */
+  /* local constants for Flag (bitfield) */
   #define RUN_FLAG       0b00000001     /* run / otherwise end */
   #define CHANGE_FREQ    0b00000010     /* change frequency */
   #define CHANGE_RATIO   0b00000100     /* change ratio */
@@ -346,7 +346,7 @@ void PWM_Tool(void)
   Ratio = 50;                      /* 50% PWM ratio */
   Prescaler = 1;
   Index = 0;
-  Bitmask = (1 << CS10);           /* prescaler bitmask for 1 */
+  Bits = (1 << CS10);              /* prescaler register bits for 1 */
   Top = (CPU_FREQ / 2000);         /* 1kHz */
   Flag = RUN_FLAG | CHANGE_FREQ | CHANGE_RATIO | DISPLAY_FREQ | DISPLAY_RATIO;
   Mode = MODE_FREQ;                /* frequency mode */
@@ -386,9 +386,9 @@ void PWM_Tool(void)
       {
         Step2 = Prescaler;         /* save old value */
 
-        /* read new prescaler and bitmask from table */
+        /* read new prescaler and register bits from table */
         Prescaler = DATA_read_word(&T1_Prescaler_table[Index]);
-        Bitmask = DATA_read_byte(&T1_Bitmask_table[Index]);
+        Bits = DATA_read_byte(&T1_RegBits_table[Index]);
 
         if (Index > Step)          /* larger prescaler */
         {
@@ -406,7 +406,7 @@ void PWM_Tool(void)
 
       /* set frequency */
       OCR1A = Top;                      /* set top value */
-      TCCR1B = (1 << WGM13) | Bitmask;  /* (re)start timer */
+      TCCR1B = (1 << WGM13) | Bits;     /* (re)start timer */
       Flag &= ~CHANGE_FREQ;             /* clear flag */
       /* a frequency change implies a ratio change */
     }
@@ -538,7 +538,7 @@ void PWM_Tool(void)
         /* set 1kHz */
         Prescaler = 1;
         Index = 0;
-        Bitmask = (1 << CS10);     /* prescaler bitmask for 1 */
+        Bits = (1 << CS10);        /* prescaler register bits for 1 */
         Top = (CPU_FREQ / 2000);   /* 1kHz */
         Flag |= CHANGE_FREQ | DISPLAY_FREQ | CHANGE_RATIO;   /* set flags */
       }
@@ -666,7 +666,7 @@ void Servo_Check(void)
   uint16_t          Temp;               /* temporary value */
   uint32_t          Value;              /* temporary value */
 
-  /* local constants for Flag (bitmask) */
+  /* local constants for Flag (bitfield) */
   #define RUN_FLAG       0b00000001     /* run / otherwise end */
   #define SWEEP_MODE     0b00000010     /* sweep mode */
   #define CHANGE_PULSE   0b00000100     /* change pulse width */
@@ -1226,7 +1226,7 @@ void SquareWave_SignalGenerator(void)
   uint8_t           Flag = 1;           /* loop control */
   uint8_t           Test;               /* user feedback */
   uint8_t           Index;              /* prescaler table index */
-  uint8_t           Bitmask = 0;        /* prescaler bitmask */
+  uint8_t           Bits = 0;           /* prescaler register bits */
   uint16_t          Prescaler;          /* timer prescaler */
   uint16_t          Top;                /* counter's top value */
   uint16_t          Step;               /* step size */
@@ -1288,7 +1288,7 @@ void SquareWave_SignalGenerator(void)
   /* set values for default frequency: 1kHz */
   Index = 0;                       /* prescaler 1/1 */
   Prescaler = 1;                   /* prescaler 1/1 */
-  Bitmask = (1 << CS10);           /* bitmask for prescaler 1 */
+  Bits = (1 << CS10);              /* register bits for prescaler 1 */
   Top = (CPU_FREQ / 1000) - 1;     /* top = f_MCU / (prescaler * f_PWM) - 1 */
 
   while (Flag > 0)
@@ -1320,9 +1320,9 @@ void SquareWave_SignalGenerator(void)
     {
       Step = Prescaler;            /* save old value */
 
-      /* read new prescaler and bitmask from table */
+      /* read new prescaler and register bits from table */
       Prescaler = DATA_read_word(&T1_Prescaler_table[Index]);
-      Bitmask = DATA_read_byte(&T1_Bitmask_table[Index]);
+      Bits = DATA_read_byte(&T1_RegBits_table[Index]);
 
       /* adjust top value for changed prescaler */
       if (Index > Test)            /* larger prescaler */
@@ -1349,7 +1349,7 @@ void SquareWave_SignalGenerator(void)
     TCNT1 = 0;                               /* reset counter */
     OCR1B = Top / 2;                         /* 50% duty cycle */
     OCR1A = Top;                             /* top value for frequency */
-    TCCR1B = (1 << WGM13) | (1 << WGM12) | Bitmask;    /* (re)start timer */
+    TCCR1B = (1 << WGM13) | (1 << WGM12) | Bits;    /* (re)start timer */
 
 
     /*
@@ -1430,7 +1430,7 @@ void SquareWave_SignalGenerator(void)
       /* set default frequency: 1kHz */
       Index = 0;                        /* prescaler 1/1 */
       Prescaler = 1;                    /* prescaler 1/1 */
-      Bitmask = (1 << CS10);            /* bitmask for prescaler 1 */
+      Bits = (1 << CS10);               /* register bits for prescaler 1 */
       Top = (CPU_FREQ / 1000) - 1;      /* top = f_MCU / (prescaler * f) - 1 */
     }
   }
@@ -1531,7 +1531,7 @@ void FrequencyCounter(void)
   uint8_t           Test;               /* user feedback */
   uint8_t           Old_DDR;            /* old DDR state */
   uint8_t           Index;              /* prescaler table index */
-  uint8_t           Bitmask;            /* prescaler bitmask */
+  uint8_t           Bits;               /* prescaler register bits */
   uint16_t          GateTime;           /* gate time in ms */
   uint16_t          Top;                /* top value for timer */
   uint32_t          Value;              /* temporary value */
@@ -1602,8 +1602,8 @@ void FrequencyCounter(void)
     wait500us();                        /* settle time */
 
     /* update prescaler */
-    Top = DATA_read_word(&T1_Prescaler_table[Index]);       /* prescaler value */
-    Bitmask = DATA_read_byte(&T1_Bitmask_table[Index]);     /* prescaler bits */
+    Top = DATA_read_word(&T1_Prescaler_table[Index]);  /* prescaler value */
+    Bits = DATA_read_byte(&T1_RegBits_table[Index]);   /* prescaler bits */
 
     /* calculate compare value for Timer1 (gate time) */
     /* top = gatetime * MCU_cycles / timer prescaler */
@@ -1619,7 +1619,7 @@ void FrequencyCounter(void)
     TCNT0 = 0;                          /* Timer0: reset pulse counter */
     TCNT1 = 0;                          /* Timer1: reset gate time counter */
     OCR1A = Top;                        /* Timer1: set gate time */
-    TCCR1B = Bitmask;                   /* start Timer1: prescaler */
+    TCCR1B = Bits;                      /* start Timer1: prescaler */
     TCCR0B = (1 << CS02) | (1 << CS01); /* start Timer0: clock source T0 on falling edge */
 
     /* wait for timer1 or key press */
@@ -1769,7 +1769,7 @@ void FrequencyCounter(void)
   uint8_t           Range;              /* range ID */
   uint8_t           Div = 0;            /* frequency prescaler */
   uint8_t           Index;              /* prescaler table index */
-  uint8_t           Bitmask = 0;        /* prescaler bitmask */
+  uint8_t           Bits = 0;           /* prescaler register bits */
   uint16_t          GateTime = 0;       /* gate time in ms */
   uint16_t          Top = 0;            /* top value for timer */
   unsigned char     *String = NULL;     /* string pointer (EEPROM) */
@@ -1889,7 +1889,7 @@ void FrequencyCounter(void)
 
       /* update Timer1 prescaler */
       Top = DATA_read_word(&T1_Prescaler_table[Index]);     /* prescaler value */
-      Bitmask = DATA_read_byte(&T1_Bitmask_table[Index]);   /* prescaler bits */
+      Bits = DATA_read_byte(&T1_RegBits_table[Index]);      /* prescaler bits */
 
 
       /* calculate compare value for Timer1 (gate time) */
@@ -1968,7 +1968,7 @@ void FrequencyCounter(void)
     TCNT0 = 0;                          /* Timer0: reset pulse counter */
     TCNT1 = 0;                          /* Timer1: reset gate time counter */
     OCR1A = Top;                        /* Timer1: set gate time */
-    TCCR1B = Bitmask;                   /* start Timer1: prescaler */
+    TCCR1B = Bits;                      /* start Timer1: prescaler */
     TCCR0B = (1 << CS02) | (1 << CS01); /* start Timer0: clock source T0 on falling edge */
 
 

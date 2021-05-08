@@ -2,7 +2,7 @@
  *
  *   PCF8814 graphic display controller
  *
- *   (c) 2019 by Markus Reschke
+ *   (c) 2019-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -51,23 +51,22 @@
 
 
 /*
- *  horizontal addressing: set lower nibble of column address (bits 0-3)
- *  - valid range: 0 - 15 (both nibbles 0 - 95)
+ *  horizontal addressing
+ *  - 2 commands (1 byte each)
+ *  - valid range: 0 - 95
  */
 
-#define CMD_COLUMN_L          0b00000000     /* set lower nibble column address */
+/* set lower nibble of column address (bits 0-3): bits 0-3 */
+#define CMD_COLUMN_L          0b00000000     /* set lower nibble */
 
 
-/*
- *  horizontal addressing: set upper nibble of column address (bits 4-6)
- *  - valid range: 0 - 7 (both nibbles 0 - 95)
- */
-
-#define CMD_COLUMN_H          0b00010000     /* set upper nibble of column address */
+/* set upper nibble of column address (bits 4-6): bits 0-2 */
+#define CMD_COLUMN_H          0b00010000     /* set upper nibble */
 
 
 /*
  *  power control
+ *  - 1 byte cmd
  *  - charge pump
  */
 
@@ -80,6 +79,7 @@
 
 /*
  *  set bias
+ *  - 1 byte cmd
  */
 
 #define CMD_BIAS              0b00110000     /* set bias */
@@ -112,6 +112,7 @@
 
 /*
  *  set initial display line
+ *  - 1 byte cmd
  *  - valid range: 0 - 63
  */ 
 
@@ -119,23 +120,21 @@
 
 
 /*
- *  adjust contrast setting (VOP): set upper nibble (bits 5-7)
- *  - valid range: 0 - 7 (both nibbles 0 - 255)
+ *  adjust contrast setting (VOP)
+ *  - 2 commands (1 byte each)
+ *  - valid range: 0 - 255
  */
 
-#define CMD_VOP_H             0b00100000     /* set upper nibble of VOP */
+/* set upper nibble of contrast (bits 5-7): bits 0-2 */
+#define CMD_VOP_H             0b00100000     /* set upper nibble */
 
-
-/*
- *  adjust contrast setting (VOP): set lower nibble (bits 0-4)
- *  - valid range: 0 - 31 (both nibbles 0 - 255)
- */
-
-#define CMD_VOP_L             0b10000000     /* set lower nibble of VOP */
+/* set lower nibble of contrast (bits 0-4): bits 0-5 */
+#define CMD_VOP_L             0b10000000     /* set lower nibble */
 
 
 /*
  *  set pixel mode: normal/all-on
+ *  - 1 byte cmd
  */
 
 #define CMD_PIXEL_MODE        0b10100100     /* pixel mode */
@@ -146,6 +145,7 @@
 
 /*
  *  set display mode: normal/inversed
+ *  - 1 byte cmd
  */
 
 #define CMD_DISP_MODE         0b10100110     /* display normal/inversed */
@@ -156,6 +156,7 @@
 
 /*
  *  set display: on/off
+ *  - 1 byte cmd
  */
 
 #define CMD_DISPLAY           0b10101110     /* display on/off */
@@ -166,6 +167,7 @@
 
 /*
  *  data order
+ *  - 1 byte cmd
  */
 
 #define CMD_DATA_ORDER        0b10101000     /* set data order */
@@ -176,6 +178,7 @@
 
 /*
  *  RAM addressing mode
+ *  - 1 byte cmd
  */
 
 #define CMD_ADDR_MODE         0b10101010     /* set addressing mode */
@@ -228,6 +231,7 @@
 
 /*
  *  vertical addressing: set bank
+ *  - 1 byte cmd
  *  - valid range: 0 - 8
  *  - last bank is 1 pixel high
  */
@@ -237,6 +241,7 @@
 
 /*
  *  vertical mirroring
+ *  - 1 byte cmd
  */
 
 #define CMD_VERT_MIRROR       0b11000000     /* set vertical mirroring */
@@ -247,6 +252,7 @@
 
 /*
  *  set partial display (mux rate)
+ *  - 1 byte cmd
  */
 
 #define CMD_PARTIAL_DISP      0b11010000     /* set partial display */
@@ -264,6 +270,7 @@
 
 /*
  *  read ID 1
+ *  - 1 byte cmd + 1 byte data (read)
  *  - returns always 0
  */
 
@@ -272,6 +279,7 @@
 
 /*
  *  read ID 2
+ *  - 1 byte cmd + 1 byte data (read)
  *  - returns always 1
  */
 
@@ -280,6 +288,7 @@
 
 /*
  *  read ID 3
+ *  - 1 byte cmd + 1 byte data (read)
  */
 
 #define CMD_READ_ID3          0b11011100     /* read ID 3 */
@@ -287,6 +296,7 @@
 
 /*
  *  read ID 4
+ *  - 1 byte cmd + 1 byte data (read)
  */
 
 #define CMD_READ_ID4          0b11011101     /* read ID 4 */
@@ -294,6 +304,7 @@
 
 /*
  *  temperature sense (read temperature)
+ *  - 1 byte cmd + 1 byte data (read)
  *  - T = (1.875 * value - 40)°C
  */
 
@@ -302,18 +313,21 @@
 
 /*
  *  read voltage monitor
+ *  - 1 byte cmd + 1 byte data (read)
  *  - get status of charge pump
  */
 
+/* byte #1: cmd */
 #define CMD_READ_V_MONITOR    0b11011111     /* read voltage monitor */
 
-/* charge pump status */
+/* byte #2: charge pump status */
 #define FLAG_CHARGE_PUMP_BAD  0b00000000     /* not working correctly */
 #define FLAG_CHARGE_PUMP_OK   0b00000001     /* working correctly */
 
 
 /*
  *  row control
+ *  - 1 byte cmd
  */
 
 #define CMD_ROW_CONTROL       0b11100000     /* set row control */
@@ -325,6 +339,7 @@
 
 /*
  *  software reset
+ *  - 1 byte cmd
  */
 
 #define CMD_RESET             0b11100010     /* internal reset */
@@ -332,6 +347,7 @@
 
 /*
  *  no operation (NOP)
+ *  - 1 byte cmd
  */
 
 #define CMD_NOP               0b11100011     /* NOP */
@@ -339,7 +355,7 @@
 
 /*
  *  display data length for 3-line SPI
- *  - 2 byte command
+ *  - 2 byte cmd
  */
 
 /* byte #1: command */
@@ -412,6 +428,7 @@
 
 /*
  *  temperature compensation: enable/disable TC
+ *  - 1 byte cmd
  */
 
 #define CMD_TC_MODE           0b1110101      /* set TC mode */
@@ -422,6 +439,7 @@
 
 /*
  *  oscillator selection
+ *  - 1 byte cmd
  */
 
 #define CMD_OSCILLATOR        0b00111010     /* select oscillator */
@@ -432,6 +450,7 @@
 
 /*
  *  set factory defaults
+ *  - 1 byte cmd
  */
 
 #define CMD_DEFAULTS          0b00111110     /* set factory defaults */
@@ -457,6 +476,7 @@
 
 /*
  *  OTP programming
+ *  - 1 byte cmd
  */
 
 #define CMD_OTP_PROG          0b11110000     /* set OTP mode */
@@ -469,6 +489,7 @@
 
 /*
  *  load 0: write 0 to OTP shift register
+ *  - 1 byte cmd
  *  - when in calibration mode
  */
 
@@ -477,6 +498,7 @@
 
 /*
  *  load 1: write 1 to OTP shift register
+ *  - 1 byte cmd
  *  - when in calibration mode
  */
 
@@ -485,6 +507,7 @@
 
 /*
  *  horizontal mirroring
+ *  - 1 byte cmd
  *  - pseudo command, treated as NOP
  *  - mirroring is set by PCF8814's MX pin
  */

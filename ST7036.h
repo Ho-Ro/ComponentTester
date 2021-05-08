@@ -2,7 +2,7 @@
  *
  *   ST7036 display controller
  *
- *   (c) 2019 by Markus Reschke
+ *   (c) 2019-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -43,6 +43,7 @@
 
 /*
  *  clear display
+ *  - 1 byte cmd
  *  - modes: normal & extension
  *  - exec time: 1.08ms
  */
@@ -52,6 +53,7 @@
 
 /*
  *  return home
+ *  - 1 byte cmd
  *  - modes: normal & extension
  *  - exec time: 1.08ms
  */
@@ -61,6 +63,7 @@
 
 /*
  *  entry mode set
+ *  - 1 byte cmd
  *  - modes: normal & extension
  *  - exec time: 26.3탎
  */
@@ -75,6 +78,7 @@
 
 /*
  *  display control
+ *  - 1 byte cmd
  *  - modes: normal & extension
  *  - exec time: 26.3탎
  */
@@ -91,6 +95,7 @@
 
 /*
  *  cursor/display shift
+ *  - 1 byte cmd
  *  - modes: normal & extension (instruction table 0)
  *  - exec time: 26.3탎
  */
@@ -105,6 +110,7 @@
 
 /*
  *  bias set
+ *  - 1 byte cmd
  *  - modes: extension (instruction table 1)
  *  - exec time: 26.3탎
  */
@@ -119,6 +125,7 @@
 
 /*
  *  double height position select (when 5x16 font is enabled)
+ *  - 1 byte cmd
  *  - modes: extension (instruction table 2)
  *  - exec time: 26.3탎
  */
@@ -131,6 +138,7 @@
 
 /*
  *  function set
+ *  - 1 byte cmd
  *  - modes: normal & extension
  *  - exec time: 26.3탎
  */
@@ -153,6 +161,7 @@
 
 /*
  *  set CGRAM address (custom character)
+ *  - 1 byte cmd
  *  - modes: normal & extension (instruction table 0)
  *  - exec time: 26.3탎
  */
@@ -162,6 +171,7 @@
 
 /*
  *  set ICON address (?)
+ *  - 1 byte cmd
  *  - modes: extension (instruction table 1)
  *  - exec time: 26.3탎
  *  - valid address range: 00-0F
@@ -172,6 +182,7 @@
 
 /*
  *  power, ICON control and contrast set (high bits)
+ *  - 1 byte cmd
  *  - modes: extension (instruction table 1)
  *  - exec time: 26.3탎
  *  - contrast: upper 2 bits (of 6 bits, valid range 0-63)
@@ -188,6 +199,7 @@
 
 /*
  *  voltage follower control
+ *  - 1 byte cmd
  *  - modes: extension (instruction table 1)
  *  - exec time: 26.3탎
  */
@@ -209,6 +221,7 @@
 
 /*
  *  contrast set (low bits)
+ *  - 1 byte cmd
  *  - modes: extension (instruction table 1)
  *  - exec time: 26.3탎
  *  - contrast: lower 4 bits (of 6 bits, valid range 0-63)
@@ -220,6 +233,7 @@
 
 /*
  *  set DDRAM address (cursor position)
+ *  - 1 byte cmd
  *  - modes: normal & extension
  *  - exec time: 26.3탎
  *  - valid address ranges:

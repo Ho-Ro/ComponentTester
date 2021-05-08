@@ -2,7 +2,7 @@
  *
  *   SSD1306 OLED graphic display controller
  *
- *   (c) 2017-2019 by Markus Reschke
+ *   (c) 2017-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -54,6 +54,7 @@
 
 /*
  *  entire display on
+ *  - 1 byte cmd
  */
 
 #define CMD_PIXEL_MODE        0b10100100     /* set pixel mode */
@@ -64,6 +65,7 @@
 
 /*
  *  set normal/inverse display
+ *  - 1 byte cmd
  */
 
 #define CMD_DISP_MODE         0b10100110     /* set display mode */
@@ -74,6 +76,7 @@
 
 /*
  *  set display on/off
+ *  - 1 byte cmd
  */
 
 #define CMD_DISPLAY           0b10101110     /* enable/disable display */
@@ -161,6 +164,7 @@
 
 /*
  *  deactivate scrolling
+ *  - 1 byte cmd
  */
 
 #define CMD_SCOLLING_OFF      0b00101110     /* disable scolling */
@@ -168,6 +172,7 @@
 
 /*
  *  activate scrolling
+ *  - 1 byte cmd
  */
 
 #define CMD_SCOLLING_ON       0b00101111     /* enable scolling */
@@ -197,21 +202,18 @@
 
 
 /*
- *  set lower nibble of column start address (page adressing mode)
- *  - valid range: 0 - 63 (both nibbles: 0-127)
+ *  column start address (page adressing mode)
+ *  - 2 commands (1 byte each)
+ *  - valid range 0 - 127
  *    default: 0
  */
 
-#define CMD_COLUMN_L          0b00000000     /* set lower nibble of start address */
+/* set lower nibble of column start address (bits 0-3): bits 0-3 */
+#define CMD_COLUMN_L          0b00000000     /* set lower nibble */
 
 
-/*
- *  set upper nibble column start address (page adressing mode)
- *  - valid range: 0 - 63 (both nibbles: 0-127)
- *    default: 0
- */
-
-#define CMD_COLUMN_H          0b00010000     /* set upper nibble of start address */
+/* set upper nibble column start address (bits 4-7): bits 0-3 */
+#define CMD_COLUMN_H          0b00010000     /* set upper nibble */
 
 
 /*
@@ -265,6 +267,7 @@
 
 /*
  *  set page start address (page adressing mode)
+ *  - 1 byte cmd
  *  - valid range: 0 - 7
  */
 
@@ -293,6 +296,7 @@
 
 /*
  *  set display start line
+ *  - 1 byte cmd
  *  - valid range: 0 - 63
  *    default: 0
  */
@@ -302,6 +306,7 @@
 
 /*
  *  set segment mapping
+ *  - 1 byte cmd
  */
 
 #define CMD_SEGMENT_MAP       0b10100000     /* set segment mapping */
@@ -325,6 +330,7 @@
 
 /*
  *  set COM output scan direction
+ *  - 1 byte cmd
  */
 
 #define CMD_COM_SCAN_DIR      0b11000000     /* set COM scan direction */
@@ -523,6 +529,7 @@
 
 /*
  *  no operation
+ *  - 1 byte cmd
  */
 
 #define CMD_NOP               0b11100011     /* no operation */
