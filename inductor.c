@@ -2,7 +2,7 @@
  *
  *   inductor measurements
  *
- *   (c) 2012-2013 by Markus Reschke
+ *   (c) 2012-2014 by Markus Reschke
  *   based on code from Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -197,15 +197,16 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
 
   if (Mode & MODE_DELAYED_START)        /* delayed start */
   {
-    Test = (CPU_FREQ / 1000000);        /* cycles per µs */
+    Test = (CPU_FREQ / 1000000);        /* MCU cycles per µs */
 
     /* change probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
     ADC_PORT = Probes.ADC_1;            /* pull up probe-1 directly */
 
     /*
      *  delay timer by about 3-4µs to skip capacitive effects of large inductors
-     *  - a single loop needs 4 cycles, the last loop run just 3
+     *  - a loop run needs 4 cycles, the last loop run just 3
      *  - cycles burnt: <MCU cycles per µs> * 4 - 1
+     *    time delay: 4µs - 1 MCU cycle
      */
 
     while (Test > 0)

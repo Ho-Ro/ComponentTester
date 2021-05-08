@@ -116,7 +116,7 @@ unsigned int SmallResistor(uint8_t ZeroFlag)
       /* ADC performs S&H after 1.5 ADC cycles (12µs) */
       ADCSRA |= (1 << ADSC);            /* start conversion */
 
-      /* wait 20µs to allow the ADC to do it's job */
+      /* wait 20µs to allow the ADC to do it's job (S&H) */
       wait20us();
 
       /* stop pulse */

@@ -134,11 +134,11 @@ size: ${NAME}
 #
 
 # rule for all c-files
-${OBJECTS_C}: %.o: %.c ${HEADERS} Makefile
+${OBJECTS_C}: %.o: %.c ${HEADERS} ${MAKEFILE_LIST}
 	${CC} ${CFLAGS} -c ${@:.o=.c}
 
 # rule for all S-files
-${OBJECTS_S}: %.o: %.S ${HEADERS} Makefile
+${OBJECTS_S}: %.o: %.S ${HEADERS} ${MAKEFILE_LIST}
 	${CC} ${CFLAGS} -c ${@:.o=.S}
 
 # external dependencies

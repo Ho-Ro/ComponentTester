@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2013 by Markus Reschke
+ *   (c) 2012-2014 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -28,21 +28,25 @@
 
 #ifndef LCD_C
 
-  extern void lcd_enable(void);
-  extern void lcd_send(unsigned char Data);
-  extern void lcd_command(unsigned char Cmd);
-  extern void lcd_data(unsigned char Data);
+  extern void LCD_Enable(void);
+  extern void LCD_Send(unsigned char Data);
+  extern void LCD_Cmd(unsigned char Cmd);
+  extern void LCD_Data(unsigned char Data);
 
-  extern void lcd_clear(void);
-  extern void lcd_line(unsigned char Line);
-  extern void lcd_clear_line(unsigned char Line);
-  extern void lcd_init(void);
-  extern void lcd_fixed_customchar(const unsigned char *CharData, uint8_t ID);
+  extern void LCD_Clear(void);
+//  extern void LCD_Line(unsigned char Line);
+  extern void LCD_Line2(void);
+  extern void LCD_Init(void);
+  extern void LCD_EELoadChar(const unsigned char *CharData, uint8_t ID);
 
-  extern void lcd_space(void);
-  extern void lcd_testpin(unsigned char Probe);
-//  extern void lcd_string(char *String);
-  extern void lcd_fixed_string(const unsigned char *String);
+//  extern void LCD_ClearLine(unsigned char Line);
+  extern void LCD_ClearLine2(void);
+  extern void LCD_Space(void);
+  extern void LCD_ProbeNumber(unsigned char Probe);
+//  extern void LCD_String(char *String);
+  extern void LCD_EEString(const unsigned char *String);
+
+  extern void LCD_EEString2(const unsigned char *String);
 
 #endif
 
@@ -107,6 +111,7 @@
 
   #ifdef EXTRA
     extern void PWM_Tool(uint16_t Frequency);
+    extern void ESR_Tool(void);
 
     #ifdef HW_ZENER
       extern void Zener_Tool(void);
@@ -168,6 +173,10 @@
  * ************************************************************************ */
 
 #ifndef CAP_C
+
+  #ifdef EXTRA
+    extern unsigned int MeasureESR(Capacitor_Type *Cap);
+  #endif
 
   extern void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID);
 

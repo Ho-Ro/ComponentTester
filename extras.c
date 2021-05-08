@@ -2,7 +2,7 @@
  *
  *   extras / additional features
  *
- *   (c) 2012-2013 by Markus Reschke
+ *   (c) 2012-2014 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -60,15 +60,16 @@ void PWM_Tool(uint16_t Frequency)
   */
 
   ShortCircuit(0);                    /* make sure probes are not shorted */
-  lcd_clear();
-  lcd_fixed_string(PWM_str);          /* display: PWM */
-  lcd_data(' ');
+  LCD_Clear();
+  LCD_EEString2(PWM_str);             /* display: PWM */
   DisplayValue(Frequency, 0, 'H');    /* display frequency */
-  lcd_data('z');                      /* make it Hz :-) */
+  LCD_Data('z');                      /* make it Hz :-) */
 
-  R_PORT = 0;                         /* make probe #1 and #3 ground */
-  /* set all probes to output mode */
-  R_DDR = (1 << (TP1 * 2)) | (1 << (TP2 * 2)) | (1 << (TP3 * 2));
+  /* probes 1 and 3 are signal ground, probe 2 is signal output */
+  ADC_PORT = 0;                         /* pull down directly: */
+  ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
+  R_DDR = (1 << (TP2 * 2));             /* enable Rl for probe 2 */
+  R_PORT = 0;                           /* pull down probe 2 initially */
 
 
   /*
@@ -127,14 +128,14 @@ void PWM_Tool(uint16_t Frequency)
   while (Test > 0)
   {
     /* show current ratio */
-    lcd_clear_line(2);
+    LCD_ClearLine2();
     DisplayValue(Ratio, 0, '%');        /* show ratio in % */
     MilliSleep(500);                    /* smooth UI */
 
     /*
         short key press -> increase ratio
         long key press -> decrease ratio
-        two short key presses -> exit PWM
+        two short key presses -> exit tool
      */
 
     Test = TestKey(0, 0);               /* wait for user feedback */
@@ -175,6 +176,103 @@ void PWM_Tool(uint16_t Frequency)
 #endif
 
 
+/* ************************************************************************
+ *   ESR tool
+ * ************************************************************************ */
+
+
+#ifdef EXTRA
+
+/*
+ *  ESR tool
+ */
+
+void ESR_Tool(void)
+{
+  uint8_t           Run = 1;       /* control flag */
+  uint8_t           Test;          /* temp. value */
+  Capacitor_Type    *Cap;          /* pointer to cap */
+  uint16_t          ESR;           /* ESR (in 0.01 Ohms) */
+
+  Check.Diodes = 0;                /* disable diode check in cap measurement */
+  Cap = &Caps[0];                  /* pointer to first cap */
+
+  #ifdef HW_RELAY
+  ADC_DDR = (1<<TP_REF);           /* short circuit probes */
+  #endif
+
+  /* show tool info */
+  LCD_Clear();
+  LCD_EEString(ESR_str);           /* display: ESR */
+  LCD_Line2();
+  LCD_Data('-');                   /* display "no value" */
+
+  while (Run > 0)
+  {
+    /*
+     *  short or long key press -> measure
+     *  two short key presses -> exit tool
+     */
+
+    Test = TestKey(0, 0);               /* wait for user feedback */
+    if (Test == 1)                      /* short key press */
+    {
+      MilliSleep(50);                   /* debounce button a little bit longer */
+      Test = TestKey(200, 0);           /* check for second key press */
+      if (Test > 0)                     /* second key press */
+      {
+        Run = 0;                        /* end loop */
+      }
+    }
+
+    /* measure cap */
+    if (Run > 0)                       /* key pressed */
+    {
+      #ifdef HW_RELAY
+      ADC_DDR = 0;                     /* remove short circuit */
+      #endif
+
+      LCD_ClearLine2();                /* update line #2 */
+      LCD_EEString(Running_str);       /* display: probing... */
+      MeasureCap(TP2, TP1, 0);         /* probe 2 = Gnd, probe 1 = Vcc */
+      LCD_ClearLine2();                /* update line #2 */
+      
+      if (Check.Found == COMP_CAPACITOR)     /* found capacitor */
+      {
+        /* show capacitance */
+        DisplayValue(Cap->Value, Cap->Scale, 'F');
+
+        /* show ESR */
+        LCD_Space();
+        ESR = MeasureESR(Cap);
+        if (ESR > 0)                    /* got valid ESR */
+        {
+          DisplayValue(ESR, -2, LCD_CHAR_OMEGA);
+        }
+        else                            /* no ESR */
+        {
+          LCD_Data('-');
+        }
+      }
+      else                                   /* no capacitor */
+      {
+        LCD_Data('-');
+      }
+
+      #ifdef HW_RELAY
+      ADC_DDR = (1<<TP_REF);            /* short circuit probes */
+      #endif
+    }
+  }
+
+  #ifdef HW_RELAY
+  ADC_DDR = 0;                     /* remove short circuit */
+  #endif
+}
+
+#endif
+
+
 
 /* ************************************************************************
  *   Zener tool
@@ -198,10 +296,10 @@ void Zener_Tool(void)
   uint16_t               Min;                /* minimal value */
 
   /* show info */
-  lcd_clear();
-  lcd_fixed_string(Zener_str);          /* display: Zener */
-  lcd_line(2);
-  lcd_data('-');                        /* display "no value" */
+  LCD_Clear();
+  LCD_EEString(Zener_str);         /* display: Zener */
+  LCD_Line2();
+  LCD_Data('-');                   /* display "no value" */
 
   while (Run > 0)             /* processing loop */
   {
@@ -212,6 +310,7 @@ void Zener_Tool(void)
     /*
      *  key press triggers measurement
      *  - also enables boost converter via hardware
+     *  two short key presses exit tool
      */
 
     while (!(CONTROL_PIN & (1 << TEST_BUTTON)))   /* as long as key is pressed */
@@ -223,7 +322,7 @@ void Zener_Tool(void)
       /* display voltage */
       if (Counter % 8 == 0)        /* every 8 loop runs (240ms) */
       {
-        lcd_clear_line(2);        
+        LCD_ClearLine2();        
         DisplayValue(Value, -1, 'V');
       }
 
@@ -271,17 +370,17 @@ void Zener_Tool(void)
       }
 
       /* display hold value */
-      lcd_clear_line(2);
+      LCD_ClearLine2();
 
       if (Min != UINT16_MAX)       /* got updated value */
       {
         DisplayValue(Min, -1, 'V');     /* display minimum */
-        lcd_data(' ');
-        lcd_fixed_string(Min_str);      /* display: Min */
+        LCD_Space();
+        LCD_EEString(Min_str);          /* display: Min */
       }
       else                         /* unchanged default */
       {
-        lcd_data('-');                  /* display "no value" */
+        LCD_Data('-');                  /* display "no value" */
       }
 
       Counter2 = 0;           /* reset delay time */

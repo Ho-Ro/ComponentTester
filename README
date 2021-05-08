@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2014-03-10
+Last edit:  2014-03-27
 
 Content
 - About
@@ -52,6 +52,10 @@ for the ATmega328/P:
 - inductance measurement
 - Zener voltage measurement (hardware option)
 - PWM tool
+- ESR measurement and ESR tool
+
+Hint: Run the self adjustment for a new tester or if you've done any
+modifications, like a firmware update or changing probe leads.
 
 
 * Safety Advice
@@ -140,8 +144,8 @@ the tester. For details please see below.
 * Power Off
 
 While displaying the result of the last test a long key press powers the
-tester off. The tester will clear the display and then power off. As long
-as you press the key the tester stays powered on. This is caused by the
+tester off. The tester will show a good bye message and then power off. As
+long as you press the key the tester stays powered on. This is caused by the
 implementaion of the power control circuit.
 
 
@@ -188,6 +192,22 @@ Connect the Zener diode:
    Probe -: anode
 
 
++ ESR Tool
+
+The ESR tool measures capacitors in-circuit and displays the capacity and ESR
+if the measurement detects a valid capacitor. Make sure that the capacitor is
+discharged before connecting the tester! Values could differ from the standard
+measurement (out-of-circuit) because any component in parallel with the
+capacitor will affect the measurement.
+
+For triggering a measurement please press the test key. Two quick short key
+presses will exit the tool.
+
+Connect the capacitor:
+   Probe #1: positive
+   Probe #2: negative (Gnd)
+
+
 + Selftest
 
 The selftest function runs each test just 5 times. You can skip a test by a
@@ -201,7 +221,7 @@ circuit.
 + Self Adjustment
 
 The self adjustment measures the resistance and the capacitance of the probe
-leads, e.g. the PCB, internal wiring and probe leads as a sum, for creating
+leads, i.e. the PCB, internal wiring and probe leads as a sum, for creating
 a zero offset. It also measures the internal resistance of the MCU port pins
 in pull-down and pull-up mode. If the tests are skipped or strange values are
 measured the default values defined in config.h are used. If everything went
@@ -210,9 +230,15 @@ adjustment (they will be not stored in the EEPROM, see "Save" below).
 
 The voltage offset of the analog comparator is automatically adjusted in the
 capacitance measurement (in normal probing mode, outside of the self
-adjustment) if the capacitor is in the range of 100nF up to 20µF. Also the
-offset of the internal bandgap reference is determined in the same way. Both
-offsets are displayed at the end of the self adjustment.
+adjustment) if the capacitor is in the range of 100nF up to 3.3µF. Also the
+offset of the internal bandgap reference is determined in the same way.
+
+Before running the self adjustment the first time, please measure a film
+capacitor with a value between 100nF and 3.3µF three times at least to let the
+tester self-adjust the offsets mentioned above. Typically the first
+measurement will result in a slightly low value, the second in a high one
+and the third will be fine. That is caused by the self adjusting offsets.
+Both offsets are displayed at the end of the self adjustment.
 
 Expected limits:
 - probe resistance   < 1.00 Ohms for two probes in series
@@ -230,12 +256,6 @@ By flashing the firmware the pre-defined values given in config.h are stored
 in the EEPROM of the MCU. After running the self adjustment you may update
 those default values using the the "Save" function. The next time you power
 on the tester the updated values will be loaded and used.
-
-If you run the tester the first time or changed the hardware setup, i.e. using
-other probe leads, I recommend to measure a capacitor (100nF - 2µF) to trigger
-the voltage offset adjustments first. In some situations you might need to
-repeat that two or three times. Then run the self adjustment and save the new
-values.
 
 The idea of the save function is to prevent automatic saving of adjustment
 values. If you need to use other probe leads for some tests, you'll simply

@@ -2,9 +2,14 @@
 
                   Change Log for the Component Tester firmware
 
-                        (c) 2012-2013 by Markus Reschke
+                        (c) 2012-2014 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.12m 2014-03
+- Fixed umlaut problem for German UI (thanks to Andreas Hoebel).
+- Added ESR measurement for capacitors >0.18µF.
+- Optimized display output handling to save some bytes Flash. 
 
 v1.11m 2014-03
 - Improved pinout detection for Triacs (G and MT1) and changed display

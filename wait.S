@@ -60,16 +60,14 @@
 .global wait20us	; wait 20µs
 .global wait10us	; wait 10µs
 
-;waiting loops for ATmega at a clock rates of 1MHz, 2MHz, 4MHz and 8MHz
-; flash memory usage (includes 2 Bytes Watch Dog reset at wait100ms):
-; 68 Byte at 1MHz
-; 70 Byte at 2MHz
-; 76 Byte at 4MHz
-; 74 Byte at 8Mhz
-; No registers are used (only stack pointer).
-; A maximum of 28 bytes of space for return addresses is used in RAM.
-; Every wait call needs only one instruction (rcall).
-; I see no way to implement this function with C-language (too tricky).
+; waiting functions for MCU clock rates of 1MHz, 2MHz, 4MHz, 8MHz and 16MHz
+; stacked design to minimize flash memory usage:
+; - 68 Byte at 1MHz
+; - 70 Byte at 2MHz
+; - 76 Byte at 4MHz
+; - 74 Byte at 8Mhz
+; No registers are used, just the stack pointer.
+; Maximum RAM usage of 28 bytes for return addresses.
 
 
 /*

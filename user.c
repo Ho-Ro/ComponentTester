@@ -2,7 +2,7 @@
  *
  *   user interface functions
  *
- *   (c) 2012-2013 by Markus Reschke
+ *   (c) 2012-2014 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -225,9 +225,9 @@ void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit)
   if (Exponent <= 0)                    /* we have to prepend "0." */
   {
     /* 0: factor 10 / -1: factor 100 */
-    lcd_data('0');
-    lcd_data('.');
-    if (Exponent < 0) lcd_data('0');    /* extra 0 for factor 100 */
+    LCD_Data('0');
+    LCD_Data('.');
+    if (Exponent < 0) LCD_Data('0');    /* extra 0 for factor 100 */
   }
 
   if (Offset == 0) Exponent = -1;       /* disable dot if not needed */
@@ -239,14 +239,14 @@ void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit)
   Index = 0;
   while (Index < Length)                /* loop through string */
   {
-    lcd_data(OutBuffer[Index]);              /* display char */
-    if (Index == Exponent) lcd_data('.');    /* display dot */
+    LCD_Data(OutBuffer[Index]);              /* display char */
+    if (Index == Exponent) LCD_Data('.');    /* display dot */
     Index++;                                 /* next one */
   }
 
   /* display prefix and unit */
-  if (Prefix) lcd_data(Prefix);
-  if (Unit) lcd_data(Unit);
+  if (Prefix) LCD_Data(Prefix);
+  if (Unit) LCD_Data(Unit);
 }
 
 
@@ -267,7 +267,7 @@ void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit)
   /* take care about sign */
   if (Value < 0)              /* negative value */
   {
-    lcd_data('-');            /* display: "-" */
+    LCD_Data('-');            /* display: "-" */
     Value = -Value;           /* make value positive */
   }
 
@@ -312,11 +312,11 @@ void ShortCircuit(uint8_t Mode)
   /* if required tell user what to do */ 
   if (String)
   {
-    lcd_clear();
-    lcd_fixed_string(String);             /* display: Remove/Create */
-    lcd_line(2);
-    lcd_fixed_string(ShortCircuit_str);   /* display: short circuit! */
-    Run = 1;                              /* enter loop */
+    LCD_Clear();
+    LCD_EEString(String);               /* display: Remove/Create */
+    LCD_Line2();
+    LCD_EEString(ShortCircuit_str);     /* display: short circuit! */
+    Run = 1;                            /* enter loop */
   }
   
   /* wait until all probes are dis/connected */
@@ -388,10 +388,10 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   if (Mode > 0)               /* cursor enabled */
   {
     /* set position: char 16 in line 2 */
-    lcd_command(CMD_SET_DD_RAM_ADDR | 0x4F);
+    LCD_Cmd(CMD_SET_DD_RAM_ADDR | 0x4F);
 
     /* enable cursor */
-    lcd_command(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_ON);
+    LCD_Cmd(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_ON);
   }
 
 
@@ -444,7 +444,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
       {
         Counter++;                        /* increase counter */
 
-        if (Counter == 100)               /* every 500ms (2Hz) */
+        if (Counter == 100)               /* every 500ms (1Hz) */
         {
           Counter = 0;                    /* reset counter */
 
@@ -452,13 +452,13 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
           if (Run == 1)                   /* turn off */
           {
             /* disable cursor */
-            lcd_command(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_OFF);
+            LCD_Cmd(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_OFF);
             Run = 2;                      /* toggle flag */
           }
           else                            /* turn on */
           {
             /* enable cursor */
-            lcd_command(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_ON);
+            LCD_Cmd(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_ON);
             Run = 1;                      /* toggle flag */
           }
         }
@@ -474,7 +474,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   if (Mode > 0)               /* cursor enabled */
   {
     /* disable cursor */
-    lcd_command(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON);
+    LCD_Cmd(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_OFF);
   }
 
   return Flag;
@@ -506,7 +506,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
   uint16_t          Value;              /* temp. value */
 
   Items--;                    /* to match array counter */
-  lcd_data(':');              /* whatever: */
+  LCD_Data(':');              /* whatever: */
 
   while (Run)
   {
@@ -514,12 +514,12 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
      *  display item
      */
 
-    lcd_clear_line(2);
+    LCD_ClearLine2();
     Address = &Menu[Selected];     /* get address of element */
 
     if (Type == 1)                 /* fixed string */
     {
-      lcd_fixed_string(*(unsigned char **)Address);
+      LCD_EEString(*(unsigned char **)Address);
     }
     else                           /* uint16_t in Flash or EEPROM */
     {
@@ -529,7 +529,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
     if (Unit)                      /* optional fixed string */
     {
-      lcd_fixed_string(Unit);
+      LCD_EEString(Unit);
     }
 
 
@@ -540,12 +540,12 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
     MilliSleep(100);               /* smooth UI */
 
     /* set position: char 16 in line 2 */
-    lcd_command(CMD_SET_DD_RAM_ADDR | 0x4F);
+    LCD_Cmd(CMD_SET_DD_RAM_ADDR | 0x4F);
 
     if (Selected < Items) n = '>';      /* another item follows */
     else n = '<';                       /* last item */
 
-    lcd_data(n);
+    LCD_Data(n);
 
 
     /*
@@ -567,7 +567,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
     }
   }
 
-  lcd_clear();                 /* feedback for user */
+  LCD_Clear();                 /* feedback for user */
   MilliSleep(500);             /* smooth UI */
 
   return Selected;
@@ -582,7 +582,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 void MainMenu(void)
 {
   #ifdef EXTRA
-    #define MENU_ITEMS  7
+    #define MENU_ITEMS  8
   #else
     #define MENU_ITEMS  5  
   #endif
@@ -596,18 +596,27 @@ void MainMenu(void)
   void              *MenuItem[MENU_ITEMS];   /* menu item strings */
   uint8_t           MenuID[MENU_ITEMS];      /* menu item IDs */
 
-  /* setup menu */
+  /*
+   *  setup menu
+   */
+
+  /* extra items */
   #ifdef EXTRA
   MenuItem[Item] = (void *)PWM_str;
   MenuID[Item] = 5;
     #ifdef HW_ZENER
-  Item++;
-  MenuItem[Item] = (void *)Zener_str;
-  MenuID[Item] = 6;
+    Item++;
+    MenuItem[Item] = (void *)Zener_str;
+    MenuID[Item] = 6;
     #endif
   Item++;
+  MenuItem[Item] = (void *)ESR_str;
+  MenuID[Item] = 7;  
+
+  Item++;           /* for first standard item */
   #endif
 
+  /* standard items */
   MenuItem[Item] = (void *)Selftest_str;
   MenuID[Item] = 1;
   Item++;
@@ -623,9 +632,13 @@ void MainMenu(void)
   MenuItem[Item] = (void *)Exit_str;
   MenuID[Item] = 0;
 
-  /* run menu */
-  lcd_clear();
-  lcd_fixed_string(Select_str);              /* display "Select" */
+
+  /*
+   *  run menu
+   */
+
+  LCD_Clear();
+  LCD_EEString(Select_str);                  /* display "Select" */
   Item++;                                    /* add 1 for item #0 */
   ID = MenuTool(Item, 1, MenuItem, NULL);
   ID = MenuID[ID];
@@ -654,8 +667,8 @@ void MainMenu(void)
     #ifdef EXTRA
     case 5:              /* PWM tool */
       /* run PWM menu */
-      lcd_clear();
-      lcd_fixed_string(PWM_str);
+      LCD_Clear();
+      LCD_EEString(PWM_str);
       ID = MenuTool(8, 2, (void *)PWM_Freq_table, (unsigned char *)Hertz_str);
       Frequency = MEM_read_word(&PWM_Freq_table[ID]);  /* get selected frequency */
       PWM_Tool(Frequency);                             /* and run PWM tool */
@@ -666,15 +679,19 @@ void MainMenu(void)
       Zener_Tool();
       break;
       #endif
+
+    case 7:              /* ESR tool */
+      ESR_Tool();
+      break;
     #endif
   }
 
   /* display end of item */
-  lcd_clear();
+  LCD_Clear();
   if (Flag == 0)
-    lcd_fixed_string(Error_str);          /* display: error! */
+    LCD_EEString(Error_str);       /* display: error! */
   else
-    lcd_fixed_string(Done_str);           /* display: done! */
+    LCD_EEString(Done_str);        /* display: done! */
 
 #undef MENU_ITEMS
 }

@@ -75,13 +75,19 @@
 
   /* language specific: German */
   #if defined (UI_GERMAN)
+    /*
+     *  LCD ä 11100001 -> á
+     *  LCD ö 11101111 -> ï
+     *  LCD ü 11110101 -> õ
+     *  LCD ß 11100010 -> â
+     */
     const unsigned char Running_str[] EEMEM = "Suche...";
     const unsigned char Weak_str[] EEMEM = "schwach";
     const unsigned char Low_str[] EEMEM = "leer";
     const unsigned char Failed1_str[] EEMEM = "Kein Bauteil";
     const unsigned char Failed2_str[] EEMEM = "gefunden!";
     const unsigned char Done_str[] EEMEM = "fertig!";
-    const unsigned char Select_str[] EEMEM = "Wähle";
+    const unsigned char Select_str[] EEMEM = "Wáhle";
     const unsigned char Selftest_str[] EEMEM = "Selbsttest";
     const unsigned char Adjustment_str[] EEMEM = "Abgleich";
     const unsigned char Save_str[] EEMEM = "Speichern";
@@ -134,17 +140,17 @@
   const unsigned char Enhancement_str[] EEMEM = "enh.";
   const unsigned char Depletion_str[] EEMEM = "dep.";
   const unsigned char IGBT_str[] EEMEM = "IGBT";
-  const unsigned char GateCap_str[] EEMEM = "Cgs=";
+  const unsigned char GateCap_str[] EEMEM = "Cgs";
   const unsigned char NPN_str[] EEMEM = "NPN";
   const unsigned char PNP_str[] EEMEM = "PNP";
-  const unsigned char hFE_str[] EEMEM ="h_FE=";
-  const unsigned char V_BE_str[] EEMEM ="V_BE=";
-  const unsigned char V_GT_str[] EEMEM ="V_GT=";
-  const unsigned char I_CEO_str[] EEMEM = "I_CEO=";
-  const unsigned char Vf_str[] EEMEM = "Vf=";
-  const unsigned char DiodeCap_str[] EEMEM = "C=";
-  const unsigned char Vth_str[] EEMEM = "Vth=";
-  const unsigned char I_R_str[] EEMEM = "I_R=";
+  const unsigned char hFE_str[] EEMEM ="h_FE";
+  const unsigned char V_BE_str[] EEMEM ="V_BE";
+  const unsigned char V_GT_str[] EEMEM ="V_GT";
+  const unsigned char I_CEO_str[] EEMEM = "I_CEO";
+  const unsigned char Vf_str[] EEMEM = "Vf";
+  const unsigned char DiodeCap_str[] EEMEM = "C";
+  const unsigned char Vth_str[] EEMEM = "Vth";
+  const unsigned char I_R_str[] EEMEM = "I_R";
   const unsigned char Timeout_str[] EEMEM = "Timeout";
   const unsigned char URef_str[] EEMEM = "Vref";
   const unsigned char RhLow_str[] EEMEM = "Rh-";
@@ -158,8 +164,10 @@
   const unsigned char ROffset_str[] EEMEM = "R0";
   const unsigned char CompOffset_str[] EEMEM = "AComp";
   const unsigned char Checksum_str[] EEMEM = "ChkSum";
+  const unsigned char Bye_str[] EEMEM = "Ciao!";
 
   #ifdef EXTRA
+    const unsigned char ESR_str[] EEMEM = "ESR";
     const unsigned char PWM_str[] EEMEM = "PWM";
     const unsigned char Hertz_str[] EEMEM = "Hz";
 
@@ -174,7 +182,7 @@
   const unsigned char Diode_CA_str[] EEMEM = {'-', LCD_CHAR_DIODE_CA, '-', 0};
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
-  const unsigned char Version_str[] EEMEM = "v1.11m";
+  const unsigned char Version_str[] EEMEM = "v1.12m";
 
 
   /*
@@ -300,6 +308,7 @@
    *  constant strings (stored in EEPROM)
    */
 
+  extern const unsigned char Running_str[];
   extern const unsigned char Done_str[];
   extern const unsigned char Select_str[];
   extern const unsigned char Selftest_str[];
@@ -325,10 +334,12 @@
   extern const unsigned char ROffset_str[];
   extern const unsigned char CompOffset_str[];
   extern const unsigned char Checksum_str[];
-  extern const unsigned char PWM_str[];
-  extern const unsigned char Hertz_str[];
 
   #ifdef EXTRA
+    extern const unsigned char ESR_str[];
+    extern const unsigned char PWM_str[];
+    extern const unsigned char Hertz_str[];
+
     #ifdef HW_ZENER
       extern const unsigned char Zener_str[];
       extern const unsigned char Min_str[];

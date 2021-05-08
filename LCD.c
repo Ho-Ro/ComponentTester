@@ -1,10 +1,11 @@
 /* ************************************************************************
  *
  *   LCD functions
- *   - supporting a HD44780 compatible LCD running in 4 bit data mode
+ *   - supporting a HD44780 compatible LCD module
+ *     running in 4 bit data mode
  *   - if required change pin assignment in LCD.h
  *
- *   (c) 2012-2013 by Markus Reschke
+ *   (c) 2012-2014 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -40,7 +41,7 @@
  *  - LCD needs a pulse to take in data for processing
  */
 
-void lcd_enable(void)
+void LCD_Enable(void)
 {
    LCD_PORT |= (1 << LCD_EN1);     /* set enable bit */
 
@@ -61,7 +62,7 @@ void lcd_enable(void)
  *  - byte value to send
  */
 
-void lcd_send(unsigned char Byte)
+void LCD_Send(unsigned char Byte)
 {
   /* set upper nibble of byte */
   LCD_PORT = (LCD_PORT & 0xF0) | ((Byte >> 4) & 0x0F);
@@ -73,7 +74,7 @@ void lcd_send(unsigned char Byte)
     wait5us();
   #endif
 
-  lcd_enable();          /* trigger LCD */
+  LCD_Enable();          /* trigger LCD */
 
   /* set lower nibble of byte */ 
   LCD_PORT = (LCD_PORT & 0xF0) | (Byte & 0x0F);
@@ -85,7 +86,7 @@ void lcd_send(unsigned char Byte)
     wait5us();
   #endif
 
-  lcd_enable();          /* trigger LCD */
+  LCD_Enable();          /* trigger LCD */
   wait50us();            /* LCD needs some time for processing */
   LCD_PORT &= 0xF0;      /* clear data on port */
 }
@@ -99,10 +100,10 @@ void lcd_send(unsigned char Byte)
  *  - byte value to send
  */
  
-void lcd_command(unsigned char Cmd)
+void LCD_Cmd(unsigned char Cmd)
 {
   LCD_PORT &= ~(1 << LCD_RS);    /* set RS to 0 (command mode) */
-  lcd_send(Cmd);                 /* send command */
+  LCD_Send(Cmd);                 /* send command */
 }
 
 
@@ -114,10 +115,10 @@ void lcd_command(unsigned char Cmd)
  *  - byte value to send
  */
 
-void lcd_data(unsigned char Data)
+void LCD_Data(unsigned char Data)
 {
   LCD_PORT |= (1 << LCD_RS);       /* set RS to 1 (data mode) */ 
-  lcd_send(Data);                  /* send data */
+  LCD_Send(Data);                  /* send data */
 }
 
 
@@ -131,14 +132,15 @@ void lcd_data(unsigned char Data)
  *  clear the display 
  */ 
 
-void lcd_clear(void)
+void LCD_Clear(void)
 {
-  lcd_command(CMD_CLEAR_DISPLAY);  /* send command */
+  LCD_Cmd(CMD_CLEAR_DISPLAY);      /* send command */
   MilliSleep(2);                   /* LCD needs some time for processing */
 }
 
 
 
+#if 0
 /*
  *  move cursor to the first position of a specified line
  *
@@ -146,7 +148,7 @@ void lcd_clear(void)
  *  - line number [1-2]
  */
 
-void lcd_line(unsigned char Line)
+void LCD_Line(unsigned char Line)
 {
   uint8_t           Cmd;
 
@@ -159,29 +161,24 @@ void lcd_line(unsigned char Line)
     Cmd = CMD_SET_DD_RAM_ADDR | 0x40;
   }
 
-  lcd_command(Cmd);           /* send command */
+  LCD_Cmd(Cmd);               /* send command */
 }
+#endif
 
 
 
 /*
- *  clear single line of display
- *  - by writing 20 spaces
- *  - cursor is set to first char of line
+ *  move cursor to the first position of line #2
  */
 
-void lcd_clear_line(unsigned char Line)
+void LCD_Line2(void)
 {
-  unsigned char     Pos;
+  uint8_t           Cmd;
 
-  lcd_line(Line);                  /* go to beginning of line */
+  /* command for moving cursor to start of line #2 */
+  Cmd = CMD_SET_DD_RAM_ADDR | 0x40;
 
-  for (Pos = 0; Pos < 20; Pos++)   /* for 20 times */
-  {
-    lcd_data(' ');                   /* send space */
-  }
-
-  lcd_line(Line);                  /* go back to beginning of line */  
+  LCD_Cmd(Cmd);               /* send command */
 }
 
 
@@ -190,7 +187,7 @@ void lcd_clear_line(unsigned char Line)
  *  initialize LCD 
  */
  
-void lcd_init(void)
+void LCD_Init(void)
 {
   /* set port pins to output mode */
   LCD_DDR = LCD_DDR | 0x0F | (1 << LCD_RS) | (1 << LCD_EN1);
@@ -204,15 +201,15 @@ void lcd_init(void)
    /* round #1 */
    MilliSleep(30);
    LCD_PORT = (LCD_PORT & 0xF0 & ~(1 << LCD_RS)) | 0x03;
-   lcd_enable();
+   LCD_Enable();
 
    /* round #2 */
    MilliSleep(5);
-   lcd_enable();
+   LCD_Enable();
 
    /* round #3 */
    MilliSleep(1);
-   lcd_enable();
+   LCD_Enable();
 
 
    /*
@@ -223,20 +220,20 @@ void lcd_init(void)
    MilliSleep(1);
    LCD_PORT = (LCD_PORT & 0xF0 & ~(1 << LCD_RS)) | 0x02;
    MilliSleep(1);
-   lcd_enable();
+   LCD_Enable();
    MilliSleep(1);
 
    /* function set: 4 bit interface / 2 rows / font 5x7 */
-   lcd_command(CMD_FUNCTION_SET | 0x08);
+   LCD_Cmd(CMD_FUNCTION_SET | 0x08);
 
    /* display: display on / cursor off / no blinking */
-   lcd_command(CMD_DISPLAY_CONTROL | 0x04);
+   LCD_Cmd(CMD_DISPLAY_CONTROL | 0x04);
 
    /* entry mode: increment cursor position / no scrolling */    
-   lcd_command(CMD_ENTRY_MODE_SET | 0x02);	
+   LCD_Cmd(CMD_ENTRY_MODE_SET | 0x02);	
 
    /* and clear display */
-   lcd_clear();
+   LCD_Clear();
 }
 
 
@@ -249,7 +246,7 @@ void lcd_init(void)
  *  - ID for custom character (0-7)
  */
 
-void lcd_fixed_customchar(const unsigned char *CharData, uint8_t ID)
+void LCD_EELoadChar(const unsigned char *CharData, uint8_t ID)
 {
   uint8_t      i;
 
@@ -261,12 +258,12 @@ void lcd_fixed_customchar(const unsigned char *CharData, uint8_t ID)
    *  - LCD module supports up to 8 custom characters for 5x8 font
    */
 
-  lcd_command(CMD_SET_CG_RAM_ADDR | (ID << 3));
+  LCD_Cmd(CMD_SET_CG_RAM_ADDR | (ID << 3));
 
   /* write custom character */
   for (i = 0; i < 8; i++)               /* do 8 times */
   {
-    lcd_data(eeprom_read_byte(CharData));    /* send byte */
+    LCD_Data(eeprom_read_byte(CharData));    /* send byte */
     CharData++;                              /* next one */
   }
 }
@@ -276,6 +273,52 @@ void lcd_fixed_customchar(const unsigned char *CharData, uint8_t ID)
 /* ************************************************************************
  *   high level output functions
  * ************************************************************************ */
+
+
+#if 0
+/*
+ *  clear single line of display
+ *  - by writing 20 spaces
+ *  - cursor is set to first char of line
+ */
+
+void LCD_ClearLine((unsigned char Line)
+{
+  unsigned char     Pos;
+
+  LCD_Line(Line);                  /* go to beginning of line */
+
+  for (Pos = 0; Pos < 20; Pos++)   /* for 20 times */
+  {
+    LCD_Data(' ');                   /* send space */
+  }
+
+  LCD_Line(Line);                  /* go back to beginning of line */  
+}
+#endif
+
+
+
+/*
+ *  clear line #2 of display
+ *  - by writing 20 spaces
+ *  - cursor is set to first char of line
+ */
+
+void LCD_ClearLine2(void)
+{
+  unsigned char     Pos;
+
+  LCD_Line2();                     /* go to beginning of line */
+
+  for (Pos = 0; Pos < 20; Pos++)   /* for 20 times */
+  {
+    LCD_Data(' ');                   /* send space */
+  }
+
+  LCD_Line2();                     /* go back to beginning of line */  
+}
+
 
 
 /*
@@ -288,10 +331,10 @@ void lcd_fixed_customchar(const unsigned char *CharData, uint8_t ID)
  *  - testpin ID (0-2)
  */
  
-void lcd_testpin(unsigned char Probe)
+void LCD_ProbeNumber(unsigned char Probe)
 {
   /* since TP1 is 0 we simply add the value to '1' */
-  lcd_data('1' + Probe);           /* send data */
+  LCD_Data('1' + Probe);           /* send data */
 }
 
 
@@ -300,9 +343,9 @@ void lcd_testpin(unsigned char Probe)
  *  display a space
  */
 
-void lcd_space(void)
+void LCD_Space(void)
 {
-  lcd_data(' ');
+  LCD_Data(' ');
 }
 
 
@@ -315,11 +358,11 @@ void lcd_space(void)
  *  - pointer to string
  */ 
  
-void lcd_string(char *String)
+void LCD_String(char *String)
 {
   while (*String)             /* loop until trailing 0 is reached */
   {
-    lcd_data(*String);          /* send character */
+    LCD_Data(*String);          /* send character */
     String++;                   /* next one */
   }
 }
@@ -334,7 +377,7 @@ void lcd_string(char *String)
  *  - pointer to fixed string
  */
 
-void lcd_fixed_string(const unsigned char *String)
+void LCD_EEString(const unsigned char *String)
 {
   unsigned char     Char;
 
@@ -345,9 +388,29 @@ void lcd_fixed_string(const unsigned char *String)
     /* check for end of string */
     if ((Char == 0) || (Char == 128)) break;
 
-    lcd_data(Char);                     /* send character */
+    LCD_Data(Char);                     /* send character */
     String++;                           /* next one */
   }
+}
+
+
+
+/* ************************************************************************
+ *   convenience functions to save some bytes flash memory
+ * ************************************************************************ */
+
+
+/*
+ *  display a fixed string stored in EEPROM followed by a space
+ *
+ *  requires:
+ *  - pointer to fixed string
+ */
+
+void LCD_EEString2(const unsigned char *String)
+{
+  LCD_EEString(String);       /*  */
+  LCD_Space();
 }
 
 
