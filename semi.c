@@ -2,7 +2,7 @@
  *
  *   semiconductor tests and measurements
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -1063,11 +1063,26 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
       hFE_C /= U_R_c;                             /* / U_Rl (0.01 Ohms) */
       FET_Level = (uint16_t)hFE_C;                /* todo: check for upper limit */
 
-      /* offset */
-      if (FET_Level > NV.RZero) FET_Level -= NV.RZero;
-      else FET_Level = 0;
+      /* probe offset */
+      #ifdef R_MULTIOFFSET
+      uint8_t            n;
+      /* get index number for Source/Drain probe pair */
+      n = GetOffsetIndex(Probes.ID_1, Probes.ID_2);
+      BJT_Level = NV.RZero[n];
+      #else
+      BJT_Level = NV.RZero;
+      #endif
 
-      Semi.U_1 = FET_Level;                  /* save R_DS_on (0.01 Ohms) */
+      if (FET_Level > BJT_Level)        /* large enough */
+      {
+        FET_Level -= BJT_Level;         /* subtract probe resistance */
+      }
+      else                              /* too small */
+      {
+        FET_Level = 0;                  /* set to zero */
+      }
+
+      Semi.U_1 = FET_Level;             /* save R_DS_on (0.01 Ohms) */
     }
     else                      /* IGBT */
     {

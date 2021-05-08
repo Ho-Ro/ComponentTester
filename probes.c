@@ -2,7 +2,7 @@
  *
  *   probing testpins
  *
- *   (c) 2012-2019 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -50,20 +50,20 @@ void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   Probes.ID_3 = Probe3;
 
   /* set masks using bitmask tables */
-  Probes.Rl_1 = eeprom_read_byte(&Rl_table[Probe1]);
-  Probes.Rl_2 = eeprom_read_byte(&Rl_table[Probe2]);
-  Probes.Rl_3 = eeprom_read_byte(&Rl_table[Probe3]);
-  Probes.Rh_1 = eeprom_read_byte(&Rh_table[Probe1]);
-  Probes.Rh_2 = eeprom_read_byte(&Rh_table[Probe2]);
-  Probes.Rh_3 = eeprom_read_byte(&Rh_table[Probe3]);
-  Probes.Pin_1 = eeprom_read_byte(&Pin_table[Probe1]);
-  Probes.Pin_2 = eeprom_read_byte(&Pin_table[Probe2]);
-  Probes.Pin_3 = eeprom_read_byte(&Pin_table[Probe3]);
+  Probes.Rl_1 = DATA_read_byte(&Rl_table[Probe1]);
+  Probes.Rl_2 = DATA_read_byte(&Rl_table[Probe2]);
+  Probes.Rl_3 = DATA_read_byte(&Rl_table[Probe3]);
+  Probes.Rh_1 = DATA_read_byte(&Rh_table[Probe1]);
+  Probes.Rh_2 = DATA_read_byte(&Rh_table[Probe2]);
+  Probes.Rh_3 = DATA_read_byte(&Rh_table[Probe3]);
+  Probes.Pin_1 = DATA_read_byte(&Pin_table[Probe1]);
+  Probes.Pin_2 = DATA_read_byte(&Pin_table[Probe2]);
+  Probes.Pin_3 = DATA_read_byte(&Pin_table[Probe3]);
 
   /* set ADC MUX input addresses */
-  Probes.ADC_1 = eeprom_read_byte(&ADC_table[Probe1]);
-  Probes.ADC_2 = eeprom_read_byte(&ADC_table[Probe2]);
-  Probes.ADC_3 = eeprom_read_byte(&ADC_table[Probe3]);
+  Probes.ADC_1 = DATA_read_byte(&ADC_table[Probe1]);
+  Probes.ADC_2 = DATA_read_byte(&ADC_table[Probe2]);
+  Probes.ADC_3 = DATA_read_byte(&ADC_table[Probe3]);
 }
 
 
@@ -293,7 +293,7 @@ void DischargeProbes(void)
     else if (U_c < 800)                 /* extra pull-down */
     {
       /* it's save now to pull down probe pin directly */
-      ADC_DDR |= eeprom_read_byte(&Pin_table[ID]);
+      ADC_DDR |= DATA_read_byte(&Pin_table[ID]);
     }
 
     if (DischargeMask == 0b00000111)    /* all probes discharged */
@@ -426,9 +426,9 @@ uint16_t GetFactor(uint16_t U_in, uint8_t ID)
 
   /* get values for index and next entry */
   Table += Index;                       /* advance to index */
-  Fact1 = eeprom_read_word(Table);
+  Fact1 = DATA_read_word(Table);
   Table++;                              /* next entry */
-  Fact2 = eeprom_read_word(Table);
+  Fact2 = DATA_read_word(Table);
 
   /* interpolate values based on the difference */
   Factor = Fact1 - Fact2;

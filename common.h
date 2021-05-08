@@ -2,7 +2,7 @@
  *
  *   common header file
  *
- *   (c) 2012-2019 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -314,12 +314,12 @@
 
 
 /* custom chars/symbols */
-#define LCD_CHAR_0            0    /* just a place holder */
+#define LCD_CHAR_ZERO         0    /* unused */
 #define LCD_CHAR_DIODE_AC     1    /* diode icon '>|' */
 #define LCD_CHAR_DIODE_CA     2	   /* diode icon '|<' */
 #define LCD_CHAR_CAP          3    /* capacitor icon '||' */
 #define LCD_CHAR_OMEGA        4    /* omega */
-#define LCD_CHAR_MICRO        5    /* µ / micro */
+#define LCD_CHAR_MICRO        5    /* µ (micro) */
 #define LCD_CHAR_RESISTOR_L   6    /* resistor left icon '[' */
 #define LCD_CHAR_RESISTOR_R   7    /* resistor right icon ']' */
 
@@ -397,12 +397,19 @@ typedef struct
 {
   uint16_t          RiL;           /* internal pin resistance of MCU in low mode (0.1 Ohms) */
   uint16_t          RiH;           /* internal pin resistance of MCU in high mode (0.1 Ohms) */
+
+  #ifdef R_MULTIOFFSET
+  uint16_t          RZero[3];      /* resistance of probe leads (2 in series) (0.01 Ohms) */
+  #else
   uint16_t          RZero;         /* resistance of probe leads (2 in series) (0.01 Ohms) */
+  #endif
+
   #ifdef CAP_MULTIOFFSET
   uint8_t           CapZero[3];    /* capacitance zero offsets (PCB+leads) (pF) */
   #else
   uint8_t           CapZero;       /* capacitance zero offset (PCP+leads) (pF) */
   #endif
+
   int8_t            RefOffset;     /* voltage offset of bandgap reference (mV) */
   int8_t            CompOffset;    /* voltage offset of analog comparator (mV) */
   uint8_t           Contrast;      /* contrast value of display */

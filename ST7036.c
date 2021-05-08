@@ -248,6 +248,63 @@ void LCD_Cmd(uint8_t Cmd)
 
 
 /*
+ *  load a custom character into LCD module's CGRAM
+ *
+ *  requires:
+ *  - ID: ID of custom character
+ *        0-7 will be loaded into CGRAM 0-7
+ *        >7  will be loaded into CGRAM 0
+ */
+
+void LCD_CustomChar(uint8_t ID)
+{
+  uint8_t      i;                  /* counter */
+  uint8_t      Byte;               /* data byte */
+  uint8_t      *Table;             /* pointer to char data */
+
+  /* set data start address */
+  Table = (uint8_t *)&FontData;    /* start address */
+  Table += (ID * FONT_BYTES_N);    /* add offset for character */
+
+  if (ID > 7) ID = 0;              /* prevent overflow */
+
+
+  /*
+   *  set CGRAM start address (for a 5x8 character)
+   *  - lower 3 bits determine the row in a character
+   *  - higher 3 bits determine the ID of the character
+   *  - so we have to shift the ID to the higher part
+   *  - LCD module supports up to 8 custom characters (5x8 font)
+   */
+
+  LCD_Cmd(CMD_SET_CGRAM | (ID << 3));
+
+  #ifdef LCD_CS
+  /* enable chip */
+  LCD_PORT &= ~(1 << LCD_CS);      /* set CSB low */
+  #endif
+
+  /* indicate data mode */
+  LCD_PORT |= (1 << LCD_RS);            /* set RS high */
+
+  /* write custom character */
+  for (i = 0; i < 8; i++)               /* 8 bytes */
+  {
+    Byte = pgm_read_byte(Table);        /* read byte */
+    LCD_Send(Byte);                     /* send byte */
+
+    Table++;                            /* next byte */
+  }
+
+  #ifdef LCD_CS
+  /* disable chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set CSB high */
+  #endif
+}
+
+
+
+/*
  *  display a single character
  *
  *  requires:
@@ -286,60 +343,6 @@ void LCD_Char(unsigned char Char)
   /* update character position */
   UI.CharPos_X++;                  /* next character in current line */
   /* LCD's RAM address already points to next character */
-}
-
-
-
-/*
- *  load a custom character into LCD module
- *
- *  requires:
- *  - pointer of fixed character data
- *  - ID for custom character (0-7)
- */
-
-void LCD_CustomChar(uint8_t ID)
-{
-  uint8_t      i;                  /* counter */
-  uint8_t      Byte;               /* data byte */
-  uint8_t      *Table;             /* pointer to char data */
-
-  /* set data start address */
-  Table = (uint8_t *)&FontData;         /* start address */
-  Table += (ID * 8);                    /* add offset for character */
-
-
-  /*
-   *  set CGRAM start address (for a 5x8 character)
-   *  - lower 3 bits determine the row in a character
-   *  - higher 3 bits determine the ID of the character
-   *  - so we have to shift the ID to the higher part
-   *  - LCD module supports up to 8 custom characters (5x8 font)
-   */
-
-  LCD_Cmd(CMD_SET_CGRAM | (ID << 3));
-
-  #ifdef LCD_CS
-  /* enable chip */
-  LCD_PORT &= ~(1 << LCD_CS);      /* set CSB low */
-  #endif
-
-  /* indicate data mode */
-  LCD_PORT |= (1 << LCD_RS);            /* set RS high */
-
-  /* write custom character */
-  for (i = 0; i < 8; i++)               /* 8 bytes */
-  {
-    Byte = pgm_read_byte(Table);        /* read byte */
-    LCD_Send(Byte);                     /* send byte */
-
-    Table++;                            /* next byte */
-  }
-
-  #ifdef LCD_CS
-  /* disable chip */
-  LCD_PORT |= (1 << LCD_CS);       /* set CSB high */
-  #endif
 }
 
 
@@ -536,6 +539,63 @@ void LCD_Cmd(uint8_t Cmd)
 
 
 /*
+ *  load a custom character into LCD module's CGRAM
+ *
+ *  requires:
+ *  - ID: ID of custom character
+ *        0-7 will be loaded into CGRAM 0-7
+ *        >7  will be loaded into CGRAM 0
+ */
+
+void LCD_CustomChar(uint8_t ID)
+{
+  uint8_t      i;                  /* counter */
+  uint8_t      Byte;               /* data byte */
+  uint8_t      *Table;             /* pointer to char data */
+
+  /* set data start address */
+  Table = (uint8_t *)&FontData;    /* start address */
+  Table += (ID * FONT_BYTES_N);    /* add offset for character */
+
+  if (ID > 7) ID = 0;              /* prevent overflow */
+
+
+  /*
+   *  set CGRAM start address (for a 5x8 character)
+   *  - lower 3 bits determine the row in a character
+   *  - higher 3 bits determine the ID of the character
+   *  - so we have to shift the ID to the higher part
+   *  - LCD module supports up to 8 custom characters (5x8 font)
+   */
+
+  LCD_Cmd(CMD_SET_CGRAM | (ID << 3));
+
+  #ifdef LCD_CS
+  /* enable chip */
+  LCD_PORT &= ~(1 << LCD_CS);      /* set CSB low */
+  #endif
+
+  /* indicate data mode */
+  LCD_PORT |= (1 << LCD_RS);            /* set RS high */
+
+  /* write custom character */
+  for (i = 0; i < 8; i++)               /* 8 bytes */
+  {
+    Byte = pgm_read_byte(Table);        /* read byte */
+    SPI_Write_Byte(Byte);               /* send byte */
+
+    Table++;                            /* next byte */
+  }
+
+  #ifdef LCD_CS
+  /* disable chip */
+  LCD_PORT |= (1 << LCD_CS);       /* set CSB high */
+  #endif
+}
+
+
+
+/*
  *  display a single character
  *
  *  requires:
@@ -574,60 +634,6 @@ void LCD_Char(unsigned char Char)
   /* update character position */
   UI.CharPos_X++;                  /* next character in current line */
   /* LCD's RAM address already points to next character */
-}
-
-
-
-/*
- *  load a custom character into LCD module
- *
- *  requires:
- *  - pointer of fixed character data
- *  - ID for custom character (0-7)
- */
-
-void LCD_CustomChar(uint8_t ID)
-{
-  uint8_t      i;                  /* counter */
-  uint8_t      Byte;               /* data byte */
-  uint8_t      *Table;             /* pointer to char data */
-
-  /* set data start address */
-  Table = (uint8_t *)&FontData;         /* start address */
-  Table += (ID * 8);                    /* add offset for character */
-
-
-  /*
-   *  set CGRAM start address (for a 5x8 character)
-   *  - lower 3 bits determine the row in a character
-   *  - higher 3 bits determine the ID of the character
-   *  - so we have to shift the ID to the higher part
-   *  - LCD module supports up to 8 custom characters (5x8 font)
-   */
-
-  LCD_Cmd(CMD_SET_CGRAM | (ID << 3));
-
-  #ifdef LCD_CS
-  /* enable chip */
-  LCD_PORT &= ~(1 << LCD_CS);      /* set CSB low */
-  #endif
-
-  /* indicate data mode */
-  LCD_PORT |= (1 << LCD_RS);            /* set RS high */
-
-  /* write custom character */
-  for (i = 0; i < 8; i++)               /* 8 bytes */
-  {
-    Byte = pgm_read_byte(Table);        /* read byte */
-    SPI_Write_Byte(Byte);               /* send byte */
-
-    Table++;                            /* next byte */
-  }
-
-  #ifdef LCD_CS
-  /* disable chip */
-  LCD_PORT |= (1 << LCD_CS);       /* set CSB high */
-  #endif
 }
 
 

@@ -2,7 +2,7 @@
  *
  *   self-adjustment functions
  *
- *   (c) 2012-2019 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -34,7 +34,7 @@
  * ************************************************************************ */
 
 
-#ifdef CAP_MULTIOFFSET
+#if defined (CAP_MULTIOFFSET) || defined (R_MULTIOFFSET)
 
 /*
  *  determine index number for a probe-pair specific offset stored in an array
@@ -77,10 +77,21 @@ uint8_t GetOffsetIndex(uint8_t Probe1, uint8_t Probe2)
 
 void SetAdjustmentDefaults(void)
 {
-  /* set defaults for basic offsets/values */
+  /*
+   *  set defaults for basic offsets/values
+   */
+
   NV.RiL = R_MCU_LOW;
   NV.RiH = R_MCU_HIGH;
+
+  #ifdef R_MULTIOFFSET
+  NV.RZero[0] = R_ZERO;
+  NV.RZero[1] = R_ZERO;
+  NV.RZero[2] = R_ZERO;
+  #else
   NV.RZero = R_ZERO;
+  #endif
+
   #ifdef CAP_MULTIOFFSET
   NV.CapZero[0] = C_ZERO;
   NV.CapZero[1] = C_ZERO;
@@ -88,6 +99,7 @@ void SetAdjustmentDefaults(void)
   #else
   NV.CapZero = C_ZERO;
   #endif
+
   NV.RefOffset = UREF_OFFSET;
   NV.CompOffset = COMPARATOR_OFFSET;
   NV.Contrast = LCD_CONTRAST;
@@ -406,18 +418,28 @@ void ShowAdjustmentValues(void)
   Display_NL_EEString_Space(CapOffset_str);       /* display: C0 */
   #ifdef CAP_MULTIOFFSET
   /* show just the values for the first two (assuming pF) */
-  Display_Value(NV.CapZero[0], 0, 0);        /* display C0 offset for probes 12 */
+  Display_Value(NV.CapZero[0], 0, 0);        /* display C0 offset for probes 1-2 */
   Display_Space();                           /* display space */
-  Display_Value(NV.CapZero[1], 0, 0);        /* display C0 offset for probes 13 */
+  Display_Value(NV.CapZero[1], 0, 0);        /* display C0 offset for probes 1-3 */
   Display_Space();                           /* display space */
-  Display_Value(NV.CapZero[2], -12, 'F');    /* display C0 offset for probes 23 */
+  Display_Value(NV.CapZero[2], -12, 'F');    /* display C0 offset for probes 2-3 */
   #else
-  Display_Value(NV.CapZero, -12, 'F');            /* display C0 offset */
+  Display_Value(NV.CapZero, -12, 'F');       /* display C0 offset */
   #endif
 
   /* display R-Zero */
-  Display_NL_EEString_Space(ROffset_str);         /* display: R0 */
+  Display_NL_EEString_Space(ROffset_str);    /* display: R0 */
+  #ifdef R_MULTIOFFSET
+  /* split output to 2 lines */
+  Display_Value(NV.RZero[0], -2, 0);         /* display R0 offset for probes 1-2 */
+  Display_Space();                           /* display space */
+  Display_Value(NV.RZero[1], -2, 0);         /* display R0 offset for probes 1-3 */
+  Display_NextLine();
+  Display_Space();                           /* display space */
+  Display_Value(NV.RZero[2], -2, LCD_CHAR_OMEGA); /* display R0 offset for probes 2-3 */
+  #else
   Display_Value(NV.RZero, -2, LCD_CHAR_OMEGA);    /* display R0 */
+  #endif
 
   /* display internal bandgap reference */
   Display_NL_EEString_Space(URef_str);       /* display: Vref */
@@ -461,6 +483,7 @@ uint8_t SelfAdjustment(void)
   uint16_t          Val2 = 0;           /* voltage/value #2 */
   uint16_t          Val3 = 0;           /* voltage/value #3 */
   uint8_t           CapCounter = 0;     /* number of C_Zero measurements */
+
   #ifdef CAP_MULTIOFFSET
   uint16_t          CapSum1 = 0;        /* sum of C_Zero values for probes 12 */
   uint16_t          CapSum2 = 0;        /* sum of C_Zero values for probes 13 */
@@ -468,13 +491,23 @@ uint8_t SelfAdjustment(void)
   #else
   uint16_t          CapSum = 0;         /* sum of C_Zero values */
   #endif
+
   uint8_t           RCounter = 0;       /* number of R_Zero measurements */
+
+  #ifdef R_MULTIOFFSET
+  uint16_t          RSum1 = 0;          /* sum of R_Zero values for probes 12 */
+  uint16_t          RSum2 = 0;          /* sum of R_Zero values for probes 13 */
+  uint16_t          RSum3 = 0;          /* sum of R_Zero values for probes 23 */
+  #else
   uint16_t          RSum = 0;           /* sum of R_Zero values */
+  #endif
+
   uint8_t           RiL_Counter = 0;    /* number of U_RiL measurements */
   uint16_t          U_RiL = 0;          /* sum of U_RiL values */
   uint8_t           RiH_Counter = 0;    /* number of U_RiH measurements */
   uint16_t          U_RiH = 0;          /* sum of U_RiL values */
   uint32_t          Val0;               /* temp. value */
+
   #ifdef HW_ADJUST_CAP
   uint8_t           RefCounter = 0;     /* number of ref/offset runs */
   #endif
@@ -545,7 +578,12 @@ uint8_t SelfAdjustment(void)
           Val1 = SmallResistor(0);
           if (Val1 < 150)                    /* within limit */
           {
+            #ifdef R_MULTIOFFSET
+            RSum1 += Val1;
+            #else
             RSum += Val1;
+            #endif
+
             RCounter++;
           }
 
@@ -553,7 +591,12 @@ uint8_t SelfAdjustment(void)
           Val2 = SmallResistor(0);
           if (Val2 < 150)                    /* whithin limit */
           {
+            #ifdef R_MULTIOFFSET
+            RSum2 += Val2;
+            #else
             RSum += Val2;
+            #endif
+
             RCounter++;
           }
 
@@ -561,7 +604,12 @@ uint8_t SelfAdjustment(void)
           Val3 = SmallResistor(0);
           if (Val3 < 150)                    /* within limit */
           {
+            #ifdef R_MULTIOFFSET
+            RSum3 += Val3;
+            #else
             RSum += Val3;
+            #endif
+
             RCounter++;
           }
 
@@ -649,6 +697,7 @@ uint8_t SelfAdjustment(void)
             #else
             CapSum += Val1;
             #endif
+
             CapCounter++;            
           }
 
@@ -663,6 +712,7 @@ uint8_t SelfAdjustment(void)
             #else
             CapSum += Val2;
             #endif
+
             CapCounter++;            
           }
 
@@ -677,6 +727,7 @@ uint8_t SelfAdjustment(void)
             #else
             CapSum += Val3;
             #endif
+
             CapCounter++;            
           }
 
@@ -746,8 +797,16 @@ uint8_t SelfAdjustment(void)
   /* resistance auto-zero: calculate average value for all probes pairs */
   if (RCounter == 15)
   { 
+    #ifdef R_MULTIOFFSET
+    /* calculate average offset (0.01 Ohms) for each probe pair */
+    NV.RZero[0] = RSum1 / 5;            /* probes 1-2 */
+    NV.RZero[1] = RSum2 / 5;            /* probes 1-3 */
+    NV.RZero[2] = RSum3 / 5;            /* probes 2-3 */
+    #else
     /* calculate average offset (0.01 Ohms) */
     NV.RZero = RSum / RCounter;
+    #endif
+
     Flag++;                   /* adjustment done */
   }
 

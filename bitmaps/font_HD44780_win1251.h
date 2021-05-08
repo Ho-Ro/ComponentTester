@@ -1,6 +1,8 @@
 /* ************************************************************************
  *
- *   internal monospaced 5x8 font of HD44780: cyrillic version
+ *   monospaced 5x8 font based on Windows-1251
+ *   - uses internal font of HD44780
+ *   - European version including cyrillic characters
  *
  *   provided by hapless@EEVblog
  *
@@ -11,7 +13,7 @@
  *   font data
  * ************************************************************************ */
 
-#ifdef FONT_HD44780_CYRILLIC
+#ifdef FONT_HD44780_WIN1251
 
 
 /* font size */
@@ -48,7 +50,7 @@ const uint8_t FontData[] PROGMEM = {
 
 
 /*
- *  font lookup table for ASCII ISO 8859-1
+ *  font lookup table for ASCII ISO 8859-1 / Windows-1251
  *  - 8 bit ASCII to module's built-in font
  *  - ff: no bitmap available
  */
@@ -241,10 +243,10 @@ const uint8_t FontTable[] PROGMEM = {
   0xff,        /* 0xae -> n/a */
   0xff,        /* 0xaf -> n/a */
 
-  0xb0,        /* 0xb0 -> ° (degree) */
-  0xb1,        /* 0xb1 -> ± (plus-minus) */
-  0xb2,        /* 0xb2 -> ² (superscript 2) */
-  0xb3,        /* 0xb3 -> ³ (superscript 3) */
+  0xb0,        /* 0xb0 -> Â° (degree) */
+  0xb1,        /* 0xb1 -> Â± (plus-minus) */
+  0xb2,        /* 0xb2 -> Â² (superscript 2) */
+  0xb3,        /* 0xb3 -> Â³ (superscript 3) */
   0xff,        /* 0xb4 -> n/a */
   0x05,        /* 0xb5 -> Âµ (micro) (or built-in 0xe4) */
   0xfe,        /* 0xb6 -> paragraph mark */

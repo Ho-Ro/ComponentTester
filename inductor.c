@@ -2,7 +2,7 @@
  *
  *   inductor measurements
  *
- *   (c) 2012-2016 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *   based on code from Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -467,7 +467,16 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
 
     /* total resistance (in 0.1 Ohms) */
     R_total = RescaleValue(Resistor->Value, Resistor->Scale, -1);  /* R_L */
+
+    #ifdef R_MULTIOFFSET
+    uint8_t            n;
+    /* get index number for probe pair */
+    n = GetOffsetIndex(Probes.ID_1, Probes.ID_2);
+    Factor = NV.RZero[n];          /* probe leads (0.01 Ohms) */
+    #else
     Factor = NV.RZero;             /* probe leads (0.01 Ohms) */
+    #endif
+
     Factor += 5;                   /* for rounding */
     Factor /= 10;                  /* scale to 0.1 Ohms */
     R_total += NV.RiH + NV.RiL + Factor;

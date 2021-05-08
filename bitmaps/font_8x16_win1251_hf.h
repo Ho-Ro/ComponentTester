@@ -14,7 +14,7 @@
  *   font data
  * ************************************************************************ */
 
-#ifdef FONT_8X16_CYRILLIC_HF
+#ifdef FONT_8X16_WIN1251_HF
 
 
 /* font size */

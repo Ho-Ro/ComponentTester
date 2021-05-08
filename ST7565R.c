@@ -1,10 +1,11 @@
 /* ************************************************************************
  *
  *   driver functions for ST7565R compatible grafic displays
+ *   - compatibles: UC1701
  *   - 128 x 64 (132 x 64) pixels
  *   - SPI interface (4 and 5 line)
  *
- *   (c) 2015-2019 by Markus Reschke
+ *   (c) 2015-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -54,13 +55,14 @@
 #include "font_6x8_vf.h"
 #include "font_8x8_vf.h"
 #include "font_8x16_vfp.h"
-#include "font_8x8_cyrillic_vf.h"
-#include "font_8x8t_cyrillic_vf.h"
-#include "font_8x12t_cyrillic_vfp.h"
-#include "font_8x16_cyrillic_vfp.h"
-#include "font_6x8_czech_vf.h"
-#include "font_8x8_czech_vf.h"
-#include "font_8x16_czech_vfp.h"
+#include "font_6x8_iso8859-2_vf.h"
+#include "font_8x8_iso8859-2_vf.h"
+#include "font_8x12t_iso8859-2_vfp.h"
+#include "font_8x16_iso8859-2_vfp.h"
+#include "font_8x8_win1251_vf.h"
+#include "font_8x8t_win1251_vf.h"
+#include "font_8x12t_win1251_vfp.h"
+#include "font_8x16_win1251_vfp.h"
 #include "symbols_24x24_vfp.h"
 
 
@@ -278,7 +280,10 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   UI.CharPos_X = x;
   UI.CharPos_Y = y;
 
-  /* update display */
+  /*
+   *  calculate dot position
+   *  - top left of character
+   */
 
   /* horizontal position (column) */
   x--;                             /* columns start at 0 */
@@ -293,6 +298,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   y *= CHAR_PAGES;                 /* offset for character */
   Y_Start = y;                     /* update start position */
 
+  /* update display */
   LCD_DotPos(x, y);                /* set dot position */
 }
 

@@ -2,7 +2,7 @@
  *
  *   common display functions and common functions for LCD modules
  *
- *   (c) 2015-2019 by Markus Reschke
+ *   (c) 2015-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -156,7 +156,7 @@ void Display_Char(unsigned char Char)
 
 
 /*
- *  display a fixed string stored in EEPROM
+ *  display a fixed string stored in EEPROM/Flash
  *
  *  requires:
  *  - pointer to fixed string
@@ -167,7 +167,7 @@ void Display_EEString(const unsigned char *String)
   unsigned char     Char;
 
   /* read characters until we get the terminating 0 */
-  while ((Char = eeprom_read_byte(String)))
+  while ((Char = DATA_read_byte(String)))
   {
     Display_Char(Char);                 /* send character */
     String++;                           /* next one */
@@ -385,7 +385,7 @@ void Display_HexDigit(uint8_t Digit)
 
 
 
-#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_ONEWIRE_SCAN) || defined (SW_FONT_TEST)
 
 /*
  *  display byte as hexadecimal number
@@ -597,7 +597,7 @@ void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit)
     /* look up prefix in table */
     if (Index < NUM_PREFIXES)           /* prevent array overflow */
     {
-      Prefix = eeprom_read_byte(&Prefix_table[Index]);
+      Prefix = DATA_read_byte(&Prefix_table[Index]);
     }
   }
 
@@ -681,7 +681,7 @@ void Display_SignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
 
 
 /* ************************************************************************
- *   fancy display functions for LCD/OLED
+ *   fancy pinout
  * ************************************************************************ */
 
 
@@ -822,6 +822,95 @@ void LCD_FancySemiPinout(uint8_t Line)
     #endif
 
     /* hint: we don't restore the old char position */
+  }
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   font test
+ * ************************************************************************ */
+
+
+#ifdef SW_FONT_TEST
+
+/*
+ *  display font for test purposes
+ */
+
+void FontTest(void)
+{
+  uint8_t           Run = 1;       /* loop control */
+  uint8_t           n = 0;         /* char counter */
+  uint8_t           i;             /* loop counter */
+  uint8_t           Pos;           /* char X position */
+  uint8_t           Max;           /* max char lines */
+
+  /* show info */
+  LCD_Clear();
+  Display_EEString(FontTest_str);       /* display: Rotary Encoder */
+  UI.LineMode = LINE_STD | LINE_KEEP;   /* next-line mode: keep first line */
+
+  Max = UI.CharMax_Y;         /* get maximum number of lines */
+  Max--;                      /* - first line */
+
+  while (Run)
+  {
+    Display_NextLine();            /* move to next line */
+
+    /* display start value in hexadecimal */
+    Display_HexByte(n);
+    Display_Space();
+
+    /* display next 8 chars */
+    i = 0;
+    while (i < 8)                  /* 8 chars */
+    {
+      Pos = UI.CharPos_X;          /* get currect X position */
+      Display_Char(n);             /* display char */
+
+      if (UI.CharPos_X == Pos)     /* no char available */
+      {
+        UI.CharPos_X++;            /* move right by one char */
+      }
+
+      i++;                         /* next char */
+      n++;
+    }
+
+    /* loop management */
+    Pos = 0;
+    if (n == 0)               /* overflow to zero */
+    {
+      /* all 256 chars done */
+      Run = 0;                /* end loop */
+      Pos = 1;                /* request user feedback */
+    }
+    else                      /* not done yet */
+    {
+      if (Run == Max)         /* screen full */
+      {
+        Run = 1;              /* reset counter */
+        Pos = 1;              /* request user feedback */
+      }
+      else                    /* some space left */
+      {
+        Run++;                /* another line */ 
+      }
+    }
+
+    if (Pos)                  /* requested user feedback */
+    {
+      /* wait for user input */
+      i = TestKey(0, CURSOR_BLINK | CHECK_KEY_TWICE | CHECK_BAT);
+
+      if (i == KEY_TWICE)     /* two short key presses */
+      {
+        Run = 0;              /* end loop */
+      }
+    }
   }
 }
 

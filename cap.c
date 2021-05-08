@@ -2,7 +2,7 @@
  *
  *   capacitor measurements
  *
- *   (c) 2012-2019 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -386,15 +386,23 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     Value = (uint32_t)(NV.RiL * 10);    /* RiL in 0.01 Ohms */
     Value *= Sum_2;                     /* sum of raw values for voltage across DUT */
     Value /= Sum_1;                     /* sum of raw values for voltage at RiL */
-    U_1 = (uint16_t)Value;
+    U_1 = (uint16_t)Value;              /* raw ESR (0.01 Ohms) */
 
     /* consider probe resistance */
-    if (U_1 > NV.RZero)            /* larger than offset */
+    #ifdef R_MULTIOFFSET
+    /* get index number for probe pair */
+    n = GetOffsetIndex(Probes.ID_1, Probes.ID_2);
+    U_2 = NV.RZero[n];
+    #else
+    U_2 = NV.RZero;
+    #endif
+
+    if (U_1 > U_2)            /* larger than offset */
     {
-      U_1 -= NV.RZero;             /* subtract offset */
-      ESR = U_1;                   /* got result */
+      U_1 -= U_2;             /* subtract offset */
+      ESR = U_1;              /* got result */
     }
-    else                           /* offset problem or zero */
+    else                      /* offset problem or zero */
     {
       /* should only happen for large caps */
       if (CmpValue(Cap->Value, Cap->Scale, 1000, -6) > 0)
@@ -751,15 +759,23 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
    */
 
   Value = (uint32_t)(NV.RiL * 10);      /* RiL in 0.01 Ohms */
-  Value *= Sum_2;
-  Value /= Sum_1;
-  U_1 = (uint16_t)Value;
+  Value *= Sum_2;                       /* sum of raw values for voltage across DUT */
+  Value /= Sum_1;                       /* sum of raw values for voltage at RiL */
+  U_1 = (uint16_t)Value;                /* raw ESR (0.01 Ohms) */
 
   /* consider probe resistance */
-  if (U_1 > NV.RZero)
+  #ifdef R_MULTIOFFSET
+  /* get index number for probe pair */
+  n = GetOffsetIndex(Probes.ID_1, Probes.ID_2);
+  U_2 = NV.RZero[n];
+  #else
+  U_2 = NV.RZero;
+  #endif
+
+  if (U_1 > U_2)              /* larger than offset */
   {
-    U_1 -= NV.RZero;               /* subtract offset */
-    ESR = U_1;                     /* we got a valid result */
+    U_1 -= U_2;               /* subtract offset */
+    ESR = U_1;                /* we got a valid result */
   }
 
   /* update Uref flag for next ADC run */

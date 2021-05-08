@@ -2,7 +2,7 @@
  *
  *   OneWire bus
  *
- *   (c) 2018 by Markus Reschke
+ *   (c) 2018-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -14,10 +14,15 @@
 
 /*
  *  ROM code
- *  - byte #0:   family code (device type)
- *  - byte #1-6: serial number
- *  - byte #7:   CRC (of the first 7 bytes)
+ *  - byte #0:    family code
+ *      bit #0-6:   device type
+ *      bit #7:     custom flag (customer ID = 12 upper bits of serial number)
+ *  - byte #1-6:  serial number (byte #1 LSB)
+ *  - byte #7:    CRC (of the first 7 bytes)
  */
+
+/* ROM family codes */
+#define FAMILY_CODE_DS18B20   0x28
 
 
 /*
@@ -30,7 +35,7 @@
  *    - this process is repeated for the remaining ROM bits
  *      and will get the ROM code of one client
  *  - ROM bit logic (ROM bit, inverted ROM bit)
- *    - 00  devices with confliction ROM bits
+ *    - 00  devices with conflicting ROM bits
  *    - 01  all devices have ROM bit 0
  *    - 10  all devices have ROM bit 1
  *    - 11  no devices on bus
@@ -76,12 +81,8 @@
 
 
 /* ************************************************************************
- *   DS18B20 commands
+ *   DS18B20 function commands
  * ************************************************************************ */
-
-
-/* ROM family code */
-#define DS18B20_FAMILY_CODE   0x28
 
 
 /*

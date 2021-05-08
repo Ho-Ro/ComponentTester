@@ -5,11 +5,11 @@
 
            für ATmega328/324/644/1284 mit Text- oder Grafikdisplay
 
-        (c) 2012-2019 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2020 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2019-12-13
+Letzte Änderung: 2020-03-26
 
 Inhaltsübersicht:
   - Über den Tester
@@ -68,6 +68,7 @@ Inhaltsübersicht:
     - IR-Fernbedienung
     - Opto-Koppler-Test
     - Modellbau-Servo-Test
+    - OneWire-Scan
     - DS18B20-Temperatursensor
     - DHTxx-Sensoren
     - Selbsttest
@@ -100,12 +101,10 @@ Inhaltsübersicht:
 Der Component Tester basiert auf dem Projekt von Markus Frejek [1&2] und der
 Weiterführung von Karl-Heinz Kübbeler [3&4]. Es ist eine alternative
 Firmware für die aktuelle Testerschaltung von Karl-Heinz und bietet einige
-Änderungen der Benutzerschnittstelle und Mess- und Testverfahren. Während
-die Firmware von Karl-Heinz die offizielle Version ist und auch ältere
-ATmega MCUs unterstützt, ist diese Version zum Ausprobieren und Testen neuer
-Ideen. Außerdem ist sie auf ATmegas mit mindestens 32kB Flash beschränkt.
-Die primären Sprachen für die Bedienung sind Englisch und Deutsch, können aber
-leicht um weitere Sprachen ergänzt werden
+Änderungen der Benutzerschnittstelle und Mess- und Testverfahren. Auch gibt
+es zusätzliche Funktionen. Während die Firmware von Karl-Heinz die offizielle
+Version ist und auch ältere ATmega-MCUs unterstützt, benötigt diese Version
+einen ATmega mit mindestens 32kB Flash.
 
 Hinweis: Bitte den Selbstabgleich bei brandneuen Testern oder nach Firmware-
 aktualisierung laufen lassen. Oder auch bei Benutzung anderer Messkabel.
@@ -292,12 +291,25 @@ editiere config_<MCU>.h:
 Das LCD-Modul sollte min. 2 Zeilen mit min. 16 Zeichen haben. Für Grafikmodule
 einen Zeichensatz wählen, der die obige Bedingung erfüllt.
 
-Nach dem Editieren vom Makefile, config.h oder config-<MCU>.h bitte "make"
-ausführen oder was-auch-immer Dein IDE will, um die Firmware zu übersetzen.
+Nach dem Editieren vom Makefile, config.h und config-<MCU>.h bitte "make"
+ausführen oder Dein IDE, um die Firmware zu übersetzen.
+Als Ergebnis werden zwei Dateien erzeugt:
+- ComponentTester.hex   Firmware im Intel-Hex-Format
+- ComponentTester.eep   EEPROM-Daten im Intel-Hex-Format
+
+Die Firmware wird in das Flash geschrieben und die EEPROM-Daten in das EEPROM.
+Die Daten enthalten zwei Sätze an Standardabgleichswerten, Texte und Tabellen.
+Wenn Du bei der Aktualsierung der Firmware die alten Abgleichswerte im EEPROM
+beibehalten möchtest, kann Du mit dem Schalter DATA_FLASH in config.h die
+Texte und Tabellen in die Firmware verschieben. In diesem Fall muss dann nur
+die Firmware in das Flash geschrieben werden; das EEPROM bleibt unverändert.  
+
 Das Makefile bietet folgende zusätzliche Targets: 
-- clean    alle Objektdateien löschen
-- fuses    Fuse Bits setzen
-- upload   Firmware brennen
+- clean     alle Objektdateien löschen
+- fuses     Fuse-Bits setzen (via avrdude)
+- upload    Firmware und EEPROM-Daten brennen (via avrdude)
+- prog_fw   nur Firmware brennen (via avrdude)
+- prog_ee   nur EEPROM-Daten brennen (via avrdude)
 
 
 * Busse & Schnittstellen
@@ -324,6 +336,10 @@ Da SPI oder I2C primär vom LCD-Modul genutzt wird, können beide im Abschnitt
 fuer LCD-Module in config-<MCU>.h direkt konfiguriert werden. Alternativ kannst
 Du auch I2C bzw. SPI in config.h aktivieren und Ports & Pins in config-<MCU>.h
 festlegen (schaue nach I2C_PORT bzw. SPI_PORT).
+
+Falls Du Bit-Bang-SPI plus Lese-Modus (SPI_RW) auswählst, bitte darauf achten
+auch SPI_PIN und SPI_MISO zu setzen. Beispiele dazu findest Du im Abschnitt
+zu SPI in config-<MCU>.h.
 
 
 + Serielle TTL-Schnittstelle
@@ -746,10 +762,22 @@ menü starten. Die Prozedur ist recht einfach. Wenn Du ein Sternchen (gelbes *
 bei Farb-LCDs) siehst, drauf drücken. Der Tester zeigt nach jeder Berührung
 die native x/y-Position an. Den Abgleich kannst Du jeder Zeit mit der Test-
 Taste abbrechen. Wenn Du Probleme mit dem Abgleich, wie z.B. seltsame x/y-
-Positionen, hast, überprüfe bitte die Orientierung des Touch-Screen gegenüber
-dem LCD-Modul. Der Treiber hat Schalter zum Verdrehen und Vertauschen der
-Orientierung. Nacht einem erfolgreichen Abgleich nicht vergessen, die Offset-
-Werte zu speichen (Hauptmenü: Speichern).
+Positionen, hast, überprüfe bitte die Orientierung des Touch-Screen zum LCD-
+Modul. Der Treiber hat Schalter zum Verdrehen und Vertauschen der Orientierung.
+Oben links wird als Nullpunkt angenommen. Hinweise zu den benötigten
+Einstellungen je nach x/y-Werten:
+
+  Erster Abgleichspunkt: oben rechts
+
+  x        y        Einstellung
+  -----------------------------------------
+  niedrig  niedrig  TOUCH_FLIP_X
+  niedrig  hoch     TOUCH_FLIP_X & TOUCH_FLIP_Y
+  hoch     niedrig  keine
+  hoch     hoch     TOUCH_FLIP_Y
+
+Nach einem erfolgreichen Abgleich nicht vergessen, die Offset-Werte zu
+speichen (Hauptmenü: Speichern).
 
 Unterstützte Touch-Screen-Controller:
 - ADS7843 / XPT2046
@@ -1452,15 +1480,38 @@ hitec          PWM gelb            Vcc rot             Gnd schwarz
 JR Radios      PWM orange          Vcc rot             Gnd braun
 
 
++ OneWire-Scan
+
+Der OneWire-Scan zeigt die ROM-Codes all angeschlossenen Busteilnehmer an.
+Zum Einrichten des OneWire-Busses siehe bitte den Abschnitt "Busse &
+Schnittstellen". Bei Benutzung der Test-Pins informiert der Tester über die
+Beschaltung und wartet bis ein externer Pull-Up-Widerstand erkannt wurde.
+Mit einem Tastendruck läßt sich dies überspringen.
+
+Bei jedem Tastendruck sucht der Tester nach dem nächsten Busteilnehmer und
+gibt dessen ROM-Code aus (in hexadezimal). Der erste Teil der Ausgabe ist der
+Familiencode und der zweite die Seriennummer. Der CRC-Wert wird weggelassen.
+Bei einem Familiencode >= 0x80 (Bit 7 gesetzt) handelt es sich um einen
+kundenspezifischen Code, und die oberen (linken) drei Stellen der Seriennummer
+sind die Kunden-ID.
+
+Der Tester informiert Dich, wenn er den letzten Busteilnemher gefunden hat,
+bzw. bei CRC- oder Busfehlern. Im Fall des letzten Busteilnehmers oder eines
+Busfehlers kannst Du per Tastendruck einen komplett neuen Scandurchlauf
+starten. Wie üblich beenden zwei kurze Tastendrücke die Funktion. 
+
+
 + DS18B20-Temperatursensor
 
 Hiermit wird der OneWire-Temperatursensor DS18B20 ausgelesen. Zum Einrichten
 des OneWire-Busses siehe bitte den Abschnitt "Busse & Schnittstellen". Bei
 Benutzung der Test-Pins informiert der Tester über die Beschaltung und wartet
 bis ein externer Pull-Up-Widerstand erkannt wurde. Mit einem Tastendruck läßt
-sich dies überspringen. Nach den Verbinden des DS18B20 als einziger Client am
-Bus startet ein Tastendruck das Auslesen der Temeperatur (kann fast eine
-Sekunde dauen). Zum Beenden zweimal kurz die Test-Taste drücken.
+sich dies überspringen.
+
+Nach den Verbinden des DS18B20 als einziger Client am Bus startet ein Tasten-
+druck das Auslesen der Temperatur (kann fast eine Sekunde dauen). Zum Beenden
+zweimal kurz die Test-Taste drücken.
 
 
 + DHTxx-Sensoren
@@ -1528,7 +1579,7 @@ Nulloffset zu bestimmen. Auch wird der interne Widerstand der MCU-Portpins
 im Pull-Up und Pull-Down Modus bestimmt. Wenn der Abgleich übersprungen wird 
 oder unplausible Werte gemessen werden, werden die Standardwerte der Firmware
 angenommen. Wenn alles sauber durch läuft, werden die neuen Werte angezeigt,
-aber nicht im EEPRON gespeichert (siehe Speichern).
+aber nicht automatisch im EEPROM gespeichert (siehe Speichern/Laden).
 
 Der Spannungsoffset des Analogkomparators wird automatisch bei der Messung
 eines Kondensators bestimmt (bei der normalen Bauteilesuche), wenn der
@@ -1548,8 +1599,9 @@ des Selbstabgleichs ausgeführt wird. Somit brauchst Du nicht mehr vorher
 einen Folienkondensator zu messen.
 
 Falls der Kapazitätsoffset zwischen den Test-Pin-Paaren zu sehr variiert,
-kannst Du in config.h auf Test-Pin spezifische Offsets umschalten (
-CAP_MULTIOFFSET).
+kannst Du in config.h auf spezifische Offsets je Test-Pin-Paar umschalten (
+CAP_MULTIOFFSET). Das Gleiche ist für den Widerstandsoffset möglich (
+R_MULTIOFFSET). 
 
 Der Selbstabgleich ist dem Selbsttest vom Ablauf und der Bedienung her sehr
 ähnlich.
@@ -1579,11 +1631,9 @@ Vorgaben bzgl. Genauigkeit und anderer Parameter einhält.
 
 + Speichern/Laden
 
-Beim Brennen der Firmware wird ein Satz vordefinierter Standardardwerte in das
-EEPROM geschrieben. Nach dem Selbstabgleich kannst mit dieser Funktion die
-Standardwerte durch die korrekten Werte überschreiben. Beim nächsten Neustart
-vom Tester werden dann diese Werte (Profil #1) automatisch geladen und 
-benutzt.
+Nach dem Selbstabgleich kannst mit dieser Funktion die im EEPROM gespeicherten
+Abgleichswerte aktualisieren. Beim nächsten Neustart vom Tester werden dann
+diese Werte (Profil #1) automatisch geladen und benutzt.
 
 Zur Bequemlichkeit stehen zwei Profile zum Speichern bzw. Laden zu Verfügung,
 z.B. für zwei unterschiedliche Sätze an Messkabeln.
@@ -1703,7 +1753,8 @@ Hinweis: Bei unerwarteten Messwerten bitte die Messung wiederholen.
 Der Tester versucht vor und während des Messens das angeschlossene Bauteil
 zu entladen. Wenn er das Bauteil nicht auf einen vorgegebenen Nullwert (
 CAP_DISCHARGED) entladen kann, gibt er einen Fehler mit Angabe des Testpins
-und der Restspannung aus.
+und der Restspannung aus. Im Fall einer Battery entspricht die angezeigte
+Spannung nicht der Batteriespannung.
 
 Die Entladefunktion basiert nicht auf einem festen Timeout, sondern paßt
 sich automatisch dem Entladefortschritt an. Auf diese Weise wird eine
@@ -1836,6 +1887,7 @@ V_BO von 20-200V ist.
   die 50µF aus, obwohl kein Bauteil angeschlossen ist.
 - Der ESR kann bei Kondensatoren mit 180 - 220nF je nach MCU-Takt
   variieren.
+- Problem mit der ESR-Messung bei low-ESR Elkos mit festem Elektrolyt. 
 
 
 * Hilfe

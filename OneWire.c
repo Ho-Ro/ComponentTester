@@ -2,7 +2,7 @@
  *
  *   OneWire communication and tools
  *
- *   (c) 2018-2019 by Markus Reschke
+ *   (c) 2018-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -54,6 +54,12 @@
 
 /* CRC */
 uint8_t        CRC8;          /* current CRC-8 */
+
+#ifdef SW_ONEWIRE_SCAN
+/* ROM code */
+uint8_t        ROM_Code[8];   /* ROM code */
+uint8_t        LastCon;       /* bit position of last code conflict */
+#endif
 
 
 
@@ -458,6 +464,7 @@ uint8_t OneWire_ReadByte(void)
 /*
  *  address client
  *  - includes reset of the bus
+ *  - transaction steps: initialization and ROM command
  *
  *  requires:
  *  - ROM_Code: pointer to ROM code stored in an array of 8 bytes
@@ -472,11 +479,13 @@ uint8_t OneWire_AddressClient(uint8_t *ROM_Code)
   uint8_t           Flag = 0;      /* return value */
   uint8_t           n = 0;         /* counter */
 
+  /* transaction: initialization */
   /* reset bus and check for presence pulse */
   Flag = OneWire_ResetBus();
 
   if (Flag)              /* detected client(s) */
   {
+    /* transaction: ROM command */
     if (ROM_Code)            /* valid pointer */
     {
       /* address specific client on the bus */
@@ -555,6 +564,309 @@ void OneWire_CRC8(uint8_t Byte)
 
 
 /* ************************************************************************
+ *   Search ROM
+ * ************************************************************************ */
+
+
+#ifdef SW_ONEWIRE_SCAN
+
+/*
+ *  search for next device (ROM code)
+ *
+ *  returns:
+ *  - 2 found last device
+ *  - 1 found next device
+ *  - 0 on any problem
+ */
+
+uint8_t OneWire_Next_ROM_Code(void)
+{
+  uint8_t      Flag;          /* return value */
+  uint8_t      BitPos = 1;    /* bit position of ROM code */
+  uint8_t      NewCon = 0;    /* bit position of code conflict */
+  uint8_t      Bit1;          /* bit */
+  uint8_t      Bit2;          /* bit complement */
+  uint8_t      NewBit;        /* bit to send */
+  uint8_t      CodeByte = 0;  /* byte counter for ROM code */
+  uint8_t      CodeBit = 1;   /* bit mask for ROM code */
+  uint8_t      Temp;          /* temporary value */
+
+  wdt_reset();                /* reset watchdog */
+
+  /* transaction: initialization */
+  /* reset bus and check for presence pulse */
+  Flag = OneWire_ResetBus();
+
+  if (Flag)                   /* detected client */
+  {
+    /* transaction: ROM command */
+    OneWire_SendByte(CMD_SEARCH_ROM);   /* search ROM */
+
+    /*
+     *  processing loop
+     */
+
+    while (BitPos < 65)       /* 64 bits */
+    {
+      NewBit = 2;                  /* default: invalid */
+
+      /* read bit and its complement */
+      Bit1 = OneWire_ReadBit();         /* read bit */
+      Bit2 = OneWire_ReadBit();         /* read complement */
+
+      /* process bits */
+      if (Bit1 != Bit2)            /* valid bit (01 or 10) */
+      {
+        NewBit = Bit1;                 /* copy bit */
+      }
+      else if (Bit1 & Bit2)        /* no response (11) */
+      {
+        BitPos = 64;               /* end loop */
+        Flag = 0;                  /* signal bus error */
+      }
+      else                         /* code conflict (00) */
+      {
+        if (LastCon < BitPos)           /* code conflict further up */
+        {
+          /* start branch with 0 */
+          NewBit = 0;                   /* set bit to 0 */
+          NewCon = BitPos;              /* update bit position */
+        }
+        else if (LastCon == BitPos)     /* hit pos of last code conflict */
+        {
+          /* change branch to 1 */
+          NewBit = 1;                   /* set bit to 1 */
+        }
+        else  /* LastCon > BitPos */    /* code conflict further down */
+        {
+          /* get bit from ROM code */
+          Temp = ROM_Code[CodeByte] & CodeBit;
+
+          if (Temp == 0)                /* bit is 0 */
+          {
+            NewCon = BitPos;            /* update bit position */
+            /* this is going to be 1 in the next search run */
+          }
+
+          NewBit = Temp;                /* use bit from ROM code */
+        }
+      }
+
+      /* process bit to send */
+      if (NewBit < 2)              /* valid bit */
+      {
+        /* update ROM code */
+        if (NewBit == 0)           /* bit is 0 */
+        {
+          ROM_Code[CodeByte] &= ~CodeBit;    /* clear bit in ROM code */
+        }
+        else                       /* bit is 1 */
+        {
+          ROM_Code[CodeByte] |= CodeBit;     /* set bit in ROM code */
+        }
+
+        /* send bit to select branch */
+        OneWire_SendBit(NewBit);
+      }
+
+      /* loop management */
+      if (CodeBit & 0b10000000)    /* bit mask overflow */
+      {
+        CodeBit = 0b00000001;      /* reset bit mask to first bit */
+        CodeByte++;                /* next byte */
+      }
+      else                         /* no overflow */
+      {
+        CodeBit <<= 1;             /* shift left by one */
+      }
+
+      BitPos++;               /* next bit */
+    }
+
+    /* manage branching for next run */
+    LastCon = NewCon;         /* update bit position of code conflict */
+
+    if (LastCon == 0)         /* no devices left */
+    {
+      if (Flag)               /* don't overwrite error */
+      {
+        Flag = 2;             /* signal last device */
+      }
+    }
+
+    /* special case: all zero (pull-up resistor suddenly missing) */
+    if (ROM_Code[0] == 0)     /* family code 00 */
+    {
+      Flag = 0;               /* signal bus error */
+    }
+  }
+
+  return Flag;
+}
+
+
+
+/*
+ *  read ROM codes of connected devices
+ *
+ *  returns:
+ *  - 1 on success
+ *  - 0 on any problem
+ */
+
+uint8_t OneWire_Scan_Tool(void)
+{
+  uint8_t           Flag;          /* return value */
+  uint8_t           Run;           /* loop control */
+  uint8_t           Test;          /* key / feedback */
+  uint8_t           n;             /* counter */
+
+  /* local constants */
+  #define RUN_FLAG       0b00000001     /* run */
+  #define RESET_FLAG     0b00000010     /* reset values */
+  #define OUTPUT_FLAG    0b00000100     /* output ROM code */
+  #define DONE_FLAG      0b00001000     /* last device */
+
+  #ifdef ONEWIRE_IO_PIN
+  Flag = 1;                   /* set default */
+  #endif
+
+  #ifdef ONEWIRE_PROBES
+  /* inform user about pinout and check for external pull-up resistor */
+  Flag = OneWire_Probes(OneWire_Scan_str);
+
+  if (Flag == 0)              /* bus error */
+  {
+    return Flag;              /* exit tool and signal error */
+  }
+  #endif
+
+  LCD_ClearLine2();                /* clear line #2 */
+  Display_EEString(Start_str);     /* display: Start */
+  UI.LineMode = LINE_STD | LINE_KEEP;   /* next-line mode: keep first line */
+
+
+  /*
+   *  processing loop
+   */
+
+  Run = RUN_FLAG | RESET_FLAG;
+
+  while (Run)
+  {
+    n = UI.CharPos_Y;              /* get current line number */
+
+    /* user input */
+
+    /* wait for user input */
+    Test = TestKey(0, CURSOR_BLINK | CHECK_KEY_TWICE | CHECK_BAT);
+
+    if (Test == KEY_TWICE)         /* two short key presses */
+    {
+      break;                       /* end loop */
+    }
+
+    /* reset values */
+    if (Run & RESET_FLAG)         /* reset requested */
+    {
+      /* clear ROM code */
+      for (n = 0; n < 8; n++)     /* 8 bytes */
+      {
+        ROM_Code[n] = 0;
+      }
+
+      LastCon = 0;                /* reset bit position of last code conflict */
+
+      Run &= ~RESET_FLAG;         /* clear flag */
+    }
+    else                          /* consecutive run */
+    {
+      LCD_CharPos(1, n);          /* move to beginning of former line */
+    }
+
+    /* manage screen */
+    Display_NextLine();           /* move to next line */
+
+    /* search for next device  */
+    if (Run)             /* ok to proceed */
+    {
+      Test = OneWire_Next_ROM_Code();   /* get next device */
+
+      if (Test >= 1)          /* got ROM code */
+      {
+        /* check CRC */
+        CRC8 = 0x00;          /* reset CRC to start value */
+        n = 0;
+        while (n < 7)         /* 7 data bytes */
+        {
+          OneWire_CRC8(ROM_Code[n]);    /* process byte */
+          n++;                          /* next byte */
+        }
+
+        if (ROM_Code[7] == CRC8)   /* CRC matches */
+        {
+          Run |= OUTPUT_FLAG;      /* output ROM code */ 
+        }
+        else                       /* mismatch */
+        {
+          Display_EEString_Space(CRC_str);   /* display: CRC */
+          Display_EEString(Error_str);       /* display: error */
+        }
+
+        if (Test == 2)             /* no devices left */
+        {
+          Run |= DONE_FLAG;        /* last ROM code */
+        }
+      }
+      else                    /* error */
+      {
+        Display_EEString_Space(Bus_str);     /* display: Bus */
+        Display_EEString(Error_str);         /* display: error */
+        Run |= RESET_FLAG;                   /* reset values for next scan */
+      }
+    }
+
+    /* display ROM code */
+    if (Run & OUTPUT_FLAG)         /* output requested */
+    {
+      /* display family code */
+      Display_HexByte(ROM_Code[0]);     /* display family */
+
+      Display_Space();                  /* display space */
+
+      /* display serial number (MSB left) */
+      for (n = 6; n > 0; n--)           /* 6 bytes */
+      {
+        Display_HexByte(ROM_Code[n]);   /* display S/N */
+      } 
+
+      Run &= ~OUTPUT_FLAG;              /* clear flag */
+    }
+
+    /* indicate end of scan */
+    if (Run & DONE_FLAG)           /* no devices left */
+    {
+      Display_NL_EEString(Done_str);    /* display: done */
+      Run |= RESET_FLAG;                /* reset values for next scan */
+
+      Run &= ~DONE_FLAG;                /* clear flag */
+    }
+  }
+
+  return Flag;
+
+  /* clean up */
+  #undef RUN_FLAG
+  #undef RESET_FLAG
+  #undef OUTPUT_FLAG
+  #undef DONE_FLAG
+}
+
+#endif
+
+
+
+/* ************************************************************************
  *   DS18B20
  * ************************************************************************ */
 
@@ -576,20 +888,25 @@ void OneWire_CRC8(uint8_t Byte)
 
 uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale)
 {
-  uint8_t           Flag = 0;           /* return value */
+  uint8_t           Flag = 0;           /* return value / control flag */
   uint8_t           Run = 0;            /* loop control */
   uint8_t           n;                  /* counter */
   uint8_t           ScratchPad[9];      /* scratchpad */
   uint8_t           Sign;               /* sign flag */
   int16_t           Temp;               /* temperature */
 
+  wdt_reset();                /* reset watchdog */
+
+  /* transaction: initialization */
   /* reset bus and check for presence pulse */
   Flag = OneWire_ResetBus();
 
   if (Flag)                   /* detected client */
   {
+    /* transaction: ROM command */
     OneWire_SendByte(CMD_SKIP_ROM);     /* select all clients */
 
+    /* transaction: function command */
     /* start conversion */
     OneWire_SendByte(CMD_DS18B20_CONVERT_T);
 
@@ -640,13 +957,16 @@ uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale)
 
   while (Run)
   {
+    /* transaction: initialization */
     /* reset bus and check for presence pulse */
     Flag = OneWire_ResetBus();    
 
     if (Flag)                 /* detected client */
     {
+      /* transaction: ROM command */
       OneWire_SendByte(CMD_SKIP_ROM);        /* select all clients */
 
+      /* transaction: function command */
       /* read scratchpad to get temperature */
       OneWire_SendByte(CMD_DS18B20_READ_SCRATCHPAD);
       n = 0;
@@ -766,10 +1086,15 @@ uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale)
 
 uint8_t DS18B20_Tool(void)
 {
-  uint8_t           Flag = 1;      /* control flag */
+  uint8_t           Flag;          /* return value / control flag */
+  uint8_t           Run = 1;       /* loop control */
   uint8_t           Test;          /* key / feedback */
   int8_t            Scale;         /* temperature scale 10^x */
   int32_t           Value;         /* temperature value */
+
+  #ifdef ONEWIRE_IO_PIN
+  Flag = 1;                   /* set default */
+  #endif
 
   #ifdef ONEWIRE_PROBES
   /* inform user about pinout and check for external pull-up resistor */
@@ -777,7 +1102,7 @@ uint8_t DS18B20_Tool(void)
 
   if (Flag == 0)              /* bus error */
   {
-    return 0;                 /* exit tool and signal error */
+    return Flag;              /* exit tool and signal error */
   }
   #endif
 
@@ -789,7 +1114,7 @@ uint8_t DS18B20_Tool(void)
    *  processing loop
    */
 
-  while (Flag)
+  while (Run)
   {
     /* user input */
 
@@ -798,12 +1123,12 @@ uint8_t DS18B20_Tool(void)
 
     if (Test == KEY_TWICE)         /* two short key presses */
     {
-      Flag = 0;                    /* end loop */
+      Run = 0;                     /* end loop */
     }
 
     LCD_ClearLine2();                   /* clear line #2 */
 
-    if (Flag)            /* ok to proceed */
+    if (Run)            /* ok to proceed */
     {
       /* get temperature from DS18B20 (in °C) */
       Test = DS18B20_ReadTemperature(&Value, &Scale);
@@ -840,7 +1165,7 @@ uint8_t DS18B20_Tool(void)
     }
   }
 
-  return 1;                   /* signal success */
+  return Flag;
 }
 
 #endif

@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2019 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -146,6 +146,10 @@
   extern uint8_t OneWire_ResetBus(void);
   #endif
 
+  #ifdef SW_ONEWIRE_SCAN
+  extern uint8_t OneWire_Scan_Tool(void);
+  #endif
+
   #ifdef SW_DS18B20
   extern uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale, uint8_t *Bits);
   extern uint8_t DS18B20_Tool(void);
@@ -216,7 +220,7 @@
   extern void Display_HexDigit(uint8_t Digit);
   #endif
 
-  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
+  #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_ONEWIRE_SCAN)
   extern void Display_HexByte(uint8_t Value);
   #endif
 
@@ -239,6 +243,10 @@
   extern void LCD_FancySemiPinout(uint8_t Line);
   #endif
 
+  #ifdef SW_FONT_TEST
+  extern void FontTest(void);
+  #endif
+
 #endif
 
 
@@ -259,7 +267,7 @@
 
 #ifndef ADJUST_C
 
-  #ifdef CAP_MULTIOFFSET
+  #if defined (CAP_MULTIOFFSET) || defined (R_MULTIOFFSET)
   extern uint8_t GetOffsetIndex(uint8_t Probe1, uint8_t Probe2);
   #endif
 

@@ -387,8 +387,8 @@ void PWM_Tool(void)
         Step2 = Prescaler;         /* save old value */
 
         /* read new prescaler and bitmask from table */
-        Prescaler = eeprom_read_word(&T1_Prescaler_table[Index]);
-        Bitmask = eeprom_read_byte(&T1_Bitmask_table[Index]);
+        Prescaler = DATA_read_word(&T1_Prescaler_table[Index]);
+        Bitmask = DATA_read_byte(&T1_Bitmask_table[Index]);
 
         if (Index > Step)          /* larger prescaler */
         {
@@ -1321,8 +1321,8 @@ void SquareWave_SignalGenerator(void)
       Step = Prescaler;            /* save old value */
 
       /* read new prescaler and bitmask from table */
-      Prescaler = eeprom_read_word(&T1_Prescaler_table[Index]);
-      Bitmask = eeprom_read_byte(&T1_Bitmask_table[Index]);
+      Prescaler = DATA_read_word(&T1_Prescaler_table[Index]);
+      Bitmask = DATA_read_byte(&T1_Bitmask_table[Index]);
 
       /* adjust top value for changed prescaler */
       if (Index > Test)            /* larger prescaler */
@@ -1602,8 +1602,8 @@ void FrequencyCounter(void)
     wait500us();                        /* settle time */
 
     /* update prescaler */
-    Top = eeprom_read_word(&T1_Prescaler_table[Index]);     /* prescaler value */
-    Bitmask = eeprom_read_byte(&T1_Bitmask_table[Index]);   /* prescaler bits */
+    Top = DATA_read_word(&T1_Prescaler_table[Index]);       /* prescaler value */
+    Bitmask = DATA_read_byte(&T1_Bitmask_table[Index]);     /* prescaler bits */
 
     /* calculate compare value for Timer1 (gate time) */
     /* top = gatetime * MCU_cycles / timer prescaler */
@@ -1888,8 +1888,8 @@ void FrequencyCounter(void)
       }
 
       /* update Timer1 prescaler */
-      Top = eeprom_read_word(&T1_Prescaler_table[Index]);   /* prescaler value */
-      Bitmask = eeprom_read_byte(&T1_Bitmask_table[Index]); /* prescaler bits */
+      Top = DATA_read_word(&T1_Prescaler_table[Index]);     /* prescaler value */
+      Bitmask = DATA_read_byte(&T1_Bitmask_table[Index]);   /* prescaler bits */
 
 
       /* calculate compare value for Timer1 (gate time) */

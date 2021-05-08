@@ -2,7 +2,7 @@
  *
  *   resistor measurements
  *
- *   (c) 2012-2018 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -164,13 +164,23 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
 
     if (ZeroFlag == 1)        /* auto-zero */
     {
-      if (R > NV.RZero)       /* should be larger than offset */
+      uint16_t      RZero;          /* zero offset */
+
+      #ifdef R_MULTIOFFSET
+      /* get index number for probe pair */
+      Counter = GetOffsetIndex(Probes.ID_1, Probes.ID_2);
+      RZero = NV.RZero[Counter];
+      #else
+      RZero = NV.RZero;
+      #endif
+
+      if (R > RZero)          /* should be larger than offset */
       {
-        R -= NV.RZero;        /* subtract offset */
+        R -= RZero;           /* subtract offset */
       }
       else                    /* can't be less then zero */
       {
-        R = 0;
+        R = 0;                /* set zero */
       }
     }
   }

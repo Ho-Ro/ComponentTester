@@ -1,8 +1,8 @@
 /* ************************************************************************
  *
- *   color definitions for LCD modules
+ *   color definitions for display modules
  *
- *   (c) 2015-2017 by Markus Reschke
+ *   (c) 2015-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -20,7 +20,7 @@
 
 /*
  *  ILI9341/ILI9342
- *  - 6 bit coded RGB 
+ *  - RGB565
  */
 
 #ifdef LCD_ILI9341
@@ -34,12 +34,16 @@
   #define COLOR_ORANGE        0xfd20
   #define COLOR_GREY          0xc618
   #define COLOR_WHITE         0xffff
+  #define COLOR_BROWN         0x6920
+  #define COLOR_VIOLET        0x780f
+  #define COLOR_GOLD          0xc509
+  #define COLOR_SILVER        0xe71C
 #endif
 
 
 /*
  *  ST7735
- *  -  6 bit coded RGB
+ *  - RGB565
  */
 
 #ifdef LCD_ST7735
@@ -53,12 +57,16 @@
   #define COLOR_ORANGE        0xfd20
   #define COLOR_GREY          0xc618
   #define COLOR_WHITE         0xffff
+  #define COLOR_BROWN         0x6920
+  #define COLOR_VIOLET        0x780f
+  #define COLOR_GOLD          0xc509
+  #define COLOR_SILVER        0xe71C
 #endif
 
 
 /*
  *  ILI9163
- *  - 6 bit coded RGB
+ *  - RGB565
  */
 
 #ifdef LCD_ILI9163
@@ -72,6 +80,10 @@
   #define COLOR_ORANGE        0xfd20
   #define COLOR_GREY          0xc618
   #define COLOR_WHITE         0xffff
+  #define COLOR_BROWN         0x6920
+  #define COLOR_VIOLET        0x780f
+  #define COLOR_GOLD          0xc509
+  #define COLOR_SILVER        0xe71C
 #endif
 
 
@@ -79,7 +91,7 @@
  *  VT100 serial terminal
  *  - 8 fixed foreground and background colors
  *  - foreground colors: 30-37
- *  - background colors: 30-47
+ *  - background colors: 40-47
  */
 
 #ifdef LCD_VT100

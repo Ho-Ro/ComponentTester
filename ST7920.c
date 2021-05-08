@@ -8,7 +8,7 @@
  *   - SPI interface (2-4 line)
  *   - 4 bit parallel interface
  *
- *   (c) 2017-2019 by Markus Reschke
+ *   (c) 2017-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -73,14 +73,14 @@
 #ifndef LCD_ROT180
   /* horizontally aligned */
   #include "font_8x8_h.h"
-  #include "font_8x8_czech_h.h"
+  #include "font_8x8_iso8859-2_h.h"
   #include "symbols_24x24_h.h"
 #endif
 
 #ifdef LCD_ROT180
   /* horizontally aligned, horizontal bit order flipped */
   #include "font_8x8_hf.h"
-  #include "font_8x8_czech_hf.h"
+  #include "font_8x8_iso8859-2_hf.h"
   #include "symbols_24x24_hf.h"
 #endif
 
@@ -531,9 +531,9 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   UI.CharPos_Y = y;
 
   /*
-   *  calculate start dot position
-   *  - start is left top of character
-   */  
+   *  calculate dot position
+   *  - top left of character
+   */
 
   /* horizontal position (column in 16 bit steps) */
   x--;                             /* columns start at 0 */
@@ -576,9 +576,9 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   UI.CharPos_Y = y;
 
   /*
-   *  calculate start dot position
-   *  - start is right top of character (180° view)
-   *    or left bottom for 0° view
+   *  calculate dot position
+   *  - top right of character (180° view)
+   *    or bottom left for 0° view
    */
 
   /* horizontal position (column in 16 bit steps), flipped */

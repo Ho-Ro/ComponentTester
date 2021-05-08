@@ -1389,12 +1389,13 @@ void ShowBattery(void)
 void CheckBattery(void)
 {
   uint16_t          U_Bat;         /* battery voltage */
-  uint32_t          Temp;          /* temporary value */
 
   /* get current battery voltage */
   U_Bat = ReadU(TP_BAT);           /* read voltage (mV) */
 
   #ifdef BAT_DIVIDER
+  uint32_t          Temp;          /* temporary value */
+
   /*
    *  ADC pin is connected to a voltage divider (top: R1 / bottom: R2).
    *  - U2 = (Uin / (R1 + R2)) * R2 

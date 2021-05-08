@@ -1,6 +1,7 @@
 /* ************************************************************************
  *
- *   internal monospaced 5x8 font of ST7036
+ *   monospaced 5x8 font based on ISO 8859-1
+ *   - uses internal font of ST7036
  *
  *   (c) 2019 by Markus Reschke
  *
@@ -324,7 +325,7 @@ const uint8_t FontTable[] PROGMEM = {
   0x81,        /* 0xfc -> ü */
   0xff,        /* 0xfd -> n/a */
   0xff,        /* 0xfe -> n/a */
-  0xff,        /* 0xff -> n/a */
+  0xff         /* 0xff -> n/a */
 };
 
 

@@ -4,13 +4,26 @@
 
            für ATmega 328/324/644/1284 mit Text- oder Grafikdisplay
 
-                       (c) 2012-2019 by Markus Reschke
+                       (c) 2012-2020 by Markus Reschke
 
 ------------------------------------------------------------------------------
 
+v1.39m 2020-03
+- Polnische Texte nach ISO 8859-2 (Dank an Jacon).
+- Problemchen mit Preprocessor-Macro in SPI.c und Syntaxfehler in ADS7843.c 
+  behoben (gemeldet von Bohu).
+- Option zum Speichern von Firmwaredaten im Flash anstatt EEPROM (DATA_FLASH,
+  Vorschlag von Vitaliy).
+- Kyrillische Zeichensätze zu "win1251" umbenannt and tschechische Zeichen-
+  sätze durch ISO8859-2-Zeichensätze ersetzt (Dank an Bohu).
+- Funktion zur Ausgabe des Zeichensatzes zu Testzwecken (SW_FONT_TEST).
+- OneWire-Scan zur Ausgabe der ROM-Codes der Busteilnehmer (SW_ONEWIRE_SCAN). 
+- Option für spezifischen Widerstandsoffset je Testpin-Paar (R_MULTIOFFSET,
+  Vorschlag von Vitaliy).
+
 v1.38m 2019-12
 - Optionales Runden der Temperatur für DS18B20 (UI_ROUND_DS18B20, Vorschlag
-  von Obelix2007@EEVblog)
+  von Obelix2007@EEVblog).
 - Unterstützung von DHT11, DHT22 und kompatiblen Sensoren (SW_DHTXX, Dank
   an indman@EEVblog und Obelix2007@EEVblog fürs Testen).
 - Zwei dünne kyrillische Zeichensätze ergänzt (Dank an Andrey@EEVblog).

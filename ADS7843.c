@@ -3,7 +3,7 @@
  *   driver functions for ADS7843 compatible touchscreen controller
  *   - compatible controllers: XPT2046
  *
- *   (c) 2015-2019 by Markus Reschke
+ *   (c) 2015-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -103,7 +103,7 @@ void Touch_BusSetup(void)
 
   /* 8MHz -> f_osc/4 (SPR1 = 0, SPR0 = 0, SPI2X = 0) */
   #if CPU_FREQ / 1000000 == 8
-    ClockRate = 0
+    ClockRate = 0;
   #endif
 
   /* 16MHz -> f_osc/8 (SPR1 = 0, SPR0 = 1, SPI2X = 1) */
@@ -274,7 +274,7 @@ void Touch_CharPos(void)
    *  convert raw touch position to char position
    *  - consider possible rotation and flips
    *  - consider offset between touch screen and display
-   *  - 0/0 is assumend to be at top left 
+   *  - 0/0 is assumed to be at top left 
    *
    *  Conversion:
    *  - f_corr = (Offset_right - Offset_left) / CharMax_X
@@ -602,7 +602,7 @@ uint8_t Touch_Adjust(void)
       X_Right = UI.TouchRaw_X;
     #endif
 
-    /* get offset for  direction */
+    /* get offset for Y direction */
     #ifdef TOUCH_FLIP_Y
       Y_Bottom = UI.TouchRaw_Y;
     #else

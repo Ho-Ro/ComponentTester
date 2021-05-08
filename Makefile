@@ -1,7 +1,7 @@
 #
 #  Makefile
 #
-#  (c) 2012-2019 by Markus Reschke
+#  (c) 2012-2020 by Markus Reschke
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
@@ -15,6 +15,7 @@ PROJECT = ComponentTester
 # avr-gcc: MCU model
 # - ATmega 328/328P        : atmega328
 # - ATmega 324P/324PA      : atmega324p
+# - ATmega 324PB           : atmega328pb
 # - ATmega 644/644P/644PA  : atmega644
 # - ATmega 1284/1284P      : atmega1284
 MCU = atmega328
@@ -48,6 +49,7 @@ endif
 # avrdude: part number of MCU
 # - ATmega 328    : m328
 # - ATmega 328P   : m328p
+# - ATmega 328PB  : m328pb
 # - ATmega 324P   : m324p
 # - ATmega 324PA  : m324pa
 # - ATmega 644    : m644
@@ -70,7 +72,8 @@ PROGRAMMER = avrispmkII
 PORT = usb
 
 # avrdude: bitclock
-BITCLOCK = 10.0
+BITCLOCK = 5.0
+#BITCLOCK = 10.0
 
 
 #
@@ -140,7 +143,7 @@ $(NAME): ${OBJECTS}
 %.hex: ${NAME}
 	avr-objcopy -O ihex ${HEX_FLASH_FLAGS} $< $@
 
-# create image for EEPROM
+# create hex file of EEPROM data
 %.eep: ${NAME}
 	-avr-objcopy ${HEX_EEPROM_FLAGS} -O ihex $< $@ || exit 0
 
@@ -174,10 +177,20 @@ ${OBJECTS_S}: %.o: %.S ${HEADERS} ${MAKEFILE_LIST}
 #  extras
 #
 
-# upload firmware
+# program firmware and EEPROM data
 upload: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
 	avrdude -c ${PROGRAMMER} -B ${BITCLOCK} -p ${PARTNO} -P ${PORT} \
-	  -U flash:w:./${NAME}.hex:a -U eeprom:w:./$(NAME).eep:a
+	  -U flash:w:./${NAME}.hex:a -U eeprom:w:./${NAME}.eep:a
+
+# program firmware only
+prog_fw: ${NAME} ${NAME}.hex ${NAME}.lss size
+	avrdude -c ${PROGRAMMER} -B ${BITCLOCK} -p ${PARTNO} -P ${PORT} \
+	  -U flash:w:./${NAME}.hex:a
+
+# program EEPROM data only
+prog_ee: ${NAME} ${NAME}.eep ${NAME}.lss size
+	avrdude -c ${PROGRAMMER} -B ${BITCLOCK} -p ${PARTNO} -P ${PORT} \
+	  -U eeprom:w:./${NAME}.eep:a
 
 # create distribution package
 dist:
@@ -195,12 +208,17 @@ clean:
 
 
 #
-#  MCU fuses
+#  MCU fuse bytes
 #
 
 # ATmega 328/328P
 ifeq (${MCU},atmega328)
   FAMILY = atmega328_324
+endif
+
+# ATmega 328PB
+ifeq (${MCU},atmega328pb)
+  FAMILY = atmega328pb
 endif
 
 # ATmega 324P/324PA
@@ -220,8 +238,11 @@ endif
 
 # ATmega 328/324/644/1284
 ifeq (${FAMILY},atmega328_324)
+  # high byte: use default settings
   HFUSE = -U hfuse:w:0xd9:m
+  # extended byte: BOD level 4.3V
   EFUSE = -U efuse:w:0xfc:m
+  # low byte: clock settings
   ifeq (${FREQ},1)
     # internal RC oscillator (8MHz) and /1 clock divider
     LFUSE_RC = -U lfuse:w:0x62:m
@@ -256,6 +277,30 @@ ifeq (${FAMILY},atmega328_324)
   endif
 endif
 
+# ATmega 328PB
+ifeq (${FAMILY},atmega328pb)
+  # high byte: use default settings
+  HFUSE = -U hfuse:w:0xd9:m
+  # extended byte: BOD level 4.3V, CFD disabled
+  EFUSE = -U efuse:w:0xf4:m
+  # low byte: clock settings
+  ifeq (${FREQ},8)
+    # internal RC oscillator (8MHz) and /1 clock divider
+    LFUSE_RC = -U lfuse:w:0xe2:m
+    # full swing crystal not supported, use low power crystal
+    LFUSE_CRYSTAL = -U lfuse:w:0xff:m
+    # external 8MHz low power crystal and /1 clock divider
+    LFUSE_LOWPOWER = -U lfuse:w:0xff:m
+  endif
+  ifeq (${FREQ},16)
+    # internal RC oscillator (8MHz) not possible
+    LFUSE_RC =
+    # full swing crystal not supported, use low power crystal
+    LFUSE_CRYSTAL = -U lfuse:w:0xff:m
+    # external 16MHz low power crystal and /1 clock divider
+    LFUSE_LOWPOWER = -U lfuse:w:0xff:m
+  endif
+endif
 
 # select LFUSE
 ifeq (${OSCILLATOR},RC)

@@ -4,7 +4,7 @@
  *   - 128 x 160 (132 x 162) pixels
  *   - SPI interface (4 line)
  *
- *   (c) 2016-2018 by Markus Reschke
+ *   (c) 2016-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -51,8 +51,8 @@
 /* horizontally aligned, horizontal bit order flipped */
 #include "font_8x8_hf.h"
 #include "font_10x16_hf.h"
-#include "font_8x16_cyrillic_hf.h"
-#include "font_10x16_czech_hf.h"
+#include "font_10x16_iso8859-2_hf.h"
+#include "font_8x16_win1251_hf.h"
 #include "symbols_24x24_hf.h"
 #include "symbols_30x32_hf.h"
 
@@ -325,6 +325,11 @@ void LCD_CharPos(uint8_t x, uint8_t y)
     Mask <<= y;               /* shift to bit position for line */
     LineMask |= Mask;         /* set bit for line */
   }
+
+  /*
+   *  calculate dot position
+   *  - top left of character
+   */
 
   /* horizontal position (column) */
   x--;                        /* columns start at 0 */

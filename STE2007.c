@@ -8,7 +8,7 @@
  *     modules are wired for 3-line SPI usually
  *   - I2C (not supported yet)
  *
- *   (c) 2019 by Markus Reschke
+ *   (c) 2019-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -52,7 +52,7 @@
 /* fonts and symbols */
 /* vertically aligned, vertical bit order flipped, page-wise grouping */
 #include "font_6x8_vf.h"
-#include "font_6x8_czech_vf.h"
+#include "font_6x8_iso8859-2_vf.h"
 #include "symbols_24x24_vfp.h"
 
 
@@ -265,8 +265,8 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   UI.CharPos_Y = y;
 
   /*
-   *  set start dot position
-   *  - start is left top of character
+   *  calculate dot position
+   *  - top left of character
    */
 
   /* horizontal position (column) */
@@ -279,6 +279,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   y *= CHAR_PAGES;                 /* offset for character */
   Y_Start = y;                     /* update start position */
 
+  /* update display */
   LCD_DotPos(x, y);                /* set dot position */
 }
 

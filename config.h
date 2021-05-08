@@ -372,6 +372,16 @@
 
 
 /*
+ *  OneWire: read ROM codes of connected devices
+ *  - requires display with more than 2 text lines
+ *  - uncomment to enable
+ *  - also enable ONEWIRE_PROBES or ONEWIRE_IO_PIN (see section 'Busses')
+ */
+
+//#define SW_ONEWIRE_SCAN
+
+
+/*
  *  capacitor leakage check
  *  - requires display with more than two lines
  *  - uncomment to enable
@@ -413,6 +423,14 @@
 //#define SW_DHTXX
 
 
+/*
+ *  display font for test purposes
+ *  - uncomment to enable
+ */
+
+//#define SW_FONT_TEST
+
+
 
 /* ************************************************************************
  *   workarounds for some testers
@@ -434,7 +452,7 @@
 
 
 /* ************************************************************************
- *   Makefile workaround for some IDEs 
+ *   workarounds for some IDEs 
  * ************************************************************************ */
 
 
@@ -465,7 +483,8 @@
  *  - Czech 2 (with Czech characters based on ISO 8859-2)
  *  - Danish
  *  - German
- *  - Polish
+ *  - Polish (based on ISO 8859-1)
+ *  - Polish 2 (with Polish characters based on ISO 8859-2)
  *  - Spanish
  *  - Russian (with cyrillic characters based on Windows-1251)
  *  - Russian 2 (with cyrillic characters based on Windows-1251)
@@ -478,6 +497,7 @@
 //#define UI_GERMAN
 //#define UI_ITALIAN
 //#define UI_POLISH
+//#define UI_POLISH_2
 //#define UI_SPANISH
 //#define UI_RUSSIAN
 //#define UI_RUSSIAN_2
@@ -557,9 +577,11 @@
 
 
 /*
- *  Maximum number of check runs without any component found in a row.
+ *  Maximum number of probing runs without any component found in a row.
  *  - applies to continuous mode only
  *  - If this number is reached the tester will power off.
+ *  - When set to zero the tester will run only once and turn off
+ *    after CYCLE_DELAY.
  */
 
 #define CYCLE_MAX        5
@@ -600,6 +622,17 @@
  */
 
 //#define UI_ROUND_DS18B20
+
+
+/*
+ *  storage of firmware data (texts, tables etc)
+ *  - self-adjustment data is always stored in EEPROM
+ *  - fonts and symbols are always stored in Flash
+ *  - uncomment one
+ */ 
+
+#define DATA_EEPROM           /* store data in EEPROM */
+//#define DATA_FLASH            /* store data in Flash */
 
 
 
@@ -737,6 +770,15 @@
  */
 
 #define R_ZERO           20
+
+
+/*
+ *  Use probe pair specific resistance offsets instead of an
+ *  average value for all probes.
+ *  - uncomment to enable
+ */
+
+#define R_MULTIOFFSET
 
 
 /* 
@@ -986,6 +1028,27 @@
 /* ************************************************************************
  *   options management
  * ************************************************************************ */
+
+
+/*
+ *  storage of program data (EEPROM/Flash)
+ */
+
+#if defined (DATA_EEPROM)
+  /* memory type */
+  #define MEM_TYPE            EEMEM
+
+  /* read functions */
+  #define DATA_read_byte(addr)     eeprom_read_byte(addr)
+  #define DATA_read_word(addr)     eeprom_read_word(addr)
+#elif defined (DATA_FLASH)
+  /* memory type */
+  #define MEM_TYPE            PROGMEM
+
+  /* read functions */
+  #define DATA_read_byte(addr)     pgm_read_byte(addr)
+  #define DATA_read_word(addr)     pgm_read_word(addr)
+#endif
 
 
 /*

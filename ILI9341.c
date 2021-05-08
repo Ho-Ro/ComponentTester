@@ -5,7 +5,7 @@
  *   - 240 x 320 (ILI9341) or 320 x 240 (ILI9342) pixels
  *   - using SPI interface (4 line)
  *
- *   (c) 2015-2018 by Markus Reschke
+ *   (c) 2015-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -54,9 +54,9 @@
 #include "font_8x8_hf.h"
 #include "font_12x16_hf.h"
 #include "font_16x26_hf.h"
-#include "font_10x16_czech_hf.h"
-#include "font_12x16_czech_hf.h"
-#include "font_16x26_czech_hf.h"
+#include "font_10x16_iso8859-2_hf.h"
+#include "font_12x16_iso8859-2_hf.h"
+#include "font_16x26_iso8859-2_hf.h"
 #include "symbols_24x24_hf.h"
 #include "symbols_32x32_hf.h"
 
@@ -314,8 +314,13 @@ void LCD_CharPos(uint8_t x, uint8_t y)
     LineMask |= Mask;         /* set bit for line */
   }
 
+  /*
+   *  calculate dot position
+   *  - top left of character
+   */
+
   /* horizontal position (column) */
-  x--;                        /* columns starts at 0 */
+  x--;                        /* columns start at 0 */
   Mask = x;                   /* expand to 16 bit */
   Mask *= FONT_SIZE_X;        /* offset for character */
   X_Start = Mask;             /* update start position */

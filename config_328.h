@@ -2,7 +2,7 @@
  *
  *   ATmega 328 specific global configuration, setup and settings
  *
- *   (c) 2012-2019 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -54,8 +54,8 @@
 #define LCD_CHAR_X       16             /* characters per line */
 #define LCD_CHAR_Y       2              /* number of lines */
 /* HD44780 has an internal 5x7 font */
-#define FONT_HD44780_INTERNATIONAL      /* 5x7 font: international version */
-//#define FONT_HD44780_CYRILLIC           /* 5x7 font: cyrillic version */
+#define FONT_HD44780_INT                /* International font (English) */
+//#define FONT_HD44780_WIN1251            /* Cyrillic font (European) */
 #endif
 
 
@@ -83,8 +83,8 @@
 #define LCD_CHAR_X       16             /* characters per line */
 #define LCD_CHAR_Y       2              /* number of lines */
 /* HD44780 has an internal 5x7 font */
-#define FONT_HD44780_INTERNATIONAL      /* 5x7 font: international version */
-//#define FONT_HD44780_CYRILLIC            /* 5x7 font: cyrillic version */
+#define FONT_HD44780_INT                /* International font (English) */
+//#define FONT_HD44780_WIN1251             /* Cyrillic font (European) */
 #define I2C_BITBANG                     /* bit-bang I2C */
 #define I2C_STANDARD_MODE               /* 100kHz bus speed */
 #define I2C_PORT         PORTD          /* I2C port data register */
@@ -124,13 +124,14 @@
 //#define FONT_6X8_VF                      /* 6x8 font */
 #define FONT_8X8_VF                     /* 8x8 font */
 //#define FONT_8X16_VFP                   /* 8x16 font */
-//#define FONT_8X8_CYRILLIC_VF            /* 8x8 cyrillic font */
-//#define FONT_8X8T_CYRILLIC_VF           /* thin 8x8 cyrillic font */
-//#define FONT_8X12T_CYRILLIC_VFP         /* thin 8x12 cyrillic font */
-//#define FONT_8X16_CYRILLIC_VFP          /* 8x16 cyrillic font */
-//#define FONT_6X8_CZECH_VF               /* 6x8 Czech font */
-//#define FONT_8X8_CZECH_VF               /* 8x8 Czech font */
-//#define FONT_8X16_CZECH_VFP             /* 8x16 Czech font */
+//#define FONT_6X8_ISO8859_2_VF           /* 6x8 Central European font */
+//#define FONT_8X8_ISO8859_2_VF           /* 8x8 Central European font */
+//#define FONT_8X12T_ISO8859_2_VFP        /* thin 8x12 Central European font */
+//#define FONT_8X16_ISO8859_2_VFP         /* 8x16 Central European font */
+//#define FONT_8X8_WIN1251_VF             /* 8x8 cyrillic font */
+//#define FONT_8X8T_WIN1251_VF            /* thin 8x8 cyrillic font */
+//#define FONT_8X12T_WIN1251_VFP          /* thin 8x12 cyrillic font */
+//#define FONT_8X16_WIN1251_VFP           /* 8x16 cyrillic font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -165,7 +166,7 @@
 //#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
 /* font and symbols: horizontally aligned & flipped */
 #define FONT_16X26_HF                   /* 16x26 font */
-//#define FONT_16X26_CZECH_HF             /* 16x26 Czech font */
+//#define FONT_16X26_ISO8859_2_HF         /* 16x26 Central European font */
 #define SYMBOLS_32X32_HF                /* 32x32 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -202,8 +203,8 @@
 //#define LCD_LATE_ON                     /* turn on LCD after clearing it */
 /* font and symbols: horizontally aligned & flipped */
 #define FONT_10X16_HF                   /* 10x16 font */
-//#define FONT_8X16_CYRILLIC_HF           /* 8x16 cyrillic font */
-//#define FONT_10X16_CZECH_HF             /* 10x16 Czech font */
+//#define FONT_10X16_ISO8859_2_HF         /* 10x16 Central European font */
+//#define FONT_8X16_WIN1251_HF            /* 8x16 cyrillic font */
 #define SYMBOLS_30X32_HF                /* 30x32 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -235,13 +236,14 @@
 #define LCD_DOTS_X       84             /* number of horizontal dots */
 #define LCD_DOTS_Y       48             /* number of vertical dots */
 #define LCD_CONTRAST     66             /* default contrast (1-127) */
-#define FONT_6X8_VF                     /* 6x8 font, vertically aligned & flipped */
-//#define FONT_6X8_CZECH_VF             /* Czech 6x8 font */
+/* font and symbols: vertically aligned & flipped */
+#define FONT_6X8_VF                     /* 6x8 font */
+//#define FONT_6X8_ISO8859_2_VF         /* 6x8 Central Euopean font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
 //#define LCD_ROT180                      /* rotate output by 180° (not supported yet) */
 /* font and symbols: vertically aligned, bank-wise grouping, hor. flipped */
 //#define FONT_6X8_V_F                    /* 6x8 font */
-//#define FONT_6X8_CZECH_V_F              /* Czech 6x8 font */
+//#define FONT_6X8_ISO8859_2_V_F          /* 6x8 Central Euopean font */
 //#define SYMBOLS_24X24_VP_F              /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -273,12 +275,12 @@
 #define LCD_DOTS_Y       64             /* number of vertical dots */
 /* font and symbols: horizonally aligned */
 #define FONT_8X8_H                      /* 8x8 font  */
-//#define FONT_8X8_CZECH_H                /* 8x8 Czech font */
+//#define FONT_8X8_ISO8859_2_H            /* 8x8 Central European font */
 #define SYMBOLS_24X24_H                 /* 24x24 symbols */
 //#define LCD_ROT180                      /* rotate output by 180° */
 /* font and symbols: horizonally aligned & flipped */
 //#define FONT_8X8_HF                     /* 8x8 font */
-//#define FONT_8X8_CZECH_HF               /* 8x8 Czech font */
+//#define FONT_8X8_ISO8859_2_HF           /* 8x8 Central European font */
 //#define SYMBOLS_24X24_HF                /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -348,8 +350,8 @@
 /* font and symbols: horizonally aligned & flipped */
 #define FONT_8X8_HF                     /* 8x8 font */
 //#define FONT_10X16_HF                   /* 10x16 font */
-//#define FONT_8X16_CYRILLIC_HF           /* 8x16 cyrillic font */
-//#define FONT_8X8_CZECH_HF               /* 8x8 Czech font */
+//#define FONT_8X8_ISO8859_2_HF           /* 8x8 Central European font */
+//#define FONT_8X16_WIN1251_HF            /* 8x16 cyrillic font */
 #define SYMBOLS_30X32_HF                /* 30x32 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -384,13 +386,14 @@
 //#define FONT_6X8_VF                      /* 6x8 font */
 #define FONT_8X8_VF                     /* 8x8 font */
 //#define FONT_8X16_VFP                   /* 8x16 font */
-//#define FONT_8X8_CYRILLIC_VF            /* 8x8 cyrillic font */
-//#define FONT_8X8T_CYRILLIC_VF           /* thin 8x8 cyrillic font */
-//#define FONT_8X12T_CYRILLIC_VFP         /* thin 8x12 cyrillic font */
-//#define FONT_8X16_CYRILLIC_VFP          /* 8x16 cyrillic font */
-//#define FONT_6X8_CZECH_VF               /* 6x8 Czech font */
-//#define FONT_8X8_CZECH_VF               /* 8x8 Czech font */
-//#define FONT_8X16_CZECH_VFP             /* 8x16 Czech font */
+//#define FONT_6X8_ISO8859_2_VF           /* 6x8 Central European font */
+//#define FONT_8X8_ISO8859_2_VF           /* 8x8 Central European font */
+//#define FONT_8X12T_ISO8859_2_VFP        /* thin 8x12 Central European font */
+//#define FONT_8X16_ISO8859_2_VFP         /* 8x16 Central European font */
+//#define FONT_8X8_WIN1251_VF             /* 8x8 cyrillic font */
+//#define FONT_8X8T_WIN1251_VF            /* thin 8x8 cyrillic font */
+//#define FONT_8X12T_WIN1251_VFP          /* thin 8x12 cyrillic font */
+//#define FONT_8X16_WIN1251_VFP           /* 8x16 cyrillic font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -485,7 +488,7 @@
 #define LCD_CONTRAST     16             /* default contrast (0-31) */
 /* font and symbols: vertically aligned & flipped */
 #define FONT_6X8_VF                     /* 6x8 font */
-//#define FONT_6X8_CZECH_VF             /* Czech 6x8 font */
+//#define FONT_6X8_ISO8859_2_VF             /* 6x8 Central European font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols  */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_9                           /* support 9 bit frames */
@@ -517,7 +520,7 @@
 #define LCD_CONTRAST     5              /* default contrast (0-255) */
 /* font and symbols: vertically aligned & flipped, page-wise grouping */
 #define FONT_6X8_VF                     /* 6x8 font */
-//#define FONT_6X8_CZECH_VF             /* Czech 6x8 font */
+//#define FONT_6X8_ISO8859_2_VF             /* 6x8 Central European font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_9                           /* support 9 bit frames */

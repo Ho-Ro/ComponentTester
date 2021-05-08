@@ -5,7 +5,7 @@
  *   - 84 x 48 pixels
  *   - SPI interface (4 and 5 line)
  *
- *   (c) 2016-2018 by Markus Reschke
+ *   (c) 2016-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -52,14 +52,14 @@
 #ifndef LCD_ROT180
   /* vertically aligned, vertical bit order flipped, bank-wise grouping */
   #include "font_6x8_vf.h"
-  #include "font_6x8_czech_vf.h"
+  #include "font_6x8_iso8859-2_vf.h"
   #include "symbols_24x24_vfp.h"
 #endif
 
 #ifdef LCD_ROT180
   /* vertically aligned, horizontal bit order flipped, bank-wise grouping */
   #include "font_6x8_v_f.h"
-  #include "font_6x8_czech_v_f.h"
+  #include "font_6x8_iso8859-2_v_f.h"
   #include "symbols_24x24_vp_f.h"
 #endif
 
@@ -291,8 +291,8 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   UI.CharPos_Y = y;
 
   /*
-   *  set start dot position
-   *  - start is left top of character
+   *  calculate dot position and update display
+   *  - top left of character
    */
 
   /* horizontal position (column) */
@@ -333,8 +333,8 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   UI.CharPos_Y = y;
 
   /*
-   *  set start dot position
-   *  - start is right bottom of character (180° view)
+   *  calculate dot position and update display
+   *  - bottom right of character (180° view)
    */
 
   /* horizontal position (column), flipped */

@@ -1,6 +1,8 @@
 /* ************************************************************************
  *
- *   internal monospaced 5x8 font of HD44780: international version
+ *   monospaced 5x8 font based on ASCII
+ *   - uses internal font of HD44780
+ *   - English/Japanese version
  *
  *   (c) 2015-2019 by Markus Reschke
  *
@@ -11,7 +13,7 @@
  *   font data
  * ************************************************************************ */
 
-#ifdef FONT_HD44780_INTERNATIONAL
+#ifdef FONT_HD44780_INT
 
 
 /* font size */
@@ -58,8 +60,8 @@ const uint8_t FontTable[] PROGMEM = {
   0x01,        /* 0x01 -> symbol: diode A-C */
   0x02,        /* 0x02 -> symbol: diode C-A */
   0x03,        /* 0x03 -> symbol: capacitor */
-  0x04,        /* 0x04 -> omega (or built-in 0xf4) */
-  0x05,        /* 0x05 -> µ (micro) (or built-in 0xe4) */
+  0x04,        /* 0x04 -> omega */
+  0x05,        /* 0x05 -> µ (micro) */
   0x06,        /* 0x06 -> symbol: resistor left side */
   0x07,        /* 0x07 -> symbol: resistor right side */
   0xff,        /* 0x08 -> n/a */
@@ -246,7 +248,7 @@ const uint8_t FontTable[] PROGMEM = {
   0xff,        /* 0xb2 -> n/a */
   0xff,        /* 0xb3 -> n/a */
   0xff,        /* 0xb4 -> n/a */
-  0x05,        /* 0xb5 -> µ (micro) (or built-in 0xe4) */
+  0x05,        /* 0xb5 -> µ (micro, or built-in 0xe4) */
   0xff,        /* 0xb6 -> n/a */
   0xff,        /* 0xb7 -> n/a */
   0xff,        /* 0xb8 -> n/a */
@@ -262,7 +264,7 @@ const uint8_t FontTable[] PROGMEM = {
   0xff,        /* 0xc1 -> n/a */
   0xff,        /* 0xc2 -> n/a */
   0xff,        /* 0xc3 -> n/a */
-  0xff,        /* 0xc4 -> Ä? */
+  0xff,        /* 0xc4 -> n/a (Ä) */
   0xff,        /* 0xc5 -> n/a */
   0xff,        /* 0xc6 -> n/a */
   0xff,        /* 0xc7 -> n/a */
@@ -281,13 +283,13 @@ const uint8_t FontTable[] PROGMEM = {
   0xff,        /* 0xd3 -> n/a */
   0xff,        /* 0xd4 -> n/a */
   0xff,        /* 0xd5 -> n/a */
-  0xff,        /* 0xd6 -> Ö? */
+  0xff,        /* 0xd6 -> n/a (Ö) */
   0xff,        /* 0xd7 -> n/a */
   0xff,        /* 0xd8 -> n/a */
   0xff,        /* 0xd9 -> n/a */
   0xff,        /* 0xda -> n/a */
   0xff,        /* 0xdb -> n/a */
-  0xff,        /* 0xdc -> Ü? */
+  0xff,        /* 0xdc -> n/a (Ü) */
   0xff,        /* 0xdd -> n/a */
   0xff,        /* 0xde -> n/a */
   0xe2,        /* 0xdf -> ß (beta misused) */
@@ -324,7 +326,7 @@ const uint8_t FontTable[] PROGMEM = {
   0xf5,        /* 0xfc -> ü */
   0xff,        /* 0xfd -> n/a */
   0xff,        /* 0xfe -> n/a */
-  0xff,        /* 0xff -> n/a */
+  0xff         /* 0xff -> n/a */
 };
 
 

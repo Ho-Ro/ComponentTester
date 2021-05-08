@@ -2,7 +2,7 @@
  *
  *   I2C (bit-bang & hardware TWI)
  *
- *   (c) 2017 by Markus Reschke
+ *   (c) 2017-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -121,7 +121,7 @@ uint8_t I2C_Setup(void)
  *  create start condition
  *  - Type
  *    I2C_START for start condition
- *    I2C_REPEATED_START for repeated start condition
+ *    I2C_REPEATED_START for repeated start condition (not enabled yet)
  *
  *  returns:
  *  - I2C_ERROR on bus error

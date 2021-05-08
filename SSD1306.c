@@ -6,7 +6,7 @@
  *   - SPI interface (4 line, 3 line)
  *   - I2C
  *
- *   (c) 2017-2019 by Markus Reschke
+ *   (c) 2017-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -65,13 +65,14 @@
 #include "font_6x8_vf.h"
 #include "font_8x8_vf.h"
 #include "font_8x16_vfp.h"
-#include "font_8x8_cyrillic_vf.h"
-#include "font_8x8t_cyrillic_vf.h"
-#include "font_8x12t_cyrillic_vfp.h"
-#include "font_8x16_cyrillic_vfp.h"
-#include "font_6x8_czech_vf.h"
-#include "font_8x8_czech_vf.h"
-#include "font_8x16_czech_vfp.h"
+#include "font_6x8_iso8859-2_vf.h"
+#include "font_8x8_iso8859-2_vf.h"
+#include "font_8x12t_iso8859-2_vfp.h"
+#include "font_8x16_iso8859-2_vfp.h"
+#include "font_8x8_win1251_vf.h"
+#include "font_8x8t_win1251_vf.h"
+#include "font_8x12t_win1251_vfp.h"
+#include "font_8x16_win1251_vfp.h"
 #include "symbols_24x24_vfp.h"
 
 
@@ -363,6 +364,12 @@ void LCD_Data(uint8_t Data)
 #ifdef LCD_I2C
 
 /*
+ *  some early SSD1306 displays don't answer with an ACK
+ *  fix: short pin 19 (LCD_D1) and 20 (LCD_D2) on the ribbon cable
+ */
+
+
+/*
  *  local constants
  */
 
@@ -579,7 +586,10 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   UI.CharPos_X = x;
   UI.CharPos_Y = y;
 
-  /* update display */
+  /*
+   *  calculate dot position
+   *  - top left of character
+   */
 
   /* horizontal position (column) */
   x--;                             /* columns start at 0 */
@@ -591,6 +601,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
   y *= CHAR_PAGES;                 /* offset for character */
   Y_Start = y;                     /* update start position */
 
+  /* update display */
   LCD_DotPos(x, y);                /* set dot position */
 }
 

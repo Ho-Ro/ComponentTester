@@ -1383,10 +1383,10 @@ uint8_t FindCommand(void)
   {
     /* read entry from reference table */
     Addr = (uint8_t *)Data;             /* start of current entry */
-    CmdID = eeprom_read_byte(Addr);     /* read command ID */
+    CmdID = DATA_read_byte(Addr);       /* read command ID */
     Addr++;                             /* for next data field */
     /* read string address */
-    CmdAddr = (unsigned char *)eeprom_read_word((uint16_t *)Addr);
+    CmdAddr = (unsigned char *)DATA_read_word((uint16_t *)Addr);
 
     if (CmdID)                /* valid command ID */
     {
@@ -1394,7 +1394,7 @@ uint8_t FindCommand(void)
       n = 0;
       while (n < RX_BUFFER_SIZE)        /* loop through string */
       {
-        CmdChar = eeprom_read_byte(CmdAddr);      /* read char */
+        CmdChar = DATA_read_byte(CmdAddr);        /* read char */
 
         if (CmdChar == RX_Buffer[n])    /* match */
         {

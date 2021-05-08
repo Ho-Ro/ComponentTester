@@ -2,7 +2,7 @@
  *
  *   user interface functions
  *
- *   (c) 2012-2019 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -262,7 +262,7 @@ int32_t Celsius2Fahrenheit(int32_t Value, uint8_t Scale)
 #ifdef UI_KEY_HINTS
 
 /*
- *  get length of a fixed string stored in EEPROM
+ *  get length of a fixed string stored in EEPROM/Flash
  *
  *  requires:
  *  - pointer to fixed string
@@ -274,7 +274,7 @@ uint8_t EEStringLength(const unsigned char *String)
   unsigned char     Char;               /* character */
 
   /* read characters until we get the terminating 0 */
-  while ((Char = eeprom_read_byte(String)))
+  while ((Char = DATA_read_byte(String)))
   {
     Length++;                           /* got another character */
     String++;                           /* next one */
@@ -1362,7 +1362,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
         }
         else                            /* uint16_t in EEPROM */
         {
-          Value = eeprom_read_word(Address); /* read value at eeprom address */
+          Value = DATA_read_word(Address);   /* read value at eeprom address */
           Display_Value(Value, 0, 0);
         }     
 
@@ -1537,6 +1537,7 @@ void AdjustmentMenu(uint8_t Mode)
 
 uint8_t PresentMainMenu(void)
 {
+  /* local constants */
   #define ITEM_0         6         /* basic items */
 
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
@@ -1653,8 +1654,24 @@ uint8_t PresentMainMenu(void)
     #define ITEM_24      0
   #endif
 
-  #define MENU_ITEMS (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20 + ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24)
-//  #define MENU_ITEMS     25             /* worst case */
+  #ifdef SW_ONEWIRE_SCAN
+    #define ITEM_25      1
+  #else
+    #define ITEM_25      0
+  #endif
+
+  #ifdef SW_FONT_TEST
+    #define ITEM_26      1
+  #else
+    #define ITEM_26      0
+  #endif
+
+  #define ITEMS_1        (ITEM_0 + ITEM_6 + ITEM_7 + ITEM_8 + ITEM_9 + ITEM_10 + ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14)
+  #define ITEMS_2        (ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20 + ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24)
+  #define ITEMS_3        (ITEM_25 + ITEM_26)
+
+  #define MENU_ITEMS     (ITEMS_1 + ITEMS_2 + ITEMS_3)
+
 
   uint8_t           Item = 0;           /* item number */
   uint8_t           ID;                 /* ID of selected item */
@@ -1737,10 +1754,15 @@ uint8_t PresentMainMenu(void)
   MenuID[Item] = 15;
   Item++;
   #endif
+  #ifdef SW_ONEWIRE_SCAN
+  MenuItem[Item] = (void *)OneWire_Scan_str; /* OneWire scan tool */
+  MenuID[Item] = 25;
+  Item++;
+  #endif
   #ifdef SW_DS18B20
   MenuItem[Item] = (void *)DS18B20_str;      /* DS18B20 sensor */
   MenuID[Item] = 18;
-  Item++;  
+  Item++;
   #endif
   #ifdef SW_DHTXX
   MenuItem[Item] = (void *)DHTxx_str;        /* DHT11/DHT22 sensor */
@@ -1774,6 +1796,11 @@ uint8_t PresentMainMenu(void)
   MenuItem[Item] = (void *)Show_str;         /* show self-adjustment values */
   MenuID[Item] = 5;
   Item++;
+  #ifdef SW_FONT_TEST
+  MenuItem[Item] = (void *)FontTest_str;     /* font test */
+  MenuID[Item] = 26;
+  Item++;
+  #endif
   #ifdef SW_POWER_OFF
   MenuItem[Item] = (void *)PowerOff_str;     /* power off tester */
   MenuID[Item] = 20;
@@ -1795,6 +1822,10 @@ uint8_t PresentMainMenu(void)
 
   return(ID);                 /* return item ID */
 
+  /* clean up */
+  #undef ITEMS_1
+  #undef ITEMS_2
+  #undef ITEMS_3
   #undef MENU_ITEMS
 }
 
@@ -1845,7 +1876,7 @@ void MainMenu(void)
       LCD_Clear();
       Display_EEString(PWM_str);
       ID = MenuTool(NUM_PWM_FREQ, 2, (void *)PWM_Freq_table, (unsigned char *)Hertz_str);
-      Frequency = eeprom_read_word(&PWM_Freq_table[ID]);    /* get selected frequency */
+      Frequency = DATA_read_word(&PWM_Freq_table[ID]);      /* get selected frequency */
       PWM_Tool(Frequency);                                  /* and run PWM tool */
       break;
     #endif
@@ -1961,6 +1992,18 @@ void MainMenu(void)
     #ifdef SW_DHTXX
     case 24:             /* DHT11/DHT22 sensor */
       Flag = DHTxx_Tool();
+      break;
+    #endif
+
+    #ifdef SW_ONEWIRE_SCAN
+    case 25:             /* OneWire scan tool */
+      Flag = OneWire_Scan_Tool();
+      break;
+    #endif
+
+    #ifdef SW_FONT_TEST
+    case 26:             /* font test */
+      FontTest();
       break;
     #endif
   }

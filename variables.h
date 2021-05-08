@@ -2,7 +2,7 @@
  *
  *   global variables
  *
- *   (c) 2012-2019 by Markus Reschke
+ *   (c) 2012-2020 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -107,6 +107,13 @@
    *  - stored in EEPROM
    */
 
+  /* manage RZero */
+  #ifdef R_MULTIOFFSET
+    #define NV_R_ZERO         {R_ZERO, R_ZERO, R_ZERO}
+  #else
+    #define NV_R_ZERO         R_ZERO
+  #endif
+
   /* manage CapZero */
   #ifdef CAP_MULTIOFFSET
     #define NV_C_ZERO         {C_ZERO, C_ZERO, C_ZERO}
@@ -115,10 +122,10 @@
   #endif
 
   /* basic adjustment values: profile #1 */
-  const Adjust_Type     NV_Adjust_1 EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, NV_C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
+  const Adjust_Type     NV_Adjust_1 EEMEM = {R_MCU_LOW, R_MCU_HIGH, NV_R_ZERO, NV_C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
 
   /* basic adjustment values: profile #2 */
-  const Adjust_Type     NV_Adjust_2 EEMEM = {R_MCU_LOW, R_MCU_HIGH, R_ZERO, NV_C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
+  const Adjust_Type     NV_Adjust_2 EEMEM = {R_MCU_LOW, R_MCU_HIGH, NV_R_ZERO, NV_C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
 
   #ifdef HW_TOUCH
   /* touch screen adjustment offsets */
@@ -128,7 +135,7 @@
 
   /*
    *  constant strings
-   *  - stored in EEPROM
+   *  - stored in EEPROM/Flash
    */
 
   /* language specific text */
@@ -139,174 +146,183 @@
   #include "var_german.h"
   #include "var_italian.h"
   #include "var_polish.h"
+  #include "var_polish_2.h"
   #include "var_russian.h"
   #include "var_russian_2.h"
   #include "var_spanish.h"
 
 
   /* firmware */
-  const unsigned char Version_str[] EEMEM = "v1.38m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.39m";
 
 
   /* common terms and texts */
-  const unsigned char MOS_str[] EEMEM = "MOS";
-  const unsigned char FET_str[] EEMEM = "FET";
-  const unsigned char Channel_str[] EEMEM = "-ch";
-  const unsigned char Enhancement_str[] EEMEM = "enh.";
-  const unsigned char Depletion_str[] EEMEM = "dep.";
-  const unsigned char IGBT_str[] EEMEM = "IGBT";
-  const unsigned char Cgs_str[] EEMEM = "Cgs";
-  const unsigned char NPN_str[] EEMEM = "NPN";
-  const unsigned char PNP_str[] EEMEM = "PNP";
-  const unsigned char h_FE_str[] EEMEM ="hFE";
-  const unsigned char V_BE_str[] EEMEM ="Vbe";
-  const unsigned char V_GT_str[] EEMEM ="V_GT";
-  const unsigned char I_CEO_str[] EEMEM = "Iceo";
-  const unsigned char Vf_str[] EEMEM = "Vf";
-  const unsigned char DiodeCap_str[] EEMEM = "C";
-  const unsigned char Vth_str[] EEMEM = "Vth";
-  const unsigned char I_R_str[] EEMEM = "I_R";
-  const unsigned char V_T_str[] EEMEM = "VT";
-  const unsigned char URef_str[] EEMEM = "Vref";
-  const unsigned char RhLow_str[] EEMEM = "Rh-";
-  const unsigned char RhHigh_str[] EEMEM = "Rh+";
-  const unsigned char RiLow_str[] EEMEM = "Ri-";
-  const unsigned char RiHigh_str[] EEMEM = "Ri+";
-  const unsigned char Rl_str[] EEMEM = "+Rl-";
-  const unsigned char Rh_str[] EEMEM = "+Rh-";
-  const unsigned char ProbeComb_str[] EEMEM = "12 13 23";
-  const unsigned char CapOffset_str[] EEMEM = "C0";
-  const unsigned char ROffset_str[] EEMEM = "R0";
-  const unsigned char Vcc_str[] EEMEM = "Vcc";
-  const unsigned char CompOffset_str[] EEMEM = "AComp";
-  const unsigned char Profile1_str[] EEMEM = "#1";
-  const unsigned char Profile2_str[] EEMEM = "#2";
-  const unsigned char I_DSS_str[] EEMEM = "Idss";
-  const unsigned char I_leak_str[] EEMEM = "I_l";
-  const unsigned char R_DS_str[] EEMEM = "Rds";
+  const unsigned char MOS_str[] MEM_TYPE = "MOS";
+  const unsigned char FET_str[] MEM_TYPE = "FET";
+  const unsigned char Channel_str[] MEM_TYPE = "-ch";
+  const unsigned char Enhancement_str[] MEM_TYPE = "enh.";
+  const unsigned char Depletion_str[] MEM_TYPE = "dep.";
+  const unsigned char IGBT_str[] MEM_TYPE = "IGBT";
+  const unsigned char Cgs_str[] MEM_TYPE = "Cgs";
+  const unsigned char NPN_str[] MEM_TYPE = "NPN";
+  const unsigned char PNP_str[] MEM_TYPE = "PNP";
+  const unsigned char h_FE_str[] MEM_TYPE ="hFE";
+  const unsigned char V_BE_str[] MEM_TYPE ="Vbe";
+  const unsigned char V_GT_str[] MEM_TYPE ="V_GT";
+  const unsigned char I_CEO_str[] MEM_TYPE = "Iceo";
+  const unsigned char Vf_str[] MEM_TYPE = "Vf";
+  const unsigned char DiodeCap_str[] MEM_TYPE = "C";
+  const unsigned char Vth_str[] MEM_TYPE = "Vth";
+  const unsigned char I_R_str[] MEM_TYPE = "I_R";
+  const unsigned char V_T_str[] MEM_TYPE = "VT";
+  const unsigned char URef_str[] MEM_TYPE = "Vref";
+  const unsigned char RhLow_str[] MEM_TYPE = "Rh-";
+  const unsigned char RhHigh_str[] MEM_TYPE = "Rh+";
+  const unsigned char RiLow_str[] MEM_TYPE = "Ri-";
+  const unsigned char RiHigh_str[] MEM_TYPE = "Ri+";
+  const unsigned char Rl_str[] MEM_TYPE = "+Rl-";
+  const unsigned char Rh_str[] MEM_TYPE = "+Rh-";
+  const unsigned char ProbeComb_str[] MEM_TYPE = "12 13 23";
+  const unsigned char CapOffset_str[] MEM_TYPE = "C0";
+  const unsigned char ROffset_str[] MEM_TYPE = "R0";
+  const unsigned char Vcc_str[] MEM_TYPE = "Vcc";
+  const unsigned char CompOffset_str[] MEM_TYPE = "AComp";
+  const unsigned char Profile1_str[] MEM_TYPE = "#1";
+  const unsigned char Profile2_str[] MEM_TYPE = "#2";
+  const unsigned char I_DSS_str[] MEM_TYPE = "Idss";
+  const unsigned char I_leak_str[] MEM_TYPE = "I_l";
+  const unsigned char R_DS_str[] MEM_TYPE = "Rds";
 
 
   /* options */
   #if defined (SW_ESR) || defined (SW_OLD_ESR)
-    const unsigned char ESR_str[] EEMEM = "ESR";
+    const unsigned char ESR_str[] MEM_TYPE = "ESR";
   #endif
 
   #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER)
-    const unsigned char IR_NEC_str[] EEMEM = "NEC";
-    const unsigned char IR_SIRC_str[] EEMEM = "SIRC";
+    const unsigned char IR_NEC_str[] MEM_TYPE = "NEC";
+    const unsigned char IR_SIRC_str[] MEM_TYPE = "SIRC";
     #ifdef SW_IR_RX_EXTRA
-    const unsigned char IR_IR60_str[] EEMEM = "IR60";
-    const unsigned char IR_RCA_str[] EEMEM = "RCA";
-    const unsigned char IR_RECS80_str[] EEMEM = "RECS80";
-    const unsigned char IR_Sanyo_str[] EEMEM = "Sanyo";
-    const unsigned char IR_uPD1986C_str[] EEMEM = "µPD1986C";
+    const unsigned char IR_IR60_str[] MEM_TYPE = "IR60";
+    const unsigned char IR_RCA_str[] MEM_TYPE = "RCA";
+    const unsigned char IR_RECS80_str[] MEM_TYPE = "RECS80";
+    const unsigned char IR_Sanyo_str[] MEM_TYPE = "Sanyo";
+    const unsigned char IR_uPD1986C_str[] MEM_TYPE = "µPD1986C";
     #endif
   #endif
 
   #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (SW_IR_TRANSMITTER)
-    const unsigned char IR_JVC_str[] EEMEM = "JVC";
-    const unsigned char IR_Kaseikyo_str[] EEMEM = "Kas";
-    const unsigned char IR_Matsushita_str[] EEMEM = "Mat";
-    const unsigned char IR_Motorola_str[] EEMEM = "Mot";
-    const unsigned char IR_Proton_str[] EEMEM = "Prot";
-    const unsigned char IR_RC5_str[] EEMEM = "RC-5";
-    const unsigned char IR_RC6_str[] EEMEM = "RC-6";
-    const unsigned char IR_Samsung_str[] EEMEM = "Sams";
-    const unsigned char IR_Sharp_str[] EEMEM = "Sharp";
+    const unsigned char IR_JVC_str[] MEM_TYPE = "JVC";
+    const unsigned char IR_Kaseikyo_str[] MEM_TYPE = "Kas";
+    const unsigned char IR_Matsushita_str[] MEM_TYPE = "Mat";
+    const unsigned char IR_Motorola_str[] MEM_TYPE = "Mot";
+    const unsigned char IR_Proton_str[] MEM_TYPE = "Prot";
+    const unsigned char IR_RC5_str[] MEM_TYPE = "RC-5";
+    const unsigned char IR_RC6_str[] MEM_TYPE = "RC-6";
+    const unsigned char IR_Samsung_str[] MEM_TYPE = "Sams";
+    const unsigned char IR_Sharp_str[] MEM_TYPE = "Sharp";
     #if defined (SW_IR_RX_EXTRA) || defined (SW_IR_TX_EXTRA)
-    const unsigned char IR_Thomson_str[] EEMEM = "Thom";
+    const unsigned char IR_Thomson_str[] MEM_TYPE = "Thom";
     #endif
   #endif
 
   #ifdef SW_IR_TRANSMITTER
-    const unsigned char IR_NEC_Std_str[] EEMEM = "NEC Std";
-    const unsigned char IR_NEC_Ext_str[] EEMEM = "NEC Ext";
-    const unsigned char IR_SIRC_12_str[] EEMEM = "SIRC-12";
-    const unsigned char IR_SIRC_15_str[] EEMEM = "SIRC-15";
-    const unsigned char IR_SIRC_20_str[] EEMEM = "SIRC-20";
+    const unsigned char IR_NEC_Std_str[] MEM_TYPE = "NEC Std";
+    const unsigned char IR_NEC_Ext_str[] MEM_TYPE = "NEC Ext";
+    const unsigned char IR_SIRC_12_str[] MEM_TYPE = "SIRC-12";
+    const unsigned char IR_SIRC_15_str[] MEM_TYPE = "SIRC-15";
+    const unsigned char IR_SIRC_20_str[] MEM_TYPE = "SIRC-20";
   #endif
 
   #ifdef SW_OPTO_COUPLER
-    const unsigned char If_str[] EEMEM = "If";
-    const unsigned char t_on_str[] EEMEM = "t_on";
-    const unsigned char t_off_str[] EEMEM = "t_off";
+    const unsigned char If_str[] MEM_TYPE = "If";
+    const unsigned char t_on_str[] MEM_TYPE = "t_on";
+    const unsigned char t_off_str[] MEM_TYPE = "t_off";
   #endif
 
   #ifdef SW_UJT
-    const unsigned char R_BB_str[] EEMEM = "R_BB";
+    const unsigned char R_BB_str[] MEM_TYPE = "R_BB";
   #endif
 
   #ifdef SW_DS18B20
-    const unsigned char DS18B20_str[] EEMEM = "DS18B20";
+    const unsigned char DS18B20_str[] MEM_TYPE = "DS18B20";
   #endif
 
   #ifdef SW_REVERSE_HFE
-    const unsigned char h_FE_r_str[] EEMEM ="hFEr";
+    const unsigned char h_FE_r_str[] MEM_TYPE ="hFEr";
   #endif
 
   #ifdef SW_DHTXX
-    const unsigned char DHTxx_str[] EEMEM ="DHTxx";
-    const unsigned char RH_str[] EEMEM ="RH";
-    const unsigned char DHT11_str[] EEMEM ="DHT11";
-    const unsigned char DHT22_str[] EEMEM ="DHT22";
+    const unsigned char DHTxx_str[] MEM_TYPE ="DHTxx";
+    const unsigned char RH_str[] MEM_TYPE ="RH";
+    const unsigned char DHT11_str[] MEM_TYPE ="DHT11";
+    const unsigned char DHT22_str[] MEM_TYPE ="DHT22";
+  #endif
+
+  #ifdef SW_ONEWIRE_SCAN
+    const unsigned char CRC_str[] MEM_TYPE = "CRC";
+  #endif
+
+  #ifdef SW_FONT_TEST
+    const unsigned char FontTest_str[] MEM_TYPE = "Font";
   #endif
 
   /* component symbols */
-  const unsigned char Cap_str[] EEMEM = {'-', LCD_CHAR_CAP, '-',0};
-  const unsigned char Diode_AC_str[] EEMEM = {'-', LCD_CHAR_DIODE_AC, '-', 0};
-  const unsigned char Diode_CA_str[] EEMEM = {'-', LCD_CHAR_DIODE_CA, '-', 0};
-  const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
+  const unsigned char Cap_str[] MEM_TYPE = {'-', LCD_CHAR_CAP, '-',0};
+  const unsigned char Diode_AC_str[] MEM_TYPE = {'-', LCD_CHAR_DIODE_AC, '-', 0};
+  const unsigned char Diode_CA_str[] MEM_TYPE = {'-', LCD_CHAR_DIODE_CA, '-', 0};
+  const unsigned char Resistor_str[] MEM_TYPE = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
 
   /* remote commands */
   #ifdef UI_SERIAL_COMMANDS
     /* feedback */ 
-    const unsigned char Cmd_ERR_str[] EEMEM = "ERR";
-    const unsigned char Cmd_OK_str[] EEMEM = "OK";
-    const unsigned char Cmd_NA_str[] EEMEM = "N/A";
-    const unsigned char Cmd_R_be_str[] EEMEM = "R_BE";
-    const unsigned char Cmd_D_fb_str[] EEMEM = "D_FB";
-    const unsigned char Cmd_BJT_str[] EEMEM = "BJT";
-    const unsigned char Cmd_SYM_str[] EEMEM = "SYM";
+    const unsigned char Cmd_ERR_str[] MEM_TYPE = "ERR";
+    const unsigned char Cmd_OK_str[] MEM_TYPE = "OK";
+    const unsigned char Cmd_NA_str[] MEM_TYPE = "N/A";
+    const unsigned char Cmd_R_be_str[] MEM_TYPE = "R_BE";
+    const unsigned char Cmd_D_fb_str[] MEM_TYPE = "D_FB";
+    const unsigned char Cmd_BJT_str[] MEM_TYPE = "BJT";
+    const unsigned char Cmd_SYM_str[] MEM_TYPE = "SYM";
 
     /* commands */
-    const unsigned char Cmd_VER_str[] EEMEM = "VER";
-    const unsigned char Cmd_PROBE_str[] EEMEM = "PROBE";
-    const unsigned char Cmd_OFF_str[] EEMEM = "OFF";
-    const unsigned char Cmd_COMP_str[] EEMEM = "COMP";
-    const unsigned char Cmd_MSG_str[] EEMEM = "MSG";
-    const unsigned char Cmd_QTY_str[] EEMEM = "QTY";
-    const unsigned char Cmd_NEXT_str[] EEMEM = "NEXT";
-    const unsigned char Cmd_TYPE_str[] EEMEM = "TYPE";
-    const unsigned char Cmd_HINT_str[] EEMEM = "HINT";
-    const unsigned char Cmd_PIN_str[] EEMEM = "PIN";
-    const unsigned char Cmd_R_str[] EEMEM = "R";
-    const unsigned char Cmd_C_str[] EEMEM = "C";
+    const unsigned char Cmd_VER_str[] MEM_TYPE = "VER";
+    const unsigned char Cmd_PROBE_str[] MEM_TYPE = "PROBE";
+    const unsigned char Cmd_OFF_str[] MEM_TYPE = "OFF";
+    const unsigned char Cmd_COMP_str[] MEM_TYPE = "COMP";
+    const unsigned char Cmd_MSG_str[] MEM_TYPE = "MSG";
+    const unsigned char Cmd_QTY_str[] MEM_TYPE = "QTY";
+    const unsigned char Cmd_NEXT_str[] MEM_TYPE = "NEXT";
+    const unsigned char Cmd_TYPE_str[] MEM_TYPE = "TYPE";
+    const unsigned char Cmd_HINT_str[] MEM_TYPE = "HINT";
+    const unsigned char Cmd_PIN_str[] MEM_TYPE = "PIN";
+    const unsigned char Cmd_R_str[] MEM_TYPE = "R";
+    const unsigned char Cmd_C_str[] MEM_TYPE = "C";
     #ifdef SW_INDUCTOR
-    const unsigned char Cmd_L_str[] EEMEM = "L";
+    const unsigned char Cmd_L_str[] MEM_TYPE = "L";
     #endif
     #if defined (SW_ESR) || defined (SW_OLD_ESR)
-    const unsigned char Cmd_ESR_str[] EEMEM = "ESR";
+    const unsigned char Cmd_ESR_str[] MEM_TYPE = "ESR";
     #endif
-    const unsigned char Cmd_V_F_str[] EEMEM = "V_F";
-    const unsigned char Cmd_V_F2_str[] EEMEM = "V_F2";
-    const unsigned char Cmd_C_D_str[] EEMEM = "C_D";
-    const unsigned char Cmd_R_BE_str[] EEMEM = "R_BE";
-    const unsigned char Cmd_h_FE_str[] EEMEM = "h_FE";
+    const unsigned char Cmd_V_F_str[] MEM_TYPE = "V_F";
+    const unsigned char Cmd_V_F2_str[] MEM_TYPE = "V_F2";
+    const unsigned char Cmd_C_D_str[] MEM_TYPE = "C_D";
+    const unsigned char Cmd_R_BE_str[] MEM_TYPE = "R_BE";
+    const unsigned char Cmd_h_FE_str[] MEM_TYPE = "h_FE";
     #ifdef SW_REVERSE_HFE
-    const unsigned char Cmd_h_FE_r_str[] EEMEM = "h_FE_r";
+    const unsigned char Cmd_h_FE_r_str[] MEM_TYPE = "h_FE_r";
     #endif
-    const unsigned char Cmd_V_BE_str[] EEMEM = "V_BE";
-    const unsigned char Cmd_I_CEO_str[] EEMEM = "I_CEO";
-    const unsigned char Cmd_V_TH_str[] EEMEM = "V_th";
-    const unsigned char Cmd_C_GS_str[] EEMEM = "C_GS";
-    const unsigned char Cmd_R_DS_str[] EEMEM = "R_DS";
-    const unsigned char Cmd_I_DSS_str[] EEMEM = "I_DSS";
-    const unsigned char Cmd_C_GE_str[] EEMEM = "C_GE";
-    const unsigned char Cmd_V_T_str[] EEMEM = "V_T";
+    const unsigned char Cmd_V_BE_str[] MEM_TYPE = "V_BE";
+    const unsigned char Cmd_I_CEO_str[] MEM_TYPE = "I_CEO";
+    const unsigned char Cmd_V_TH_str[] MEM_TYPE = "V_th";
+    const unsigned char Cmd_C_GS_str[] MEM_TYPE = "C_GS";
+    const unsigned char Cmd_R_DS_str[] MEM_TYPE = "R_DS";
+    const unsigned char Cmd_I_DSS_str[] MEM_TYPE = "I_DSS";
+    const unsigned char Cmd_C_GE_str[] MEM_TYPE = "C_GE";
+    const unsigned char Cmd_V_T_str[] MEM_TYPE = "V_T";
 
     /* command reference table */
-    const Cmd_Type Cmd_Table[] EEMEM = {
+    const Cmd_Type Cmd_Table[] MEM_TYPE = {
       {CMD_VER, Cmd_VER_str},
       {CMD_PROBE, Cmd_PROBE_str},
       {CMD_OFF, Cmd_OFF_str},
@@ -354,56 +370,56 @@
 
   /*
    *  constant tables
-   *  - stored in EEPROM
+   *  - stored in EEPROM/Flash
    */
 
   /* unit prefixes: p, n, µ, m, 0, k, M (used by value display) */
-  const unsigned char Prefix_table[NUM_PREFIXES] EEMEM = {'p', 'n', LCD_CHAR_MICRO, 'm', 0, 'k', 'M'};
+  const unsigned char Prefix_table[NUM_PREFIXES] MEM_TYPE = {'p', 'n', LCD_CHAR_MICRO, 'm', 0, 'k', 'M'};
 
   /* voltage based factors for large caps (using Rl) */
   /* voltage in mV:                                       300    325    350    375    400    425    450    475    500    525    550    575    600    625    650   675   700   725   750   775   800   825   850   875   900   925   950   975  1000  1025  1050  1075  1100  1125  1150  1175  1200  1225  1250  1275  1300  1325  1350  1375  1400 */
-  const uint16_t LargeCap_table[NUM_LARGE_CAP] EEMEM = {23022, 21195, 19629, 18272, 17084, 16036, 15104, 14271, 13520, 12841, 12224, 11660, 11143, 10668, 10229, 9822, 9445, 9093, 8765, 8458, 8170, 7900, 7645, 7405, 7178, 6963, 6760, 6567, 6384, 6209, 6043, 5885, 5733, 5589, 5450, 5318, 5191, 5069, 4952, 4839, 4731, 4627, 4526, 4430, 4336};
+  const uint16_t LargeCap_table[NUM_LARGE_CAP] MEM_TYPE = {23022, 21195, 19629, 18272, 17084, 16036, 15104, 14271, 13520, 12841, 12224, 11660, 11143, 10668, 10229, 9822, 9445, 9093, 8765, 8458, 8170, 7900, 7645, 7405, 7178, 6963, 6760, 6567, 6384, 6209, 6043, 5885, 5733, 5589, 5450, 5318, 5191, 5069, 4952, 4839, 4731, 4627, 4526, 4430, 4336};
 
   /* voltage based factors for small caps (using Rh) */
   /* voltages in mV:                                   1000 1050 1100 1150 1200 1250 1300 1350 1400 */
-  const uint16_t SmallCap_table[NUM_SMALL_CAP] EEMEM = {954, 903, 856, 814, 775, 740, 707, 676, 648};
-//const uint16_t SmallCap_table[NUM_SMALL_CAP] EEMEM = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
+  const uint16_t SmallCap_table[NUM_SMALL_CAP] MEM_TYPE = {954, 903, 856, 814, 775, 740, 707, 676, 648};
+//const uint16_t SmallCap_table[NUM_SMALL_CAP] MEM_TYPE = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
 
   #ifdef SW_PWM_SIMPLE
   /* PWM menu: frequencies */    
-  const uint16_t PWM_Freq_table[NUM_PWM_FREQ] EEMEM = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
+  const uint16_t PWM_Freq_table[NUM_PWM_FREQ] MEM_TYPE = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
   #endif
 
   #ifdef SW_INDUCTOR
   /* ratio based factors for inductors */
   /* ratio:                                             200   225   250   275   300   325   350   375   400   425   450   475   500   525   550   575   600   625  650  675  700  725  750  775  800  825  850  875  900  925  950  975 */
-  const uint16_t Inductor_table[NUM_INDUCTOR] EEMEM = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
+  const uint16_t Inductor_table[NUM_INDUCTOR] MEM_TYPE = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
   #endif
 
   #if defined (HW_FREQ_COUNTER) || defined (SW_SQUAREWAVE)
   /* Timer1 prescalers and corresponding bitmasks */
-  const uint16_t T1_Prescaler_table[NUM_TIMER1] EEMEM = {1, 8, 64, 256, 1024};
-  const uint8_t T1_Bitmask_table[NUM_TIMER1] EEMEM = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
+  const uint16_t T1_Prescaler_table[NUM_TIMER1] MEM_TYPE = {1, 8, 64, 256, 1024};
+  const uint8_t T1_Bitmask_table[NUM_TIMER1] MEM_TYPE = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
   #endif
 
 
   /*
    *  bitmask tables for probe settings
-   *  - stored in EEPROM
+   *  - stored in EEPROM/Flash
    *  - this saves some bytes in the firmware
    */
 
   /* bitmasks for Rl probe resistors based on probe ID */
-  const unsigned char Rl_table[] EEMEM = {(1 << R_RL_1), (1 << R_RL_2), (1 << R_RL_3)};
+  const unsigned char Rl_table[] MEM_TYPE = {(1 << R_RL_1), (1 << R_RL_2), (1 << R_RL_3)};
 
   /* bitmasks for Rh probe resistors based on probe ID */
-  const unsigned char Rh_table[] EEMEM = {(1 << R_RH_1), (1 << R_RH_2), (1 << R_RH_3)};
+  const unsigned char Rh_table[] MEM_TYPE = {(1 << R_RH_1), (1 << R_RH_2), (1 << R_RH_3)};
 
   /* bitmasks for pins (ADC port) based on probe ID */
-  const unsigned char Pin_table[] EEMEM = {(1 << TP1), (1 << TP2), (1 << TP3)};
+  const unsigned char Pin_table[] MEM_TYPE = {(1 << TP1), (1 << TP2), (1 << TP3)};
 
   /* bitmasks for ADC MUX input addresses based on probe ID */
-  const unsigned char ADC_table[] EEMEM = {TP1, TP2, TP3};
+  const unsigned char ADC_table[] MEM_TYPE = {TP1, TP2, TP3};
 
 
 
@@ -498,7 +514,7 @@
 
   /*
    *  constant strings
-   *  - stored in EEPROM
+   *  - stored in EEPROM/Flash
    */
 
 
@@ -657,7 +673,7 @@
     extern const unsigned char t_off_str[];
   #endif
 
-  #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20) || defined (HW_EVENT_COUNTER)
+  #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20) || defined (SW_ONEWIRE_SCAN) || defined (HW_EVENT_COUNTER)
     extern const unsigned char Start_str[];
   #endif
 
@@ -706,7 +722,15 @@
     extern const unsigned char DHT22_str[];
   #endif
 
+  #ifdef SW_ONEWIRE_SCAN
+    extern const unsigned char OneWire_Scan_str[];
+    extern const unsigned char Bus_str[];
+    extern const unsigned char CRC_str[];
+  #endif
 
+  #ifdef SW_FONT_TEST
+    extern const unsigned char FontTest_str[];
+  #endif
 
   /* remote commands */
   #ifdef UI_SERIAL_COMMANDS
@@ -760,7 +784,7 @@
 
   /*
    *  constant tables
-   *  - stored in EEPROM
+   *  - stored in EEPROM/Flash
    */
 
   /* unit prefixes: p, n, µ, m, 0, k, M (used by value display) */

@@ -4,13 +4,27 @@
 
          for ATmega 328/324/644/1284 with character or graphic display
 
-                       (c) 2012-2019 by Markus Reschke
+                       (c) 2012-2020 by Markus Reschke
 
 ------------------------------------------------------------------------------
 
+v1.39m 2020-03
+- Added Polish texts based on ISO 8859-2 (Thanks to Jacon).
+- Fixed issue with preprocessor macro in SPI.c and syntax error in ADS7843.c
+  (reported by Bohu).
+- Added option to store firmware data to Flash instead of EEPROM (DATA_FLASH,
+  suggested by Vitaliy).
+- Renamed cyrillic fonts to "win1251" and replaced Czech fonts with
+  ISO8859-2 fonts provided by Bohu.
+- Display of font for test purposes (SW_FONT_TEST).
+- OneWire scan tool for listing ROM codes of connected devices
+  (SW_ONEWIRE_SCAN).
+- Option for probe-pair specific resistance offset (R_MULTIOFFSET,
+  suggested by Vitaliy).
+
 v1.38m 2019-12
 - Optional rounding of temperature value for DS18B20 (UI_ROUND_DS18B20,
-  suggested by Obelix2007@EEVblog)
+  suggested by Obelix2007@EEVblog).
 - Support for DHT11, DHT22 and compatible sensors (SW_DHTXX, thanks to
   indman@EEVblog and Obelix2007@EEVblog for testing).
 - Added two thin cyrillic fonts (Thanks to Andrey@EEVblog).
