@@ -2,7 +2,7 @@
  *
  *   self adjustment functions
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -222,16 +222,16 @@ uint8_t SelfAdjust(void)
   uint8_t           Test = 1;           /* test counter */
   uint8_t           Counter;            /* loop counter */
   uint8_t           DisplayFlag;        /* display flag */
-  unsigned int      Val1 = 0, Val2 = 0, Val3 = 0;   /* voltages */
+  uint16_t          Val1 = 0, Val2 = 0, Val3 = 0;   /* voltages */
   uint8_t           CapCounter = 0;     /* number of C_Zero measurements */
-  unsigned int      CapSum = 0;         /* sum of C_Zero values */
+  uint16_t          CapSum = 0;         /* sum of C_Zero values */
   uint8_t           RCounter = 0;       /* number of R_Zero measurements */
-  unsigned int      RSum = 0;           /* sum of R_Zero values */
+  uint16_t          RSum = 0;           /* sum of R_Zero values */
   uint8_t           RiL_Counter = 0;    /* number of U_RiL measurements */
-  unsigned int      U_RiL = 0;          /* sum of U_RiL values */
+  uint16_t          U_RiL = 0;          /* sum of U_RiL values */
   uint8_t           RiH_Counter = 0;    /* number of U_RiH measurements */
-  unsigned int      U_RiH = 0;          /* sum of U_RiL values */
-  unsigned long     Val0;               /* temp. value */
+  uint16_t          U_RiH = 0;          /* sum of U_RiL values */
+  uint32_t          Val0;               /* temp. value */
 
 
   /*
@@ -370,7 +370,7 @@ uint8_t SelfAdjust(void)
            */
 
           MeasureCap(TP2, TP1, 0);
-          Val1 = (unsigned int)Caps[0].Raw;
+          Val1 = (uint16_t)Caps[0].Raw;
           /* limit offset to 100pF */
           if ((Caps[0].Scale == -12) && (Caps[0].Raw <= 100))
           {
@@ -379,7 +379,7 @@ uint8_t SelfAdjust(void)
           }
 
           MeasureCap(TP3, TP1, 1);
-          Val2 = (unsigned int)Caps[1].Raw;
+          Val2 = (uint16_t)Caps[1].Raw;
           /* limit offset to 100pF */
           if ((Caps[1].Scale == -12) && (Caps[1].Raw <= 100))
           {
@@ -388,7 +388,7 @@ uint8_t SelfAdjust(void)
           }
 
           MeasureCap(TP3, TP2, 2);
-          Val3 = (unsigned int)Caps[2].Raw;
+          Val3 = (uint16_t)Caps[2].Raw;
           /* limit offset to 100pF */
           if ((Caps[2].Scale == -12) && (Caps[2].Raw <= 100))
           {
@@ -471,22 +471,22 @@ uint8_t SelfAdjust(void)
     Val1 = (Config.Vcc * 3) - U_RiL - U_RiH;  /* U_Rl * 3 */
 
     /* RiL */
-    Val0 = ((unsigned long)R_LOW * 100 * U_RiL) / Val1; /* Rl * U_Ri / U_Rl in 0.01 Ohm */
-    Val0 += 5;                                          /* for automagic rounding */
-    Val0 /= 10;                                         /* scale down to 0.1 Ohm */
+    Val0 = ((uint32_t)R_LOW * 100 * U_RiL) / Val1;     /* Rl * U_Ri / U_Rl in 0.01 Ohm */
+    Val0 += 5;                                         /* for automagic rounding */
+    Val0 /= 10;                                        /* scale down to 0.1 Ohm */
     if (Val0 < 250UL)         /* < 25 Ohms */
     {
-      Config.RiL = (unsigned int)Val0;
+      Config.RiL = (uint16_t)Val0;
       Flag++;
     }
 
     /* RiH */
-    Val0 = ((unsigned long)R_LOW * 100 * U_RiH) / Val1; /* Rl * U_Ri / U_Rl in 0.01 Ohm */
-    Val0 += 5;                                          /* for automagic rounding */
-    Val0 /= 10;                                         /* scale down to 0.1 Ohm */
+    Val0 = ((uint32_t)R_LOW * 100 * U_RiH) / Val1;     /* Rl * U_Ri / U_Rl in 0.01 Ohm */
+    Val0 += 5;                                         /* for automagic rounding */
+    Val0 /= 10;                                        /* scale down to 0.1 Ohm */
     if (Val0 < 280UL)         /* < 29 Ohms */
     {
-      Config.RiH = (unsigned int)Val0;
+      Config.RiH = (uint16_t)Val0;
       Flag++;
     }
   }
@@ -523,8 +523,8 @@ uint8_t SelfTest(void)
   uint8_t           Test = 1;           /* test counter */
   uint8_t           Counter;            /* loop counter */
   uint8_t           DisplayFlag;        /* display flag */
-  unsigned int      Val0;               /* voltage/value */
-  signed int        Val1 = 0, Val2 = 0, Val3 = 0;   /* voltages/values */
+  uint16_t          Val0;               /* voltage/value */
+  int16_t           Val1 = 0, Val2 = 0, Val3 = 0;   /* voltages/values */
 
   /* make sure all probes are shorted */
   Counter = ShortCircuit(1);
@@ -574,18 +574,18 @@ uint8_t SelfTest(void)
           R_PORT = 1 << (TP1 * 2);
           R_DDR = (1 << (TP1 * 2)) | (1 << (TP2 * 2));
           Val1 = ReadU_20ms(TP3);
-          Val1 -= ((long)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          Val1 -= ((int32_t)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
 
           /* TP1: Gnd -- Rl -- probe-3 -- probe-1 -- Rl -- Vcc */
           R_DDR = (1 << (TP1 * 2)) | (1 << (TP3 * 2));
           Val2 = ReadU_20ms(TP2);
-          Val2 -= ((long)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          Val2 -= ((int32_t)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
 
           /* TP1: Gnd -- Rl -- probe-3 -- probe-2 -- Rl -- Vcc */
           R_PORT = 1 << (TP2 * 2);
           R_DDR = (1 << (TP2 * 2)) | (1 << (TP3 * 2));
           Val3 = ReadU_20ms(TP2);
-          Val3 -= ((long)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          Val3 -= ((int32_t)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
 
           break;
 

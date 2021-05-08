@@ -2,7 +2,7 @@
  *
  *   probing testpins
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -78,10 +78,10 @@ void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2)
 {
   uint8_t           Flag = 0;      /* return value */
-  unsigned int      U1;            /* voltage at probe #1 in mV */
-  unsigned int      U2;            /* voltage at probe #2 in mV */
-  unsigned int      Min;           /* lower threshold */
-  unsigned int      Max;           /* upper threshold */
+  uint16_t          U1;            /* voltage at probe #1 in mV */
+  uint16_t          U2;            /* voltage at probe #2 in mV */
+  uint16_t          Min;           /* lower threshold */
+  uint16_t          Max;           /* upper threshold */
 
   /*
    *  Set up a voltage divider between the two probes:
@@ -155,8 +155,8 @@ void DischargeProbes(void)
   uint8_t           Limit = 40;         /* sliding timeout (2s) */
   uint8_t           ID;                 /* test pin */
   uint8_t           DischargeMask;      /* bitmask */
-  unsigned int      U_c;                /* current voltage */
-  unsigned int      U_old[3];           /* old voltages */
+  uint16_t          U_c;                /* current voltage */
+  uint16_t          U_old[3];           /* old voltages */
 
 
   /*
@@ -299,14 +299,14 @@ void PullProbe(uint8_t Mask, uint8_t Mode)
  *  - multiplicator/factor
  */
 
-unsigned int GetFactor(unsigned int U_in, uint8_t ID)
+uint16_t GetFactor(uint16_t U_in, uint8_t ID)
 {
-  unsigned int      Factor;             /* return value */
-  unsigned int      U_Diff;             /* voltage difference to table start */
-  unsigned int      Fact1, Fact2;       /* table entries */
-  unsigned int      TabStart;           /* table start voltage */
-  unsigned int      TabStep;            /* table step voltage */
-  unsigned int      TabIndex;           /* table entries (-2) */
+  uint16_t          Factor;             /* return value */
+  uint16_t          U_Diff;             /* voltage difference to table start */
+  uint16_t          Fact1, Fact2;       /* table entries */
+  uint16_t          TabStart;           /* table start voltage */
+  uint16_t          TabStep;            /* table step voltage */
+  uint16_t          TabIndex;           /* table entries (-2) */
   uint16_t          *Table;
   uint8_t           Index;              /* table index */
   uint8_t           Diff;               /* difference to next entry */
@@ -393,9 +393,9 @@ unsigned int GetFactor(unsigned int U_in, uint8_t ID)
 
 void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 {
-  uint8_t           Flag;               /* temporary value */
-  unsigned int      U_Rl;               /* voltage across Rl (load) */
-  unsigned int      U_1;                /* voltage #1 */
+  uint8_t           Flag;          /* temporary value */
+  uint16_t          U_Rl;          /* voltage across Rl (load) */
+  uint16_t          U_1;           /* voltage #1 */
 
   /* init */
   if (Check.Found == COMP_ERROR) return;   /* skip check on any error */

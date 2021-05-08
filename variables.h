@@ -256,7 +256,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.16m";
+  const unsigned char Version_str[] EEMEM = "v1.17m";
 
 
   /*

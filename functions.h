@@ -88,19 +88,19 @@
 
 #ifndef USER_C
 
-  extern int8_t CmpValue(unsigned long Value1, int8_t Scale1,
-    unsigned long Value2, int8_t Scale2);
+  extern int8_t CmpValue(uint32_t Value1, int8_t Scale1,
+    uint32_t Value2, int8_t Scale2);
 
   #ifdef SW_INDUCTOR
-    extern unsigned long RescaleValue(unsigned long Value, int8_t Scale, int8_t NewScale);
+    extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
   #endif
 
   #ifdef SW_SIGNAL_GEN
-    extern void DisplayFullValue(unsigned long Value, uint8_t DecPlaces, unsigned char Unit);
+    extern void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
-  extern void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit);
-  extern void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit);
+  extern void DisplayValue(uint32_t Value, int8_t Exponent, unsigned char Unit);
+  extern void DisplaySignedValue(int32_t Value, int8_t Exponent, unsigned char Unit);
 
   extern uint8_t TestKey(uint16_t Timeout, uint8_t Mode);
   extern void WaitKey(void);
@@ -145,13 +145,13 @@
 #ifndef SEMI_C
 
   extern void GetGateThreshold(uint8_t Type);
-  extern unsigned long Get_hfe_c(uint8_t Type);
+  extern uint32_t Get_hfe_c(uint8_t Type);
   extern uint16_t GetLeakageCurrent(void);
 
   extern void CheckDiode(void);
 
   extern void VerifyMOSFET(void);
-  extern void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl);
+  extern void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, uint16_t U_Rl);
   extern void CheckDepletionModeFET(void);
 
   extern uint8_t CheckThyristorTriac(void);
@@ -165,7 +165,7 @@
 
 #ifndef RESISTOR_C
 
-  extern unsigned int SmallResistor(uint8_t ZeroFlag);
+  extern uint16_t SmallResistor(uint8_t ZeroFlag);
   extern void CheckResistor(void);
   extern uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin);
 
@@ -192,7 +192,7 @@
 #ifndef CAP_C
 
   #ifdef SW_ESR
-    extern unsigned int MeasureESR(Capacitor_Type *Cap);
+    extern uint16_t MeasureESR(Capacitor_Type *Cap);
   #endif
 
   extern void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID);
@@ -211,7 +211,7 @@
   extern uint8_t AllProbesShorted(void);
   extern void DischargeProbes(void);
   extern void PullProbe(uint8_t Probe, uint8_t Mode);
-  extern unsigned int GetFactor(unsigned int U_in, uint8_t ID);
+  extern uint16_t GetFactor(uint16_t U_in, uint8_t ID);
 
   extern void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);
 
@@ -224,10 +224,10 @@
 
 #ifndef ADC_C
 
-  extern unsigned int ReadU(uint8_t Probe);
+  extern uint16_t ReadU(uint8_t Probe);
 
-  extern unsigned int ReadU_5ms(uint8_t Probe);
-  extern unsigned int ReadU_20ms(uint8_t Probe);
+  extern uint16_t ReadU_5ms(uint8_t Probe);
+  extern uint16_t ReadU_20ms(uint8_t Probe);
 
 #endif
 

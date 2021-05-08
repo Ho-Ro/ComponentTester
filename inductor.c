@@ -2,7 +2,7 @@
  *
  *   inductor measurements
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -135,12 +135,12 @@ Since the range overlaps with the low test current we may use a single table.
 
 uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
 {
-  uint8_t           Flag = 3;           /* return value */
-  uint8_t           Test;               /* test flag */
-  int8_t            Offset;             /* counter offet */
-  unsigned int      Ticks_L;            /* timer counter */
-  unsigned int      Ticks_H;            /* timer overflow counter */
-  unsigned long     Counter;            /* counter */
+  uint8_t           Flag = 3;      /* return value */
+  uint8_t           Test;          /* test flag */
+  int8_t            Offset;        /* counter offet */
+  uint16_t          Ticks_L;       /* timer counter */
+  uint16_t          Ticks_H;       /* timer overflow counter */
+  uint32_t          Counter;       /* counter */
 
   /* sanity check */
   if (Time == NULL) return 0;
@@ -285,8 +285,8 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
    */
 
   /* combine both counter values */
-  Counter = (unsigned long)Ticks_L;          /* lower 16 bits */
-  Counter |= (unsigned long)Ticks_H << 16;   /* upper 16 bits */
+  Counter = (uint32_t)Ticks_L;          /* lower 16 bits */
+  Counter |= (uint32_t)Ticks_H << 16;   /* upper 16 bits */
 
   Offset = -3;                /* subtract processing overhead */
 
@@ -338,14 +338,14 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
 
 uint8_t MeasureInductor(Resistor_Type *Resistor)
 {
-  uint8_t           Test = 0;           /* return value / measurement result */
-  uint8_t           Mode;               /* measurement mode */
-  uint8_t           Scale;              /* scale of value */
-  unsigned int      R_total;            /* total resistance */
-  unsigned int      Factor;             /* factor */
-  unsigned long     Value;              /* value */
-  unsigned long     Time1;              /* time #1 */
-  unsigned long     Time2;              /* time #2 */
+  uint8_t           Test = 0;      /* return value / measurement result */
+  uint8_t           Mode;          /* measurement mode */
+  uint8_t           Scale;         /* scale of value */
+  uint16_t          R_total;       /* total resistance */
+  uint16_t          Factor;        /* factor */
+  uint32_t          Value;         /* value */
+  uint32_t          Time1;         /* time #1 */
+  uint32_t          Time2;         /* time #2 */
 
   /* reset data */
   Inductor.Scale = 0;
@@ -428,7 +428,7 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
     Value /= 5;                                   /* / 5000mV, * 10^3 */
 
     /* get ratio based factor */
-    Factor = GetFactor((unsigned int)Value, TABLE_INDUCTOR);
+    Factor = GetFactor((uint16_t)Value, TABLE_INDUCTOR);
 
 
    /*

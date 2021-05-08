@@ -2,9 +2,16 @@
 
                   Change Log for the Component Tester firmware
 
-                        (c) 2012-2014 by Markus Reschke
+                        (c) 2012-2015 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.17m 2015-02
+- Improved CheckDiode() to support measured Vcc in resistor check and fixed
+  detection issue for resistors around 2k if the optional DC/DC boost
+  converter is installed (HW_ZENER).
+- Fixed some incorrect comments.
+- Cleaned up integer data types.
 
 v1.16m 2014-09
 - Added test for rotary encoders.

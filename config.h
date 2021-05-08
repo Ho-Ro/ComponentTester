@@ -2,7 +2,7 @@
  *
  *   global configuration, setup and settings
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -475,13 +475,13 @@
   /* rotary encoder */
   #ifdef HW_ENCODER
     #undef HW_ENCODER
-    #warning "Disabled HW_ZENER!"
+    #warning "Disabled HW_ENCODER!"
   #endif
 
   /* high voltage measurement / zener */
   #ifdef HW_ZENER
     #undef HW_ZENER
-    #warning "Disabled HW_ENCODER!"
+    #warning "Disabled HW_ZENER!"
   #endif
 
   /* frequency counter */

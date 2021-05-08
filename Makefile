@@ -1,7 +1,7 @@
 #
 #  Makefile
 #
-#  (c) 2012-2013 by Markus Reschke
+#  (c) 2012-2015 by Markus Reschke
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
@@ -71,7 +71,7 @@ DIST = $(notdir ${CURDIR})
 # compiler flags
 CC = avr-gcc
 CPP = avr-g++
-CFLAGS = -mmcu=${MCU} -Wall -I.
+CFLAGS = -mmcu=${MCU} -Wall -mcall-prologues -I.
 CFLAGS += -DF_CPU=${FREQ}000000UL
 CFLAGS += -DOSC_STARTUP=${OSC_STARTUP}
 CFLAGS += -gdwarf-2 -std=gnu99 -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
@@ -126,7 +126,7 @@ $(NAME): ${OBJECTS}
 # output size of firmware and stuff
 size: ${NAME}
 	@echo
-	@avr-size -C --mcu=${MCU} ${NAME}
+	@avr-size -C --mcu=${MCU} $<
 
 
 #

@@ -2,7 +2,7 @@
  *
  *   common header file
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -206,7 +206,7 @@ typedef struct
   uint16_t          U_1;           /* voltage #1 */
   int16_t           U_2;           /* voltage #2 */
   uint16_t          I_1;           /* current #1 */
-  unsigned long     F_1;           /* factor #1 */
+  uint32_t          F_1;           /* factor #1 */
 } Semi_Type;
 
 /* 

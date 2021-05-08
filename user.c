@@ -2,7 +2,7 @@
  *
  *   user interface functions
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -46,9 +46,9 @@
  *  get number of digits of a value
  */
 
-uint8_t NumberOfDigits(unsigned long Value)
+uint8_t NumberOfDigits(uint32_t Value)
 {
-  uint8_t           Counter = 1;
+  uint8_t           Counter = 1;   /* return value */
 
   while (Value >= 10)
   {
@@ -74,7 +74,7 @@ uint8_t NumberOfDigits(unsigned long Value)
  *  - 1 if first value is larger than second one
  */
 
-int8_t CmpValue(unsigned long Value1, int8_t Scale1, unsigned long Value2, int8_t Scale2)
+int8_t CmpValue(uint32_t Value1, int8_t Scale1, uint32_t Value2, int8_t Scale2)
 {
   int8_t            Flag;               /* return value */
   int8_t            Len1, Len2;         /* length */
@@ -140,9 +140,9 @@ int8_t CmpValue(unsigned long Value1, int8_t Scale1, unsigned long Value2, int8_
  *  - new scale
  */
 
-unsigned long RescaleValue(unsigned long Value, int8_t Scale, int8_t NewScale)
+uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
 {
-  unsigned long     NewValue;
+  uint32_t          NewValue;      /* return value */
 
   NewValue = Value;           /* take old value */
 
@@ -183,7 +183,7 @@ unsigned long RescaleValue(unsigned long Value, int8_t Scale, int8_t NewScale)
  *  - unit character (0 = none)
  */
 
-void DisplayFullValue(unsigned long Value, uint8_t DecPlaces, unsigned char Unit)
+void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
 {
   uint8_t           n;                  /* counter */
   uint8_t           Length;             /* string length */
@@ -248,7 +248,7 @@ void DisplayFullValue(unsigned long Value, uint8_t DecPlaces, unsigned char Unit
  *  - unit character (0 = none)
  */
 
-void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit)
+void DisplayValue(uint32_t Value, int8_t Exponent, unsigned char Unit)
 {
   unsigned char     Prefix = 0;         /* prefix character */
   uint8_t           Offset = 0;         /* exponent offset to next 10^3 step */
@@ -290,7 +290,7 @@ void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit)
    */
 
   /* convert value into string */
-  utoa((unsigned int)Value, OutBuffer, 10);
+  utoa((uint16_t)Value, OutBuffer, 10);
   Length = strlen(OutBuffer);
 
   /* we misuse Exponent for the dot position */
@@ -336,7 +336,7 @@ void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit)
  *  - unit character (0 = none)
  */
 
-void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit)
+void DisplaySignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
 {
   /* take care about sign */
   if (Value < 0)              /* negative value */
@@ -346,7 +346,7 @@ void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit)
   }
 
   /* and display unsigned value */
-  DisplayValue((signed long)Value, Exponent, Unit);
+  DisplayValue((int32_t)Value, Exponent, Unit);
 }
 
 
@@ -401,13 +401,13 @@ uint8_t ReadEncoder(void)
   /* process signals */
   if (Old_AB != AB)        /* signals changed */
   {
-    /* check if only one bit has changed (greycode) */
+    /* check if only one bit has changed (Gray code) */
     Temp = AB ^ Old_AB;                 /* get bit difference */
     if (!(Temp & 0b00000001)) Temp >>= 1;
     if (Temp == 1)                      /* valid change */
     {
       /* determine direction */
-      /* greycode: 00 01 11 10 */
+      /* Gray code: 00 01 11 10 */
       Temp = 0b10001101;                /* expected values for a right turn */
       Temp >>= (Old_AB * 2);            /* get expected value by shifting */
       Temp &= 0b00000011;               /* select value */

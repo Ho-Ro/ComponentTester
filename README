@@ -3,11 +3,11 @@
 
                    ReadMe for the Component Tester firmware
 
-        (c) 2012-2014 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2015 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit:  2014-09-30
+Last edit:  2015-01-23
 
 Content
   - About
@@ -51,9 +51,9 @@ The Component Tester is based on the project of Markus Frejek [1&2] and the
 successor of Karl-Heinz Kübbeler [3&4]. It's an alternative software for the
 current circuit by Karl-Heinz and offers some changes in the user interface
 and the methods used for probing and measuring. While Karl-Heinz provides an
-official release supporting most ATmega MCUs this is a playground version
+official release supporting most ATmega MCUs, this is a playground version
 with all features enabled and limited to ATmega168/P and ATmega328/P due to
-memory and flash size contraints. The UI languages currently supported are
+memory and flash size constraints. The UI languages currently supported are
 just English and German, but can be changed or extended easily.
 
 Since the firmware's size exceeds 16kB Flash some features are only enabled
@@ -61,9 +61,9 @@ for the ATmega328/P:
 - rotary encoder for user interface (hardware option)
 - inductance measurement
 - Zener voltage measurement (hardware option)
-- PWM tool
-- SIgnal Generator (requires also rotary encoder)
-- ESR measurement and ESR tool
+- PWM generator
+- Squarewave signal generator (requires also rotary encoder)
+- ESR measurement and ESR in-circuit measurement
 - frequency counter (hardware option)
 - rotary encoder test
 
@@ -82,11 +82,34 @@ Sally, your life may be at risk if you connect the probes to a live circuit
 or a power supply (or even mains). 
 
 
-* Whats different?
+* What's different?
 
 Karl-Heinz has done a really great documentation of the tester. I recommend
-to read it. Therefore I'll tell you just about the differences to the
-official release.
+to read it. Therefore I'll tell you just about the major differences to the
+official release:
+
+- no support of graphical displays
+  I think it's better to use the limited flash memory for features and
+  not for a fancy display.
+- user interface
+  No worries! ;)
+- adaptive component discharge function
+- resistance measurement
+  + dedicated method for resistances <10 Ohms (instead of using ESR check)
+- capacitance measurement
+  + starts at 5pF
+  + additional method for caps from 4.7µF up to 47µF
+  + correction/compensation method
+- diodes
+  + detection logic
+- BJTs
+  + V_f is interpolated for a more suitable (virtual) I_b based on hFE
+- TRIACs
+  + detection of MT1 and MT2
+- structured source code
+- some more I couldn't think of right now
+
+There are more details in the sections below.
 
 
 * Building the firmware
@@ -422,13 +445,13 @@ measurements by increasing the number of samples. Note that more samples will
 take more time resulting in slower measurements.
 
 
-q* Vf (V_BE) of BJTs
+* Vf (V_BE) of BJTs
 
 When checking for diodes Vf is measured with Rl (high test current) and Rh (
 low test current), and both voltages are stored. The output function for BJTs
 looks up the matching diode for V_BE and interpolates the two Vf measurements
-based on the transistors hfe for a virtual test current. That way we get some
-nice results for different kinds of transistors, since Vf of a small signal
+based on the transistors hfe for a virtual test current. That way we get more
+suitable results for different kinds of transistors, since Vf of a small signal
 BJT isn't measured with the same test current as for a power BJT.
 
 

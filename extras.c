@@ -2,7 +2,7 @@
  *
  *   extras / additional features
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -944,13 +944,13 @@ uint8_t CheckEncoder(uint8_t *History)
   /* process signals */
   if (Old_AB != AB)           /* signals changed */
   {
-    /* check if only one bit has changed (greycode) */
+    /* check if only one bit has changed (Gray code) */
     Temp = AB ^ Old_AB;                 /* get bit difference */
     if (!(Temp & 0b00000001)) Temp >>= 1;
     if (Temp == 1)                      /* valid change */
     {
       /* determine direction */
-      /* greycode: 00 01 11 10 */
+      /* Gray code: 00 01 11 10 */
       Temp = 0b10001101;                /* expected values for a right turn */
       Temp >>= (Old_AB * 2);            /* get expected value by shifting */
       Temp &= 0b00000011;               /* select value */
@@ -964,7 +964,7 @@ uint8_t CheckEncoder(uint8_t *History)
       {
         Steps++;                        /* got another step */
 
-        /* for proper detection we need 4 greycode steps */
+        /* for proper detection we need 4 Gray code steps */
         if (Steps == 4)                 /* got 4 steps */
         {
           LCD_ClearLine2();

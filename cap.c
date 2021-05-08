@@ -2,7 +2,7 @@
  *
  *   capacitor measurements
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -109,22 +109,22 @@ void DelayTimer(void)
  *  - ESR in 0.01 Ohm
  */
 
-unsigned int MeasureESR(Capacitor_Type *Cap)
+uint16_t MeasureESR(Capacitor_Type *Cap)
 {
-  unsigned int           ESR = 0;       /* return value */
-  unsigned int           U_1;           /* voltage at probe 1 with pos. pulse unloaded */
-  unsigned int           U_2;           /* voltage at probe 2 with pos. pulse loaded */
-  unsigned int           U_3;           /* voltage at probe 2 with neg. pulse unloaded */
-  unsigned int           U_4;           /* voltage at probe 1 with neg. pulse loaded */
-  uint8_t                Probe1;        /* probe #1 */
-  uint8_t                Probe2;        /* probe #2 */
-  uint8_t                ADC_Mask;      /* bit mask for ADC */
-  uint8_t                n;             /* counter */
-  uint8_t                muCycles;      /* MCU cycles per µs */
-  uint8_t                PulseCycles;   /* MCU cycles for a half pulse */
-  unsigned long          Sum_1;         /* sum #1 */
-  unsigned long          Sum_2;         /* sum #2 */
-  unsigned long          Value;
+  uint16_t          ESR = 0;       /* return value */
+  uint16_t          U_1;           /* voltage at probe 1 with pos. pulse unloaded */
+  uint16_t          U_2;           /* voltage at probe 2 with pos. pulse loaded */
+  uint16_t          U_3;           /* voltage at probe 2 with neg. pulse unloaded */
+  uint16_t          U_4;           /* voltage at probe 1 with neg. pulse loaded */
+  uint8_t           Probe1;        /* probe #1 */
+  uint8_t           Probe2;        /* probe #2 */
+  uint8_t           ADC_Mask;      /* bit mask for ADC */
+  uint8_t           n;             /* counter */
+  uint8_t           muCycles;      /* MCU cycles per µs */
+  uint8_t           PulseCycles;   /* MCU cycles for a half pulse */
+  uint32_t          Sum_1;         /* sum #1 */
+  uint32_t          Sum_2;         /* sum #2 */
+  uint32_t          Value;
 
   #define LOOP_RUNS      255
 
@@ -367,10 +367,10 @@ unsigned int MeasureESR(Capacitor_Type *Cap)
    *  - for a resolution of 0.01 Ohms we have to scale RiL to 0.01 Ohms
    */
 
-  Value = (unsigned long)(Config.RiL * 10);  /* RiL in 0.01 Ohms */
+  Value = (uint32_t)(Config.RiL * 10);  /* RiL in 0.01 Ohms */
   Value *= Sum_2;
   Value /= Sum_1;
-  U_1 = (unsigned int)Value;
+  U_1 = (uint16_t)Value;
 
   /* consider probe resistance */
   if (U_1 > Config.RZero)
@@ -420,7 +420,7 @@ Large caps:
 - values are: (-1 / (R * ln(1 - U_c/U_in))) * 10^9n * 10^-2s * 10^-1
   - 10^9n for nF scale
   - 10^-2s for charge pulses of 10ms each
-  - 10^-1 internal scale factor (make values fit in unsigned int)
+  - 10^-1 internal scale factor (make values fit in uint16_t)
 - bc:
   - options: -i -l
   - define x (u) { return (-1000000 / (702 * l(1 - u/5000))); }
@@ -430,7 +430,7 @@ Small caps:
 - U_in = 5V
 - values are: (-1 / (R * ln(1 - U_c/U_in))) * 10^12p * 10^-4
   - 10^12p for pF scale
-  - 10^-4 internal scale factor (make values fit in unsigned int)
+  - 10^-4 internal scale factor (make values fit in uint16_t)
 - bc:
   - options: -i -l
   - define x (u) { return (-100000000 / (470000 * l(1 - u/5000))); }
@@ -454,17 +454,17 @@ Small caps:
 
 uint8_t LargeCap(Capacitor_Type *Cap)
 {
-  uint8_t           Flag = 3;           /* return value */
-  uint8_t           TempByte;           /* temp. value */
-  uint8_t           Mode;               /* measurement mode */
-  int8_t            Scale;              /* capacitance scale */
-  unsigned int      TempInt;            /* temp. value */
-  unsigned int      Pulses;             /* number of charging pulses */
-  unsigned int      U_Zero;             /* voltage before charging */
-  unsigned int      U_Cap;              /* voltage of DUT */
-  unsigned int      U_Drop = 0;         /* voltage drop */
-  unsigned long     Raw;                /* raw capacitance value */
-  unsigned long     Value;              /* corrected capacitance value */
+  uint8_t           Flag = 3;      /* return value */
+  uint8_t           TempByte;      /* temp. value */
+  uint8_t           Mode;          /* measurement mode */
+  int8_t            Scale;         /* capacitance scale */
+  uint16_t          TempInt;       /* temp. value */
+  uint16_t          Pulses;        /* number of charging pulses */
+  uint16_t          U_Zero;        /* voltage before charging */
+  uint16_t          U_Cap;         /* voltage of DUT */
+  uint16_t          U_Drop = 0;    /* voltage drop */
+  uint32_t          Raw;           /* raw capacitance value */
+  uint32_t          Value;         /* corrected capacitance value */
 
   /* setup mode */
   Mode = FLAG_10MS | FLAG_PULLUP;       /* start with large caps */
@@ -632,14 +632,14 @@ large_cap:
 
 uint8_t SmallCap(Capacitor_Type *Cap)
 {
-  uint8_t           Flag = 3;           /* return value */
-  uint8_t           TempByte;           /* temp. value */
-  int8_t            Scale;              /* capacitance scale */
-  unsigned int      Ticks;              /* timer counter */
-  unsigned int      Ticks2;             /* timer overflow counter */
-  unsigned int      U_c;                /* voltage of capacitor */
-  unsigned long     Raw;                /* raw capacitance value */
-  unsigned long     Value;              /* corrected capacitance value */
+  uint8_t           Flag = 3;      /* return value */
+  uint8_t           TempByte;      /* temp. value */
+  int8_t            Scale;         /* capacitance scale */
+  uint16_t          Ticks;         /* timer counter */
+  uint16_t          Ticks2;        /* timer overflow counter */
+  uint16_t          U_c;           /* voltage of capacitor */
+  uint32_t          Raw;           /* raw capacitance value */
+  uint32_t          Value;         /* corrected capacitance value */
 
 
   /*
@@ -769,8 +769,8 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   if (Flag == 3)
   {
     /*  combine both counter values */
-    Raw = (unsigned long)Ticks;           /* set lower 16 bits */
-    Raw |= (unsigned long)Ticks2 << 16;   /* set upper 16 bits */
+    Raw = (uint32_t)Ticks;                /* set lower 16 bits */
+    Raw |= (uint32_t)Ticks2 << 16;        /* set upper 16 bits */
     if (Raw > 2) Raw -= 2;                /* subtract processing time overhead */
 
     Scale = -12;                          /* default factor is for pF scale */
@@ -819,8 +819,8 @@ uint8_t SmallCap(Capacitor_Type *Cap)
     if (((Scale == -12) && (Value >= 100000)) ||
         ((Scale == -9) && (Value <= 20000)))
     {
-      signed int         Offset;
-      signed long        TempLong;
+      int16_t         Offset;
+      int32_t         TempLong;
 
       /*
        *  We can self-adjust the offset of the internal bandgap reference

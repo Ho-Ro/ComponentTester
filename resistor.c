@@ -2,7 +2,7 @@
  *
  *   resistor measurements
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -46,15 +46,15 @@
  *  - resistance in 0.01 Ohm
  */
 
-unsigned int SmallResistor(uint8_t ZeroFlag)
+uint16_t SmallResistor(uint8_t ZeroFlag)
 {
-  unsigned int      R = 0;              /* return value */
-  uint8_t           Probe;              /* probe ID */
-  uint8_t           Mode;               /* measurement mode */
-  uint8_t           Counter;            /* sample counter */
-  unsigned long     Value;              /* ADC sample value */
-  unsigned long     Value1 = 0;         /* U_Rl temp. value */
-  unsigned long     Value2 = 0;         /* U_R_i_L temp. value */
+  uint16_t          R = 0;         /* return value */
+  uint8_t           Probe;         /* probe ID */
+  uint8_t           Mode;          /* measurement mode */
+  uint8_t           Counter;       /* sample counter */
+  uint32_t          Value;         /* ADC sample value */
+  uint32_t          Value1 = 0;    /* U_Rl temp. value */
+  uint32_t          Value2 = 0;    /* U_R_i_L temp. value */
 
   DischargeProbes();                    /* try to discharge probes */
   if (Check.Found == COMP_ERROR) return R;   /* skip on error */
@@ -172,7 +172,7 @@ unsigned int SmallResistor(uint8_t ZeroFlag)
 
     /* R = U/I (including R of probe leads) */
     Value1 /= Value;                         /* in 0.01 Ohms */
-    R = (unsigned int)Value1;                /* copy result */
+    R = (uint16_t)Value1;                    /* copy result */
 
     if (ZeroFlag == 1)        /* auto-zero */
     {
@@ -198,21 +198,21 @@ unsigned int SmallResistor(uint8_t ZeroFlag)
 
 void CheckResistor(void)
 {
-  Resistor_Type     *Resistor;          /* pointer to resistor */
-  unsigned long     Value1;             /* resistance of measurement #1 */
-  unsigned long     Value2;             /* resistance of measurement #2 */
-  unsigned long     Value;              /* resistance value */
-  unsigned long     Temp;               /* temp. value */
-  int8_t            Scale;              /* resistance scale */
-  uint8_t           n;                  /* counter */
+  Resistor_Type     *Resistor;     /* pointer to resistor */
+  uint32_t          Value1;        /* resistance of measurement #1 */
+  uint32_t          Value2;        /* resistance of measurement #2 */
+  uint32_t          Value;         /* resistance value */
+  uint32_t          Temp;          /* temp. value */
+  int8_t            Scale;         /* resistance scale */
+  uint8_t           n;             /* counter */
 
   /* voltages */
-  unsigned int      U_Rl_H;             /* voltage at Rl pulled up */
-  unsigned int      U_Rl_L;             /* voltage at Rl pulled down */
-  unsigned int      U_Ri_H;             /* voltage at Ri oulled up */
-  unsigned int      U_Ri_L;             /* voltage at Ri pulled down */
-  unsigned int      U_Rh_H;             /* voltage at Rh pulled up */
-  unsigned int      U_Rh_L;             /* voltage ar Rh pulled down */
+  uint16_t          U_Rl_H;        /* voltage at Rl pulled up */
+  uint16_t          U_Rl_L;        /* voltage at Rl pulled down */
+  uint16_t          U_Ri_H;        /* voltage at Ri oulled up */
+  uint16_t          U_Ri_L;        /* voltage at Ri pulled down */
+  uint16_t          U_Rh_H;        /* voltage at Rh pulled up */
+  uint16_t          U_Rh_L;        /* voltage ar Rh pulled down */
 
   wdt_reset();                     /* reset watchdog */
 
@@ -461,7 +461,7 @@ void CheckResistor(void)
           if (Value < 100UL)
           {
             /* run low resistance measurement (in 0.01 Ohms) */
-            Value2 = (unsigned long)SmallResistor(1);
+            Value2 = (uint32_t)SmallResistor(1);
 
             /* check for valid result */
             Value1 = Value * 2;         /* allow 100% tolerance */       

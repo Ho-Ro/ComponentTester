@@ -2,7 +2,7 @@
  *
  *   semiconductor tests and measurements
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -43,12 +43,12 @@
  *  - hFE
  */
 
-unsigned long Get_hFE_C(uint8_t Type)
+uint32_t Get_hFE_C(uint8_t Type)
 {
-  unsigned long     hFE;           /* return value */
-  unsigned int      U_R_e;         /* voltage across emitter resistor */
-  unsigned int      U_R_b;         /* voltage across base resistor */
-  unsigned int      Ri;            /* internal resistance of MCU */
+  uint32_t          hFE;           /* return value */
+  uint16_t          U_R_e;         /* voltage across emitter resistor */
+  uint16_t          U_R_b;         /* voltage across base resistor */
+  uint16_t          Ri;            /* internal resistance of MCU */
 
 
   /*
@@ -133,7 +133,7 @@ unsigned long Get_hFE_C(uint8_t Type)
      *  -     = (U_R_e - U_R_b) / U_R_b 
      */
 
-    hFE = (unsigned long)((U_R_e - U_R_b) / U_R_b);
+    hFE = (uint32_t)((U_R_e - U_R_b) / U_R_b);
   }
 
   return hFE;
@@ -150,7 +150,7 @@ unsigned long Get_hFE_C(uint8_t Type)
 
 void GetGateThreshold(uint8_t Type)
 {
-  signed long       Ugs = 0;       /* gate threshold voltage / Vth */
+  int32_t           Ugs = 0;       /* gate threshold voltage / Vth */
   uint8_t           Drain_Rl;      /* Rl bitmask for drain */
   uint8_t           Drain_ADC;     /* ADC bitmask for drain */
   uint8_t           PullMode;
@@ -236,7 +236,7 @@ void GetGateThreshold(uint8_t Type)
   Ugs /= 1024;                   /* using 10 bit resolution */
 
   /* save data */
-  Semi.U_2 = (int)Ugs;           /* gate threshold voltage (in mV) */
+  Semi.U_2 = (int16_t)Ugs;       /* gate threshold voltage (in mV) */
 }
 
 
@@ -304,14 +304,14 @@ uint16_t GetLeakageCurrent(void)
 
 void CheckDiode(void)
 {
-  Diode_Type        *Diode;             /* pointer to diode */
-  unsigned int      U1_Rl;              /* Vf #1 with Rl pull-up */
-  unsigned int      U1_Rh;              /* Vf #1 with Rh pull-up */
-  unsigned int      U1_Zero;            /* Vf #1 zero */
-  unsigned int      U2_Rl;              /* Vf #2 with Rl pull-down */
-  unsigned int      U2_Rh;              /* Vf #2 with Rh pull-down */
-  unsigned int      U2_Zero;            /* Vf #2 zero */
-  unsigned int      U_Diff;             /* Vf difference */
+  Diode_Type        *Diode;        /* pointer to diode */
+  uint16_t          U1_Rl;         /* Vf #1 with Rl pull-up */
+  uint16_t          U1_Rh;         /* Vf #1 with Rh pull-up */
+  uint16_t          U1_Zero;       /* Vf #1 zero */
+  uint16_t          U2_Rl;         /* Vf #2 with Rl pull-down */
+  uint16_t          U2_Rh;         /* Vf #2 with Rh pull-down */
+  uint16_t          U2_Zero;       /* Vf #2 zero */
+  uint16_t          U_Diff;        /* Vf difference */
 
   wdt_reset();                          /* reset watchdog */
 
@@ -337,9 +337,9 @@ void CheckDiode(void)
    *  - Take care about the internal voltage drop of the MCU at the cathode
    *    for high test currents (Rl).
    *  - Filter out resistors by the used voltage divider:
-   *    k = Rl + Ri_H + Ri_L
-   *    U_Rh = U_Rl / (k - (k - 1) U_Rl / 5V)
-   *    U_Rl = k U_Rh / (1 + (k - 1) U_Rh / 5V) 
+   *    k = Rh / (Rl + Ri_H + Ri_L)
+   *    U_Rh = U_Rl / (k - (k - 1) U_Rl / Vcc)
+   *    U_Rl = k U_Rh / (1 + (k - 1) U_Rh / Vcc) 
    *  - Filter out caps by checking the voltage before and after measurement
    *    with Rh. In 15ms a 22µF cap would be charged from 0 to 7mV, a larger
    *    cap would have a lower voltage. We have to consider that caps also
@@ -446,9 +446,18 @@ void CheckDiode(void)
    *  U_Rh < 10mV for
    *  - resistor < 1k Ohm
    *  - very large cap
+   *
+   *  Special case for optional DC/DC boost converter:
+   *  - increase limit to 16mV to cope with EMI
    */
 
-  if (U2_Rh <= 10) return;         /* small resistor or very large cap */
+  #ifdef HW_ZENER
+    #define RESISTOR_LIMIT    16
+  #else
+    #define RESISTOR_LIMIT    10
+  #endif
+
+  if (U2_Rh <= RESISTOR_LIMIT) return;  /* small resistor or very large cap */
 
 
   /*
@@ -475,14 +484,14 @@ void CheckDiode(void)
 
   /*
    *  The voltages for a resistor will follow the equation:
-   *    k = Rl + Ri_H + Ri_L
-   *    Ul = k U_Rh / (1 + (k - 1) U_Rh / 5V)
+   *    k = Rh / (Rl + Ri_H + Ri_L)
+   *    Ul = k U_Rh / (1 + (k - 1) U_Rh / Vcc)
    *  Allow a small tolerance.
    *  For U_Rh > 40mV we don't need to check for a resistor.
    *
-   *  Hint: Actually we could change the threshold above from 10 to 40 and
+   *  Hint: Actually we could change the threshold above from 10 to 40mV and
    *  remove this test completely. The lowest U_Rh measured for a diode was
-   *  56mV for a AA118.
+   *  56mV for an AA118 (Germanium).
    */
 
   if (U2_Rh < 40)             /* resistor (< 3k) */
@@ -491,21 +500,22 @@ void CheckDiode(void)
 
     /* calculate expected U_Rl based on measured U_Rh in mV */
     b = (R_HIGH * 10) / ((R_LOW * 10) + Config.RiH + Config.RiL);  /* k factor */
-    a = b - 1;                          /* k - 1 */
-    a /= 5;                             /* / 5V */
-    a *= U2_Rh;                         /* *U_Rh */
+    a = b - 1;                          /* k-1 */
+    a *= 1000;                          /* scale for mV */
+    a /= Config.Vcc;                    /* /Vcc (in mV) */
+    a *= U2_Rh;                         /* *U_Rh (in mV) */
     a += 1000;                          /* +1 (1000 for mV) */
     b *= 1000;                          /* for mV */
-    b *= U2_Rh;                         /* *U_Rh */
+    b *= U2_Rh;                         /* *U_Rh (in mV) */
     b /= a;                             /* U_Rl in mV */
 
     /* check if calculated U_Rl is within some % of measured value */
-    U1_Zero = (unsigned int)b;
+    U1_Zero = (uint16_t)b;
     U1_Rl = U1_Zero;
     U1_Rh = U1_Zero;
     U1_Zero /= 10;            /* 10% */
     U1_Rh += U1_Zero;         /* 110% */
-    U1_Zero = (unsigned int)b;
+    U1_Zero = (uint16_t)b;
     U1_Zero /= 33;            /* 3% */
     U1_Rl -= U1_Zero;         /* 97% (for resistors near 1k) */
 
@@ -534,6 +544,8 @@ void CheckDiode(void)
     Diode->V_f2 = U2_Rh;      /* Vf for low measurement current */
     Check.Diodes++;
   }
+
+  #undef RESISTOR_LIMIT
 }
 
 
@@ -601,16 +613,16 @@ void VerifyMOSFET(void)
  *  - U_Rl: voltage across Rl pulled down
  */
 
-void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
+void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, uint16_t U_Rl)
 {
-  uint8_t           FET_Type;           /* MOSFET type */
-  unsigned int      U_R_c;              /* voltage across collector resistor */
-  unsigned int      U_R_b;              /* voltage across base resistor */
-  unsigned int      BJT_Level;          /* voltage threshold for BJT */
-  unsigned int      FET_Level;          /* voltage threshold for FET */
-  unsigned int      I_CE0;              /* leakage current */
-  unsigned long     hFE_C;              /* hFE (common collector) */
-  unsigned long     hFE_E;              /* hFE (common emitter) */
+  uint8_t           FET_Type;      /* MOSFET type */
+  uint16_t          U_R_c;         /* voltage across collector resistor */
+  uint16_t          U_R_b;         /* voltage across base resistor */
+  uint16_t          BJT_Level;     /* voltage threshold for BJT */
+  uint16_t          FET_Level;     /* voltage threshold for FET */
+  uint16_t          I_CE0;         /* leakage current */
+  uint32_t          hFE_C;         /* hFE (common collector) */
+  uint32_t          hFE_E;         /* hFE (common emitter) */
 
   /*
    *  init, set probes and measure
@@ -813,11 +825,11 @@ void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, unsigned int U_Rl)
 
 void CheckDepletionModeFET(void)
 {
-  unsigned int      U_1;                /* voltage #1 */
-  unsigned int      U_2;                /* voltage #2 */
-  unsigned int      Diff_1 = 0;         /* voltage difference #1 */
-  unsigned int      Diff_2 = 0;         /* voltage difference #2 */
-  uint8_t           Flag = 0;           /* signal */
+  uint16_t          U_1;           /* voltage #1 */
+  uint16_t          U_2;           /* voltage #2 */
+  uint16_t          Diff_1 = 0;    /* voltage difference #1 */
+  uint16_t          Diff_2 = 0;    /* voltage difference #2 */
+  uint8_t           Flag = 0;      /* signal */
 
   /*
    *  required probe setup (by calling function):
@@ -1031,10 +1043,10 @@ void CheckDepletionModeFET(void)
 
 uint8_t CheckThyristorTriac(void)
 {
-  uint8_t           Flag = 0;           /* return value */
-  unsigned int      U_1;                /* voltage #1 */
-  unsigned int      U_2;                /* voltage #2 */
-  unsigned int      V_GT;               /* gate trigger voltage */
+  uint8_t           Flag = 0;      /* return value */
+  uint16_t          U_1;           /* voltage #1 */
+  uint16_t          U_2;           /* voltage #2 */
+  uint16_t          V_GT;          /* gate trigger voltage */
 
   /*
    *  check for a Thyristor (SCR) or Triac

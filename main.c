@@ -2,7 +2,7 @@
  *
  *   main part
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -608,8 +608,8 @@ void Show_BJT(void)
   uint8_t           Counter;       /* counter */
   uint8_t           A_Pin;         /* pin acting as anode */
   uint8_t           C_Pin;         /* pin acting as cathode */
-  unsigned int      V_BE;          /* V_BE */
-  signed int        Slope;         /* slope of forward voltage */
+  uint16_t          V_BE;          /* V_BE */
+  int16_t           Slope;         /* slope of forward voltage */
 
   /*
    *  Mapping for Semi structure:
@@ -958,8 +958,8 @@ void Show_Special(void)
 
 int main(void)
 {
-  unsigned int      U_Bat;              /* voltage of power supply */
-  uint8_t           Test;               /* test value */
+  uint16_t          U_Bat;         /* voltage of power supply */
+  uint8_t           Test;          /* test value */
 
   /*
    *  init
@@ -1112,7 +1112,7 @@ start:
 
     /* adjust Vcc (assuming 2.495V typically) */
     Temp = ((uint32_t)Config.Vcc * UREF_25) / U_Bat;
-    Config.Vcc = (unsigned int)Temp;
+    Config.Vcc = (uint16_t)Temp;
   }
   #endif
 
@@ -1276,7 +1276,7 @@ end:
   #endif
 
   /* get key press or timeout */
-  Test = TestKey((unsigned int)CYCLE_DELAY, 12);
+  Test = TestKey((uint16_t)CYCLE_DELAY, 12);
 
   if (Test == 0)              /* timeout (no key press) */
   {

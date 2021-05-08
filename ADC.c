@@ -2,7 +2,7 @@
  *
  *   ADC functions
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2015 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -45,11 +45,11 @@
  *
  */
 
-unsigned int ReadU(uint8_t Probe)
+uint16_t ReadU(uint8_t Probe)
 {
-  unsigned int      U;             /* return value (mV) */
+  uint16_t          U;             /* return value (mV) */
   uint8_t           Counter;       /* loop counter */
-  unsigned long     Value;         /* ADC value */
+  uint32_t          Value;         /* ADC value */
 
   Probe |= (1 << REFS0);           /* use external buffer cap anyway */
                                    /* and AVcc as default */
@@ -115,7 +115,7 @@ sample:
 
   /* de-sample to get average voltage */
   Value /= Config.Samples;
-  U = (unsigned int)Value;
+  U = (uint16_t)Value;
 
   return U; 
 }
@@ -132,7 +132,7 @@ sample:
  *  - same as ReadU()
  */
 
-unsigned int ReadU_5ms(uint8_t Probe)
+uint16_t ReadU_5ms(uint8_t Probe)
 {
    wait5ms();       /* wait 5ms */
 
@@ -146,7 +146,7 @@ unsigned int ReadU_5ms(uint8_t Probe)
  *  - same as ReadU()
  */
 
-unsigned int ReadU_20ms(uint8_t Probe)
+uint16_t ReadU_20ms(uint8_t Probe)
 {
   wait20ms();       /* wait 20ms */
 
