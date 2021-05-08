@@ -4,6 +4,9 @@
  *   - supporting a HD44780 compatible LCD running in 4 bit data mode
  *   - if required change pin assignment in LCD.h
  *
+ *   (c) 2012-2013 by Markus Reschke
+ *   based on code from Markus Frejek and Karl-Heinz Kübbeler
+ *
  * ************************************************************************ */
 
 
@@ -239,14 +242,14 @@ void lcd_init(void)
 
 
 /*
- *  load custom character from EEPROM and upload it to the LCD
+ *  load a custom character from EEPROM and upload it to the LCD
  *
  *  requires:
  *  - pointer of fixed character data
  *  - ID for custom character (0-7)
  */
 
-void lcd_fix_customchar(const unsigned char *CharData, uint8_t ID)
+void lcd_fixed_customchar(const unsigned char *CharData, uint8_t ID)
 {
   uint8_t      i;
 
@@ -294,7 +297,7 @@ void lcd_testpin(unsigned char Probe)
 
 
 /*
- *  write a space to the LCD
+ *  display a space
  */
 
 void lcd_space(void)
@@ -306,7 +309,7 @@ void lcd_space(void)
 
 #if 0
 /*
- *  write a string to the LCD
+ *  display a string
  *
  *  requires:
  *  - pointer to string
@@ -325,13 +328,13 @@ void lcd_string(char *String)
 
 
 /*
- *  load string from EEPROM and send it to the LCD
+ *  display a fixed string stored in EEPROM
  *
  *  requires:
  *  - pointer to fixed string
  */
 
-void lcd_fix_string(const unsigned char *String)
+void lcd_fixed_string(const unsigned char *String)
 {
   unsigned char     Char;
 

@@ -2,6 +2,9 @@
  *
  *   common header file
  *
+ *   (c) 2012-2013 by Markus Reschke
+ *   based on code from Markus Frejek and Karl-Heinz Kübbeler
+ *
  * ************************************************************************ */
 
 
@@ -105,7 +108,6 @@ typedef struct
 {
   uint8_t           A;             /* probe pin #1 */
   uint8_t           B;             /* probe pin #2 */
-  uint8_t           HiZ;           /* probe pin in HiZ mode */
   uint8_t           Scale;         /* exponent of factor (value * 10^x) */
   unsigned long     Value;         /* resistance */
 } Resistor_Type;

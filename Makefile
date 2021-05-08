@@ -1,5 +1,8 @@
 #
-# Makefile
+#  Makefile
+#
+#  (c) 2012-2013 by Markus Reschke
+#  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
 
@@ -12,6 +15,7 @@
 # - ATmega168 or ATmega168P : atmega168
 # - ATmega328 or ATmega328P : atmega328
 MCU = atmega328
+#MCU = atmega168
 
 # MCU freqency:
 # - 1MHz : 1
@@ -45,10 +49,12 @@ endif
 PARTNO = m328p
 
 # avrdude: ISP programmer
-PROGRAMMER = buspirate
+#PROGRAMMER = buspirate
+PROGRAMMER = avrispmkII
 
 # avrdude: port of ISP programmer
-PORT = /dev/bus_pirate
+#PORT = /dev/bus_pirate
+PORT = usb
 
 
 #

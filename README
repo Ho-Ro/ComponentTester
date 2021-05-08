@@ -1,6 +1,4 @@
 
-
-
 ------------------------------------------------------------------------------
 
                    ReadMe for the Component Tester firmware
@@ -9,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2013-03-22
+Last edit:  2013-06-16
 
 
 * About
@@ -68,8 +66,9 @@ a menu item. The long key press performs a context specific action.
 
 If the tester expects you to press a key it will tell you that by displaying
 a cursor at the last position in the second row of the LCD (bottom right).
-A steady cursor signals that you have to press the test key to proceed.
-The cursor is supressed for menus and the PWM tool, because it's obvious that
+A steady cursor signals that another information will be displayed and a
+blinking cursor informs you that the tester will resume the probing loop. The
+cursor is supressed for menus and the PWM tool, because it's obvious that
 a key press is neccessary.  
 
 
@@ -97,28 +96,29 @@ message. That is caused by the implementaion of the power control circuit.
 * Menu
 
 By short-circuiting all three probes you'll trigger a menu which allows you
-to select some special functions (see below). A short key press selects the
-next item in the menu and a long key press runs the selected item. The 
-selected item is marked by an asterisk.
+to select some special functions (see below). A short key press shows the
+the next item in the menu and a long key press selects the shown item. At the 
+right side you'll see a '>' if another items follows or a '<' if the last
+item is reached (will roll over to the first menu item). 
 
 You can also enter the menu by two short key presses after the display of the
-last component found. Simply press the test key twice quickly (might need
-some practice :-).
+last component found (also signaled by a blinking cursor in auto-hold mode).
+Simply press the test key twice quickly (might need some practice :-).
 
 
 + PWM Tool
 
 This does what you would expect :-) First you have to select the desired PWM
-frequency in a simple menu. Short key press selects next item (marked by an
-asterisk) and a long key press starts the PWM output for the selected
-frequency.
+frequency in a simple menu. Short key press for the next frequency and a long
+key press starts the PWM output for the shown frequency.
 
 The duty ratio of the PWM starts at 50%. A short key press of the test button
-increases the ratio by 5%, a long key press decreases the ratio by 5%. If you
-hit 0% or 100% the next key press exceeding the limits will exit the PWM tool.
+increases the ratio by 5%, a long key press decreases the ratio by 5%. To exit
+the PWM tool press the test key twice quickly.
+
 Configuration of the probes:
 
-  Probe #2:         PWM output (with 680 Ohms series resistor)
+  Probe #2:         PWM output (with 680 Ohms resistor to limit current)
   Probe #1 and #3:  Ground
 
 
@@ -240,6 +240,11 @@ to fully display all data. Antiparallel diodes got only a single page (the
 capacitance will not be shown). The display of BJTs may be splitted based on
 the size of hfe.
 
+For a single diode the low current Vf (measured with 10µA) is shown in braces
+if the voltage is below 250mV. That should give you a hint for Germanium
+diodes. Most datasheets of Germanium diodes specify Vf at 0.1mA which the
+tester doesn't support.
+
 
 * Vf (V_BE) of BJTs
 
@@ -275,6 +280,18 @@ Known issues:
 
 
 * Change Log
+
+v1.07m 2013-06
+- Optimized diode display function and added display of low current Vf.
+- Improved the diode detection. Caps and resistors are excluded much better.
+  Also the cap probing is skipped for diodes to speed up probing.  
+- Fixed an array overflow bug in CheckResistor().
+- Improved cursor display logic to tell user if another information follows
+  or the probing loop is reentered.
+- Improved UI of PWM tool to prevent exit by mistake (double key press
+  required now).
+- Added a generic menu function and adapted all menus (changed layout!).
+- TestKey() provides a nice blinking cursor now.
 
 v1.06m 2013-03
 - Several minor improvements and cleanups.

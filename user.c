@@ -2,6 +2,8 @@
  *
  *   user interface functions
  *
+ *   (c) 2012-2013 by Markus Reschke
+ *
  * ************************************************************************ */
 
 
@@ -29,7 +31,7 @@
  *  local functions
  */
 
-void PWM_Menu(void);
+void PWM_Tool(uint16_t Frequency);
 
 
 
@@ -277,10 +279,10 @@ void ShortCircuit(uint8_t Mode)
   if (String)
   {
     lcd_clear();
-    lcd_fix_string(String);             /* display: Remove/Create */
+    lcd_fixed_string(String);             /* display: Remove/Create */
     lcd_line(2);
-    lcd_fix_string(ShortCircuit_str);   /* display: short circuit! */
-    Run = 1;                            /* enter loop */
+    lcd_fixed_string(ShortCircuit_str);   /* display: short circuit! */
+    Run = 1;                              /* enter loop */
   }
   
   /* wait until all probes are dis/connected */
@@ -314,9 +316,10 @@ void ShortCircuit(uint8_t Mode)
  *    0 = no timeout, wait for key press
  *  - Mode:
  *    0 = no cursor
- *    1 = consider tester operation mode (Config.TesterMode)
- *    2 = steady cursor
- *    3 = blinking cursor (not implemented yet)
+ *    1 = steady cursor
+ *    2 = blinking cursor
+ *    11 = steady cursor considering tester operation mode (Config.TesterMode)
+ *    12 = blinking cursor considering tester operation mode (Config.TesterMode)
  *
  *  returns:
  *  - 0 if timeout was reached
@@ -335,16 +338,20 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
    *  init
    */
 
-  if (Mode == 1)              /* consider operation mode */
+  if (Mode > 10)                   /* consider operation mode */
   {
     if (Config.TesterMode == MODE_AUTOHOLD)  /* auto hold mode */
     {
-      Timeout = 0;                           /* disable timeout */
-      Mode = 2;                              /* enable steady cusrsor */
+      Timeout = 0;                 /* disable timeout */
+      Mode -= 10;                  /* set cursor mode */
+    }
+    else                                     /* continous mode */
+    {
+      Mode = 0;                    /* disable cursor */
     }
   }
 
-  if (Mode > 1)               /* cursor enabled */
+  if (Mode > 0)               /* cursor enabled */
   {
     /* set position: char 16 in line 2 */
     lcd_command(CMD_SET_DD_RAM_ADDR | 0x4F);
@@ -358,7 +365,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
    *  wait for key press or timeout
    */
  
-  while (Run == 1)
+  while (Run)
   {
     /* take care about timeout */
     if (Timeout > 0)                    /* timeout enabled */
@@ -371,6 +378,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
     /* test push button is low active */
     if (!(CONTROL_PIN & (1 << TEST_BUTTON)))      /* if key is pressed */
     {
+      Counter = 0;            /* reset counter */
       MilliSleep(30);         /* time to debounce */
 
       while (Run)             /* detect how long key is pressed */
@@ -393,7 +401,34 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
     }
     else                                          /* no key press */
     {
-      MilliSleep(5);                      /* wait a little bit more (5ms) */
+      MilliSleep(5);                    /* wait a little bit more (5ms) */
+
+      /* simulate blinking cursor
+         The LCDs built in cursor blinking is ugly and slow */
+      
+      if (Mode == 2)                    /* blinking cursor */
+      {
+        Counter++;                        /* increase counter */
+
+        if (Counter == 100)               /* every 500ms (2Hz) */
+        {
+          Counter = 0;                    /* reset counter */
+
+          /* we misuse Run as toggle switch */
+          if (Run == 1)                   /* turn off */
+          {
+            /* disable cursor */
+            lcd_command(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_OFF);
+            Run = 2;                      /* toggle flag */
+          }
+          else                            /* turn on */
+          {
+            /* enable cursor */
+            lcd_command(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_ON);
+            Run = 1;                      /* toggle flag */
+          }
+        }
+      }
     }
   }
 
@@ -402,7 +437,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
    *  clean up
    */
 
-  if (Mode > 1)               /* cursor enabled */
+  if (Mode > 0)               /* cursor enabled */
   {
     /* disable cursor */
     lcd_command(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON);
@@ -414,131 +449,157 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 
 
 /*
+ *  menu tool
+ *
+ *  requires:
+ *  - Items: number of menu items
+ *  - Type: type of menu items
+ *      1  pointer (in RAM) to fixed string stored in EEPROM
+ *      2  uint16_t stored in Flash or EEPROM
+ *  - Menu: address of array with menu items
+ *  - Unit: optional fixed string stored in EEPROM
+ *
+ *  returns:
+ *  - number of selected item
+ */
+
+uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
+{
+  uint8_t           Selected = 0;       /* return value / ID of selected item */
+  uint8_t           Run = 1;            /* loop control flag */
+  uint8_t           n;                  /* temp value */
+  void              *Address;           /* address of menu element */
+  uint16_t          Value;              /* temp. value */
+
+  Items--;                    /* to match array counter */
+  lcd_data(':');              /* whatever: */
+
+  while (Run)
+  {
+    /*
+     *  display item
+     */
+
+    lcd_clear_line(2);
+    Address = &Menu[Selected];     /* get address of element */
+
+    if (Type == 1)                 /* fixed string */
+    {
+      lcd_fixed_string(*(unsigned char **)Address);
+    }
+    else                           /* uint16_t in Flash or EEPROM */
+    {
+      Value = MEM_read_word(Address);   /* read value at flash/eeprom address */
+      DisplayValue(Value, 0, 0);
+    }
+
+    if (Unit)                      /* optional fixed string */
+    {
+      lcd_fixed_string(Unit);
+    }
+
+
+    /*
+     *  show navigation help
+     */
+
+    MilliSleep(100);               /* smooth UI */
+
+    /* set position: char 16 in line 2 */
+    lcd_command(CMD_SET_DD_RAM_ADDR | 0x4F);
+
+    if (Selected < Items) n = '>';      /* another item follows */
+    else n = '<';                       /* last item */
+
+    lcd_data(n);
+
+
+    /*
+     *  process user feedback
+     */
+
+    n = TestKey(0, 0);             /* wait for testkey */
+    if (n == 1)                    /* short key press: moves to next item */
+    {
+      Selected++;                       /* move to next item */
+      if (Selected > Items)             /* max. number of items exceeded */
+      {
+        Selected = 0;                   /* roll over to first one */
+      }
+    }
+    else if (n == 2)               /* long key press: select current item */
+    {
+      Run = 0;                          /* end loop */
+    }
+  }
+
+  lcd_clear();                 /* feedback for user */
+  MilliSleep(500);             /* smooth UI */
+
+  return Selected;
+}
+
+
+
+/*
  *  main menu
- *  - entered by short-circuiting all three probes
  */
 
 void MainMenu(void)
 {
   uint8_t           Flag = 1;           /* control flag */
-  uint8_t           Run = 0;            /* loop control flag */
-  uint8_t           Selected = 1;       /* ID of selected item */
-  uint8_t           Top = 1;            /* ID of top item */
-  uint8_t           n;                  /* counter */
-  unsigned char     *String = NULL;     /* menu string */
-  unsigned char     *String2 = NULL;    /* item string */
+  uint8_t           Selected;           /* ID of selected item */
+  uint8_t           ID;                 /* ID of selected item */
+  uint16_t          Frequency;          /* PWM frequency */  
+  void              *Menu[5];
 
-#define MAX_ITEMS   5         /* number of menu items */
+  /* setup menu */
+  Menu[0] = (void *)PWM_str;
+  Menu[1] = (void *)Selftest_str;
+  Menu[2] = (void *)Adjustment_str;
+  Menu[3] = (void *)Save_str;
+  Menu[4] = (void *)Show_str;
 
-  /*
-   *  menu item selection
-   */
+  /* run menu */
+  lcd_clear();
+  lcd_fixed_string(Select_str);
+  Selected = MenuTool(5, 1, Menu, NULL);
 
-  while (Run == 0)
+  /* run selected item */
+  switch (Selected)
   {
-    lcd_clear();
-
-    /* display two items */
-    for (n = Top; n < (Top + 2); n++)
-    {
-      /* display marker for selected item, a space otherwise */
-      if (n == Selected) lcd_data('*');
-      else lcd_space();
-
-      lcd_space();                      /* display space */
-
-      /* display item */
-      switch (n)
-      {
-        case 1:
-          String = (unsigned char *)PWM_str;
-          break;
-
-        case 2:
-          String = (unsigned char *)Selftest_str;
-          break;
-
-        case 3:
-          String = (unsigned char *)Adjustment_str;
-          break;
-
-        case 4:
-          String = (unsigned char *)Save_str;
-          break;
-
-        case 5:
-          String = (unsigned char *)Show_str;
-          break;
-      }
-
-      lcd_fix_string(String);
-      lcd_line(2);
-
-      if (n == Selected) String2 = String;   /* save string of selected item */
-    }
-
-    /* process user feedback */
-    n = TestKey(0, 0);             /* wait for testkey */
-    if (n == 1)                    /* short key press selects next item */
-    {
-      Selected++;                       /* move to next item */
-      if (Selected > MAX_ITEMS)         /* max. number of items exceeded */
-      {
-        Selected = 1;                   /* roll over to first one */
-        Top = 1;
-      }
-      else if (Selected < MAX_ITEMS)    /* some items are left */
-      {
-        Top = Selected;                 /* make selected item the top one */
-      }
-    }
-    else if (n == 2)               /* long key press runs selected item */
-    {
-      Run = Selected;                   /* end loop */
-    }
-  }
-
-
-  /*
-   *  run selected item
-   */
-
-  lcd_clear();                 /* feedback for user */
-  MilliSleep(500);             /* prevent test key trouble */
-
-  switch (Run)
-  {
-    case 1:
-      PWM_Menu();
+    case 0:              /* PWM tool */
+      /* run PWM menu */
+      lcd_clear();
+      lcd_fixed_string(PWM_str);
+      ID = MenuTool(8, 2, (void *)PWM_Freq_table, (unsigned char *)Hertz_str);
+      Frequency = MEM_read_word(&PWM_Freq_table[ID]);  /* get selected frequency */
+      PWM_Tool(Frequency);                             /* and run PWM tool */
       break;
 
-    case 2:
+    case 1:              /* self test */
       Flag = SelfTest();
       break;
 
-    case 3:
+    case 2:              /* self adjustment */
       Flag = SelfAdjust();
       break;
 
-    case 4:
+    case 3:              /* safe self adjument values */
       SafeAdjust();
       break;
 
-    case 5:
+    case 4:              /* show self adjument values */
       ShowAdjust();
       break;
   }
 
   /* display end of item */
   lcd_clear();
-  lcd_fix_string(String2);              /* display: <item> */
-  lcd_line(2);
   if (Flag == 1)
-    lcd_fix_string(Done_str);           /* display: done! */
+    lcd_fixed_string(Done_str);           /* display: done! */
   else
-    lcd_fix_string(Error_str);          /* display: error! */
-
-#undef MAX_ITEMS
+    lcd_fixed_string(Error_str);          /* display: error! */
 }
 
 
@@ -575,7 +636,7 @@ void PWM_Tool(uint16_t Frequency)
 
   ShortCircuit(0);                    /* make sure probes are not shorted */
   lcd_clear();
-  lcd_fix_string(PWM_str);            /* display: PWM */
+  lcd_fixed_string(PWM_str);          /* display: PWM */
   lcd_data(' ');
   DisplayValue(Frequency, 0, 'H');    /* display frequency */
   lcd_data('z');                      /* make it Hz :-) */
@@ -643,24 +704,31 @@ void PWM_Tool(uint16_t Frequency)
     /* show current ratio */
     lcd_clear_line(2);
     DisplayValue(Ratio, 0, '%');        /* show ratio in % */
-    MilliSleep(500);                    /* prevent test key trouble */
+    MilliSleep(500);                    /* smooth UI */
 
     /*
         short key press -> increase ratio
         long key press -> decrease ratio
-        if lower or upper limit is exceeded exit loop
+        two short key presses -> exit PWM
      */
 
     Test = TestKey(0, 0);               /* wait for user feedback */
     if (Test == 1)                      /* short key press */
     {
-      if (Ratio == 100) Test = 0;       /* end if maximum is exceeded */
-      else Ratio += 5;
+      MilliSleep(50);                   /* debounce button a little bit longer */
+      Prescaler = TestKey(200, 0);      /* check for second key press */
+      if (Prescaler > 0)                /* second key press */
+      {
+        Test = 0;                         /* end loop */
+      }
+      else                              /* single key press */
+      {
+        if (Ratio <= 95) Ratio += 5;      /* +5% and limit to 100% */
+      }
     }
     else                                /* long key press */
     {
-      if (Ratio == 0) Test = 0;         /* end if minimum is exeeded */
-      else Ratio -= 5;
+      if (Ratio >= 5) Ratio -= 5;         /* -5% and limit to 0% */
     }
 
     /* calculate toggle value: (depth * (ratio / 100)) - 1 */
@@ -677,84 +745,6 @@ void PWM_Tool(uint16_t Frequency)
   TCCR1A = 0;                 /* reset flags (also frees PB2) */
   R_DDR = 0;                  /* set HiZ mode */
   Config.SleepMode = SLEEP_MODE_PWR_SAVE;    /* reset sleep mode to default */
-}
-
-
-
-/*
- *  submenu to select PWM frequency
- */
-
-void PWM_Menu(void)
-{
-  uint8_t           Run = 0;            /* loop control flag */
-  uint8_t           Selected = 1;       /* ID of selected item */
-  uint8_t           Top = 1;            /* ID of top item */
-  uint8_t           n;                  /* counter */
-  uint16_t          Frequency = 0;      /* menu frequency */
-
-#define MAX_ITEMS   8         /* number of menu items */
-
-  /*
-   *  menu item selection
-   */
-
-  while (Run == 0)
-  {
-    lcd_clear();
-
-    /* display two items */
-    for (n = Top; n < (Top + 2); n++)
-    {
-      /* display marker for selected item, a space otherwise */
-      if (n == Selected) lcd_data('*');
-      else lcd_space();
-
-      lcd_space();                      /* display space */
-
-      /* display item */
-      /* get frequency based on the item number from a predefined table */
-      Frequency = MEM_read_word(&PWM_Freq_table[n - 1]);
-      DisplayValue(Frequency, 0, 'H');
-      lcd_data('z');
-      lcd_line(2);
-    }
-
-    /* process user feedback */
-    n = TestKey(0, 0);             /* wait for testkey */
-    if (n == 1)                    /* short key press selects next item */
-    {
-      Selected++;                       /* move to next item */
-      if (Selected > MAX_ITEMS)         /* max. number of items exceeded */
-      {
-        Selected = 1;                   /* roll over to first one */
-        Top = 1;
-      }
-      else if (Selected < MAX_ITEMS)    /* some items are left */
-      {
-        Top = Selected;                 /* make selected item the top one */
-      }
-    }
-    else if (n == 2)               /* long key press runs selected item */
-    {
-      Run = Selected;                   /* end loop */
-    }
-  }
-
-
-  /*
-   *  run selected item
-   */
-
-  lcd_clear();                 /* feedback for user */
-  MilliSleep(500);             /* prevent test key trouble */
-
-  /* get selected frequency */
-  Frequency = MEM_read_word(&PWM_Freq_table[Run - 1]);
-  PWM_Tool(Frequency);                  /* run PWM tool */
-
-#undef MAX_ITEMS
-
 }
 
 

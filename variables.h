@@ -2,6 +2,9 @@
  *
  *   global variables
  *
+ *   (c) 2012-2013 by Markus Reschke
+ *   based on code from Markus Frejek and Karl-Heinz Kübbeler
+ *
  * ************************************************************************ */
 
 
@@ -84,6 +87,7 @@
     const unsigned char Triac_str[] EEMEM = "Triac";
     const unsigned char GAK_str[] EEMEM = "GAK=";
     const unsigned char Done_str[] EEMEM = "fertig!";
+    const unsigned char Select_str[] EEMEM = "Wähle";
     const unsigned char Selftest_str[] EEMEM = "Selbsttest";
     const unsigned char Adjustment_str[] EEMEM = "Abgleich";
     const unsigned char Save_str[] EEMEM = "Speichern";
@@ -112,6 +116,7 @@
     const unsigned char Triac_str[] EEMEM = "Triac";
     const unsigned char GAK_str[] EEMEM = "GAC=";
     const unsigned char Done_str[] EEMEM = "done!";
+    const unsigned char Select_str[] EEMEM = "Select";
     const unsigned char Selftest_str[] EEMEM = "Selftest";
     const unsigned char Adjustment_str[] EEMEM = "Adjustment";
     const unsigned char Save_str[] EEMEM = "Save";
@@ -155,6 +160,7 @@
   const unsigned char CompOffset_str[] EEMEM = "AComp";
   const unsigned char Checksum_str[] EEMEM = "ChkSum";
   const unsigned char PWM_str[] EEMEM = "PWM";
+  const unsigned char Hertz_str[] EEMEM = "Hz";
 
   const unsigned char Cap_str[] EEMEM = {'-',LCD_CHAR_CAP, '-',0};
   const unsigned char Diode_AC_str[] EEMEM = {'-', LCD_CHAR_DIODE1, '-', 0};
@@ -162,7 +168,7 @@
   const unsigned char Diodes_str[] EEMEM = {'*', LCD_CHAR_DIODE1, ' ', ' ', 0};
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESIS1, LCD_CHAR_RESIS2, '-', 0};
 
-  const unsigned char Version_str[] EEMEM = "v1.06m";
+  const unsigned char Version_str[] EEMEM = "v1.07m";
 
 
   /*
@@ -201,7 +207,7 @@
   /* unit prefixes: p, n, µ, m, 0, k, M (used by value display) */
   const unsigned char Prefix_table[] EEMEM = {'p', 'n', LCD_CHAR_MICRO, 'm', 0, 'k', 'M'};
 
-  /* PWM frequencies (used by PWM menu) */
+  /* PWM menu: frequencies */
   const uint16_t PWM_Freq_table[] MEM_TEXT = {100, 250, 500, 1000, 2500, 5000, 10000, 25000};
 
   /* voltage based factors for large caps (using Rl) */
@@ -286,6 +292,7 @@
    */
 
   extern const unsigned char Done_str[];
+  extern const unsigned char Select_str[];
   extern const unsigned char Selftest_str[];
   extern const unsigned char Adjustment_str[];
   extern const unsigned char Save_str[];
@@ -309,23 +316,18 @@
   extern const unsigned char CompOffset_str[];
   extern const unsigned char Checksum_str[];
   extern const unsigned char PWM_str[];
+  extern const unsigned char Hertz_str[];
 
 
   /*
-   *  contant tables (stored in EEPROM or PROGMEM)
+   *  constant tables (stored in EEPROM or PROGMEM)
    */
 
   /* unit prefixes: p, n, µ, m, 0, k, M (used by value display) */
   extern const unsigned char Prefix_table[];
 
-  /* PWM frequencies (used by PWM menu) */
+  /* PWM menu: frequencies */
   extern const uint16_t PWM_Freq_table[];
-
-  /* prefixes with negative exponent: m, µ, n, p */
-  extern const unsigned char PinRLtab[];
-
-  /* prefixes with positive exponent: k, M, G */
-  extern const unsigned char PinADCtab[];
 
   /* voltage based factors for large caps (using Rl) */
   extern const uint16_t LargeCap_table[];

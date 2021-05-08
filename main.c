@@ -2,6 +2,9 @@
  *
  *   main part
  *
+ *   (c) 2012-2013 by Markus Reschke
+ *   based on code from Markus Frejek and Karl-Heinz Kübbeler
+ *
  * ************************************************************************ */
 
 
@@ -47,16 +50,16 @@ uint8_t        RunsMissed;              /* counter for failed/missed measurement
 void ShowFail(void)
 {
   /* display info */
-  lcd_fix_string(Failed1_str);          /* display: No component */
+  lcd_fixed_string(Failed1_str);        /* display: No component */
   lcd_line(2);                          /* move to line #2 */
-  lcd_fix_string(Failed2_str);          /* display: found!*/  
+  lcd_fixed_string(Failed2_str);        /* display: found!*/  
 
   /* display numbers of diodes found */
   if (DiodesFound > 0)                  /* diodes found */
   {
     lcd_space();                        /* display space */
     lcd_data(DiodesFound + '0');        /* display number of diodes found */
-    lcd_fix_string(Diode_AC_str);       /* display: -|>|- */    
+    lcd_fixed_string(Diode_AC_str);     /* display: -|>|- */    
   }
 
   RunsMissed++;               /* increase counter */
@@ -73,7 +76,7 @@ void ShowError()
 {
   if (CompType == TYPE_DISCHARGE)        /* discharge failed */
   {
-    lcd_fix_string(DischargeFailed_str);     /* display: Battery? */
+    lcd_fixed_string(DischargeFailed_str);   /* display: Battery? */
 
     /* display probe number and remaining voltage */
     lcd_line(2);
@@ -82,6 +85,39 @@ void ShowError()
     lcd_space();
     DisplayValue(Error.U, -3, 'V');
   }
+}
+
+
+
+/*
+ *  display Uf of a diode
+ */
+
+void ShowDiode_Uf(Diode_Type *Diode)
+{
+  /* sanity check */
+  if (Diode == NULL) return;
+
+  /* display Vf */
+  DisplayValue(Diode->V_f, -3, 'V');
+}
+
+
+
+/*
+ *  display capacitance of a diode
+ */
+
+void ShowDiode_C(Diode_Type *Diode)
+{
+  /* sanity check */
+  if (Diode == NULL) return;
+
+  /* get capacitance (opposite of flow direction) */
+  MeasureCap(Diode->C, Diode->A, 0);
+
+  /* and show capacitance */
+  DisplayValue(Caps[0].Value, Caps[0].Scale, 'F');
 }
 
 
@@ -99,6 +135,11 @@ void ShowDiode(void)
   uint8_t           C = 5;         /* ID of common cothode */
 
   D1 = &Diodes[0];                 /* pointer to first diode */
+
+
+  /*
+   *  figure out which diodes to display
+   */
 
   if (DiodesFound == 1)            /* single diode */
   {
@@ -162,6 +203,7 @@ void ShowDiode(void)
   {
     D1 = NULL;                     /* don't display any diode */
     ShowFail();                    /* and tell user */
+    return;
   }
 
 
@@ -169,22 +211,20 @@ void ShowDiode(void)
    *  display pins 
    */
 
-  if (D1)           /* first Diode */
-  {
-    if (A < 3) lcd_testpin(D1->C);           /* common anode */
-    else lcd_testpin(D1->A);                 /* common cathode */
+  /* first Diode */
+  if (A < 3) lcd_testpin(D1->C);           /* common anode */
+  else lcd_testpin(D1->A);                 /* common cathode */
 
-    if (A < 3) lcd_fix_string(Diode_CA_str);   /* common anode */
-    else lcd_fix_string(Diode_AC_str);         /* common cathode */
+  if (A < 3) lcd_fixed_string(Diode_CA_str);   /* common anode */
+  else lcd_fixed_string(Diode_AC_str);         /* common cathode */
 
-    if (A < 3) lcd_testpin(A);               /* common anode */
-    else lcd_testpin(C);                     /* common cathode */
-  }
+  if (A < 3) lcd_testpin(A);               /* common anode */
+  else lcd_testpin(C);                     /* common cathode */
 
   if (D2)           /* second diode */
   {
-    if (A <= 3) lcd_fix_string(Diode_AC_str);   /* common anode or in series */
-    else lcd_fix_string(Diode_CA_str);          /* common cathode */
+    if (A <= 3) lcd_fixed_string(Diode_AC_str);   /* common anode or in series */
+    else lcd_fixed_string(Diode_CA_str);          /* common cathode */
 
     if (A == C) lcd_testpin(D2->A);          /* anti parallel */
     else if (A <= 3) lcd_testpin(D2->C);     /* common anode or in series */
@@ -196,40 +236,36 @@ void ShowDiode(void)
    *  display Uf (forward voltage) and capacitance
    */
 
-  if (D1)                                    /* first diode */
+  /* Uf */
+  lcd_line(2);                          /* go to line #2 */
+  lcd_fixed_string(Vf_str);             /* display: Vf= */
+  ShowDiode_Uf(D1);                     /* first diode */
+  lcd_space();
+  if (D2 == NULL)
   {
-    /* Uf */
-    lcd_line(2);                             /* go to line #2 */
-    lcd_fix_string(Vf_str);                  /* display: Vf= */
-    DisplayValue(D1->V_f, -3, 'V');          /* display Vf */
-
-    if (D2)                                  /* second diode */
+    /* display low current Uf if it's quite low (Ge/Schottky diode) */
+    if (D1->V_f2 < 250)
     {
-      lcd_space();
-      DisplayValue(D2->V_f, -3, 'V');        /* display Vf */
+      lcd_data('(');
+      DisplayValue(D1->V_f2, 0, 0);
+      lcd_data(')');
     }
+  }
+  else
+  {
+    ShowDiode_Uf(D2);                   /* second diode (optional) */
+  }
 
-    /* capacitance */
-    if (CFlag == 1)
-    {
-      TestKey(3000, 1);                      /* next page */
-      lcd_clear_line(2);
+  /* capacitance */
+  if (CFlag == 1)
+  {
+    TestKey(3000, 11);                  /* next page */
+    lcd_clear_line(2);                  /* only change line #2 */
 
-      lcd_fix_string(DiodeCap_str);          /* display: C= */
-
-      /* get capacitance (opposite of flow direction) */
-      MeasureCap(D1->C, D1->A, 0);
-
-      /* and show capacitance */
-      DisplayValue(Caps[0].Value, Caps[0].Scale, 'F');
-
-      if (D2)                                /* second diode */
-      {
-        lcd_space();
-        MeasureCap(D2->C, D2->A, 0);
-        DisplayValue(Caps[0].Value, Caps[0].Scale, 'F');
-      }
-    }
+    lcd_fixed_string(DiodeCap_str);     /* display: C= */
+    ShowDiode_C(D1);                    /* first diode */
+    lcd_space();
+    ShowDiode_C(D2);                    /* second diode (optional) */
   }
 }
 
@@ -253,7 +289,7 @@ void ShowBJT(void)
   else                             /* PNP */
     String = (unsigned char *)PNP_str;
 
-  lcd_fix_string(String);          /* display: NPN / PNP */
+  lcd_fixed_string(String);        /* display: NPN / PNP */
 
   /* protections diodes */
   if (DiodesFound > 2)        /* transistor is a set of two diodes :-) */
@@ -264,19 +300,19 @@ void ShowBJT(void)
     else                                /* PNP */
       String = (unsigned char *)Diode_CA_str;
 
-    lcd_fix_string(String);     /* display: -|>|- / -|<|- */
+    lcd_fixed_string(String);      /* display: -|>|- / -|<|- */
   }
 
   /* display pins */
   lcd_space();
-  lcd_fix_string(EBC_str);         /* display: EBC= */
+  lcd_fixed_string(EBC_str);       /* display: EBC= */
   lcd_testpin(BJT.E);              /* display emitter pin */
   lcd_testpin(BJT.B);              /* display base pin */
   lcd_testpin(BJT.C);              /* display collector pin */
 
   /* display hfe */
   lcd_line(2);                     /* move to line #2 */ 
-  lcd_fix_string(hfe_str);         /* display: B= */
+  lcd_fixed_string(hfe_str);       /* display: B= */
   DisplayValue(BJT.hfe, 0, 0);
 
   /* display Uf (forward voltage) */
@@ -299,11 +335,11 @@ void ShowBJT(void)
       }
       else                                   /* line to short */
       {
-        TestKey(3000, 1);                    /* next page */
+        TestKey(3000, 11);                   /* next page */
         lcd_clear_line(2);
       }
 
-      lcd_fix_string(Vf_str);                /* display: Vf= */
+      lcd_fixed_string(Vf_str);              /* display: Vf= */
 
       /*
        *  Vf is quite linear for a logarithmicly scaled I_b.
@@ -372,10 +408,10 @@ void ShowFET(void)
 
   /* display type */
   if (CompType & TYPE_MOSFET)      /* MOSFET */
-    lcd_fix_string(MOS_str);         /* display: MOS */
+    lcd_fixed_string(MOS_str);       /* display: MOS */
   else                             /* JFET */
     lcd_data('J');                   /* display: J */
-  lcd_fix_string(FET_str);         /* display: FET */ 
+  lcd_fixed_string(FET_str);       /* display: FET */ 
 
   /* display channel type */
   lcd_space();
@@ -385,21 +421,21 @@ void ShowFET(void)
     Data = 'P';
 
   lcd_data(Data);                  /* display: N / P */
-  lcd_fix_string(Channel_str);     /* display: -ch */
+  lcd_fixed_string(Channel_str);   /* display: -ch */
       
   /* display mode */
   if (CompType & TYPE_MOSFET)      /* MOSFET */
   {
     lcd_space();
     if (CompType & TYPE_ENHANCEMENT)    /* enhancement mode */
-      lcd_fix_string(Enhancement_str);
+      lcd_fixed_string(Enhancement_str);
     else                                /* depletion mode */
-      lcd_fix_string(Depletion_str);
+      lcd_fixed_string(Depletion_str);
   }
 
   /* pins */
   lcd_line(2);                     /* move to line #2 */ 
-  lcd_fix_string(GDS_str);         /* display: GDS= */
+  lcd_fixed_string(GDS_str);       /* display: GDS= */
   lcd_testpin(FET.G);              /* display gate pin */
   lcd_testpin(FET.D);              /* display drain pin */
   lcd_testpin(FET.S);              /* display source pin */
@@ -414,17 +450,17 @@ void ShowFET(void)
       lcd_data(LCD_CHAR_DIODE1);        /* display diode symbol */
     }
 
-    TestKey(3000, 1);                   /* next page */
+    TestKey(3000, 11);                  /* next page */
     lcd_clear();
 
     /* gate threshold voltage */
-    lcd_fix_string(Vth_str);            /* display: Vth */
+    lcd_fixed_string(Vth_str);          /* display: Vth */
     DisplayValue(FET.V_th, -3, 'V');    /* display V_th in mV */    
 
     lcd_line(2);
 
     /* display gate capacitance */
-    lcd_fix_string(GateCap_str);        /* display: Cgs= */
+    lcd_fixed_string(GateCap_str);      /* display: Cgs= */
     MeasureCap(FET.G, FET.S, 0);        /* measure capacitance */
     /* display value and unit */
     DisplayValue(Caps[0].Value, Caps[0].Scale, 'F');
@@ -442,16 +478,16 @@ void ShowSpecial(void)
   /* display component type */
   if (CompFound == COMP_THYRISTOR)
   {
-    lcd_fix_string(Thyristor_str);      /* display: thyristor */
+    lcd_fixed_string(Thyristor_str);    /* display: thyristor */
   }
   else if (CompFound == COMP_TRIAC)
   {
-    lcd_fix_string(Triac_str);          /* display: triac */
+    lcd_fixed_string(Triac_str);        /* display: triac */
   }
 
   /* display pins */
   lcd_line(2);                          /* move to line #2 */ 
-  lcd_fix_string(GAK_str);              /* display: GAK */
+  lcd_fixed_string(GAK_str);            /* display: GAK */
   lcd_testpin(BJT.B);                   /* display gate pin */
   lcd_testpin(BJT.C);                   /* display anode pin */
   lcd_testpin(BJT.E);                   /* display cathode pin */
@@ -522,12 +558,12 @@ void ShowResistor(void)
   /* first resistor */
   if (R1->A != Pin) lcd_testpin(R1->A);
   else lcd_testpin(R1->B);
-  lcd_fix_string(Resistor_str);
+  lcd_fixed_string(Resistor_str);
   lcd_testpin(Pin);
 
   if (R2)           /* second resistor */
   {
-    lcd_fix_string(Resistor_str);
+    lcd_fixed_string(Resistor_str);
     if (R2->A != Pin) lcd_testpin(R2->A);
     else lcd_testpin(R2->B);
   }
@@ -576,7 +612,7 @@ void ShowCapacitor(void)
 
   /* display largest cap */
   lcd_testpin(MaxCap->A);               /* display pin #1 */
-  lcd_fix_string(Cap_str);              /* display capacitor symbol */
+  lcd_fixed_string(Cap_str);            /* display capacitor symbol */
   lcd_testpin(MaxCap->B);               /* display pin #2 */
   lcd_line(2);                          /* move to line #2 */
   /* and show capacitance */
@@ -628,9 +664,9 @@ int main(void)
   if (Test)
   {
     lcd_clear();                        /* display was initialized before */
-    lcd_fix_string(Timeout_str);        /* display: timeout */
+    lcd_fixed_string(Timeout_str);      /* display: timeout */
     lcd_line(2);
-    lcd_fix_string(Error_str);          /* display: error */
+    lcd_fixed_string(Error_str);        /* display: error */
     MilliSleep(2000);                   /* give user some time to read */
     CONTROL_PORT = 0;                   /* power off myself */
     return 0;                           /* exit program */
@@ -644,16 +680,16 @@ int main(void)
   lcd_init();                           /* initialize LCD */
 
   /* symbols for components */
-  lcd_fix_customchar(DiodeIcon1, LCD_CHAR_DIODE1);     /* diode symbol '|>|' */
-  lcd_fix_customchar(DiodeIcon2, LCD_CHAR_DIODE2);     /* diode symbol '|<|' */
-  lcd_fix_customchar(CapIcon, LCD_CHAR_CAP);           /* capacitor symbol '||' */
-  lcd_fix_customchar(ResIcon1, LCD_CHAR_RESIS1);       /* resistor symbol '[' */
-  lcd_fix_customchar(ResIcon2, LCD_CHAR_RESIS2);       /* resistor symbol ']' */
+  lcd_fixed_customchar(DiodeIcon1, LCD_CHAR_DIODE1);   /* diode symbol '|>|' */
+  lcd_fixed_customchar(DiodeIcon2, LCD_CHAR_DIODE2);   /* diode symbol '|<|' */
+  lcd_fixed_customchar(CapIcon, LCD_CHAR_CAP);         /* capacitor symbol '||' */
+  lcd_fixed_customchar(ResIcon1, LCD_CHAR_RESIS1);     /* resistor symbol '[' */
+  lcd_fixed_customchar(ResIcon2, LCD_CHAR_RESIS2);     /* resistor symbol ']' */
 
   /* kyrillish LCD character set lacks omega and µ */ 
   #ifdef LCD_CYRILLIC
-    lcd_fix_customchar(OmegaIcon, LCD_CHAR_OMEGA);     /* Omega */
-    lcd_fix_customchar(MicroIcon, LCD_CHAR_MICRO);     /* µ / micro */
+    lcd_fixed_customchar(OmegaIcon, LCD_CHAR_OMEGA);   /* Omega */
+    lcd_fixed_customchar(MicroIcon, LCD_CHAR_MICRO);   /* µ / micro */
   #endif
 
   /* return to normal output */
@@ -676,12 +712,12 @@ int main(void)
   }
 
   /* output operation mode */
-  lcd_fix_string(Mode_str);                  /* display: tester mode */
+  lcd_fixed_string(Mode_str);                /* display: tester mode */
   lcd_line(2);                               /* move to line #2 */
   if (Config.TesterMode == MODE_CONTINOUS)   /* if continous mode */
-    lcd_fix_string(Continous_str);           /* display: continous */
+    lcd_fixed_string(Continous_str);           /* display: continous */
   else                                       /* if auto-hold mode */
-    lcd_fix_string(AutoHold_str);            /* display: auto-hold */
+    lcd_fixed_string(AutoHold_str);            /* display: auto-hold */
   MilliSleep(2000);                          /* give user some time to read */
 
 
@@ -745,7 +781,7 @@ start:
   U_Bat += BAT_OFFSET;                  /* add offset for voltage drop */
 
   /* display battery voltage */
-  lcd_fix_string(Battery_str);          /* display: Bat. */
+  lcd_fixed_string(Battery_str);        /* display: Bat. */
   lcd_space();
   DisplayValue(U_Bat / 10, -2, 'V');    /* display battery voltage */
   lcd_space();
@@ -753,17 +789,17 @@ start:
   /* check limits */
   if (U_Bat < BAT_POOR)                 /* low level reached */
   {
-    lcd_fix_string(Low_str);            /* display: low */
+    lcd_fixed_string(Low_str);          /* display: low */
     MilliSleep(2000);                   /* let user read info */
     goto power_off;                     /* power off */
   }
   else if (U_Bat < BAT_POOR + 1000)     /* warning level reached */
   {
-    lcd_fix_string(Weak_str);           /* display: weak */
+    lcd_fixed_string(Weak_str);         /* display: weak */
   }
   else                                  /* ok */
   {
-    lcd_fix_string(OK_str);             /* display: ok */
+    lcd_fixed_string(OK_str);           /* display: ok */
   }
 
 
@@ -773,7 +809,7 @@ start:
 
   /* display start of probing */
   lcd_line(2);                     /* move to line #2 */
-  lcd_fix_string(Running_str);     /* display: probing... */
+  lcd_fixed_string(Running_str);   /* display: probing... */
 
   /* try to discharge any connected component */
   DischargeProbes();
@@ -799,12 +835,11 @@ start:
 
   /* if component might be a capacitor */
   if ((CompFound == COMP_NONE) ||
-      (CompFound == COMP_RESISTOR) ||
-      (CompFound == COMP_DIODE))
+      (CompFound == COMP_RESISTOR))
   {
     /* tell user to be patient with large caps :-) */
     lcd_clear_line(2);
-    lcd_fix_string(Running_str);
+    lcd_fixed_string(Running_str);
     lcd_space();
     lcd_data('C');    
 
@@ -876,12 +911,13 @@ result:
 end:
 
   /* get key press or timeout */
-  Test = TestKey((unsigned int)CYCLE_DELAY, 1);
+  Test = TestKey((unsigned int)CYCLE_DELAY, 12);
 
   if (Test == 1)              /* short key press */
   {
     /* a second key press triggers extra functions */
-    Test = TestKey(500, 0);
+    MilliSleep(50);
+    Test = TestKey(300, 0);
 
     if (Test > 0)           /* short or long key press */
     {
@@ -905,11 +941,11 @@ end:
 
 power_off:
 
-  /* display feedback (otherwise the user will wait ...) */
+  /* display feedback (otherwise the user will wait :-) */
   lcd_clear();
-  lcd_fix_string(Version_str);          /* display firmware version */
+  lcd_fixed_string(Version_str);        /* display firmware version */
   lcd_line(2);
-  lcd_fix_string(Done_str);             /* display: done! */
+  lcd_fixed_string(Done_str);           /* display: done! */
   MilliSleep(1000);                     /* let the user read the text */
 
   wdt_disable();                        /* disable watchdog */

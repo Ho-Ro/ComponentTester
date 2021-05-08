@@ -2,6 +2,8 @@
  *
  *   wait functions
  *
+ *   based on code from Karl-Heinz Kübbeler
+ *
  * ************************************************************************ */
 
 

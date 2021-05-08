@@ -2,6 +2,9 @@
  *
  *   global functions
  *
+ *   (c) 2012-2013 by Markus Reschke
+ *   based on code from Markus Frejek and Karl-Heinz Kübbeler
+ *
  * ************************************************************************ */
 
 
@@ -34,12 +37,12 @@
   extern void lcd_line(unsigned char Line);
   extern void lcd_clear_line(unsigned char Line);
   extern void lcd_init(void);
-  extern void lcd_fix_customchar(const unsigned char *CharData, uint8_t ID);
+  extern void lcd_fixed_customchar(const unsigned char *CharData, uint8_t ID);
 
   extern void lcd_space(void);
   extern void lcd_testpin(unsigned char Probe);
 //  extern void lcd_string(char *String);
-  extern void lcd_fix_string(const unsigned char *String);
+  extern void lcd_fixed_string(const unsigned char *String);
 
 #endif
 

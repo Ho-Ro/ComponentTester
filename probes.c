@@ -2,6 +2,9 @@
  *
  *   probing testpins
  *
+ *   (c) 2012-2013 by Markus Reschke
+ *   based on code from Markus Frejek and Karl-Heinz Kübbeler
+ *
  * ************************************************************************ */
 
 
@@ -899,12 +902,11 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
 
   /*
    *  Skip resistors
-   *  - Check for a resistor < 10 Ohm. Might be a large cap.
+   *  - But check for a resistor < 10 Ohm. Might be a large cap.
    */
 
   if (CompFound == COMP_RESISTOR)
   {
-    /* check for matching pins */
     Resistor = &Resistors[0];         /* pointer to first resistor */
     TempByte = 0;
 
@@ -914,6 +916,7 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
       if (((Resistor->A == Probe1) && (Resistor->B == Probe2)) ||
           ((Resistor->A == Probe2) && (Resistor->B == Probe1)))
       {
+        /* check for low value */
         if (CmpValue(Resistor->Value, Resistor->Scale, 10UL, 0) == -1)
           TempByte = 99;                /* signal low resistance and end loop */
       }
@@ -926,12 +929,17 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
     if (TempByte != 100) return;        /* skip this one */
   }
 
-  /* skip measurement for "dangerous" diodes */
+
+  /*
+   *  Skip measurement for "dangerous" diodes
+   *  - when Vf collides with the voltage of the capacitance measurement
+   */
+
   Diode = &Diodes[0];         /* pointer to first diode */
 
   for (TempByte = 0; TempByte < DiodesFound; TempByte++)
   {
-    /* got matching pins and dangerous threshold voltage */
+    /* got matching pins and low threshold voltage */
     if ((Diode->C == Probe2) &&
         (Diode->A == Probe1) &&
         (Diode->V_f < 1500))
@@ -1010,9 +1018,11 @@ void CheckDiode(void)
 {
   Diode_Type        *Diode;             /* pointer to diode */
   unsigned int      U1_Rl;              /* Vf #1 with Rl pull-up */
-  unsigned int      U2_Rl;              /* Vf #2 with Rl pull-up */
   unsigned int      U1_Rh;              /* Vf #1 with Rh pull-up */
+  unsigned int      U1_Zero;            /* Vf #1 zero */
+  unsigned int      U2_Rl;              /* Vf #2 with Rl pull-up */
   unsigned int      U2_Rh;              /* Vf #2 with Rh pull-up */
+  unsigned int      U2_Zero;            /* Vf #2 zero */
 
   wdt_reset();                          /* reset watchdog */
 
@@ -1024,46 +1034,45 @@ void CheckDiode(void)
    *  - simple diode
    *  - protection diode of a MOSFET or another device
    *  - intrinsic diode junction of a BJT
-   *  - resistor
-   *  - capacitor
+   *  - small resistor (< 3k)
+   *  - capacitor (> around 22µF)
    *
    *  Solution:
    *  - Vf of a diode rises with the current within some limits (about twice
-   *    mostly).
-   *  - Resistor?
-   *  - The voltage of a capacitor rises while charging. Since Vf is higher
-   *    for a high current, measure first with a high test current, then with
-   *    a low one. For a capacitor the second measurement results in a higher
-   *    voltage (charged longer). A low capacitance is fully charged to Vcc
-   *    quickly. So we have to check for voltages near Vcc also.
+   *    for Si and Schottky). Ge, Z-diodes and LEDs are hard to determine.
+   *    So it might be better to filter out other components.
    *  - For a MOSFET pretection diode we have to make sure that the MOSFET
    *    in not conducting, to be able to get Vf of the protection diode.
    *    So we discharge the gate and run the measurements twice for p and n
    *    channel FETs.
    *  - Take care about the internal voltage drop of the µC at the cathode
-   *    for a high test current.
+   *    for high test currents (Rl).
+   *  - Filter out resistors by the used voltage divider:
+   *    k = Rl + Ri_H + Ri_L
+   *    U_Rh = U_Rl / (k - (k U_Rl / 5V))
+   *    U_Rl = k U_Rh / (1 + (k U_Rh / 5V))
+   *  - Filter out caps by checking the voltage before and after measurement
+   *    with Rh. In 15ms a 22µF cap would be charged from 0 to 7mV, a larger
+   *    cap would have a lower voltage. We have to consider that caps also
+   *    might be charged by EMI.
    *
-   *  Problem:
-   *  - Rl drives a current of about 7mA. That's not the best current
-   *    for measuring Vf. The current for Rh is about 10.6µA.
+   *  Hints:
+   *  - Rl drives a current of about 7mA. That's not the best current for
+   *    measuring Vf. The current for Rh is about 10.6µA.
+   *    Most DMMs use 1mA.
    */
-
-  /* we assume: probe-1 = A / probe2 = C */
-  /* set probes: Gnd -- probe-2 / probe-1 -- Rl or Rh -- Vcc */
-  ADC_PORT = 0;
-  ADC_DDR = Probe2_ADC;       /* pull down cathode directly */
 
 
   /*
    *  Vf #1, supporting a possible p-channel MOSFET
    */
 
-  /* measure voltage across DUT (Vf) with Rl */
-  R_DDR = Probe1_Rl;               /* enable Rl for probe-1 */
-  R_PORT = Probe1_Rl;              /* pull up anode via Rl */
-  PullProbe(Probe3_Rl, FLAG_10MS | FLAG_PULLUP);       /* discharge gate */
-  U1_Rl = ReadU_5ms(Probe1_Pin);   /* get voltage at anode */
-  U1_Rl -= ReadU(Probe2_Pin);      /* substract voltage at cathode */
+  /* we assume: probe-1 = A / probe2 = C */
+  /* set probes: Gnd -- probe-2 / probe-1 -- Rl or Rh -- Vcc */
+  ADC_PORT = 0;
+  ADC_DDR = Probe2_ADC;            /* pull down cathode directly */
+  /* R_DDR is set to HiZ by DischargeProbes(); */
+  U1_Zero = ReadU(Probe1_Pin);     /* get voltage at anode */
 
   /* measure voltage across DUT (Vf) with Rh */
   R_DDR = Probe1_Rh;               /* enable Rh for probe-1 */
@@ -1072,9 +1081,34 @@ void CheckDiode(void)
   U1_Rh = ReadU_5ms(Probe1_Pin);   /* get voltage at anode */
                                    /* neglect voltage at cathode */
 
+  /* measure voltage across DUT (Vf) with Rl */
+  R_DDR = Probe1_Rl;               /* enable Rl for probe-1 */
+  R_PORT = Probe1_Rl;              /* pull up anode via Rl */
+  PullProbe(Probe3_Rl, FLAG_10MS | FLAG_PULLUP);       /* discharge gate */
+  U1_Rl = ReadU_5ms(Probe1_Pin);   /* get voltage at anode */
+  U1_Rl -= ReadU(Probe2_Pin);      /* substract voltage at cathode */
+
+
+  DischargeProbes();                    /* try to discharge probes */
+  if (CompFound == COMP_ERROR) return;  /* skip on error */  
+
+
   /*
    *  Vf #2, supporting a possible n-channel MOSFET
    */
+
+  /* we assume: probe-1 = A / probe2 = C */
+  /* set probes: Gnd -- probe-2 / probe-1 -- Rl or Rh -- Vcc */
+  ADC_PORT = 0;
+  ADC_DDR = Probe2_ADC;            /* pull down cathode directly */
+  U2_Zero = ReadU(Probe1_Pin);     /* get voltage at anode */
+
+  /* measure voltage across DUT (Vf) with Rh */
+  R_DDR = Probe1_Rh;               /* enable Rh for probe-1 */
+  R_PORT = Probe1_Rh;              /* pull up anode via Rh */
+  PullProbe(Probe3_Rl, FLAG_10MS | FLAG_PULLDOWN);     /* discharge gate */
+  U2_Rh = ReadU_5ms(Probe1_Pin);   /* get voltage at anode */
+                                   /* neglect voltage at cathode */
 
   /* measure voltage across DUT (Vf) with Rl */
   R_DDR = Probe1_Rl;               /* enable Rl for probe-1 */
@@ -1083,12 +1117,9 @@ void CheckDiode(void)
   U2_Rl = ReadU_5ms(Probe1_Pin);   /* get voltage at anode */
   U2_Rl -= ReadU(Probe2_Pin);      /* substract voltage at cathode */
 
-  /* measure voltage across DUT (Vf) with Rh */
-  R_DDR = Probe1_Rh;               /* enable Rh for probe-1 */
-  R_PORT = Probe1_Rh;              /* pull up anode via Rh */
-  PullProbe(Probe3_Rl, FLAG_10MS | FLAG_PULLDOWN);     /* discharge gate */
-  U2_Rh = ReadU_5ms(Probe1_Pin);   /* get voltage at anode */
-                                   /* neglect voltage at cathode */
+
+  R_PORT = 0;                      /* stop pulling up */
+
 
   /*
    *  process results
@@ -1099,14 +1130,78 @@ void CheckDiode(void)
   {
     U2_Rl = U1_Rl;
     U2_Rh = U1_Rh;
+    U2_Zero = U1_Zero;
   }
 
-  /* Vf is between 0.15V and 4.64V
-     and within limits for high and low test currents */
-  if ((U2_Rl > 150) &&
-      (U2_Rl < 4640) &&
-      (U2_Rl > (U2_Rh + (U2_Rh / 8))) &&
-      (U2_Rl < (U2_Rh * 8)))
+
+  /*
+   *  U_Rh < 10mV for
+   *  - resistor < 1k Ohm
+   *  - very large cap
+   */
+
+  if (U2_Rh <= 10) return;         /* small resistor or very large cap */
+
+
+  /*
+   *  U_Zero <= 2 for resistor or diode 
+   *  U_Zero > 2 for cap or diode
+   *  if U_Zero > 2 then U_Rh - U_Zero < 100 for cap
+   *
+   *  Hints:
+   *  If U_Zero > 10 and U_Rh is about U_Zero it's a large cap.
+   *  As larger the cap as lower U_Rl (charging time 15ms).
+   */
+
+  U1_Zero = U2_Rh - U2_Zero;       /* voltage difference */
+
+  if ((U2_Zero > 2) && (U1_Zero < 100)) return;   /* capacitor */
+
+
+  /*
+   *  The voltages for a resistor will follow the equation
+   *    k = Rl + Ri_H + Ri_L
+   *    U_Rl = k U_Rh / (1 + (k U_Rh / 5V))
+   *  Allow a tolerance of 3%.
+   *  For U_Rh > 40mV we don't need to check for a resistor.
+   *
+   *  Hint: Actually we could change the thresshold above from 10 t0 40 and
+   *  remove this test completely. The lowest U_Rh measured for a diode was
+   *  56mV for a AA118.
+   */
+
+  if (U2_Rh < 40)             /* resistor (< 3k) */
+  {
+    uint32_t      a, b;
+
+    /* calculate expected U_Rl based on measured U_Rh in mV */
+    b = (R_HIGH * 10) / ((R_LOW * 10) + Config.RiH + Config.RiL);  /* k factor */
+    a = b / 5;                                         /* k/5V */
+    a *= U2_Rh;                                        /* *U_Rh */ 
+    a += 1000;                                         /* +1 (1000 for mV) */
+    b *= 1000;                                         /* for mV */
+    b *= U2_Rh;                                        /* *U_Rh */
+    b /= a;                                            /* U_Rl in mV */
+
+    /* check if calculated U_Rl is within some % of measured value */
+    U1_Zero = (unsigned int)b;
+    U1_Rl = U1_Zero;
+    U1_Rh = U1_Zero;
+    U1_Zero /= 50;            /* 2% */
+    U1_Rh += U1_Zero;         /* 102% */
+    U1_Zero = (unsigned int)b;
+    U1_Zero /= 33;            /* 3% */
+    U1_Rl -= U1_Zero;         /* 97% (for resistors near 1k) */
+
+    if ((U2_Rl >= U1_Rl) && (U2_Rl <= U1_Rh)) return;     /* resistor */
+  }
+
+
+  /*
+   *  if U_Rl (Vf) is between 0.15V and 4.64V it's a diode
+   */
+
+  if ((U2_Rl > 150) && (U2_Rl < 4640))
   {
     /* if we haven't found any other component yet */
     if ((CompFound == COMP_NONE) ||
@@ -1534,16 +1629,14 @@ void CheckResistor(void)
            */
 
           n = 0;
-          while (n < ResistorsFound)
+          while (n < ResistorsFound)            /* loop through resistors */
           {
-            Resistor = &Resistors[n];
+            Resistor = &Resistors[n];           /* pointer to element */
 
-            if (Resistor->HiZ == Probe3_Pin)    /* same HiZ probe */
+            if ((Resistor->A == Probe1_Pin) && (Resistor->B == Probe2_Pin))
             {
-              /* this is the reverse measurement */
-
               /*
-               *  check if the reverse measurement is within a specific tolerance
+               *  check if the reversed measurement is within a specific tolerance
                */
 
               /* set lower and upper tolerance limits */
@@ -1571,11 +1664,12 @@ void CheckResistor(void)
               if ((CmpValue(Resistor->Value, Resistor->Scale, Value1, Scale) >= 0) &&
                   (CmpValue(Resistor->Value, Resistor->Scale, Value2, Scale) <= 0))
               {
-                n = 100;             /* end loop and signal match */
+                CompFound = COMP_RESISTOR;
+                n = 100;                     /* end loop and signal match */
               }
               else                 /* no match */
               {
-                n = 200;             /* end loop and signal mis-match */
+                n = 200;                     /* end loop and signal mis-match */
               }
             }
             else                           /* no match */
@@ -1584,20 +1678,23 @@ void CheckResistor(void)
             }
           }
 
-          /* we got a new resistor */
-          if (n != 100)
-          {
-            CompFound = COMP_RESISTOR;
 
-            /* save data */
-            Resistor = &Resistors[ResistorsFound];      /* free dataset */
-            Resistor->A = Probe2_Pin;
-            Resistor->B = Probe1_Pin;
-            Resistor->HiZ = Probe3_Pin;
-            Resistor->Value = Value;
-            Resistor->Scale = Scale;
-            ResistorsFound++;                           /* another one found */
-            if (ResistorsFound > 6) ResistorsFound--;   /* prevent array overflow */
+          /*
+           *  we got a new resistor
+           */
+
+          if (n != 100)            /* not a known resistor */
+          {
+            if (ResistorsFound < 3)               /* prevent array overflow */
+            {
+              /* save data */
+              Resistor = &Resistors[ResistorsFound];   /* unused dataset */
+              Resistor->A = Probe2_Pin;
+              Resistor->B = Probe1_Pin;
+              Resistor->Value = Value;
+              Resistor->Scale = Scale;
+              ResistorsFound++;                        /* another one found */
+            }
           }
         }
       }
