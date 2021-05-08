@@ -2,7 +2,7 @@
  *
  *   resistor measurements
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -70,7 +70,7 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
   /* pulse on: GND -- probe 2 / probe 1 -- Rl -- 5V */
   /* pulse off: GND -- probe 2 / probe 1 -- Rl -- GND */
   ADC_PORT = 0;                         /* set ADC port to low */
-  ADC_DDR = Probes.ADC_2;               /* pull-down probe 2 directly */
+  ADC_DDR = Probes.Pin_2;               /* pull-down probe 2 directly */
   R_PORT = 0;                           /* low by default */
   R_DDR = Probes.Rl_1;                  /* enable resistor */
 
@@ -86,16 +86,16 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
 
   while (Mode > 0)
   {
-    /* setup measurement */
-    if (Mode & MODE_HIGH) Probe = Probes.Pin_1;
-    else Probe = Probes.Pin_2;
+    /* set up measurement */
+    if (Mode & MODE_HIGH) Probe = Probes.ADC_1;
+    else Probe = Probes.ADC_2;
 
     wdt_reset();              /* reset watchdog */
     Counter = 0;              /* reset loop counter */
     Value = 0;                /* reset sample value */
 
     /* set ADC to use bandgap reference and run a dummy conversion */
-    Probe |= (1 << REFS0) | (1 << REFS1);
+    Probe |= ADC_REF_BANDGAP;
     ADMUX = Probe;                   /* set input channel and U reference */
     wait100us();                     /* time for voltage stabilization */
     ADCSRA |= (1 << ADSC);           /* start conversion */
@@ -109,7 +109,7 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
     while (Counter < 100)
     {
       /* create short pulse */
-      ADC_DDR = Probes.ADC_2;           /* pull-down probe-2 directly */
+      ADC_DDR = Probes.Pin_2;           /* pull-down probe-2 directly */
       R_PORT = Probes.Rl_1;
 
       /* start ADC conversion */
@@ -121,7 +121,7 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
 
       /* stop pulse */
       R_PORT = 0;
-      ADC_DDR = Probes.ADC_2 | Probes.ADC_1;
+      ADC_DDR = Probes.Pin_2 | Probes.Pin_1;
 
       /* get ADC reading (about 100µs) */
       while (ADCSRA & (1 << ADSC));     /* wait until conversion is done */
@@ -163,7 +163,7 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
     Value = 10UL * Config.Vcc;               /* in 0.1 mV */
     Value -= Value1;
     Value *= 1000;                           /* scale to µA */
-    Value /= ((R_LOW * 10) + Config.RiH);    /* in 0.1 Ohms */
+    Value /= ((R_LOW * 10) + NV.RiH);        /* in 0.1 Ohms */
 
     /* U = U_Rl - U_R_i_L = U_Rl - (R_i_L * I) */
     /* U = U_probe1 - U_probe2 */
@@ -176,7 +176,7 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
 
     if (ZeroFlag == 1)        /* auto-zero */
     {
-      if (R > Config.RZero) R -= Config.RZero;
+      if (R > NV.RZero) R -= NV.RZero;
       else R = 0;
     }
   }
@@ -185,7 +185,7 @@ uint16_t SmallResistor(uint8_t ZeroFlag)
 #undef MODE_HIGH
 
   /* update Uref flag for next ADC run */
-  Config.RefFlag = (1 << REFS1);        /* set REFS1 bit flag */
+  Config.RefFlag = ADC_REF_BANDGAP;     /* update flag */
 
   return R;
 }
@@ -246,11 +246,11 @@ void CheckResistor(void)
 
   /*  set probes: Gnd -- probe-2 / probe-1 -- Rl -- Vcc */
   ADC_PORT = 0;                         /* set ADC port to low */
-  ADC_DDR = Probes.ADC_2;               /* pull down probe-2 directly */
+  ADC_DDR = Probes.Pin_2;               /* pull down probe-2 directly */
   R_DDR = Probes.Rl_1;                  /* enable Rl for probe-1 */
   R_PORT = Probes.Rl_1;                 /* pull up probe-1 via Rl */
-  U_Ri_L = ReadU_5ms(Probes.Pin_2);     /* get voltage at internal R of MCU */
-  U_Rl_H = ReadU(Probes.Pin_1);         /* get voltage at Rl pulled up */
+  U_Ri_L = ReadU_5ms(Probes.ADC_2);     /* get voltage at internal R of MCU */
+  U_Rl_H = ReadU(Probes.ADC_1);         /* get voltage at Rl pulled up */
 
 
   /*
@@ -260,7 +260,7 @@ void CheckResistor(void)
   /* set probes: Gnd -- probe-2 / Gnd -- Rh -- probe-1 */
   R_PORT = 0;                           /* set resistor port low */
   R_DDR = Probes.Rh_1;                  /* pull down probe-1 via Rh */
-  U_Rh_L = ReadU_5ms(Probes.Pin_1);     /* get voltage at probe 1 */
+  U_Rh_L = ReadU_5ms(Probes.ADC_1);     /* get voltage at probe-1 */
 
   /* we got a resistor if the voltage is near Gnd */
   if (U_Rh_L <= 20)
@@ -271,7 +271,7 @@ void CheckResistor(void)
 
     /* set probes: Gnd -- probe-2 / probe-1 -- Rh -- Vcc */
     R_PORT = Probes.Rh_1;                    /* pull up probe-1 via Rh */
-    U_Rh_H = ReadU_5ms(Probes.Pin_1);        /* get voltage at Rh pulled up */
+    U_Rh_H = ReadU_5ms(Probes.ADC_1);        /* get voltage at Rh pulled up */
 
 
     /*
@@ -279,16 +279,16 @@ void CheckResistor(void)
      */
 
     /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
-    ADC_DDR = Probes.ADC_1;                  /* set probe-1 to output */
-    ADC_PORT = Probes.ADC_1;                 /* pull up probe-1 directly */
+    ADC_DDR = Probes.Pin_1;                  /* set probe-1 to output */
+    ADC_PORT = Probes.Pin_1;                 /* pull up probe-1 directly */
     R_PORT = 0;                              /* set resistor port to low */ 
     R_DDR = Probes.Rl_2;                     /* pull down probe-2 via Rl */
-    U_Ri_H = ReadU_5ms(Probes.Pin_1);        /* get voltage at internal R of MCU */
-    U_Rl_L = ReadU(Probes.Pin_2);            /* get voltage at Rl pulled down */
+    U_Ri_H = ReadU_5ms(Probes.ADC_1);        /* get voltage at internal R of MCU */
+    U_Rl_L = ReadU(Probes.ADC_2);            /* get voltage at Rl pulled down */
 
     /* set probes: Gnd -- Rh -- probe-2 / probe-1 -- Vcc */
     R_DDR = Probes.Rh_2;                /* pull down probe-2 via Rh */
-    U_Rh_L = ReadU_5ms(Probes.Pin_2);   /* get voltage at Rh pulled down */
+    U_Rh_L = ReadU_5ms(Probes.ADC_2);   /* get voltage at Rh pulled down */
 
     /* if voltage breakdown is sufficient */
     if ((U_Rl_H >= 4400) || (U_Rh_H <= 97))   /* R >= 5.1k or R < 9.3k */
@@ -391,7 +391,7 @@ void CheckResistor(void)
              */
 
             if (U_Rl_H == Config.Vcc) U_Rl_H = Config.Vcc - 1;   /* prevent division by zero */
-            Value1 = (R_LOW * 10) + Config.RiH;        /* Rl + RiH in 0.1 Ohm */
+            Value1 = (R_LOW * 10) + NV.RiH;       /* Rl + RiH in 0.1 Ohm */
             Value1 *= (U_Rl_H - U_Ri_L);
             Value1 /= (Config.Vcc - U_Rl_H);
 
@@ -407,7 +407,7 @@ void CheckResistor(void)
              *    = (Rl + RiL) * ((Vcc - U_Rl_RiL) / U_Rl_RiL) - RiH
              */
 
-            Value2 = (R_LOW * 10) + Config.RiL;   /* Rl + RiL in 0.1 Ohms */
+            Value2 = (R_LOW * 10) + NV.RiL;       /* Rl + RiL in 0.1 Ohms */
             Value2 *= (U_Ri_H - U_Rl_L);
             Value2 /= U_Rl_L;
 
@@ -484,7 +484,7 @@ void CheckResistor(void)
           {
             Resistor = &Resistors[n];           /* pointer to element */
 
-            if ((Resistor->A == Probes.Pin_1) && (Resistor->B == Probes.Pin_2))
+            if ((Resistor->A == Probes.ID_1) && (Resistor->B == Probes.ID_2))
             {
               /*
                *  check if the reversed measurement is within a specific tolerance
@@ -540,8 +540,8 @@ void CheckResistor(void)
             {
               /* save data */
               Resistor = &Resistors[Check.Resistors];  /* unused dataset */
-              Resistor->A = Probes.Pin_2;              /* pin facing Gnd */
-              Resistor->B = Probes.Pin_1;              /* pin facing Vcc */
+              Resistor->A = Probes.ID_2;               /* pin facing Gnd */
+              Resistor->B = Probes.ID_1;               /* pin facing Vcc */
               Resistor->Value = Value;
               Resistor->Scale = Scale;
               Check.Resistors++;                       /* another one found */
@@ -561,9 +561,11 @@ void CheckResistor(void)
  *  requires:
  *  - HighPin = pin facing Vcc
  *  - LowPin = pin facing Gnd
+ *  - maximum resistance in kOhms
+ *    0: don't check limit
  */
 
-uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin)
+uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin, uint8_t Max)
 {
   uint8_t                Flag = 0;      /* return value */
 
@@ -575,6 +577,15 @@ uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin)
   if (Check.Resistors == 1)             /* found resistor */
   {
     Flag = 1;            /* signal detected resistor */
+
+    if (Max > 0)         /* check upper limit */
+    {
+      /* measured value isn't below maximum */
+      if (CmpValue((uint32_t)Max, 3, Resistors[0].Value, Resistors[0].Scale) != 1) 
+      {
+        Flag = 0;        /* reset flag */
+      }
+    }
   }
 
   return Flag;

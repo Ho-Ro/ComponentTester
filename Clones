@@ -1,0 +1,115 @@
+------------------------------------------------------------------------------
+
+             Collection of settings for various tester versions
+
+------------------------------------------------------------------------------
+
+DIY Kit "AY-AT"
+- with ST7735 color LCD module
+- provided by flywheelz@EEVBlog
+
+
+Hardware Options:
+
+#define HW_ENCODER
+#define HW_REF25
+#define HW_ZENER
+#define HW_FREQ_COUNTER
+
+
+LCD module:
+
+#define LCD_ST7735
+#define LCD_COLOR                       /* color graphic display */
+#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RES          PD0            /* port pin used for /RESX */
+#define LCD_CS           PD5            /* port pin used for /CSX (optional) */
+#define LCD_DC           PD1            /* port pin used for D/CX */
+#define LCD_SCL          PD2            /* port pin used for SCL */
+#define LCD_SDA          PD3            /* port pin used for SDA */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       160            /* number of vertical dots */
+#define LCD_FLIP_X                      /* enable horizontal flip */
+//#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
+#define FONT_10X16_H                    /* 10x16 font, horizontally aligned */
+#define SYMBOLS_24X24_H                 /* 24x24 symbols, horizontally aligned */
+
+
+Rotary Encoder:
+
+#define ENCODER_A        PD1       /* rotary encoder A signal */
+#define ENCODER_B        PD3       /* rotary encoder B signal */
+
+
+Input for the frequency counter is PD4 (T0).
+
+
+------------------------------------------------------------------------------
+
+M12864 DIY Transistor Tester
+- ST7565 display
+- rotary encoder at PD1/3
+
+
+LCD module:
+
+#define LCD_ST7565R
+#define LCD_GRAPHIC                     /* monochrome graphic display */
+#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RESET        PD0            /* port pin used for /RES */
+#define LCD_A0           PD1            /* port pin used for A0 */
+#define LCD_SCL          PD2            /* port pin used for SCL */
+#define LCD_SI           PD3            /* port pin used for SI (LCD's data input) */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       64             /* number of vertical dots */
+//#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
+#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_START_Y      0              /* start line (0-63) */
+#define LCD_CONTRAST     11             /* default contrast (0-63) */
+#define FONT_8X8_V                      /* 8x8 font, vertically aligned */
+#define SYMBOLS_24X24_VP                /* 24x24 symbols, vertically aligned */
+
+
+Rotary Encoder:
+
+#define ENCODER_A        PD1       /* rotary encoder A signal */
+#define ENCODER_B        PD3       /* rotary encoder B signal */
+
+
+------------------------------------------------------------------------------
+
+Chinese clone T3/T4
+- ST7565 display
+- provided by tom666@EEVblog
+
+
+LCD module:
+
+#define LCD_ST7565R
+#define LCD_GRAPHIC                     /* monochrome graphic display */
+#define LCD_SPI_BITBANG                 /* bit-bang SPI interface */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RESET        PD4            /* port pin used for /RES */
+#define LCD_A0           PD3            /* port pin used for A0 */
+#define LCD_SCL          PD2            /* port pin used for SCL */
+#define LCD_SI           PD1            /* port pin used for SI (LCD's data input) */
+#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       64             /* number of vertical dots */
+#define LCD_START_Y      0              /* start line (0-63) */
+#define LCD_CONTRAST     11             /* default contrast (0-63) */
+#define FONT_8X8_V                      /* 8x8 font, vertically aligned */
+#define SYMBOLS_24X24_VP                /* 24x24 symbols, vertically aligned */
+
+
+------------------------------------------------------------------------------
+
+
+------------------------------------------------------------------------------
+

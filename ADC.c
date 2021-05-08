@@ -2,7 +2,7 @@
  *
  *   ADC functions
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -24,7 +24,6 @@
 #include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
-#include "LCD.h"              /* LCD module */
 #include "functions.h"        /* external functions */
 
 
@@ -38,10 +37,12 @@
  *  - Use Vcc as reference by default.
  *  - Switch to bandgap reference for low voltages (< 1.0V) to improve
  *    ADC resolution.
+ *  - with a 125kHz ADC clock a single conversion needs about 0.1ms
+ *    with 25 samples we end up with about 2.6ms
  *
  *  requires:
- *  - Probe: input channel of ADC MUX (lower 4 bits)
- *           may also include setting of voltage reference
+ *  - Probe: input channel of ADC MUX (lower 4 or 5 bits)
+ *           must not include setting of voltage reference
  *
  */
 
@@ -49,26 +50,31 @@ uint16_t ReadU(uint8_t Probe)
 {
   uint16_t          U;             /* return value (mV) */
   uint8_t           Counter;       /* loop counter */
+  uint8_t           Bits;          /* reference bits */
   uint32_t          Value;         /* ADC value */
 
-  Probe |= (1 << REFS0);           /* use external buffer cap anyway */
-                                   /* and AVcc as default */
+  Probe |= ADC_REF_VCC;            /* use AVcc as default reference */
+                                   /* and external buffer cap anyway */
 
 sample:
 
   ADMUX = Probe;                   /* set input channel and U reference */
 
-  /* if voltage reference has changed run a dummy conversion */
-  /* (recommended by datasheet) */
-  Counter = Probe & (1 << REFS1);    /* get REFS1 bit flag */
-  if (Counter != Config.RefFlag)
+  /* 
+   *  dummy conversion
+   *  - if voltage reference has changed run a dummy conversion
+   *  - recommended by datasheet
+   */
+
+  Bits = Probe & ADC_REF_MASK;     /* get reference bits */
+  if (Bits != Config.RefFlag)      /* reference has changed */
   {
-    wait100us();                     /* time for voltage stabilization */
+    wait100us();                   /* time for voltage stabilization */
 
-    ADCSRA |= (1 << ADSC);           /* start conversion */
-    while (ADCSRA & (1 << ADSC));    /* wait until conversion is done */
+    ADCSRA |= (1 << ADSC);         /* start conversion */
+    while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
 
-    Config.RefFlag = Counter;        /* update flag */
+    Config.RefFlag = Bits;         /* update bits */
   }
 
 
@@ -78,6 +84,7 @@ sample:
 
   Value = 0UL;                     /* reset sampling variable */
   Counter = 0;                     /* reset counter */
+
   while (Counter < Config.Samples) /* take samples */
   {
     ADCSRA |= (1 << ADSC);         /* start conversion */
@@ -86,13 +93,21 @@ sample:
     Value += ADCW;                 /* add ADC reading */
 
     /* auto-switch voltage reference for low readings */
-    if ((Counter == 4) &&
-        ((uint16_t)Value < 1024) &&
-        !(Probe & (1 << REFS1)) &&
-        (Config.AutoScale == 1))
+    if (Counter == 4)                   /* 5 samples */
     {
-      Probe |= (1 << REFS1);       /* select internal bandgap reference */
-      goto sample;                 /* re-run sampling */
+      if ((uint16_t)Value < 1024)       /* < 1V (5V / 5 samples) */
+      {
+        if (Bits != ADC_REF_BANDGAP)    /* bandgap ref not selected */
+        {
+          if (Config.AutoScale == 1)    /* autoscaling enabled */
+          {
+            Probe &= ~ADC_REF_MASK;     /* clear reference bits */
+            Probe |= ADC_REF_BANDGAP;   /* select bandgap reference */
+
+            goto sample;                /* re-run sampling */
+          }
+        }
+      }
     }
 
     Counter++;                     /* one less to do */
@@ -105,8 +120,14 @@ sample:
    */
 
   /* get voltage of reference used */
-  if (Probe & (1 << REFS1)) U = Config.Bandgap;   /* bandgap reference */
-  else U = Config.Vcc;                            /* Vcc reference */   
+  if (Bits == ADC_REF_BANDGAP)     /* bandgap reference */
+  {
+    U = Config.Bandgap;       /* voltage of bandgap reference */
+  }
+  else                             /* - */
+  {
+    U = Config.Vcc;           /* voltage of Vcc */   
+  }
 
   /* convert to voltage; */
   Value *= U;                      /* ADC readings * U_ref */

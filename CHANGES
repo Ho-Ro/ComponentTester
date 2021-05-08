@@ -2,9 +2,140 @@
 
                   Change Log for the Component Tester firmware
 
-                        (c) 2012-2015 by Markus Reschke
+         for ATmega 328/324/644/1284 with character or graphic display
+
+                        (c) 2012-2017 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.27m 2017-02
+- Added high current meassurement to GetLeakageCurrent() for CLDs.
+  Thanks to texaspyro@EEVblog for sending a few sample diodes.
+- Fixed bug in MilliSleep().
+- Fixed issue with large inductance in diode detection.
+- Compensation for inductance measurement in the mH range.
+- Support for PCF8574 based LCD backpacks in HD44780 driver.
+- Driver for bit-bang and hardware I2C.
+- Fixed bug in the handling of the variable pin assignment for HD44780
+  based displays.
+- Color support for probe pinout of several tools. 
+- Check function for RC servos.
+- Alternative PWM generator with variable frequency and ratio. Requires
+  rotary encoder and large display.
+- Output of R_DS for MOSFETs and Vf for their body diode.
+- Support for fixed IR receiver module in IR RC detector/decoder.
+- Dropped edition in name, because the Classic edition is obsolete by now.
+
+v1.26m 2016-12
+- Added compensation for inductance measurement (more work required).
+- Added Spanish texts. Translation provided by pepe10000@EEVblog.
+- Changed FrequencyCounter() to support also ATmega 324/644/1284. 
+- Fixed problem in inductance measurement logic. Reported by indman@EEVblog.
+- Fixed error in voltage reference handling for ATmega 324/644/1284.
+- Improved detection of turning velocity of rotary encoder to cope with
+  different values of pulses per step or detent.
+- Added hardware SPI to all drivers for SPI based displays.
+
+v1.25m 2016-09
+- A lot of changes to support the ATmega 324/644/1284.
+- Modified test resistor management to support variable port pins.
+- Added software option for probe color coding. 
+- Centralized color management.
+- Added file listing settings for various tester versions/clones.
+- Fixed small issue with 24x24 VP symbol bitmap in config.h. Reported by
+  lordstein@EEVblog and hapless@EEVblog.
+
+v1.24m 2016-08
+- Measurement of self-discharge leakage current for caps > 4.7µF.
+- Added type detection logic for BJTs with diode on the same substrate.
+- Improved leakage current measurement to support currents in the nA range.
+  The leakage will be shown for diodes and BJTs, when it's larger than 50nA.
+- Improved the display of instrinsic/flyback diodes for transistors to check
+  for the proper diode (pins and polarity). 
+- Fixed an error in the display of a BJT's flyback diode.
+- Added a function for searching a specific diode and adapted several
+  functions to use the new diode search instead of the old local search.
+- Improved detection of diodes to support also Germanium types with very low
+  Vf at low currents.
+- Fixed problem with LCD_ClearLine(0) for ILI9341 and ST7735.
+- Improved detection of depletion mode FETs to exclude Germanium BJTs with
+  high leakage current. Added detection of FETs with low I_DSS. Added
+  measurement of I_DSS. 
+
+v1.23m 2016-07
+- Added support for PCD8544 and ST7735 based LCD modules. Thanks to
+  hansibull@EEVblog for sponsering a PCD8544 display.
+- Extended wait.S for 20MHz MCU clock.
+- Changed MeasureESR() to support also non 125KHz ADC clocks.
+- Added detection of PUTs (Programmable Unijunction Transistor) and
+  UJTs (Unijunction Transistor). Thanks to edavid@EEVblog for sending
+  some UJTs for testing.
+- Minor code optimization for ILI9341 and ST7565R.
+- Fixed multi-page font problem for ST7565R, again.
+- /RES port pin assigned for ILI9341 was ignored. Fixed that and also
+  wrong delays for hardware reset. 
+- Support of individual data lines for HD44780 based LCD displays. 
+- Support user-defined resistor divider for battery voltage.
+- Added output of If for opto couplers.
+- Changed probe pins of ESR tool to 1-3 to be compatible with k-firmware.
+- Moved MCU specific global settings to dedicated header files. Several minor
+  changes to add support for ATmega664/1284.
+- Updated Czech texts, thanks to Kapa.
+
+v1.22m 2016-03
+- Added opto coupler check with display of the LED's V_f, the CTR and t_on/
+  t_off delays (BJT types). Thanks to all_repair@EEVblog for some samples.
+
+v1.21m 2016-01
+- Licensed under the EUPL V.1.1
+- Improved storage managment of adjustment values and added support for
+  two adjustment profiles.
+- Added detection and decoding of RC-6 to IR detector. Solved issue with
+  test button when the IR receiver module is removed too early. Added
+  configuration switch to disable current limiting resistor for Vs in case
+  of a 5V only IR receiver module.
+
+v1.20m 2015-12
+- Added IR RC detector and decoder function (requires TSOP IR receiver
+  module).
+- Changed MainMenu() to reduce RAM usage.
+
+v1.19m 2015-11
+- Implemented a fancy pinout displaying symbols and probe numbers for 3 pin
+  semiconductors. 
+- Added color support.
+- Changed ShowDiode() to output the number of diodes directy (not via 
+  Show_Fail() anymore) when more than 3 diodes are found (hint by
+  hapless@EEVblog).
+- Extended LCD_ClearLine() in all display drivers to clear the remaining
+  space of the current line to speed up things, especially for graphic
+  displays The idea is to display the text first and then to clear the
+  remaining space, instead of clearing the complete line and then printing the
+  text.
+- Added display driver for ILI9341/ILI9342 based modules. Thanks to
+  Overtuner@EEVblog forum for providing two LCD modules.
+- Fixed problem with µ/micro character in font files.
+- Fixed character issue (when larger than 8x8) in LCD_Char() for ST7565R.
+- Updated Czech texts, thanks to Kapa.
+- Fixed a minor issue in MenuTool(), when rolling over from last to first
+  item.
+
+v1.18m 2015-07
+- Improved MenuTool() to update items only when the list has changed.
+  Otherwise just the selection indicator is updated.
+- Fixed variable management bug in config.h.
+- Added feature to reset to firmware defaults when powering on. 
+- Optimized functions for NVRAM management (values stored in EEPROM).
+- Added driver functions for ST7565R grafic modules.
+- Designed a simple framework which allows to add different display modules or
+  controllers. Moved high level display functions to display.c. Each controller
+  got a dedicated source and header file including controller specific
+  functions. Adapted old HD44780 to new framework.
+- Changed UI to handle multiline displays in a flexible way.
+- Removed everything specific to ATmega168 (too small ;).
+- Optimized feedback processing in MenuTool().
+- Forked a new firmware edition, which also supports graphic displays, named
+  "Trendy Edition". The old firmware is called "Classic Edition" now.
 
 v1.17m 2015-02
 - Improved CheckDiode() to support measured Vcc in resistor check and fixed
@@ -37,7 +168,7 @@ v1.14m 2014-08
 - Added frequency counter (hardware option).
 
 v1.13m 2014-07
-- Added Czech texts, thanks to Kapax.
+- Added Czech texts, thanks to Kapa.
 - ESR and PWM tools display the probes pins used.
 - Improved handling of pre-compiler directives for extra features.
 - Added support for rotary encoders for the user interface.

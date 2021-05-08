@@ -2,7 +2,7 @@
  *
  *   capacitor measurements
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -35,7 +35,7 @@
 #ifdef SW_ESR
 
 /*
- *  setup timer0 as MCU cycle timer
+ *  set up timer0 as MCU cycle timer
  *
  *  requires:
  *  - number of MCU cycles
@@ -68,7 +68,7 @@ uint8_t SetupDelayTimer(uint8_t Cycles)
 
 
   /*
-   *  setup timer0:
+   *  set up timer0:
    *  - CTC mode (count up to OCR0A) 
    *  - prescaler 1 to match MCU cycles
    */
@@ -76,7 +76,7 @@ uint8_t SetupDelayTimer(uint8_t Cycles)
   TCCR0B = 0;                      /* disable timer */
   TCCR0A = (1 << WGM01);           /* set CTC mode, disable output compare pins */
   OCR0A = Cycles;                  /* set number of MCU cycles */
-  /* todo: check if we have to substract one cycle for setting the flag*/
+  /* todo: check if we have to substract one cycle for setting the flag */
 
   Flag = 1;              /* signal success */
   return Flag;
@@ -120,13 +120,9 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   uint8_t           Probe2;        /* probe #2 */
   uint8_t           ADC_Mask;      /* bit mask for ADC */
   uint8_t           n;             /* counter */
-  uint8_t           muCycles;      /* MCU cycles per µs */
-  uint8_t           PulseCycles;   /* MCU cycles for a half pulse */
   uint32_t          Sum_1;         /* sum #1 */
   uint32_t          Sum_2;         /* sum #2 */
   uint32_t          Value;
-
-  #define LOOP_RUNS      255
 
   /* check for a capacitor >= 0.18µF */
   if ((Cap == NULL) ||
@@ -140,31 +136,28 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   DischargeProbes();                    /* try to discharge probes */
   if (Check.Found == COMP_ERROR) return ESR;   /* skip on error */
 
-  Probe1 = Cap->A;       /* probe facing Gnd */
-  Probe2 = Cap->B;       /* probe facing Vcc */
+  UpdateProbes(Cap->A, Cap->B, 0);      /* update probes */
+  Probe1 = Probes.ADC_1;                /* ADC MUX for probe-1 */
+  Probe2 = Probes.ADC_2;                /* ADC MUX for probe-2 */
 
-  UpdateProbes(Probe1, Probe2, 0);      /* update probes */
+  Probe1 |= ADC_REF_BANDGAP;            /* select bandgap reference */
+  Probe2 |= ADC_REF_BANDGAP;            /* select bandgap reference */
+
+  /* bitmask to enable and start ADC */
+  ADC_Mask = (1 << ADSC) | (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
 
   /* init variables */
   Sum_1 = 1;             /* 1 to prevent division by zero */
   Sum_2 = 1;             /* 1 to prevent division by zero */
 
-  Probe1 |= (1 << REFS1) | (1 << REFS0);     /* select bandgap reference */
-  Probe2 |= (1 << REFS1) | (1 << REFS0);     /* select bandgap reference */
-
-  /* bitmask to enable and start ADC (ADC clock: 125kHz / 8µs) */
-  ADC_Mask = (1 << ADSC) | (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
-
-  /* delay for pulse */
-  muCycles = (CPU_FREQ / 1000000);      /* MCU cycles per µs */
 
   /*
-   *  We have to create a delay to shift the middle of the puls to the ADC's
+   *  We have to create a delay to shift the middle of the pulse to the ADC's
    *  S&H. S&H happens at 1.5 ADC clock cycles after starting the conversion.
-   *  We synchronize to a dummy conversion done directly before, so we'll got
+   *  We synchronize to a dummy conversion done directly before, so we have
    *  2.5 ADC clock cycles to S&H. The time between the completed dummy
    *  conversion and S&H of the next conversion is:
-   *    2.5 ADC clock cycles (2.5 * 1/125kHz = 20µs)
+   *    2.5 ADC clock cycles
    *    - MCU cycles for waiting loop for completion of dummy conversion (4)
    *    - MCU cycles for starting next conversion (2)
    *    - 5µs delay
@@ -174,23 +167,25 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
    *  for a full pulse. Half pulse for 8MHz MCU clock is about 13.5µs.
    */
 
-  PulseCycles = muCycles * 15;          /* MCU cycles for 15µs (20µs S/H - 5µs delay) */
-  PulseCycles -= 10;                    /* substract other cycles */
+  /* delay for pulse */
+  /* MCU cycles for one ADC cycle * 2.5 - MCU cycles for 5µs - 10 */
+  U_1 = ((MCU_CYCLES_PER_ADC * 25) / 10) - (MCU_CYCLES_PER_US * 5) - 10;
+  n = (uint8_t)U_1;
 
-  /* setup delay timer */
-  if (SetupDelayTimer(PulseCycles) == 0) return ESR;   /* skip on error */
+  /* set up delay timer */
+  if (SetupDelayTimer(n) == 0) return ESR;   /* skip on error */
 
 
   /*
    *  charge capacitor with a negative pulse of half length
-   *  pulse: GND -- probe 2 / probe 1 -- Rl -- 5V
+   *  pulse: GND -- probe-2 / probe-1 -- Rl -- 5V
    */
 
   ADC_PORT = 0;               /* set ADC port to low */
-  ADMUX = Probe1;             /* set input channel to probe 1 & set bandgap ref */
+  ADMUX = Probe1;             /* set input channel to probe-1 & set bandgap ref */
   wait10ms();                 /* time for voltage stabilization */
-  ADC_DDR = Probes.ADC_2;     /* pull down probe 2 directly */
-  R_PORT = Probes.Rl_1;       /* pull up probe 1 via Rl */
+  ADC_DDR = Probes.Pin_2;     /* pull down probe-2 directly */
+  R_PORT = Probes.Rl_1;       /* pull up probe-1 via Rl */
   R_DDR = Probes.Rl_1;        /* enable resistor */
   DelayTimer();               /* wait 1/2 pulse */
   R_PORT = 0;                 /* set resistor port to low */
@@ -204,19 +199,19 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
    *  - measure pulse voltage (with load)
    */  
 
-  n = LOOP_RUNS;
+  n = 255;
   while (n > 0)
   {
     /*
-     *  forward mode, probe 1 only (probe 2 in HiZ mode)
-     *  get voltage at probe 1 (facing Gnd)
-     *  set probes: GND -- probe 1 -- Rl -- 5V / probe 2 -- HiZ
+     *  forward mode, probe-1 only (probe-2 in HiZ mode)
+     *  get voltage at probe-1 (facing Gnd)
+     *  set probes: GND -- probe-1 -- Rl -- 5V / probe-2 -- HiZ
      */
 
-    ADC_DDR = Probes.ADC_1;        /* pull down probe 1 directly to GND */
-    R_PORT = Probes.Rl_1;          /* pull up probe 1 via Rl */
+    ADC_DDR = Probes.Pin_1;        /* pull down probe-1 directly to GND */
+    R_PORT = Probes.Rl_1;          /* pull up probe-1 via Rl */
     R_DDR = Probes.Rl_1;           /* enable resistor */
-    ADMUX = Probe1;                /* set input channel to probe 1 & set bandgap ref */
+    ADMUX = Probe1;                /* set input channel to probe-1 & set bandgap ref */
     wdt_reset();                   /* reset watchdog */
     /* run dummy conversion for ADMUX change */
     ADCSRA = ADC_Mask;             /* start conversion */
@@ -229,11 +224,11 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
     /*
      *  forward mode, positive charging pulse
-     *  get voltage at probe 2 (facing Vcc)
-     *  set probes: GND -- probe 1 / probe 2 -- Rl -- 5V
+     *  get voltage at probe-2 (facing Vcc)
+     *  set probes: GND -- probe-1 / probe-2 -- Rl -- 5V
      */
 
-    ADMUX = Probe2;                /* set input channel to probe 2 & set bandgap ref */
+    ADMUX = Probe2;                /* set input channel to probe-2 & set bandgap ref */
     /* run dummy conversion for ADMUX change */
     ADCSRA = ADC_Mask;             /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
@@ -241,7 +236,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     /* read ADC in the mid of a positive charging pulse */
     ADCSRA = ADC_Mask;             /* start conversion with next ADC clock cycle */
     wait5us();
-    R_PORT = Probes.Rl_2;          /* pull up probe 2 via Rl */
+    R_PORT = Probes.Rl_2;          /* pull up probe-2 via Rl */
     R_DDR = Probes.Rl_2;           /* enable resistor */
     DelayTimer();                  /* wait 1/2 pulse */
     DelayTimer();                  /* wait another 1/2 pulse */
@@ -252,15 +247,34 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
 
     /*
-     *  reverse mode, probe 2 only (probe 1 in HiZ mode)
-     *  get voltage at probe 2 (facing Gnd)
-     *  set probes: GND -- probe 2 -- Rl -- 5V / probe 1 -- HiZ
+     *  prevent runaway of cap's charge
      */
 
-    ADC_DDR = Probes.ADC_2;        /* pull down probe 2 directly */
-    R_PORT = Probes.Rl_2;          /* pull up probe 2 via Rl */
+    if (U_2 <= 100)
+    {
+      /* charge cap a little bit more (positive pulse) */
+
+      /* set probes: GND -- probe-1 / probe-2 -- Rl -- 5V */
+      /* probe-1 is still pulled down directly */
+      R_PORT = Probes.Rl_2;        /* pull up probe-2 via Rl */
+      R_DDR = Probes.Rl_2;         /* enable pull up */
+      wait2us();
+      DelayTimer();                /* wait 1/2 pulse */
+      R_DDR = 0;                   /* disable any pull up */      
+      R_PORT = 0;                  /* reset probe resistors */
+    }
+
+
+    /*
+     *  reverse mode, probe-2 only (probe-1 in HiZ mode)
+     *  get voltage at probe 2 (facing Gnd)
+     *  set probes: GND -- probe-2 -- Rl -- 5V / probe-1 -- HiZ
+     */
+
+    ADC_DDR = Probes.Pin_2;        /* pull down probe-2 directly */
+    R_PORT = Probes.Rl_2;          /* pull up probe-2 via Rl */
     R_DDR = Probes.Rl_2;           /* enable resistor */
-    ADMUX = Probe2;                /* set input channel to probe 2 & set bandgap ref */
+    ADMUX = Probe2;                /* set input channel to probe-2 & set bandgap ref */
     wdt_reset();                   /* reset watchdog */
     /* run dummy conversion for ADMUX change */
     ADCSRA = ADC_Mask;             /* start conversion */
@@ -273,11 +287,11 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
     /*
      *  reverse mode, negative charging pulse
-     *  get voltage at probe 1 (facing Vcc)
-     *  set probes: GND -- probe 2 / probe 1 -- Rl -- 5V
+     *  get voltage at probe-1 (facing Vcc)
+     *  set probes: GND -- probe-2 / probe-1 -- Rl -- 5V
      */
 
-    ADMUX = Probe1;                /* set input channel to probe 1 & set bandgap ref */
+    ADMUX = Probe1;                /* set input channel to probe-1 & set bandgap ref */
     /* run dummy conversion for ADMUX change */
     ADCSRA = ADC_Mask;             /* start conversion */
     while (ADCSRA & (1 << ADSC));  /* wait until conversion is done */
@@ -285,7 +299,7 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     /* read ADC in the mid of a negatve charging pulse */
     ADCSRA = ADC_Mask;             /* start conversion with next ADC clock cycle */
     wait5us();
-    R_PORT = Probes.Rl_1;          /* pull up probe 1 via Rl */
+    R_PORT = Probes.Rl_1;          /* pull up probe-1 via Rl */
     R_DDR = Probes.Rl_1;           /* enable resistor */
     DelayTimer();                  /* wait 1/2 pulse */
     DelayTimer();                  /* wait another 1/2 pulse */
@@ -296,16 +310,6 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
 
     /*
-     *  manage measured values
-     */
-
-    U_1 += U_3;          /* sum of both measurements without pulses/load */
-    Sum_1 += U_1;        /* add to total no-load sum */
-    U_2 += U_4;          /* sum of both measurements with pulses/load */
-    Sum_2 += U_2;        /* add to total with-load sum */
-
-
-    /*
      *  prevent runaway of cap's charge
      */
 
@@ -313,29 +317,25 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
     {
       /* charge cap a little bit more (negative pulse) */
 
-      /* set probes: GND -- probe 2 / probe 1 -- Rl -- 5V */
-      /* probe 2 is still pulled down directly */
-      R_PORT = Probes.Rl_1;        /* pull up probe 1 via Rl */
+      /* set probes: GND -- probe-2 / probe-1 -- Rl -- 5V */
+      /* probe-2 is still pulled down directly */
+      R_PORT = Probes.Rl_1;        /* pull up probe-1 via Rl */
       R_DDR = Probes.Rl_1;         /* enable pull up */
       wait2us();
-      R_DDR = 0;                   /* disable any pull up */      
-      R_PORT = 0;                  /* reset probe resistors */
-    }
-
-    if (U_2 <= 100)
-    {
-      /* charge cap a little bit more (positive pulse) */
-
-      /* set probes: GND -- probe 1 / probe 2 -- Rl -- 5V */
-      ADC_DDR = Probes.ADC_1;      /* pull down probe 1 directly */
-      R_PORT = Probes.Rl_2;        /* pull up probe 2 via Rl */
-      R_DDR = Probes.Rl_2;         /* enable pull up */
-      wait2us();
       DelayTimer();                /* wait 1/2 pulse */
-      DelayTimer();                /* wait another 1/2 pulse */
       R_DDR = 0;                   /* disable any pull up */      
       R_PORT = 0;                  /* reset probe resistors */
     }
+
+
+    /*
+     *  manage measured values
+     */
+
+    U_1 += U_3;          /* sum of both measurements without pulses/load */
+    Sum_1 += U_1;        /* add to total no-load sum */
+    U_2 += U_4;          /* sum of both measurements with pulses/load */
+    Sum_2 += U_2;        /* add to total with-load sum */
 
     n--;                 /* next loop run */
   }
@@ -359,32 +359,30 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
   /*
    *  calculate ESR
    *  - ESR = U_ESR / I_ESR
-   *    with U_ESR = (U2 or U4) and I_ESR = (U1 or U3)/RiL
+   *    with U_ESR = (U2 or U4) and I_ESR = (U1 or U3) / RiL
    *    ESR = (U2 or U4) * RiL / (U1 or U3)
-   *  - since we devide (U2 or U4) by (U1 or U3) we don't need to convert
-   *    the ADC value into a voltage and desample the sums.
+   *  - since we divide (U2 or U4) by (U1 or U3), we don't need to convert
+   *    the ADC value into a voltage and simply desample the sums.
    *  - so ESR = Sum_2 * RiL / Sum_1
    *  - for a resolution of 0.01 Ohms we have to scale RiL to 0.01 Ohms
    */
 
-  Value = (uint32_t)(Config.RiL * 10);  /* RiL in 0.01 Ohms */
+  Value = (uint32_t)(NV.RiL * 10);      /* RiL in 0.01 Ohms */
   Value *= Sum_2;
   Value /= Sum_1;
   U_1 = (uint16_t)Value;
 
   /* consider probe resistance */
-  if (U_1 > Config.RZero)
+  if (U_1 > NV.RZero)
   {
-    U_1 -= Config.RZero;           /* subtract offset */
+    U_1 -= NV.RZero;               /* subtract offset */
     ESR = U_1;                     /* we got a valid result */
   }
 
   /* update Uref flag for next ADC run */
-  Config.RefFlag = (1 << REFS1);        /* set REFS1 bit flag */
+  Config.RefFlag = ADC_REF_BANDGAP;     /* update flag */
 
   return ESR;
-
-  #undef LOOP_RUNS 
 }
 
 #endif
@@ -466,7 +464,7 @@ uint8_t LargeCap(Capacitor_Type *Cap)
   uint32_t          Raw;           /* raw capacitance value */
   uint32_t          Value;         /* corrected capacitance value */
 
-  /* setup mode */
+  /* set up mode */
   Mode = FLAG_10MS | FLAG_PULLUP;       /* start with large caps */
 
 
@@ -494,21 +492,22 @@ large_cap:
   DischargeProbes();                    /* try to discharge probes */
   if (Check.Found == COMP_ERROR) return 0;     /* skip on error */
 
-  /* setup probes: Gnd -- probe 1 / probe 2 -- Rl -- Vcc */
+  /* set probes: Gnd -- probe-2 / probe-1 -- HiZ */
   ADC_PORT = 0;                    /* set ADC port to low */
-  ADC_DDR = Probes.ADC_2;          /* pull-down probe 2 directly */
+  ADC_DDR = Probes.Pin_2;          /* pull down probe-2 directly */
   R_PORT = 0;                      /* set resistor port to low */
   R_DDR = 0;                       /* set resistor port to HiZ */
-  U_Zero = ReadU(Probes.Pin_1);    /* get zero voltage (noise) */
+  U_Zero = ReadU(Probes.ADC_1);    /* get zero voltage (noise) */
 
   /* charge DUT with up to 500 pulses until it reaches 300mV */
+  /* pulse: probe-1 -- Rl -- Vcc */
   Pulses = 0;
   TempByte = 1;
   while (TempByte)
   {
     Pulses++;
     PullProbe(Probes.Rl_1, Mode);       /* charging pulse */
-    U_Cap = ReadU(Probes.Pin_1);        /* get voltage */
+    U_Cap = ReadU(Probes.ADC_1);        /* get voltage */
 
     /* zero offset */
     if (U_Cap > U_Zero)            /* voltage higher than zero offset */
@@ -535,7 +534,7 @@ large_cap:
     Flag = 1;
   }
 
-  /* if 1300mV are reached with one pulse we got a small cap */
+  /* if 1300mV are reached with one pulse, we got a small cap */
   if ((Pulses == 1) && (U_Cap > 1300))
   {
     if (Mode & FLAG_10MS)                    /* 10ms pulses (>47µF) */
@@ -551,19 +550,21 @@ large_cap:
 
 
   /*
-   *  check if DUT sustains the charge and get the voltage drop
-   *  - run the same time as before minus the 10ms charging time
-   *  - this gives us the approximation of the self-discharging
+   *  Check if DUT sustains the charge and get the voltage drop.
+   *  - Run for the same time as before (minus the 10ms charging time).
+   *  - This gives us the approximation of the leakage.
+   *  - The charge required for the ADC conversion can be neglected because
+   *    C_S/H is just 14pF (very small vs. DUT).
    */
 
   if (Flag == 3)
   {
-    /* check self-discharging */
+    /* check self-discharging for measuring period */
     TempInt = Pulses;
     while (TempInt > 0)
     {
       TempInt--;                        /* descrease timeout */
-      U_Drop = ReadU(Probes.Pin_1);     /* get voltage */
+      U_Drop = ReadU(Probes.ADC_1);     /* get voltage */
       U_Drop -= U_Zero;                 /* zero offset */
       wdt_reset();                      /* reset watchdog */
     }
@@ -572,15 +573,39 @@ large_cap:
     if (U_Cap > U_Drop) U_Drop = U_Cap - U_Drop;
     else U_Drop = 0;
 
-    /* if voltage drop is too large consider DUT not to be a cap */
+    /* if voltage drop is too large, consider DUT not to be a cap */
     if (U_Drop > 100) Flag = 0;
+
+
+    /*
+     *  Take a second measurement with a specific delay to 
+     *  determine the self-discharge leakage current.
+     */
+
+    U_Zero = ReadU(Probes.ADC_1);       /* get start voltage */
+
+    if (Mode & FLAG_10MS)     /* > 47µF */
+    {
+      wait1000ms();
+    }
+    else                      /* < 47µF */
+    {
+      wait100ms();
+    }
+
+    TempInt = ReadU(Probes.ADC_1);      /* get voltage after delay */
+
+    /* calculate voltage drop */
+    if (U_Zero > TempInt) U_Zero -= TempInt;
+    else U_Zero = 0;
   }
 
 
   /*
    *  calculate capacitance
    *  - use factor from pre-calculated LargeCap_table
-   *  - ignore Config.CapZero since it's in the pF range
+   *  - ignore NV.CapZero since it's in the pF range
+   *  - consider voltage drop by ADC and leakage
    */
 
   if (Flag == 3)
@@ -599,17 +624,45 @@ large_cap:
 
     Value = Raw;                          /* copy raw value */
 
-    /* it seems that we got a systematic error */
+    /*
+     *  We got a systematic error which needs to be compensated.
+     */
+ 
     Value *= 100;
     if (Mode & FLAG_10MS) Value /= 109;   /* -9% for large cap */
-    else Value /= 104;                    /* -4% for mid cap */
+    else Value /= 104;                    /* -4% for mid-sized cap */
 
     /* copy data */
-    Cap->A = Probes.Pin_2;    /* pull-down probe pin */
-    Cap->B = Probes.Pin_1;    /* pull-up probe pin */
+    Cap->A = Probes.ID_2;     /* pull-down probe pin */
+    Cap->B = Probes.ID_1;     /* pull-up probe pin */
     Cap->Scale = Scale;       /* -9 or -6 */
     Cap->Raw = Raw;
     Cap->Value = Value;       /* max. 4.3*10^6nF or 100*10^3µF */ 
+
+
+    /*
+     *  Calculate the self-discharge leakage current
+     *  - with Q = C * U and I = Q / t
+     *    we get I = C * U_diff / t
+     */
+    
+    while (Value > 800000)    /* rescale if necessary */
+    {
+      Value /= 10;
+      Scale++;
+    }
+
+    /* I = C * U_diff / t */
+    Value *= U_Zero;          /* * U_diff (mV) */
+    Value /= 1000;            /* scale to V */
+    if (Mode & FLAG_1MS)      /* short pulses */
+    {
+      Scale++;                /* / 0.1s */    
+    }
+    /* long pulses: / 1s */
+
+    Raw = RescaleValue(Value, Scale, -8);    /* rescale to 10nA */
+    Cap->I_leak = Raw;                       /* leakage current (in 10nA) */
   }
 
   return Flag;
@@ -643,7 +696,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
 
   /*
-   *  Measurement method used for small caps < 50uF:
+   *  Measurement method used for small caps < 4.7uF (was 50µF):
    *  We need a much better resolution for the time measurement. Therefore we
    *  use the MCUs internal 16-bit counter and analog comparator. The counter
    *  inceases until the comparator detects that the voltage of the DUT is as
@@ -672,15 +725,15 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   ADC_PORT = 0;                         /* set ADC port to low */
   R_DDR = Probes.Rh_1;                  /* pull-down probe-1 via Rh */
 
-  /* setup analog comparator */
+  /* set up analog comparator */
   ADCSRB = (1 << ACME);                 /* use ADC multiplexer as negative input */
   ACSR =  (1 << ACBG) | (1 << ACIC);    /* use bandgap as positive input, trigger timer1 */
-  ADMUX = (1 << REFS0) | Probes.Pin_1;  /* switch ADC multiplexer to probe 1 */
+  ADMUX = ADC_REF_VCC | Probes.ADC_1;   /* switch ADC multiplexer to probe 1 */
                                         /* and set AREF to Vcc */
   ADCSRA = ADC_CLOCK_DIV;               /* disable ADC, but keep clock dividers */
   wait200us();
 
-  /* setup timer */
+  /* set up timer */
   TCCR1A = 0;                           /* set default mode */
   TCCR1B = 0;                           /* set more timer modes */
   /* timer stopped, falling edge detection, noise canceler disabled */
@@ -690,14 +743,14 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   R_PORT = Probes.Rh_1;                 /* pull-up probe-1 via Rh */  
                                         
   /* enable timer */
-  if (Check.Found == COMP_FET)
+  if (Check.Found == COMP_FET)     /* measuring C_GS */  
   {
     /* keep all probe pins pulled down but probe-1 */
-    TempByte = (((1 << TP1) | (1 << TP2) | (1 << TP3)) & ~(1 << Probes.Pin_1));    
+    TempByte = ((1 << TP1) | (1 << TP2) | (1 << TP3)) & ~(Probes.Pin_1);
   }
-  else
+  else                             /* normal measurement */
   {
-    TempByte = Probes.ADC_2;            /* keep just probe-1 pulled down */
+    TempByte = Probes.Pin_2;            /* keep just probe-2 pulled down */
   }
 
   /* start timer by setting clock prescaler (1/1 clock divider) */
@@ -751,10 +804,10 @@ uint8_t SmallCap(Capacitor_Type *Cap)
   ADCSRA = (1 << ADEN) | (1 << ADIF) | ADC_CLOCK_DIV;
 
   /* get voltage of DUT */
-  U_c = ReadU(Probes.Pin_1);       /* get voltage of cap */
+  U_c = ReadU(Probes.ADC_1);       /* get voltage of cap */
 
   /* start discharging DUT */
-  R_PORT = 0;                      /* pull down probe-2 via Rh */
+  R_PORT = 0;                      /* pull down probe-1 via Rh */
   R_DDR = Probes.Rh_1;             /* enable Rh for probe-1 again */
 
   /* skip measurement if charging took too long */
@@ -762,7 +815,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
 
   /*
-   *  calculate capacitance (<50uF)
+   *  calculate capacitance
    *  - use factor from pre-calculated SmallCap_table
    */
 
@@ -781,7 +834,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
     }
 
     /* multiply with factor from table */
-    Raw *= GetFactor(Config.Bandgap + Config.CompOffset, TABLE_SMALL_CAP);
+    Raw *= GetFactor(Config.Bandgap + NV.CompOffset, TABLE_SMALL_CAP);
 
     /* divide by CPU frequency to get the time and multiply with table scale */
     Raw /= (CPU_FREQ / 10000);
@@ -790,9 +843,9 @@ uint8_t SmallCap(Capacitor_Type *Cap)
     /* take care about zero offset if feasable */
     if (Scale == -12)                     /* pF scale */
     {
-      if (Value >= Config.CapZero)        /* if value is larger than offset */
+      if (Value >= NV.CapZero)            /* if value is larger than offset */
       {
-        Value -= Config.CapZero;          /* substract offset */
+        Value -= NV.CapZero;              /* substract offset */
       }
       else                                /* if value is smaller than offset */
       {
@@ -802,8 +855,8 @@ uint8_t SmallCap(Capacitor_Type *Cap)
     }
 
     /* copy data */
-    Cap->A = Probes.Pin_2;    /* pull-down probe pin */
-    Cap->B = Probes.Pin_1;    /* pull-up probe pin */
+    Cap->A = Probes.ID_2;     /* pull-down probe pin */
+    Cap->B = Probes.ID_1;     /* pull-up probe pin */
     Cap->Scale = Scale;       /* -12 or -9 */
     Cap->Raw = Raw;
     Cap->Value = Value;       /* max. 5.1*10^6pF or 125*10^3nF */
@@ -829,7 +882,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
        *  reference. The common voltage source is the cap we just measured.
        */
 
-       while (ReadU(Probes.Pin_1) > 980)
+       while (ReadU(Probes.ADC_1) > 980)
        {
          /* keep discharging */
        }
@@ -837,9 +890,9 @@ uint8_t SmallCap(Capacitor_Type *Cap)
        R_DDR = 0;                       /* stop discharging */
 
        Config.AutoScale = 0;            /* disable auto scaling */
-       Ticks = ReadU(Probes.Pin_1);     /* U_c with Vcc reference */
+       Ticks = ReadU(Probes.ADC_1);     /* U_c with Vcc reference */
        Config.AutoScale = 1;            /* enable auto scaling again */
-       Ticks2 = ReadU(Probes.Pin_1);    /* U_c with bandgap reference */
+       Ticks2 = ReadU(Probes.ADC_1);    /* U_c with bandgap reference */
 
        R_DDR = Probes.Rh_1;             /* resume discharging */
 
@@ -858,23 +911,23 @@ uint8_t SmallCap(Capacitor_Type *Cap)
          TempLong *= Config.Bandgap;         /* * U_ref */
          TempLong /= Ticks2;                 /* / U_c */
 
-         Config.RefOffset = (int8_t)TempLong;
+         NV.RefOffset = (int8_t)TempLong;
        }
 
 
       /*
-       *  In the cap measurement above the analog comparator compared
-       *  the voltages of the cap and the bandgap reference. Since the MCU
-       *  has an internal voltage drop for the bandgap reference the
-       *  MCU used actually U_bandgap - U_offset. We get that offset by
+       *  In the cap measurement using the analog comparator we compared
+       *  the voltage of the cap to the bandgap reference. Since the MCU
+       *  has an internal voltage offset for the analog comparator, the
+       *  MCU used actually U_bandgap + U_offset. We get that offset by
        *  comparing the bandgap reference with the voltage of the cap:
-       *  U_c = U_bandgap - U_offset -> U_offset = U_c - U_bandgap
+       *  U_c = U_bandgap + U_offset -> U_offset = U_c - U_bandgap
        */
 
       Offset = U_c - Config.Bandgap;
 
       /* limit offset to a valid range of -50mV - 50mV */
-      if ((Offset > -50) && (Offset < 50)) Config.CompOffset = Offset;
+      if ((Offset > -50) && (Offset < 50)) NV.CompOffset = Offset;
     }
   }
 
@@ -911,6 +964,7 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
   Cap->Scale = -12;           /* pF by default */
   Cap->Raw = 0;
   Cap->Value = 0;
+  Cap->I_leak = 0;
 
   if (Check.Found == COMP_ERROR) return;    /* skip check on any error */
 
@@ -950,19 +1004,13 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
    *  - when Vf collides with the voltage of the capacitance measurement
    */
 
-  Diode = &Diodes[0];         /* pointer to first diode */
-
-  for (TempByte = 0; TempByte < Check.Diodes; TempByte++)
+  Diode = SearchDiode(Probe1, Probe2);  /* search for matching diode */
+  if (Diode != NULL)                    /* got it */
   {
-    /* got matching pins and low threshold voltage */
-    if ((Diode->C == Probe2) &&
-        (Diode->A == Probe1) &&
-        (Diode->V_f < 1500))
+    if (Diode->V_f < 1500)              /* Vf too low */
     {
-      return;
+      return;                           /* skip this one */
     }
-
-    Diode++;                  /* next one */
   }
 
 
@@ -984,11 +1032,11 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
 
   /*
    *  check for plausibility
+   *  - skip diodes which could be detected as capacitors
+   *  - skip any transistor
    */
 
-  /* if there aren't any diodes in reverse direction which could be
-     detected as capacitors by mistake */
-  if (Check.Diodes == 0)
+  if (Check.Found < COMP_DIODE)
   {
     /* low resistance might be a large cap */
     if (Check.Found == COMP_RESISTOR)
@@ -1017,6 +1065,76 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
   R_DDR = 0;                       /* set resistor port to input */
   R_PORT = 0;                      /* set resistor port low */
 }
+
+
+
+#ifdef HW_ADJUST_CAP
+
+/*
+ *  measure fixed reference cap to determine voltage offsets
+ *  - cap: 100nF - 1000nF
+ *  - uses method from SmallCap() for caps < 4.7µF
+ *
+ *  returns:
+ *  - 3 on success
+ *  - 2 if capacitance is too low
+ *  - 1 if capacitance is too high
+ *  - 0 on any problem
+ */
+
+uint8_t RefCap(void)
+{
+  uint8_t           Flag = 3;      /* return value */
+  uint8_t           TempByte;      /* temp. value */
+  int8_t            Scale;         /* capacitance scale */
+  uint16_t          Ticks;         /* timer counter */
+  uint16_t          Ticks2;        /* timer overflow counter */
+  uint16_t          U_c;           /* voltage of capacitor */
+  uint32_t          Raw;           /* raw capacitance value */
+  uint32_t          Value;         /* corrected capacitance value */
+
+  /*
+   *  fixed setup:
+   *  Gnd -- cap -- ADC pin -- Rh -- resistor control pin
+   */
+
+  ADJUST_DDR |= (1 << ADJUST_RH);       /* set Rh control pin to output */
+
+
+  /*
+   *  discharge cap
+   */
+
+  ADJUST_PORT &= ~(1 << ADJUST_RH);     /* pull down cap via Rh */
+
+
+
+  /*
+   *  setup hardware for measurement
+   */
+
+
+  /*
+   *  timer loop
+   */
+
+
+  /*
+   *  calculate capacitance
+   */
+
+
+  /*
+   *  get offsets
+   */
+
+
+
+
+  return Flag;
+}
+
+#endif
 
 
 

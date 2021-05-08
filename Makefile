@@ -1,10 +1,11 @@
 #
 #  Makefile
 #
-#  (c) 2012-2015 by Markus Reschke
+#  (c) 2012-2017 by Markus Reschke
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
+PROJECT = ComponentTester
 
 #
 # MCU settings
@@ -12,15 +13,17 @@
 #
 
 # avr-gcc: MCU model
-# - ATmega168 or ATmega168P : atmega168
-# - ATmega328 or ATmega328P : atmega328
+# - ATmega 328/328P        : atmega328
+# - ATmega 324P/324PA      : atmega324p
+# - ATmega 644/644P/644PA  : atmega644
+# - ATmega 1284/1284P      : atmega1284
 MCU = atmega328
-#MCU = atmega168
 
 # MCU freqency:
 # - 1MHz  : 1
 # - 8MHz  : 8
 # - 16MHz : 16
+# - 20MHz : 20
 FREQ = 8
 
 # oscillator type
@@ -43,10 +46,15 @@ endif
 
 
 # avrdude: part number of MCU
-# - ATmega168  : m168
-# - ATmega168P : m168p
-# - ATmega328  : m328
-# - ATmega328P : m328p 
+# - ATmega 328    : m328
+# - ATmega 328P   : m328p
+# - ATmega 324P   : m324p
+# - ATmega 324PA  : m324pa
+# - ATmega 644    : m644
+# - ATmega 644P   : m644p
+# - ATmega 644PA  : m644p
+# - ATmega 1284   : m1284
+# - ATmega 1284P  : m1284p
 PARTNO = m328p
 
 # avrdude: ISP programmer
@@ -71,11 +79,12 @@ DIST = $(notdir ${CURDIR})
 # compiler flags
 CC = avr-gcc
 CPP = avr-g++
-CFLAGS = -mmcu=${MCU} -Wall -mcall-prologues -I.
+CFLAGS = -mmcu=${MCU} -Wall -mcall-prologues -I. -Ibitmaps
 CFLAGS += -DF_CPU=${FREQ}000000UL
 CFLAGS += -DOSC_STARTUP=${OSC_STARTUP}
 CFLAGS += -gdwarf-2 -std=gnu99 -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d
+#CFLAGS += -flto
 
 # linker flags
 LDFLAGS = -mmcu=${MCU} -Wl,-Map=${NAME}.map
@@ -87,11 +96,18 @@ HEX_EEPROM_FLAGS += --set-section-flags=.eeprom="alloc,load"
 HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 # header files
-HEADERS = config.h common.h variables.h LCD.h functions.h
+HEADERS = config.h common.h variables.h functions.h colors.h
+HEADERS += config_328.h config_644.h
+HEADERS += $(wildcard var_*.h)
+HEADERS += HD44780.h ST7565R.h ILI9341.h PCD8544.h ST7735.h
+HEADERS += ADS7843.h
 
 # objects
-OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o LCD.o
-OBJECTS_C += resistor.o cap.o semi.o inductor.o extras.o
+OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o
+OBJECTS_C += resistor.o cap.o semi.o inductor.o extras.o IR.o
+OBJECTS_C += display.o I2C.o
+OBJECTS_C += HD44780.o ST7565R.o ILI9341.o PCD8544.o ST7735.o
+OBJECTS_C += ADS7843.o
 OBJECTS_S = wait.o
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 
@@ -113,7 +129,7 @@ $(NAME): ${OBJECTS}
 
 # create hex file of firmware
 %.hex: ${NAME}
-	avr-objcopy -O ihex ${HEX_FLASH_FLAGS}  $< $@
+	avr-objcopy -O ihex ${HEX_FLASH_FLAGS} $< $@
 
 # create image for EEPROM
 %.eep: ${NAME}
@@ -158,8 +174,10 @@ upload: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
 dist:
 	rm -f *.tgz
 	cd ..; tar -czf ${DIST}/${DIST}.tgz \
-	  ${DIST}/*.h ${DIST}/*.c ${DIST}/*.S \
-	  ${DIST}/Makefile ${DIST}/README ${DIST}/CHANGES
+	  ${DIST}/*.h ${DIST}/*.c ${DIST}/*.S ${DIST}/bitmaps/ \
+	  ${DIST}/Makefile ${DIST}/README ${DIST}/CHANGES \
+	  ${DIST}/README.de ${DIST}/CHANGES.de ${DIST}/Clones \
+	  ${DIST}/*.pdf
 
 # clean up
 clean:
@@ -171,37 +189,28 @@ clean:
 #  MCU fuses
 #
 
-# ATmega168 / ATmega168P 
-ifeq (${MCU},atmega168)
-  HFUSE = -U hfuse:w:0xdc:m
-  ifeq (${FREQ},1)
-    # internal RC oscillator (8MHz) and /8 clock divider
-    LFUSE_RC = -U lfuse:w:0x62:m
-    # external 8MHz full swing crystal and /8 clock divider
-    LFUSE_CRYSTAL = -U lfuse:w:0x77:m
-    # external 8MHz low power crystal and /8 clock divider
-    LFUSE_LOWPOWER = -U lfuse:w:0x7f:m
-  endif
-  ifeq (${FREQ},8)
-    # internal RC oscillator (8MHz) and /1 clock divider
-    LFUSE_RC = -U lfuse:w:0xe2:m 
-    # external 8MHz full swing crystal and /1 clock divider
-    LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
-    # external 8MHz low power crystal and /1 clock divider
-    LFUSE_LOWPOWER = -U lfuse:w:0xff:m
-  endif
-  ifeq (${FREQ},16)
-    # internal RC oscillator (8MHz) not possible
-    LFUSE_RC =
-    # external 16MHz full swing crystal and /1 clock divider
-    LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
-    # external 16MHz low power crystal and /1 clock divider
-    LFUSE_LOWPOWER = -U lfuse:w:0xff:m
-  endif
+# ATmega 328/328P
+ifeq (${MCU},atmega328)
+  FAMILY = atmega328_324
 endif
 
-# ATmega328 / ATmega328P
-ifeq (${MCU},atmega328)
+# ATmega 324P/324PA
+ifeq (${MCU},atmega324p)
+  FAMILY = atmega328_324
+endif
+
+# ATmega 644/644P/644PA
+ifeq (${MCU},atmega644)
+  FAMILY = atmega328_324
+endif
+
+# ATmega 1284/1284P
+ifeq (${MCU},atmega1284)
+  FAMILY = atmega328_324
+endif
+
+# ATmega 328/324/644/1284
+ifeq (${FAMILY},atmega328_324)
   HFUSE = -U hfuse:w:0xd9:m
   EFUSE = -U efuse:w:0xfc:m
   ifeq (${FREQ},1)
@@ -228,7 +237,16 @@ ifeq (${MCU},atmega328)
     # external 16MHz low power crystal and /1 clock divider
     LFUSE_LOWPOWER = -U lfuse:w:0xff:m
   endif
+  ifeq (${FREQ},20)
+    # internal RC oscillator (8MHz) not possible
+    LFUSE_RC =
+    # external 20MHz full swing crystal and /1 clock divider
+    LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
+    # external 20MHz low power crystal and /1 clock divider
+    LFUSE_LOWPOWER = -U lfuse:w:0xff:m
+  endif
 endif
+
 
 # select LFUSE
 ifeq (${OSCILLATOR},RC)

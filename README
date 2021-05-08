@@ -3,18 +3,29 @@
 
                    ReadMe for the Component Tester firmware
 
-        (c) 2012-2015 by Markus Reschke (madires@theca-tabellaria.de)
+        for ATmega 328/324/644/1284 with character or graphic display
+
+        (c) 2012-2017 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit:  2015-01-23
+Last edit:  2017-02-22
 
 Content
   - About
   - Safety Advice
+  - License
+    - Additional Disclaimer
   - Whats different?
-  - Building the firmware
   - Source Code
+  - Building the firmware
+  - I2C/SPI
+  - Displays
+    - HD44780
+    - ST7565R
+    - ILI9341/ILI9342
+    - ST7735
+    - PCD8544
   - Test Key
     - Rotary Encoder
   - Startup
@@ -22,23 +33,30 @@ Content
   - Power Off
   - Menu
     - PWM Tool
-    - Signal Generator
+    - Square Wave Generator
     - Zener Tool
     - ESR Tool
     - Frequency Counter
     - Rotary Encoder
+    - Contrast
+    - IR RC detector
+    - Opto Coupler Tool
+    - Servo Check
     - Selftest
     - Self Adjustment
-    - Save
+    - Save/Load
     - Show Values
     - Exit
   - Resistors
-  - Measuring Capacitance
+  - Capacitors
+  - Inductors
   - Discharging Components
   - ADC Oversampling
-  - Vf (V_BE) of BJTs
+  - V_BE of BJTs
   - Displaying Results
     - Special Components
+      - Non-standard BJT
+      - CLD
   - Unsupported Components
   - Known Issues
   - Change Log
@@ -51,21 +69,9 @@ The Component Tester is based on the project of Markus Frejek [1&2] and the
 successor of Karl-Heinz Kübbeler [3&4]. It's an alternative software for the
 current circuit by Karl-Heinz and offers some changes in the user interface
 and the methods used for probing and measuring. While Karl-Heinz provides an
-official release supporting most ATmega MCUs, this is a playground version
-with all features enabled and limited to ATmega168/P and ATmega328/P due to
-memory and flash size constraints. The UI languages currently supported are
-just English and German, but can be changed or extended easily.
-
-Since the firmware's size exceeds 16kB Flash some features are only enabled
-for the ATmega328/P:
-- rotary encoder for user interface (hardware option)
-- inductance measurement
-- Zener voltage measurement (hardware option)
-- PWM generator
-- Squarewave signal generator (requires also rotary encoder)
-- ESR measurement and ESR in-circuit measurement
-- frequency counter (hardware option)
-- rotary encoder test
+official release supporting also older ATmega MCUs, this is a playground
+version with requires an ATmega with 32kB flash at least. The primary UI
+languages are English and German, but can be extended easily.
 
 Hint: Run the self adjustment for a new tester or if you've done any
 modifications, like a firmware update or changing probe leads.
@@ -82,61 +88,56 @@ Sally, your life may be at risk if you connect the probes to a live circuit
 or a power supply (or even mains). 
 
 
+* License
+
+The original author hasn't provided any information about the licence under
+which the firmware is distributed. He only stated that it's open source and
+any commercial user should contact him. Unfortunately we (Karl-Heinz and I)
+haven't found any way to contact him. To remedy this problem I've chosen an
+open source license at 2016-01-01, after giving the original author more than
+sufficient time to tell us his wishes regarding the license. Since the source
+code of this firmware version is a major rewrite with tons of new code and
+features, I think that this approach is justified.
+
+Licensed under the EUPL V.1.1
+
+
++ Additional Disclaimer
+
+Product or company names are possibly trademarks of the respective owners.
+
+
 * What's different?
 
 Karl-Heinz has done a really great documentation of the tester. I recommend
 to read it. Therefore I'll tell you just about the major differences to the
 official release:
 
-- no support of graphical displays
-  I think it's better to use the limited flash memory for features and
-  not for a fancy display.
 - user interface
   No worries! ;)
-- adaptive component discharge function
+- adaptive component discharging function
 - resistance measurement
   + dedicated method for resistances <10 Ohms (instead of using ESR check)
 - capacitance measurement
   + starts at 5pF
   + additional method for caps from 4.7µF up to 47µF
   + correction/compensation method
+- no SamplingADC() for very low capacitance or inductance
 - diodes
   + detection logic
 - BJTs
   + V_f is interpolated for a more suitable (virtual) I_b based on hFE
+  + detection of Germanium BJTs with high leakage current
+- JFETs
+  + detection of JFETs with very low I_DSS
 - TRIACs
   + detection of MT1 and MT2
+- IR RC detector and decoding
+- opto coupler check
 - structured source code
 - some more I couldn't think of right now
 
 There are more details in the sections below.
-
-
-* Building the firmware
-
-First edit the Makefile to specify your MCU model, frequency, oscilator
-type and programmer settings. All other settings are moved to config.h.
-
-In config.h please choose the language for the UI and change any defaults
-if required. All defaults are explained in the file, so I won't discuss
-them here. Hardware options are also enabled in configh.h:
-- rotary encoder
-- 2.5V voltage reference
-- relay based cap discharger
-- Zener voltage measurement
-- frequency counter
-
-The external 2.5V voltage reference should be only enabled if it's at least
-10 times more precise than the voltage regulator. Otherwise it would make
-the results worse. If you're using a MCP1702 with a typical tolerance of
-0.4% as voltage regulator you really don't need a 2.5V voltage reference.
-
-After editing the Makefile and config.h please run 'make' or whatever
-toolchain you got to compile the firmware. The Makefiles provides following
-additional targets:
-- clean    to remove all object and firmware files
-- fuses    to set the ATmega's fuse bits
-- upload   to upload the firmware to the ATmega
 
 
 * Source Code
@@ -144,6 +145,218 @@ additional targets:
 A lot of cleaning up was done, like more remarks, renamed variables,
 re-structured functions, large functions splitted up into several smaller
 ones and what have you. I hope the code is easy to read and maintain now.
+
+
+* Building the firmware
+
+First edit the Makefile to specify your MCU model, frequency, oscilator
+type and programmer settings. All other settings are moved to a global
+config.h and a MCU specific config-<MCU>.h. The file 'Clones' lists
+settings for various tester versions/clones. If you got a tester not listed,
+please email the settings to the author to help other users.
+
+In config.h please choose hardware and software options, the language for the
+UI, and change any default values if required. All settings and values are
+explained in the file, so I won't discuss them here in depth. 
+
+Hardware options:
+- rotary encoder
+- 2.5V voltage reference
+- relay based cap discharger
+- Zener voltage measurement
+- frequency counter
+- IR detector/decoder for remote controls
+  (fixed IR receiver module)
+- I2C bus (bit-bang and hardware)
+
+The external 2.5V voltage reference should be only enabled if it's at least
+10 times more precise than the voltage regulator. Otherwise it would make
+the results worse. If you're using a MCP1702 with a typical tolerance of
+0.4% as voltage regulator you really don't need a 2.5V voltage reference.
+
+And of course the software options:
+- PWM generator (2 variants)
+- inductance measurement
+- ESR measurement and in-circuit ESR measurement
+- check for rotary encoders
+- squarewave signal generator (requires rotary encoder)
+- IR detector/decoder for remote controls
+  (IR receiver module connected to probes)
+- check for opto couplers
+- servo check (requires rotary encoder, display with >2 lines)
+- detection of UJTs
+- color coding for probes (requires color graphics display)
+
+Please choose the options carefully to match your needs and the MCU's
+ressources, i.e. RAM, EEPROM and flash memory. If the firmware exceeds the
+MCU's flash size, try to disable some options.
+
+Available UI languages:
+- English
+- German
+- Czech (provided by Kapa)
+- Spanish (provided by pepe10000@EEVblog)
+
+For MCU specific settings, like pin assignments and display, edit 
+config-<MCU>.h:
+- ATmega 328                config_328.h
+- ATmega 324/644/1284       config_644.h
+
+The display has to provide 2 lines with 16 characters each, at least. For
+graphic displays select a font which is small enough to match the
+requirements.
+
+After editing the Makefile, config.h or config-<MCU>.h please run 'make' or
+whatever toolchain you got to compile the firmware. The Makefiles provides
+following additional targets:
+- clean    to remove all object and firmware files
+- fuses    to set the ATmega's fuse bits
+- upload   to upload the firmware to the ATmega
+
+
+* I2C/SPI
+
+Some displays and other hardware might need I2C or SPI for connecting to the
+MCU. Therefore the firmware includes drivers for both bus systems. To cope
+with different pin assignments of the various testers the bus drivers support
+bit-bang and hardware operation modes. The bit-bang mode can use any IO pins
+on the same port, while the hardware mode uses the dedicated bus pins of the
+MCU. The drawback of the bit-bang mode is its speed, it's slow. The hardware
+mode is much faster. You can spot the difference in speeds easily for high
+resolution color LCD modules.
+
+For ATmega 328 based testers the bit-bang mode is needed in most cases due to
+the circuit. The ATmega 324/644/1284 has more I/O pins and the different pin
+assignment for the circuit allows to use the dedicated bus pins for the
+hardware mode.
+
+The SPI drivers are included in the LCD module drivers for performance
+reasons. And SPI is used just by displays at the moment. So anything SPI
+related is configured in the display section of config-<MCU>.h.
+
+The drivers for I2C are stand-alone to support the usage by different IC
+drivers in a stacked fashion. I2C is enabled in config.h and for bit-bang
+mode port and pins are defined in config-<MCU>.h. IC related things like
+the I2C address are specified in their own sections.
+
+
+* Displays
+
+At the moment following LCD controllers are supported:
+- HD44780 (character display)
+- ST7565R (graphic display 128x64)
+- ILI9341/ILI9342 (color graphic display 240x320 or 320x240)
+- ST7735 (color graphic display 128x160)
+- PCD8544 (graphic display 84x48)
+
+Take care about the LCD's supply voltage and logic levels! Use a level shifter
+if required. If the display doesn't show anything after double checking the
+wiring, please try different contrast settings (config_<MCU>.h).
+
+Hint for ATmega 328:
+If you connect a rotary encoder to PD2/PD3, please connect the module's /CS to
+PD5 and set LCD_CS in config_328.h (applies to graphic displays). Otherwise
+the rotary encoder would screw up the display by interfering with the data bus.
+
+
++ HD44780
+
+The HD44780 is driven in 4 bit mode. The pin assignment for the parallel
+port is:
+
+  display     config-<MCU>.h     default
+  DB4         LCD_DB4            PD0
+  DB5         LCD_DB5            PD1
+  DB6         LCD_DB6            PD2
+  DB7         LCD_DB7            PD3
+  RS          LCD_RS             PD4
+  R/W         Gnd
+  E           LCD_EN1            PD5
+
+You can also drive the LCD via a PCF8574 based I2C backpack which requires
+I2C to be enabled. The I2C address has to be specified too. The pin
+assignment defines how the LCD is connected to the PCF8574:
+
+  display     config-<MCU>.h     default
+  DB4         LCD_DB4            PCF8574_P4
+  DB5         LCD_DB5            PCF8574_P5
+  DB6         LCD_DB6            PCF8574_P6
+  DB7         LCD_DB7            PCF8574_P7
+  RS          LCD_RS             PCF8574_P0
+  R/W         LCD_RW             PCF8574_P1
+  E           LCD_EN1            PCF8574_P2
+  LED         LCD_LED            PCF8574_P3
+
+
++ ST7565R
+
+The ST7565R is driven by 4/5 line SPI. The pin assignment is:
+
+  display     config-<MCU>.h     default   remark
+  /RES        LCD_RESET          PD0
+  A0          LCD_A0             PD1
+  SCL (DB6)   LCD_SCL            PD2
+  SI (DB7)    LCD_SI             PD3
+  /CS1        LCD_CS             PD5       optional
+
+You might need to play with the x/y flip and x-offset settings to get
+the correct orientation for your display. 
+
+
++ ILI9341/ILI9342
+
+The ILI9341/ILI9342 is driven by SPI. The pin assignment is:
+
+  display     config-<MCU>.h     default   remark
+  /RES        LCD_RES            PD4       optional
+  /CS         LCD_CS             PD5       optional
+  D/C         LCD_DC             PD3
+  SCK         LCD_SCK            PD2
+  SDI         LCD_SDI            PD1
+  SDO         LCD_SDO            PD0       ILI9341 only, not used yet
+
+You might need to play with the x/y flip and rotate settings to get the
+correct orientation for your display. And don't forget to set x and y dots
+based on the controller (ILI9341 is 240x320 and ILI9342 is 320x240).
+
+The ILI9341/ILI9342 is a color display controller and you can select whether
+you like single color (default) or multi color support by the "LCD_COLOR"
+definition in the display section of config.h.
+
+Based on the relative high number of pixels the display output is somewhat
+slow. A complete screen clear takes about 3 seconds with a 8MHz MCU clock,
+when using the bit-bang SPI.
+
+
++ ST7735
+
+The ST7735 is driven by SPI. The pin assignment is:
+
+  display     config-<MCU>.h     default   remark
+  /RESX       LCD_RES            PD4
+  /CSX        LCD_CS             PD5       optional
+  D/CX        LCD_DC             PD3
+  SCL         LCD_SCL            PD2
+  SDA         LCD_SDA            PD1
+
+You might need to play with the x/y flip settings to get the correct
+orientation for your display.
+
+
++ PCD8544
+
+The PCD8544 is driven by SPI. The pin assignment is:
+
+  display     config-<MCU>.h     default   remark
+  /RES        LCD_RES            PD4
+  /SCE        LCD_SCE            PD5       optional
+  D/C         LCD_DC             PD3
+  SCLK        LCD_SCLK           PD2
+  SDIN        LCD_SDIN           PD1
+
+Since the display has just 84 pixels in x direction you'll get 14 chars per
+line with a 6x8 font. So up to two chars might be not displayed. To mitigate
+that you could shorten some texts in variables.h.
 
 
 * Test Key
@@ -155,7 +368,7 @@ a menu item. The long key press performs a context specific action.
 
 If the tester expects you to press a key it will tell you that by displaying
 a cursor at the last position in the second row of the LCD (bottom right).
-A steady cursor signals that another information will be displayed and a
+A steady cursor signals that more information will be displayed and a
 blinking cursor informs you that the tester will resume the probing loop. The
 cursor is supressed for menus and some tools, because it's obvious that
 a key press is neccessary.  
@@ -163,13 +376,15 @@ a key press is neccessary.
 
 + Rotary Encoder (hardware option)
 
-With a rotary encoder you'll get some more functionality with the user
+With a rotary encoder you'll get some extra functionality with the user
 interface, but that's context specific. The additional functionality
 is described in the sections below, if applicable.
 
-The algorithm for reading the encoder is tested only with an ALPS EC11 series
-encoder, since I don't got any other rotary decoders yet. So I would
-appreciate any feedback on other encoders.
+The algorithm for reading the encoder is tested only with ALPS EC11 and EC12
+series encoders, since I don't got any other rotary decoders yet. So I would
+appreciate any feedback on other encoders. In case the enoder's turning
+direction is reversed, simply swap the MCU pin definitions for A and B
+in config_<MCU>.h.
 
 
 * Startup
@@ -177,12 +392,15 @@ appreciate any feedback on other encoders.
 A long key press while starting the tester selects the auto-hold mode. In that
 mode the tester waits for a short key press after displaying a result before
 it will continue. Otherwise the tester chooses the continous (looping) mode by
-default. After powering on the firmware version is shown briefly.
+default. After powering on, the firmware version is shown briefly.
 
-After that the tester may display a checksum error, if it detects an error
-while loading the saved adjustment values from the EEPROM. That error indicates
-a corrupted EEPROM, i.e. caused by too much write operations. In that case
-the default adjustment values from config.h will be used.
+A very long key press (2s) will reset the tester to firmware defaults. This
+might be handy if you have misadjusted the LCD contrast for example and can't
+read the display anymore.
+
+If the tester detects a problem with the stored adjustments values, it will
+display a checksum error. That error indicates a corrupted EEPROM, and the
+tester will use the firmware defaults instead.
 
 
 * Probing
@@ -214,23 +432,41 @@ presses after the display of the last component found or function performed.
 Simply press the test key twice quickly (might need some practice :-). If
 the rotary encoder option is enabled, a left turn will also enter the menu. 
 
-While in the menu a short key press shows the the next item in the menu and a
-long key press runs the shown item. At the right side you'll see a '>' if
-another items follows or a '<' if the last item is reached (will roll over to
-the first menu item). With a rotary encoder you can move the items up or down
-based on the turning direction and a short key press will run the displayed
-item.
+While in the menu, a short key press shows the next item in the menu and a
+long key press runs the shown item. On a 2-line display you'll see a
+navigation help at the bottom right. A '>' if another item follows, or
+a '<' for the very last item (will roll over to the first item). On a
+display with more than 2 lines the selected item is marked with a '*' at
+the left side. 
 
-Some tools show you the probe pins used before doing anything. The output will
-blink up to three times if you don't press the test button to confirm the
-brief information.
+With a rotary encoder you can move the items up or down based on the turning
+direction and a short key press will run the displayed item, instead of moving
+to the next item. Roll over is also enabled for the first item.
+
+Some tools show you the pinout of the probe pins used before doing anything.
+That info will be displayed for a few seconds, but can be skipped by a short
+press of the test button.
 
 
 + PWM Tool
 
-This does what you would expect :-) First you have to select the desired PWM
-frequency in a simple menu. Short key press for the next frequency and a long
-key press starts the PWM output for the shown frequency.
+This does what you would expect :-) Before compiling the firmware please
+choose either the PWM generator with the simple user interface or the one with
+the fancy interface for testers with rotary encoder and large displays.
+
+After entering the tool the probe configuration is displayed briefly. A button
+press will skip that info.
+
+Configuration of the probes:
+  Probe #2:         output (with 680 Ohms resistor to limit current)
+  Probe #1 and #3:  Ground
+
+
+- Simple PWM
+
+First you have to select the desired PWM frequency in a simple menu. Short key
+press for the next frequency and a long key press starts the PWM output for
+the shown frequency.
 
 The duty ratio of the PWM starts at 50%. A short key press of the test button
 increases the ratio by 5%, a long key press decreases the ratio by 5%. To exit
@@ -239,14 +475,19 @@ the PWM tool press the test key twice quickly.
 If you got a rotary encoder you can use it to select the frequency in the menu
 and to change the PWM ratio in 1% steps.
 
-Configuration of the probes:
-  Probe #2:         PWM output (with 680 Ohms resistor to limit current)
-  Probe #1 and #3:  Ground
+
+- Fancy PWM
+
+Switch between frequency and ratio by pressing the test button. The selected
+value is marked by an asterisk. Turn the rotary encoder clockwise to increase
+the value or anti-clockwise to decrease it. As faster you turn the rotary
+encoder as larger the step size becomes. Two short button presses exit the
+PWM tool. 
 
 
-+ Signal Generator
++ Square Wave Signal Generator
 
-The signal generator creates a squarewave signal with variable frequency up
+The signal generator creates a square wave signal with variable frequency up
 to 1/4 of the MCU clock rate (2MHz for 8MHz MCU clock). The default frequency
 is 1000Hz and you can change it by turning the rotary encoder, The turning
 velocity determines the frequency change, i.e. slow turning results in small
@@ -260,6 +501,8 @@ Configuration of the probes:
   Probe #2:         output (with 680 Ohms resistor to limit current)
   Probe #1 and #3:  Ground
 
+Hint: Rotary encoder required!
+
 
 + Zener Tool (hardware option)
 
@@ -271,7 +514,7 @@ measured is shown if the test button was pressed long enough for a stable test
 voltage. You may repeat this as long as you like :-) To exit the Zener tool
 press the test button twice quickly.
 
-Connect the Zener diode:
+How to connect the Zener diode:
    Probe +: cathode
    Probe -: anode
 
@@ -287,9 +530,9 @@ capacitor will affect the measurement.
 For triggering a measurement please press the test key. Two quick short key
 presses will exit the tool.
 
-Connect the capacitor:
+How to connect the capacitor:
    Probe #1: positive
-   Probe #2: negative (Gnd)
+   Probe #3: negative (Gnd)
 
 
 + Frequency Counter (hardware option)
@@ -313,6 +556,151 @@ When a rotary encoder is detected the tester will display the pin-out and
 wait for a key press (or a moment for continous mode) before resuming testing.
 To exit the rotary encoder test please press the test push button once while
 testing.
+
+
++ Contrast
+
+You can adjust the contrast for some graphic LCD modules. A short key press
+increases the value and and a long key press decreases it. Two short key
+presses will exit the tool. With a rotary encoder installed the value
+can also be adjusted by turning the encoder. 
+
+
++ IR RC detector
+
+This function detects and decodes signals from IR remote controls, and
+requires an IR receiver module, for example the TSOP series. When compiling
+the firmware you can choose between two variants how the IR receiver module is
+connected to the tester. The first one is to connect the IR module to the
+standard testpins. The second one is a fixed IR module connected to a
+dedicated MCU pin.
+
+If a known protocol is detected the tester displays the protocol, address
+(when available), command and in some cases optional data in hexadecimal.
+The format is:
+  <protocol> [<addr>:]<command>[:<extra data>]
+For a malformend packet the protocol and a "?" are shown.
+
+For a unknown protocol the tester displays the number of pauses and pulses,
+the duration of the first pulse and the first pause in units of 50µs:
+  ? <pulses>:<first pulse>-<first pause>
+When the number of pulses stay the same for different buttons of the RC, the
+modulation is most likely PDM or PWM. A changing number of pulses indicates
+bi-phase modulation.  
+
+To exit the tool please press the test key. 
+
+Supported protocols:
+  - JVC
+  - Kaseikyo (aka Japanese Code, 48 bit)
+  - Matsushita/Emerson
+  - Motorola
+  - NEC (standard & extended)
+  - RC-5 (standard)
+  - RC-6 (standard)
+  - Samsung (32 bit Toshiba)
+  - Sharp
+  - Sony SIRC (12, 15 & 20 bit)
+
+The carrier frequency of the TSOP receiver module doesn't have to match the RC
+exactly. A mismatch reduces the possible range, but that doesn't matter much
+for this application.
+
+
+- IR receiver module connected to probes
+
+Please connect the IR receiver module after entering the IR detector function.
+
+How to connect the TSOP module:
+  Probe #1:  Gnd
+  Probe #2:  Vs (current limited by 680 ohms resistor)
+  Probe #3:  Data/Out
+
+Hint:
+  The current limiting resistor for Vs implies an IR receiver module with a
+  supply voltage range of about 2.5 to 5V. If you got a 5V only module you can
+  disable the resistor in the config.h file on your own risk. Any short
+  circuit may destroy the MCU.
+
+
+- Fixed IR receiver module
+
+For the fixed IR module please set the port and pin used in config_<MCU>.h
+
+
++ Opto Coupler Tool
+
+This tool checks opto couplers and shows you the LED's V_f, the CTR (also If),
+and t_on/t_off delays (BJT types). It supports standard NPN BJTs, NPN 
+Darlington stages and TRIACs. For the CTR measurement the MCU's I/O pin is
+overloaded for about 3ms. The datasheet specifies a maximum output current of
+20mA, but we overload the I/O pin up to about 100mA. Therefore the maximal
+CTR value is limited and any CTR over 2000% should be considered with caution.
+
+The maximum drive current for the LED is about 5mA, which should be considered
+for TRIAC types. Relay types (MOSFET back to back) are detected as BJT and the
+CTR will be meaningless. Types with anti-parallel LEDs are ignored.
+
+For testing you need a simple adapter with following three test points:
+
+BJT type:
+- LED's anode
+- LED's cathode and BJT's emitter connected together
+- BJT's collector
+
+TRIAC type:
+- LED's anode
+- LED's cathode and TRIAC's MT1 connected together
+- TRIAC's MT2
+
+You may connect the adapter any way to the three probes of the component
+tester. It will detect the pinout automatically.
+
+After entering the tool please connect the adapter and press the test key
+briefly to scan for an opto coupler. If one is found the tester displays
+the type and various details. Or it displays "none" when no opto coupler was
+detected. A blinking cursor indicates that you have to press the test key
+(or turn the rotary encoder) for a new scan. Two short key presses end the
+tool as usual.
+
+
++ Servo Check
+
+This function outputs a PWM signal for RC servos which are driven by a 1-2ms
+PWM pulse. It supports the typical PWM frequencies of 50, 125, 250 and 333 Hz
+while the pulse length can be between 0.5 and 2.5 ms. There is also a sweep
+mode for sweeping between 1 and 2 ms pulse length with an adjustable sweep
+speed.
+
+At first the probe configuration is displayed briefly (skip with button
+press). After that you can adjust the pulse width with the rotary encoder.
+Clockwise for a longer pulse, and counter-clockwise for a shorter pulse. A
+long button press resets the pulse to 1.5 ms.  
+
+You can switch between pulse and frequency selection mode with a short button
+press (mode marked by an asterisk). When in frequency selection mode use the 
+rotary encoder to choose the PWM frequency. A long button press enables or
+disables the sweep mode (marked by a "<->" after the frequency).
+
+As long as the sweep mode is enabled, the pulse selection is replaced by the
+sweep period. The rotary encoder allows you to change the period. 
+
+As usual, two short button presses exit the function.
+
+Configuration of the probes:
+  Probe #2:         PWM output (with 680 Ohms resistor to limit current)
+  Probe #1 and #3:  Ground
+
+Hint: You have to provide an additional power supply for the servo.
+
+Some pinouts of typical 3pin servo connectors:
+
+Vendor         pin 1               pin 2               pin 3
+---------------------------------------------------------------------- 
+Airtronics     PWM White/Black     Gnd Black           Vcc Red
+Futaba         PWM White           Vcc Red             Gnd Black
+hitec          PWM Yellow          Vcc Red             Gnd Black
+JR Radios      PWM Orange          Vcc Red             Gnd Brown
 
 
 + Selftest
@@ -364,12 +752,16 @@ differences. The goal is to monitor the drift over time. Adjustment is the
 procedure to adjust a device to meet specific specs.
 
 
-+ Save
++ Save/Load
 
 By flashing the firmware the pre-defined values given in config.h are stored
 in the EEPROM of the MCU. After running the self adjustment you may update
-those default values using the the "Save" function. The next time you power
-on the tester the updated values will be loaded and used.
+those default values using the "Save" function. The next time you power
+on the tester the updated values (profile #1) will be loaded and used
+automatically.
+
+For your convenience you can save and load two profiles, e.g. if you two sets
+of different probes.
 
 The idea of the save function is to prevent automatic saving of adjustment
 values. If you need to use other probe leads for some tests, you'll simply
@@ -398,18 +790,16 @@ resistance values. For resistors lower than 10 Ohms an extra measurement with
 a higher resolution is performed.
 
 In some rare cases the tester might not be able to detect a very low
-resistance, since the primary measurements indicate a problem with the
-validity of the results. In that case simply re-run the test.
+resistance. In that case simply re-run the test.
 
 
-* Measuring Capacitance
+* Capacitors
 
 The measurement of capacitance is split into three methods. Large caps >47µF
-are still measured by the charging cycle method with 10ms impulses. Mid-sized
+are measured by the charging cycle method with 10ms impulses. Mid-sized
 caps between 4.7µF and 47µF are processed the same way but with 1ms charging
-impulses. And small caps are still done by the analog comparator method. That
-way the accuracy of the measurement of caps between 4.7µF and 47µF is
-increased.
+impulses. And small caps are done by the analog comparator method. That
+way the accuracy of the measurement of caps is optimized.
 
 Also I found a simple correction solution for large caps. Without correction
 the measured values are too large. IMHO that is caused by the measurement
@@ -417,14 +807,56 @@ method, since the ADC conversion after the charging impuls needs some time
 during which the cap looses some charge due to internal resistive losses. So
 it takes longer to charge the cap and the cap seems to have a larger
 capacitance. A discharge measurement later on tries to compensate that, but
-the capacitance is still too large. 
+the capacitance is still too large.
 
 A logic for preventing large caps to be detected as resistors was added.
 Resistors < 10 Ohms are checked for being large caps.
 
 A measured capacitance value more than 5pF (incl. the zero offset) is
 considered valid. Lower values are too uncertain and could be caused by
-placing the probe leads a little bit different and things like that.
+placing the probe leads a little bit differently and things like that.
+
+The tester tries to measure the ESR for capacitors with more than 180nF. But
+since the ESR measurement isn't done via an AC signal with a specific
+frequency, please don't expect a solid result. The method used might be
+comparable with a 1kHz test. Anyway, the results are good enough to check
+electrolytic caps. For low value film caps you could get different results
+based on the MCU clock rate. I'd guess Mr. Fourier is able to explain this.  
+
+Another measurement taken is the self-discharge leakage current for
+capacitors larger than 4.7µF. It gives a hint about the state of an 
+electrolytic cap. From my tests the typical value for a good electrolytic
+cap seems to be about:
+  - 10-220µF    1-3µA
+  - 330-470µF   4-5µA
+  - 470-820µF   4-7µA
+  - >1000µF     5-7µA per 1000µF
+
+
+* Inductors
+
+The inductance measurement isn't very accurate, and things like the MCU clock
+speed and the PCB layout have an inpact on the results. Basically it's based
+on measuring the time between switching on current flow and reaching a specific
+current. For high inductances there's a low current check, and for low
+inductances a high current check, which exceeds the MCU's pin drive limit
+for a very short time (up to about 25 micro seconds).
+
+While investigating the effects of the MCU clock and other things I've found a
+pattern of deviations, which can be used for compensation. Based on the tester
+you got some custom tweaking might be necessary. In inductance.c in the
+function MeasureInductor() there the variable "Offset" for compensation. That
+variable is an offset for the reference voltage. A positive offset will
+decrease the inductance, and a negative value will increase the inductance.
+
+The compensation for the high current check is based on the MCU clock, and its
+divided in three time ranges, each one with a dedicated offset. For the low
+current check there's just a simple compensation at the moment, as it needs
+further tests. If you see any major deviations when compairing the measurement
+results with a proper LCR meter, you can adjust the offsets to match your
+tester.
+
+Hint: When getting unexpected results please re-run the test.
 
 
 * Discharging Components
@@ -445,7 +877,7 @@ measurements by increasing the number of samples. Note that more samples will
 take more time resulting in slower measurements.
 
 
-* Vf (V_BE) of BJTs
+* V_BE of BJTs
 
 When checking for diodes Vf is measured with Rl (high test current) and Rh (
 low test current), and both voltages are stored. The output function for BJTs
@@ -457,9 +889,8 @@ BJT isn't measured with the same test current as for a power BJT.
 
 * Displaying Results
 
-Several names and abbreviations are changed. The output for several devices
-is splitted into multiple pages to have sufficient space to fully display all
-data.
+Some names and abbreviations are changed. The output for several parts might
+be splitted into multiple pages to support displays with just a few lines.
 
 For a single diode the low current Vf (measured with 10µA) is shown in braces
 if the voltage is below 250mV. That should give you a hint for germanium
@@ -467,11 +898,11 @@ diodes. Most datasheets of germanium diodes specify Vf at 0.1mA which the
 tester doesn't support. At a higher current Vf is expected to be around 0.7V
 which makes it hard to distinguish germanium from silicon diodes.
 
-The leakage current I_R for a single diode or I_CEO for a BJT will be displayed
-if it exeeds 1µA. Germanium BJTs got a leakage current of a few µA up to around
-500µA. Germanium diodes are around a few µA usually.
+The leakage current I_R for a single diode or I_CEO for a BJT will be
+displayed if it exeeds 50nA. Germanium BJTs got a leakage current of a few µA
+up to around 500µA. Germanium diodes are around a few µA usually.
 
-For some devices the capacitance is shown also. In case the capacitance is
+For some components the capacitance is shown also. In case the capacitance is
 below 5pF or the measurement failed for some reason the value displayed
 will be 0pF.
 
@@ -481,10 +912,19 @@ distinguished, they are functionally identical. Please see the FET's datasheet
 if you need more details about the pinout.
 
 The pinout for a Triac is shown with the pin IDs 'G', '1' and '2'. '1' is MT1
-and '2' is MT2.
+and '2' is MT2. And for an UJT, in case the detection is enabled, it's '1' for
+B1, '2' for B2 and 'E' for the Emitter.
+
+When the fancy pinout option is enabled (by selecting a symbols file in
+config.h) a component symbol with the corresponding probe pin numbers will be
+shown for 3-pin semiconductors. If there's not enough space left on the display
+for the symbol, the output will be skipped. 
 
 
 + Special Components
+
+
+Non-standard BJT
 
 For a BJT with a base emitter resistor the tester displays the base emitter
 resistor and skips the hFE output. If the BJT also got a freewheeling diode the
@@ -500,15 +940,25 @@ transistor. A NPN BJT will have a parasitic PNP and vice versa. If such a BJT
 is found the tester prints a '+' behind the BJT type.
 
 
+CLD
+
+The diode check identifies a CLD (Current Limiting Diode) as a standard diode
+and displays I_F as the leakage current. Note that anode and cathode of a CLD
+are reversed vs. a standard diode. A dedicated check for a CLD is hard to
+implement, since the leakage current of a Germanium or high-current Schottky
+diode is in the range of I_F (>= 33µA).
+
+If a diode has an unusual forward voltage, a quite low V_f for the low current
+check (2nd value in braces) and no capacitance could be measured then it's
+most likely a CLD.
+
+
 * Unsupported Components
 
 Any semiconductor which requires a high current to trigger conduction can't
 be supported, since the tester only provides about 7mA at maximum. Also the
 tester provides just a voltage of 5V, which isn't sufficient for DIACs with
 a V_BO of 20-200V.
-
-Germanium power BJTs with a very high leakage current (> 700µA) can't be
-checked either because the check would collide with depletion mode FETs. 
 
 
 * Known Issues
@@ -517,7 +967,8 @@ checked either because the check would collide with depletion mode FETs.
   anti-parallel diodes. The capacitance measurement isn't able to determine  
   an acceptable value either.
 - When using a SMPS or DC-DC converter as power supply the tester will
-  sometimes detect a capacitor around 50µF even if no component is connected. 
+  sometimes detect a capacitor around 50µF even if no component is connected.
+- The ESR of a cap with 180 - 220nF may vary with the MCU clock.
 
 
 * Change Log

@@ -2,10 +2,23 @@
  *
  *   global configuration, setup and settings
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
+
+
+/* source management */
+#define CONFIG_H
+
+
+/*
+ *  For MCU specific settings (port and pin assignments) and LCD display
+ *  settings please edit:
+ *  - ATmega328:           config_328.h
+ *  - ATmega324/644/1284:  config_644.h
+ */
+
 
 
 /* ************************************************************************
@@ -14,9 +27,10 @@
 
 
 /*
- *  rotary encoder for user interface (PD2 & PD3)
+ *  rotary encoder for user interface
+ *  - default pins: PD2 & PD3 (ATmega 328)
  *  - in parallel with LCD module
- *  - requires MCU with >=32kB Flash
+ *  - see ENCODER_PORT for port pins
  *  - uncomment to enable and also set ENCODER_PULSES below to match your
  *    rotary encoder
  */
@@ -25,8 +39,9 @@
 
 
 /*
- *  Number of pulses per step or detent for the rotary encoder
+ *  Number of Gray code pulses per step or detent for the rotary encoder
  *  - typical values: 1, 2 or 4
+ *  - a rotary encoder's pulse is a sequence of 4 Gray code pulses
  *  - adjust value to match your rotary encoder
  */
 
@@ -34,8 +49,10 @@
 
 
 /*
- *  2.5V voltage reference for Vcc check (PC4)
+ *  2.5V voltage reference for Vcc check
+ *  - default pin: PC4 (ATmega 328)
  *  - should be at least 10 times more precise than the voltage regulator
+ *  - see TP_REF for port pin
  *  - uncomment to enable and also adjust UREF_25 below for your voltage
  *    reference
  */
@@ -46,27 +63,30 @@
 /*
  *  Typical voltage of 2.5V voltage reference (in mV)
  *  - see datasheet of the voltage reference
- *  - or use >= 5.5 digit DMM to measure voltage
+ *  - or use >= 5.5 digit DMM to measure the voltage
  */
 
 #define UREF_25           2495
 
 
 /*
- *  Probe protection relay for discharging caps (PC4):
+ *  Probe protection relay for discharging caps
+ *  - default pin: PC4 (ATmega 328)
  *  - low signal: short circuit probe pins
  *    high signal via external reference: remove short circuit 
  *  - uncomment to enable
  */
 
-//#define HW_RELAY
+//#define HW_DISCHARGE_RELAY
 
 
 /*
- *  voltage measurement up to 50V DC (10:1 voltage divider, PC3):
+ *  voltage measurement up to 50V DC
+ *  - default pin: PC3 (ATmega 328)
+ *  - 10:1 voltage divider
  *  - for Zener diodes
  *  - DC-DC boost converter controled by test push button
- *  - requires MCU with >=32kB Flash and >=1kB EEPROM
+ *  - see TP_BAT for port pin
  *  - uncomment to enable
  */
 
@@ -74,80 +94,165 @@
 
 
 /*
- *  frequency counter (PD4)
- *  - in parallel with LCD module
- *  - requires MCU with >=32kB Flash
+ *  frequency counter
+ *  - default pin: T0 (PD4 ATmega 328)
+ *  - might be in parallel with LCD module
  *  - uncomment to enable
  */
 
 //#define HW_FREQ_COUNTER
 
 
+/*
+ *  fixed IR remote control detection/decoder
+ *  - requires IR receiver module, e.g. TSOP series
+ *  - module is connected to fixed I/O pin
+ *  - uncomment to enable
+ */
+
+//#define HW_IR_RECEIVER
+
+
+/*
+ *  fixed cap for self-adjustment
+ *  - uncomment to enable (not implemented yet)
+ */
+
+//#define HW_ADJUST_CAP
+
+
+/*
+ *  relay for parallel cap (sampling ADC)
+ *  - uncomment to enable (not implemented yet)
+ */
+
+//#define HW_CAP_RELAY
+
+
+
+/*
+ *  I2C bus
+ *  - might be required by some hardware
+ *  - for bit-bang I2C port and pins see config_<MCU>.h
+ *  - hardware I2C (TWI) uses the proper pins automatically
+ *  - uncomment either I2C_BITBANG or I2C_HARDWARE to enable
+ */
+
+//#define I2C_BITBANG                /* bit-bang I2C */
+//#define I2C_HARDWARE               /* MCU's hardware TWI */
+#define I2C_STANDARD_MODE          /* 100kHz bus speed */
+//#define I2C_FAST_MODE              /* 400kHz bus speed */
+
+
 
 /* ************************************************************************
- *   port and pin assignments
+ *   software options
  * ************************************************************************ */
 
 
 /*
- *  Test probes:
- *  - Must be an ADC port :-)
- *  - Lower 3 pins of the port must be used for probe pins.
- *  - Please don't change the definitions of TP1, TP2 and TP3!
+ *  PWM generator with simple user interface
+ *  - uncomment to enable
  */
 
-#define ADC_PORT         PORTC     /* ADC port data register */
-#define ADC_DDR          DDRC      /* ADC port data direction register */
-#define ADC_PIN          PINC      /* port input pins register */
-#define TP1              PC0       /* test pin 1 (=0) */
-#define TP2              PC1       /* test pin 2 (=1) */
-#define TP3              PC2       /* test pin 3 (=2) */
-
-#define TP_ZENER         PC3       /* test pin with 10:1 voltage divider */
-#define TP_REF           PC4       /* test pin with 2.5V reference and relay */
-#define TP_BAT           PC5       /* test pin with 4:1 voltage divider */
+#define SW_PWM_SIMPLE
 
 
 /*
- *  Probe resistors
- *
- *  The resistors must be connected to the lower 6 pins of the port in
- *  following sequence:
- *  - pin 0: Rl1 680R (test pin 1)
- *  - pin 1: Rh1 470k (test pin 1)
- *  - pin 2: Rl2 680R (test pin 2)
- *  - pin 3: Rh2 470k (test pin 2)
- *  - pin 4: Rl3 680R (test pin 3)
- *  - pin 5: Rh3 470k (test pin 3)
+ *  PWM generator with fancy user interface
+ *  - requires rotary encoder and display with more than 2 text lines
+ *  - uncomment to enable
  */
 
-#define R_PORT           PORTB     /* port data register */
-#define R_DDR            DDRB      /* port data direction register */
+//#define SW_PWM_PLUS
 
 
 /*
- *  push button and power management
+ *  Inductance measurement
+ *  - uncomment to enable
  */
 
-#define CONTROL_PORT     PORTD     /* port data register */
-#define CONTROL_DDR      DDRD      /* port data direction register */
-#define CONTROL_PIN      PIND      /* port input pins register */
-#define POWER_CTRL       PD6       /* controls power (1: on / 0: off) */
-#define TEST_BUTTON      PD7       /* test/start push button (low active) */
-#define ENCODER_A        PD2       /* rotary encoder A signal */
-#define ENCODER_B        PD3       /* rotary encoder B signal */
+#define SW_INDUCTOR
 
 
 /*
- *  LCD module
+ *  ESR measurement and in-circuit ESR measurement
+ *  - uncomment to enable
  */
 
-#define LCD_PORT         PORTD     /* port data register */
-                                   /* - lower 4 bits for LCD data interface */
-                                   /* - upper 4 bits for control lines */
-#define LCD_DDR          DDRD      /* port data direction register */
-#define LCD_RS           PD4       /* port pin used for RS */
-#define LCD_EN1          PD5       /* port pin used for E */
+#define SW_ESR
+
+
+/*
+ *  Check for rotary encoders
+ *  - uncomment to enable
+ */
+
+//#define SW_ENCODER
+
+
+/*
+ *  squarewave signal generator
+ *  - requires rotary encoder
+ *  - uncomment to enable
+ */
+
+#define SW_SQUAREWAVE
+
+
+/*
+ *  IR remote control detection/decoder
+ *  - requires IR receiver module, e.g. TSOP series
+ *  - module will be connected to probe leads
+ *  - uncomment to enable
+ */
+
+#define SW_IR_RECEIVER
+
+
+/*
+ *  current limiting resistor for IR receiver module
+ *  - for 5V only modules
+ *  - Warning: any short circuit may destroy your MCU
+ *  - uncomment to disable resistor
+ */
+
+//#define SW_IR_DISABLE_RESISTOR
+
+
+/*
+ *  check for opto couplers
+ *  - uncomment to enable
+ */
+
+#define SW_OPTO_COUPLER
+
+
+/*
+ *  check for Unijunction Transistors
+ *  - uncomment to enable
+ */
+
+#define SW_UJT
+
+
+/*
+ *  color coding for probes
+ *  - requires color graphics LCD
+ *  - uncomment to enable
+ *  - edit colors.h to select correct probe colors
+ */
+
+#define SW_PROBE_COLORS
+
+
+/*
+ *  Servo Check
+ *  - requires rotary encoder and display with more than 2 text lines
+ *  - uncomment to enable
+ */
+
+//#define SW_SERVO
 
 
 
@@ -180,18 +285,14 @@
  *  Languange of user interface. Available languages:
  *  - English (default)
  *  - German
+ *  - Czech
+ *  - Spanish
  */
 
 #define UI_ENGLISH
 //#define UI_GERMAN
-
-
-/*
- *  LCD module with cyrillic character set
- *  - uncomment if you are using such an LCD
- */
-
-//#define LCD_CYRILLIC
+//#define UI_CZECH
+//#define UI_SPANISH
 
 
 /*
@@ -211,7 +312,18 @@
 
 
 /*
- *  Voltage drop by reverse voltage protection diode and power management.
+ *  Voltage divider for battery monitoring
+ *  - BAT_R1: top resistor in Ohms
+ *  - BAT_R2: bottom resistor in Ohms
+ *
+ */
+
+#define BAT_R1          10000
+#define BAT_R2          3300
+
+
+/*
+ *  Voltage drop by reverse voltage protection diode and power management
  *  transistor (in mV):
  *  - Schottky diode about 200mV / Transistor about 100mV.
  *  - Get your DMM and measure the voltage drop!
@@ -287,6 +399,7 @@
 #define R_ZERO           20
 
 
+
 /* 
  *  Capacitance of the wires between PCB and terminals (in pF).
  *  Examples:
@@ -331,73 +444,26 @@
  * ************************************************************************ */
 
 
-/*
- *  ATmega168
- */
-
-#if defined(__AVR_ATmega168__)
-
-  /* estimated internal resistance of port to GND (in 0.1 Ohms) */
-  #define R_MCU_LOW           196
-
-  /* estimated internal resistance of port to VCC (in 0.1 Ohms) */
-  #define R_MCU_HIGH          225
-
-  /* voltage offset of MCUs analog comparator (in mV): -50 up to 50 */
-  #define COMPARATOR_OFFSET   15
-
-  /*
-   *  capacitance of the probe tracks of the PCB and the MCU (in pF)
-   *  - 35 for ATmega168A
-   *  - 36 for ATmega168
-   */
-
-  #define CAP_PCB             32
-
-  /* total default capacitance (in pF): max. 255 */
-  #define C_ZERO              CAP_PCB + CAP_WIRES + CAP_PROBELEADS
-
-  /* memory layout: put stuff exceeding 512 bytes EEPROM into flash */
-  #define MEM_TEXT            PROGMEM
-  #define MEM_read_word(a)    pgm_read_word(a)
-  #define MEM_read_byte(a)    pgm_read_byte(a)
-
-  /* this MCU has 16kB Flash, 0.5kB EEPROM and 1kB RAM (enable extra features) */
-  #define RES_FLASH           16
-  #define RES_EEPROM          0.5
-  #define RES_RAM             1
+/* MCU clock */
+#define CPU_FREQ    F_CPU
 
 
 /*
- *  ATmega328
+ *  ATmega 328/328P
  */
 
-#elif defined(__AVR_ATmega328__)
+#if defined(__AVR_ATmega328__)
 
-  /* estimated internal resistance of port to GND (in 0.1 Ohms) */
-  #define R_MCU_LOW           200  /* 209 */
+  #include "config_328.h"
 
-  /* estimated internal resistance of port to VCC (in 0.1 Ohms) */
-  #define R_MCU_HIGH          220  /* 235 */
 
-  /* voltage offset of MCUs analog comparator (in mV): -50 up to 50 */
-  #define COMPARATOR_OFFSET   15
+/*
+ *  ATmega 324P/324PA/644/644P/644PA/1284/1284P
+ */
 
-  /* capacitance of the probe tracks of the PCB and the MCU (in pF) */
-  #define CAP_PCB             32
+#elif defined(__AVR_ATmega324P__) || defined(__AVR_ATmega644__) || defined(__AVR_ATmega1284__)
 
-  /* total default capacitance (in pF): max. 255 */
-  #define C_ZERO              CAP_PCB + CAP_WIRES + CAP_PROBELEADS
-
-  /* memory layout: put stuff into EEPROM (1kB) */
-  #define MEM_TEXT            EEMEM
-  #define MEM_read_word(a)    eeprom_read_word(a)
-  #define MEM_read_byte(a)    eeprom_read_byte(a)
-
-  /* this MCU has 32kB Flash, 1kB EEPROM and 2kB RAM (enable extra features) */
-  #define RES_FLASH           32
-  #define RES_EEPROM          1
-  #define RES_RAM             2
+  #include "config_644.h"
 
 
 /*
@@ -405,13 +471,7 @@
  */
 
 #else
-
- #error "************************************"
- #error "*                                  *"
- #error "*  No or wrong MCU type selected!  *" 
- #error "*                                  *"
- #error "************************************"
-
+  #error <<< No or wrong MCU type selected! >>>
 #endif
 
 
@@ -422,46 +482,96 @@
 
 
 /*
- *  selection of ADC clock 
- *  - ADC clock can be 125000 or 250000 
- *  - 250kHz is out of the full accuracy specification!
+ *  ADC clock 
+ *  - The ADC clock is 125000Hz by default.
+ *  - You could also set 250000Hz, but that exceeds the max. ADC clock
+ *    of 200kHz for 10 bit resolution!
+ *  - Special case for 20MHz MCU clock: 156250Hz
  */
 
-#define ADC_FREQ    125000
+#if CPU_FREQ == 20000000
+  /* 20MHz MCU clock */
+  #define ADC_FREQ    156250
+#else
+  /* all other MCU clocks */
+  #define ADC_FREQ    125000
+#endif
 
 
 /*
  *  define clock divider
- *  - supports 1MHz, 2MHz, 4MHz, 8MHz and 16MHz MCU clock
- *  - 4 for CPU clock of 1MHz and ADC clock of 250kHz
- *  - 128 for CPU clock of 16MHz and ADC clock of 125kHz
+ *  - supports 1MHz, 2MHz, 4MHz, 8MHz and 16MHz MCU clocks
+ *  - we got only 7 fixed prescalers from 2 up to 128
  */
 
-#define CPU_FREQ    F_CPU
-
+/* 1MHz/250kHz */
 #if CPU_FREQ / ADC_FREQ == 4
   #define ADC_CLOCK_DIV (1 << ADPS1) 
 #endif
 
+/* 1MHz/125kHz 2MHz/250kHz */
 #if CPU_FREQ / ADC_FREQ == 8
   #define ADC_CLOCK_DIV (1 << ADPS1) | (1 << ADPS0)
 #endif
 
+/* 2MHz/125kHz 4MHz/250kHz */
 #if CPU_FREQ / ADC_FREQ == 16
   #define ADC_CLOCK_DIV (1 << ADPS2)
 #endif
 
+/* 4MHz/125kHz 8MHz/250kHz */
 #if CPU_FREQ / ADC_FREQ == 32
   #define ADC_CLOCK_DIV (1 << ADPS2) | (1 << ADPS0)
 #endif
 
+/* 8MHz/125kHz 16MHz/250kHz */
 #if CPU_FREQ / ADC_FREQ == 64
   #define ADC_CLOCK_DIV (1 << ADPS2) | (1 << ADPS1)
 #endif
 
+/* 16MHz/125kHz 20MHz/156.25kHz */
 #if CPU_FREQ / ADC_FREQ == 128
   #define ADC_CLOCK_DIV (1 << ADPS2) | (1 << ADPS1) | (1 << ADPS0)
 #endif
+
+
+
+/* ************************************************************************
+ *   derived values
+ * ************************************************************************ */
+
+
+/*
+ *  total default capacitance (in pF)
+ *  - max. 255
+ */
+
+#define C_ZERO           CAP_PCB + CAP_WIRES + CAP_PROBELEADS
+
+
+/*
+ *  number of MCU cycles per µs
+ *  - min. 1 (for 1MHz)
+ *  - max. 20 (for 20MHz)
+ */
+
+#define MCU_CYCLES_PER_US     (CPU_FREQ / 1000000)
+
+
+/*
+ *  number of MCU cycles per ADC cycle
+ *  - min. 4
+ *  - max. 128
+ */ 
+
+#define MCU_CYCLES_PER_ADC    (CPU_FREQ / ADC_FREQ)
+
+
+/*
+ *  time of a MCU cycle (in 0.1 ns)
+ */
+
+#define MCU_CYCLE_TIME        (10000 / (CPU_FREQ / 1000000))
 
 
 
@@ -470,38 +580,69 @@
  * ************************************************************************ */
 
 
-/* check hardware options that require >=32kB Flash */
-#if RES_FLASH < 32
-  /* rotary encoder */
-  #ifdef HW_ENCODER
-    #undef HW_ENCODER
-    #warning "Disabled HW_ENCODER!"
-  #endif
+/*
+ *  software options
+ */
 
-  /* high voltage measurement / zener */
-  #ifdef HW_ZENER
-    #undef HW_ZENER
-    #warning "Disabled HW_ZENER!"
-  #endif
-
-  /* frequency counter */
-  #ifdef HW_FREQ_COUNTER
-    #undef HW_FREQ_COUNTER
-    #warning "Disabled HW_FREQ_COUNTER!"
+/* PWM+ requires rotary encoder */
+#ifdef SW_PWM_PLUS
+  #ifndef HW_ENCODER
+    #undef SW_PWM_PLUS
+    #define SW_PWM_SIMPLE
   #endif
 #endif
 
-
-/* auto-enable extra features for >=32kB Flash */
-#if RES_FLASH >= 32
-  #define SW_PWM
-  #ifdef HW_ENCODER
-    #define SW_SIGNAL_GEN
+/* squarewave generator requires rotary encoder */
+#ifdef SW_SQUAREWAVE
+  #ifndef HW_ENCODER
+    #undef SW_SQUAREWAVE
   #endif
-  #define SW_INDUCTOR
-  #define SW_ESR
-  #define SW_ENCODER
 #endif
+
+/* IR detector/decoder (probe lead based decoder prevails) */
+#ifdef SW_IR_RECEIVER
+  #undef HW_IR_RECEIVER
+#endif
+#ifdef HW_IR_RECEIVER
+  #undef SW_IR_RECEIVER
+#endif
+
+/* Servo Check requires rotary encoder */
+#ifdef SW_SERVO
+  #ifndef HW_ENCODER
+    #undef SW_SERVO
+  #endif
+#endif
+
+/* LCD module */
+#ifdef LCD_CONTRAST
+  #define SW_CONTRAST
+#else
+  #define LCD_CONTRAST        0
+#endif
+
+/* color coding for probes requires a color graphics display */
+#ifdef SW_PROBE_COLORS
+  #ifndef LCD_COLOR
+    #undef SW_PROBE_COLORS
+  #endif
+#endif
+
+/* component symbols for fancy pinout */
+#if defined (SYMBOLS_24X24_VP) || defined (SYMBOLS_24X24_H) || defined (SYMBOLS_30X32_H) || defined (SYMBOLS_32X32_H)
+  #define SW_SYMBOLS
+#endif
+
+/* I2C */
+#if defined (I2C_BITBANG) || defined (I2C_HARDWARE)
+  #define HW_I2C
+#endif
+
+/* touchscreen */
+#ifdef TOUCH_PORT
+  #define HW_TOUCH
+#endif
+
 
 
 /* ************************************************************************

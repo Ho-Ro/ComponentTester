@@ -2,7 +2,7 @@
  *
  *   self adjustment functions
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2016 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -24,8 +24,8 @@
 #include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
-#include "LCD.h"              /* LCD module */
 #include "functions.h"        /* external functions */
+#include "colors.h"           /* color definitions */
 
 
 
@@ -35,19 +35,41 @@
 
 
 /*
- *  calculate checksum for EEPROM stored values and offsets
+ *  set default adjustment values
+ */
+
+void SetAdjustDefaults(void)
+{
+  /* set default values */
+  NV.RiL = R_MCU_LOW;
+  NV.RiH = R_MCU_HIGH;
+  NV.RZero = R_ZERO;
+  NV.CapZero = C_ZERO;
+  NV.RefOffset = UREF_OFFSET;
+  NV.CompOffset = COMPARATOR_OFFSET;
+  NV.Contrast = LCD_CONTRAST;
+}
+
+
+
+/*
+ *  calculate checksum for adjustment values
  */
 
 uint8_t CheckSum(void)
 {
-  uint8_t           Checksum;
+  uint8_t      Checksum = 0;            /* checksum / return value */
+  uint8_t      n;                       /* counter */
+  uint8_t      *Data = (uint8_t *)&NV;  /* pointer to RAM */
 
-  Checksum = (uint8_t)Config.RiL;
-  Checksum += (uint8_t)Config.RiH;
-  Checksum += (uint8_t)Config.RZero;
-  Checksum += Config.CapZero;
-  Checksum += (uint8_t)Config.RefOffset;
-  Checksum += (uint8_t)Config.CompOffset;
+  /* we simply add all bytes, besides the checksum */
+  for (n = 0; n < (sizeof(NV_Type) - 1); n++)
+  {  
+    Checksum += *Data;
+  }
+
+  /* fix for zero (not updated yet) */
+  if (Checksum == 0) Checksum++;
 
   return Checksum;
 }
@@ -55,98 +77,73 @@ uint8_t CheckSum(void)
 
 
 /*
- *  save adjustment values
+ *  load/save adjustment values from/to EEPROM
+ *
+ *  requires:
+ *  - mode: load/save
+ *  - ID: profile ID
  */
 
-void SafeAdjust(void)
+void ManageAdjust(uint8_t Mode, uint8_t ID)
 {
-  uint8_t           Checksum;
+  uint8_t      n;                            /* counter */
+  uint8_t      *Addr_RAM = (uint8_t *)&NV;   /* pointer to RAM */
+  uint8_t      *Addr_EE;                     /* pointer to EEPROM */
 
-  /*
-   *  update values stored in EEPROM
-   */
-
-  /* Ri of MCU in low mode */
-  eeprom_write_word((uint16_t *)&NV_RiL, Config.RiL);
-
-  /* Ri of MCU in low mode */
-  eeprom_write_word((uint16_t *)&NV_RiH, Config.RiH);
-
-  /* resistance of probe leads */
-  eeprom_write_word((uint16_t *)&NV_RZero, Config.RZero);
-
-  /* capacitance offset: PCB + wiring + probe leads */
-  eeprom_write_byte((uint8_t *)&NV_CapZero, Config.CapZero);
-
-  /* voltage offset of bandgap reference */
-  eeprom_write_byte((uint8_t *)&NV_RefOffset, (uint8_t)Config.RefOffset);
-
-  /* voltage offset of analog comparator */
-  eeprom_write_byte((uint8_t *)&NV_CompOffset, (uint8_t)Config.CompOffset);
-
-  /* checksum */
-  Checksum = CheckSum();
-  eeprom_write_byte((uint8_t *)&NV_Checksum, Checksum);
-}
-
-
-
-/*
- *  load adjustment values
- */
-
-void LoadAdjust(void)
-{
-  uint8_t           Checksum;
-  uint8_t           Test;
-
-  /*
-   *  read stored values from EEPROM
-   */
-
-  /* Ri of MCU in low mode */ 
-  Config.RiL = eeprom_read_word(&NV_RiL);
-
-  /* Ri of MCU in low mode */
-  Config.RiH = eeprom_read_word(&NV_RiH);
-
-  /* resitance of probe leads */
-  Config.RZero = eeprom_read_word(&NV_RZero);
-
-  /* capacitance offset: PCB + wiring + probe leads */
-  Config.CapZero = eeprom_read_byte(&NV_CapZero);
-
-  /* voltage offset of bandgap reference */
-  Config.RefOffset = (int8_t)eeprom_read_byte((uint8_t *)&NV_RefOffset);
-
-  /* voltage offset of analog comparator */
-  Config.CompOffset = (int8_t)eeprom_read_byte((uint8_t *)&NV_CompOffset);
-
-  /* checksum */
-  Checksum = eeprom_read_byte(&NV_Checksum);
-
-
-  /*
-   *  check checksum
-   */
-
-  Test = CheckSum();
-
-  if (Test != Checksum)
+  /* determine EEPROM address */
+  if (ID == 2)                     /* profile #2 */
   {
-    /* tell user */
-    LCD_Clear();
-    LCD_EEString2(Checksum_str);        /* display: Checksum */
-    LCD_EEString(Error_str);            /* display: error! */
-    MilliSleep(2000);                   /* give user some time to read */
+    Addr_EE = (uint8_t *)&NV_EE2;
+  }
+  else                             /* profile #1 */
+  {
+    Addr_EE = (uint8_t *)&NV_EE;
+  }
 
-    /* set default values */
-    Config.RiL = R_MCU_LOW;
-    Config.RiH = R_MCU_HIGH;
-    Config.RZero = R_ZERO;
-    Config.CapZero = C_ZERO;
-    Config.RefOffset = UREF_OFFSET;
-    Config.CompOffset = COMPARATOR_OFFSET;
+  NV.CheckSum = CheckSum();        /* update checksum */
+
+
+  /*
+   *  read/write EEPROM byte-wise to/from data structure 
+   */
+
+  for (n = 0; n < sizeof(NV_Type); n++)
+  {
+    if (Mode == MODE_SAVE)              /* write */
+    {
+      eeprom_write_byte(Addr_EE, *Addr_RAM);    /* write a byte */
+    }
+    else                                /* read */
+    {
+      *Addr_RAM = eeprom_read_byte(Addr_EE);    /* read a byte */
+    }
+
+    Addr_RAM++;               /* next byte */
+    Addr_EE++;                /* next byte */
+  }
+
+
+  /*
+   *  check checksum on read
+   */
+
+  if (Mode != MODE_SAVE)           /* read mode */
+  {
+    n = CheckSum();
+
+    if (NV.CheckSum != 0)          /* EEPROM updated */
+    {
+      if (NV.CheckSum != n)        /* mismatch */
+      {
+        /* tell user */
+        LCD_Clear();
+        LCD_EEString(Checksum_str);          /* display: Checksum */
+        LCD_NextLine_EEString(Error_str);    /* display: error! */
+        MilliSleep(2000);                    /* give user some time to read */
+
+        SetAdjustDefaults();                 /* set defaults */
+      }
+    }
   }
 }
 
@@ -163,45 +160,34 @@ void LoadAdjust(void)
 
 void ShowAdjust(void)
 {
+  LCD_NextLine_Mode(MODE_KEY);          /* set next line mode */
+
   /* display RiL and RiH */
   LCD_Clear();
-  LCD_EEString2(RiLow_str);             /* display: Ri- */
-  DisplayValue(Config.RiL, -1, LCD_CHAR_OMEGA);
-
-  LCD_Line2();
-  LCD_EEString2(RiHigh_str);            /* display: Ri+ */
-  DisplayValue(Config.RiH, -1, LCD_CHAR_OMEGA);
-
-  WaitKey();                  /* let the user read */
+  LCD_EEString_Space(RiLow_str);             /* display: Ri- */
+  DisplayValue(NV.RiL, -1, LCD_CHAR_OMEGA);
+  LCD_NextLine_EEString_Space(RiHigh_str);   /* display: Ri+ */
+  DisplayValue(NV.RiH, -1, LCD_CHAR_OMEGA);
 
   /* display C-Zero */
-  LCD_Clear();
-  LCD_EEString2(CapOffset_str);              /* display: C0 */
-  DisplayValue(Config.CapZero, -12, 'F');    /* display C0 offset */
+  LCD_NextLine_EEString_Space(CapOffset_str);     /* display: C0 */
+  DisplayValue(NV.CapZero, -12, 'F');    /* display C0 offset */
 
   /* display R-Zero */
-  LCD_Line2();
-  LCD_EEString2(ROffset_str);                      /* display: R0 */
-  DisplayValue(Config.RZero, -2, LCD_CHAR_OMEGA);  /* display R0 */
-
-  WaitKey();                  /* let the user read */
+  LCD_NextLine_EEString_Space(ROffset_str);        /* display: R0 */
+  DisplayValue(NV.RZero, -2, LCD_CHAR_OMEGA);  /* display R0 */
 
   /* display internal bandgap reference */
-  LCD_Clear();
-  LCD_EEString2(URef_str);                   /* display: Vref */
+  LCD_NextLine_EEString_Space(URef_str);     /* display: Vref */
   DisplayValue(Config.Bandgap, -3, 'V');     /* display bandgap ref */
 
   /* display Vcc */
-  LCD_Line2();
-  LCD_EEString2(Vcc_str);                    /* display: Vcc */
+  LCD_NextLine_EEString_Space(Vcc_str);      /* display: Vcc */
   DisplayValue(Config.Vcc, -3, 'V');         /* display Vcc */
 
-  WaitKey();                  /* let the user read */
-
   /* display offset of analog comparator */
-  LCD_Clear();
-  LCD_EEString2(CompOffset_str);             /* display: AComp */
-  DisplaySignedValue(Config.CompOffset, -3, 'V');
+  LCD_NextLine_EEString_Space(CompOffset_str);    /* display: AComp */
+  DisplaySignedValue(NV.CompOffset, -3, 'V');
 
   WaitKey();                  /* let the user read */
 }
@@ -240,7 +226,7 @@ uint8_t SelfAdjust(void)
 
   /* make sure all probes are shorted */
   Counter = ShortCircuit(1);
-  if (Counter == 0) Test = 10;      /* skip adjustment on error */
+  if (Counter == 0) Test = 10;     /* skip adjustment on error */
 
   while (Test <= 5)      /* loop through tests */
   {
@@ -251,8 +237,8 @@ uint8_t SelfAdjust(void)
     {
       /* display test number */
       LCD_Clear();
-      LCD_Data('A');                    /* display: a */
-      LCD_Data('0' + Test);             /* display number */
+      LCD_Char('A');                    /* display: a */
+      LCD_Char('0' + Test);             /* display number */
       LCD_Space();
 
       DisplayFlag = 1;        /* display values by default */
@@ -264,15 +250,15 @@ uint8_t SelfAdjust(void)
       switch (Test)
       {
         case 1:     /* resistance of probe leads (probes shorted) */
-          LCD_EEString2(ROffset_str);   /* display: R0 */
-          LCD_EEString(ProbeComb_str);  /* display: 12 13 23 */          
+          LCD_EEString_Space(ROffset_str);   /* display: R0 */
+          LCD_EEString(ProbeComb_str);       /* display: 12 13 23 */          
 
           /*
            *  The resistance is for two probes in series and we expect it to be
-           *  smaller than 1.00 Ohms, i.e. 0.50 Ohms for a single probe
+           *  lower than 1.00 Ohms, i.e. 0.50 Ohms for a single probe.
            */
 
-          UpdateProbes(TP2, TP1, 0);
+          UpdateProbes(PROBE_2, PROBE_1, 0);
           Val1 = SmallResistor(0);
           if (Val1 < 100)                    /* within limit */
           {
@@ -280,7 +266,7 @@ uint8_t SelfAdjust(void)
             RCounter++;
           }
 
-          UpdateProbes(TP3, TP1, 0);
+          UpdateProbes(PROBE_3, PROBE_1, 0);
           Val2 = SmallResistor(0);
           if (Val2 < 100)                    /* whithin limit */
           {
@@ -288,7 +274,7 @@ uint8_t SelfAdjust(void)
             RCounter++;
           }
 
-          UpdateProbes(TP3, TP2, 0);
+          UpdateProbes(PROBE_3, PROBE_2, 0);
           Val3 = SmallResistor(0);
           if (Val3 < 100)                    /* within limit */
           {
@@ -307,26 +293,26 @@ uint8_t SelfAdjust(void)
         case 3:     /* internal resistance of MCU in pull-down mode */
           LCD_EEString(RiLow_str);      /* display: Ri- */
 
-          /* TP1:  Gnd -- Ri -- probe -- Rl -- Ri -- Vcc */
+          /* TP1:  Gnd -- RiL -- probe-1 -- Rl -- RiH -- Vcc */
           ADC_PORT = 0;
-          ADC_DDR = 1 << TP1;
-          R_PORT = 1 << (TP1 * 2);
-          R_DDR = 1 << (TP1 * 2);
-          Val1 = ReadU_5ms(TP1);
+          ADC_DDR = (1 << TP1);
+          R_PORT = (1 << R_RL_1);
+          R_DDR = (1 << R_RL_1);
+          Val1 = ReadU_5ms(TP1);        /* U across RiL */
           U_RiL += Val1;
 
-          /* TP2: Gnd -- Ri -- probe -- Rl -- Ri -- Vcc */
-          ADC_DDR = 1 << TP2;
-          R_PORT =  1 << (TP2 * 2);
-          R_DDR = 1 << (TP2 * 2);
-          Val2 = ReadU_5ms(TP2);
+          /* TP2: Gnd -- RiL -- probe-2 -- Rl -- RiH -- Vcc */
+          ADC_DDR = (1 << TP2);
+          R_PORT =  (1 << R_RL_2);
+          R_DDR = (1 << R_RL_2);
+          Val2 = ReadU_5ms(TP2);       /* U across RiL */
           U_RiL += Val2;
 
-          /* TP3: Gnd -- Ri -- probe -- Rl -- Ri -- Vcc */
-          ADC_DDR = 1 << TP3;
-          R_PORT =  1 << (TP3 * 2);
-          R_DDR = 1 << (TP3 * 2);
-          Val3 = ReadU_5ms(TP3);
+          /* TP3: Gnd -- RiL -- probe-3 -- Rl -- RiH -- Vcc */
+          ADC_DDR = (1 << TP3);
+          R_PORT =  (1 << R_RL_3);
+          R_DDR = (1 << R_RL_3);
+          Val3 = ReadU_5ms(TP3);       /* U across RiL */
           U_RiL += Val3;
 
           RiL_Counter += 3;
@@ -335,41 +321,41 @@ uint8_t SelfAdjust(void)
         case 4:     /* internal resistance of MCU in pull-up mode */
           LCD_EEString(RiHigh_str);     /* display: Ri+ */
 
-          /* TP1: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */
+          /* TP1: Gnd -- RiL -- Rl -- probe-1 -- RiH -- Vcc */
           R_PORT = 0;
-          ADC_PORT = 1 << TP1;
-          ADC_DDR = 1 << TP1;
-          R_DDR = 1 << (TP1 * 2);
-          Val1 = Config.Vcc - ReadU_5ms(TP1);
+          ADC_PORT = (1 << TP1);
+          ADC_DDR = (1 << TP1);
+          R_DDR = (1 << R_RL_1);
+          Val1 = Config.Vcc - ReadU_5ms(TP1);     /* U across RiH */
           U_RiH += Val1;
 
-          /* TP2: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */
-          ADC_PORT = 1 << TP2;
-          ADC_DDR = 1 << TP2;
-          R_DDR = 1 << (TP2 * 2);
-          Val2 = Config.Vcc - ReadU_5ms(TP2);
+          /* TP2: Gnd -- RiL -- Rl -- probe-2 -- RiH -- Vcc */
+          ADC_PORT = (1 << TP2);
+          ADC_DDR = (1 << TP2);
+          R_DDR = (1 << R_RL_2);
+          Val2 = Config.Vcc - ReadU_5ms(TP2);     /* U across RiH */
           U_RiH += Val2;
 
-          /* TP3: Gnd -- Ri -- Rl -- probe -- Ri -- Vcc */
-          ADC_PORT = 1 << TP3;
-          ADC_DDR = 1 << TP3;
-          R_DDR = 1 << (TP3 * 2);
-          Val3 = Config.Vcc - ReadU_5ms(TP3);
+          /* TP3: Gnd -- RiL -- Rl -- probe-3 -- RiH -- Vcc */
+          ADC_PORT = (1 << TP3);
+          ADC_DDR = (1 << TP3);
+          R_DDR = (1 << R_RL_3);
+          Val3 = Config.Vcc - ReadU_5ms(TP3);     /* U across RiH */
           U_RiH += Val3;
 
           RiH_Counter += 3;
           break;
 
         case 5:     /* capacitance offset (PCB and probe leads) */
-          LCD_EEString2(CapOffset_str);   /* display: C0 */
-          LCD_EEString(ProbeComb_str);    /* display: 12 13 23 */
+          LCD_EEString_Space(CapOffset_str);   /* display: C0 */
+          LCD_EEString(ProbeComb_str);         /* display: 12 13 23 */
 
           /*
            *  The capacitance is for two probes and we expect it to be
            *  less than 100pF.
            */
 
-          MeasureCap(TP2, TP1, 0);
+          MeasureCap(PROBE_2, PROBE_1, 0);
           Val1 = (uint16_t)Caps[0].Raw;
           /* limit offset to 100pF */
           if ((Caps[0].Scale == -12) && (Caps[0].Raw <= 100))
@@ -378,7 +364,7 @@ uint8_t SelfAdjust(void)
             CapCounter++;            
           }
 
-          MeasureCap(TP3, TP1, 1);
+          MeasureCap(PROBE_3, PROBE_1, 1);
           Val2 = (uint16_t)Caps[1].Raw;
           /* limit offset to 100pF */
           if ((Caps[1].Scale == -12) && (Caps[1].Raw <= 100))
@@ -387,7 +373,7 @@ uint8_t SelfAdjust(void)
             CapCounter++;            
           }
 
-          MeasureCap(TP3, TP2, 2);
+          MeasureCap(PROBE_3, PROBE_2, 2);
           Val3 = (uint16_t)Caps[2].Raw;
           /* limit offset to 100pF */
           if ((Caps[2].Scale == -12) && (Caps[2].Raw <= 100))
@@ -408,12 +394,12 @@ uint8_t SelfAdjust(void)
       /* display values */
       if (DisplayFlag)
       {
-        LCD_Line2();                    /* move to line #2 */
-        DisplayValue(Val1, 0 , 0);      /* display TP1 */
+        LCD_NextLine();                 /* move to line #2 */
+        DisplayValue(Val1, 0 , 0);      /* display value probe-1 */
         LCD_Space();
-        DisplayValue(Val2, 0 , 0);      /* display TP2 */
+        DisplayValue(Val2, 0 , 0);      /* display value probe-2 */
         LCD_Space();
-        DisplayValue(Val3, 0 , 0);      /* display TP3 */
+        DisplayValue(Val3, 0 , 0);      /* display value probe-3 */
       }
 
       /* wait and check test push button */
@@ -422,10 +408,10 @@ uint8_t SelfAdjust(void)
         DisplayFlag = TestKey(1000, 0);      /* catch key press or timeout */
 
         /* short press -> next test / long press -> end selftest */
-        if (DisplayFlag > 0)
+        if (DisplayFlag > KEY_TIMEOUT)
         {
           Counter = 100;                       /* skip current test anyway */
-          if (DisplayFlag == 2) Test = 100;    /* also skip selftest */
+          if (DisplayFlag == KEY_LONG) Test = 100;  /* also skip selftest */
         } 
       }
  
@@ -444,7 +430,7 @@ uint8_t SelfAdjust(void)
   if (CapCounter == 15)
   {
     /* calculate average offset (pF) */
-    Config.CapZero = CapSum / CapCounter;
+    NV.CapZero = CapSum / CapCounter;
     Flag++;
   }
 
@@ -452,7 +438,7 @@ uint8_t SelfAdjust(void)
   if (RCounter == 15)
   { 
     /* calculate average offset (0.01 Ohms) */
-    Config.RZero = RSum / RCounter;
+    NV.RZero = RSum / RCounter;
     Flag++;
   }
 
@@ -476,7 +462,7 @@ uint8_t SelfAdjust(void)
     Val0 /= 10;                                        /* scale down to 0.1 Ohm */
     if (Val0 < 250UL)         /* < 25 Ohms */
     {
-      Config.RiL = (uint16_t)Val0;
+      NV.RiL = (uint16_t)Val0;
       Flag++;
     }
 
@@ -486,7 +472,7 @@ uint8_t SelfAdjust(void)
     Val0 /= 10;                                        /* scale down to 0.1 Ohm */
     if (Val0 < 280UL)         /* < 29 Ohms */
     {
-      Config.RiH = (uint16_t)Val0;
+      NV.RiH = (uint16_t)Val0;
       Flag++;
     }
   }
@@ -525,6 +511,7 @@ uint8_t SelfTest(void)
   uint8_t           DisplayFlag;        /* display flag */
   uint16_t          Val0;               /* voltage/value */
   int16_t           Val1 = 0, Val2 = 0, Val3 = 0;   /* voltages/values */
+  int16_t           Temp;               /* value */
 
   /* make sure all probes are shorted */
   Counter = ShortCircuit(1);
@@ -540,8 +527,8 @@ uint8_t SelfTest(void)
     {
       /* display test number */
       LCD_Clear();
-      LCD_Data('T');                    /* display: T */
-      LCD_Data('0' + Test);             /* display test number */
+      LCD_Char('T');                    /* display: T */
+      LCD_Char('0' + Test);             /* display test number */
       LCD_Space();
 
       DisplayFlag = 1;                  /* display values by default */
@@ -553,64 +540,70 @@ uint8_t SelfTest(void)
       switch (Test)
       {
         case 1:     /* reference voltage */
-          Val0 = ReadU(0x0e);           /* dummy read for bandgap stabilization */
-          Val0 = ReadU(0x0e);           /* read bandgap reference voltage */ 
+          Val0 = ReadU(ADC_BANDGAP);    /* dummy read for bandgap stabilization */
+          Val0 = ReadU(ADC_BANDGAP);    /* read bandgap reference voltage */ 
           LCD_EEString(URef_str);       /* display: Vref */
 
-          LCD_Line2();
+          LCD_NextLine();
           DisplayValue(Val0, -3, 'V');       /* display voltage in mV */
 
           DisplayFlag = 0;                   /* reset flag */
           break;
 
         case 2:     /* compare Rl resistors (probes still shorted) */
-          LCD_EEString2(Rl_str);          /* display: +Rl- */
+          LCD_EEString_Space(Rl_str);     /* display: +Rl- */
           LCD_EEString(ProbeComb_str);    /* display: 12 13 23 */
 
           /* set up a voltage divider with the Rl's */
           /* substract theoretical voltage of voltage divider */
 
-          /* TP1: Gnd -- Rl -- probe-2 -- probe-1 -- Rl -- Vcc */
-          R_PORT = 1 << (TP1 * 2);
-          R_DDR = (1 << (TP1 * 2)) | (1 << (TP2 * 2));
-          Val1 = ReadU_20ms(TP3);
-          Val1 -= ((int32_t)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          /* voltage of voltage divider */
+          Temp = ((int32_t)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
 
-          /* TP1: Gnd -- Rl -- probe-3 -- probe-1 -- Rl -- Vcc */
-          R_DDR = (1 << (TP1 * 2)) | (1 << (TP3 * 2));
+          /* TP3: Gnd -- Rl -- probe-2 -- probe-1 -- Rl -- Vcc */
+          R_PORT = (1 << R_RL_1);
+          R_DDR = (1 << R_RL_1) | (1 << R_RL_2);
+          Val3 = ReadU_20ms(TP3);
+          Val3 -= Temp;
+
+          /* TP2: Gnd -- Rl -- probe-3 -- probe-1 -- Rl -- Vcc */
+          R_DDR = (1 << R_RL_1) | (1 << R_RL_3);
           Val2 = ReadU_20ms(TP2);
-          Val2 -= ((int32_t)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          Val2 -= Temp;
 
           /* TP1: Gnd -- Rl -- probe-3 -- probe-2 -- Rl -- Vcc */
-          R_PORT = 1 << (TP2 * 2);
-          R_DDR = (1 << (TP2 * 2)) | (1 << (TP3 * 2));
-          Val3 = ReadU_20ms(TP2);
-          Val3 -= ((int32_t)Config.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          R_PORT = (1 << R_RL_2);
+          R_DDR = (1 << R_RL_2) | (1 << R_RL_3);
+          Val1 = ReadU_20ms(TP1);
+          Val1 -= Temp;
 
           break;
 
         case 3:     /* compare Rh resistors (probes still shorted) */
-          LCD_EEString2(Rh_str);          /* display: +Rh- */
+          LCD_EEString_Space(Rh_str);     /* display: +Rh- */
           LCD_EEString(ProbeComb_str);    /* display: 12 13 23 */
 
           /* set up a voltage divider with the Rh's */
 
-          /* TP1: Gnd -- Rh -- probe-2 -- probe-1 -- Rh -- Vcc */
-          R_PORT = 2 << (TP1 * 2);
-          R_DDR = (2 << (TP1 * 2)) | (2 << (TP2 * 2));
-          Val1 = ReadU_20ms(TP3);
-          Val1 -= (Config.Vcc / 2);
+          /* voltage of voltage divider (ignore RiL and RiH) */
+          Temp = Config.Vcc / 2;
 
-          /* TP1: Gnd -- Rh -- probe-3 -- probe-1 -- Rh -- Vcc */
-          R_DDR = (2 << (TP1 * 2)) | (2 << (TP3 * 2));
+          /* TP3: Gnd -- Rh -- probe-2 -- probe-1 -- Rh -- Vcc */
+          R_PORT = (1 << R_RH_1);
+          R_DDR = (1 << R_RH_1) | (1 << R_RH_2);
+          Val3 = ReadU_20ms(TP3);
+          Val3 -= Temp;
+
+          /* TP2: Gnd -- Rh -- probe-3 -- probe-1 -- Rh -- Vcc */
+          R_DDR = (1 << R_RH_1) | (1 << R_RH_3);
           Val2 = ReadU_20ms(TP2);
-          Val2 -= (Config.Vcc / 2);
+          Val2 -= Temp;
 
           /* TP1: Gnd -- Rh -- probe-3 -- probe-2 -- Rh -- Vcc */
-          R_PORT = 2 << (TP2 * 2);
-          R_DDR = (2 << (TP2 * 2)) | (2 << (TP3 * 2));
-          Val3 = ReadU_20ms(TP1);
-          Val3 -= (Config.Vcc / 2);
+          R_PORT = (1 << R_RH_2);
+          R_DDR = (1 << R_RH_2) | (1 << R_RH_3);
+          Val1 = ReadU_20ms(TP1);
+          Val1 -= Temp;
 
           break;
 
@@ -623,17 +616,17 @@ uint8_t SelfTest(void)
         case 5:     /* Rh resistors pulled down */
           LCD_EEString(RhLow_str);      /* display: Rh- */
 
-          /* TP1: Gnd -- Rh -- probe */
+          /* TP1: Gnd -- Rh -- probe-1 */
           R_PORT = 0;
-          R_DDR = 2 << (TP1 * 2);
+          R_DDR = (1 << R_RH_1);
           Val1 = ReadU_20ms(TP1);
 
-          /* TP1: Gnd -- Rh -- probe */
-          R_DDR = 2 << (TP2 * 2);
+          /* TP2: Gnd -- Rh -- probe-2 */
+          R_DDR = (1 << R_RH_2);
           Val2 = ReadU_20ms(TP2);
 
-          /* TP1: Gnd -- Rh -- probe */
-          R_DDR = 2 << (TP3 * 2);
+          /* TP3: Gnd -- Rh -- probe-3 */
+          R_DDR = (1 << R_RH_3);
           Val3 = ReadU_20ms(TP3);
 
           break;
@@ -641,19 +634,19 @@ uint8_t SelfTest(void)
         case 6:     /* Rh resistors pulled up */
           LCD_EEString(RhHigh_str);     /* display: Rh+ */
 
-          /* TP1: probe -- Rh -- Vcc */
-          R_DDR = 2 << (TP1 * 2);
-          R_PORT = 2 << (TP1 * 2);
+          /* TP1: probe-1 -- Rh -- Vcc */
+          R_DDR = (1 << R_RH_1);
+          R_PORT = (1 << R_RH_1);
           Val1 = ReadU_20ms(TP1);
 
-          /* TP1: probe -- Rh -- Vcc */
-          R_DDR = 2 << (TP2 * 2);
-          R_PORT = 2 << (TP2 * 2);
+          /* TP2: probe-2 -- Rh -- Vcc */
+          R_DDR = (1 << R_RH_2);
+          R_PORT = (1 << R_RH_2);
           Val2 = ReadU_20ms(TP2);
 
-          /* TP1: probe -- Rh -- Vcc */
-          R_DDR = 2 << (TP3 * 2);
-          R_PORT = 2 << (TP3 * 2);
+          /* TP3: probe-3 -- Rh -- Vcc */
+          R_DDR = (1 << R_RH_3);
+          R_PORT = (1 << R_RH_3);
           Val3 = ReadU_20ms(TP3);
 
           break;
@@ -666,12 +659,12 @@ uint8_t SelfTest(void)
       /* display voltages/values of all probes */
       if (DisplayFlag)
       {
-        LCD_Line2();                         /* move to line #2 */
-        DisplaySignedValue(Val1, 0 , 0);     /* display TP1 */
+        LCD_NextLine();                      /* move to line #2 */
+        DisplaySignedValue(Val1, 0 , 0);     /* display value probe-1 */
         LCD_Space();
-        DisplaySignedValue(Val2, 0 , 0);     /* display TP2 */
+        DisplaySignedValue(Val2, 0 , 0);     /* display value probe-2 */
         LCD_Space();
-        DisplaySignedValue(Val3, 0 , 0);     /* display TP3 */
+        DisplaySignedValue(Val3, 0 , 0);     /* display value probe-3 */
       }
 
       /* wait and check test push button */
@@ -680,10 +673,10 @@ uint8_t SelfTest(void)
         DisplayFlag = TestKey(1000, 0);      /* catch key press or timeout */
 
         /* short press -> next test / long press -> end selftest */
-        if (DisplayFlag > 0)
+        if (DisplayFlag > KEY_TIMEOUT)
         {
           Counter = 100;                       /* skip current test anyway */
-          if (DisplayFlag == 2) Test = 100;    /* also skip selftest */
+          if (DisplayFlag == KEY_LONG) Test = 100;  /* also skip selftest */
         } 
       }
  

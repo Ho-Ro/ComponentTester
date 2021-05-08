@@ -2,7 +2,7 @@
  *
  *   main part
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -24,8 +24,8 @@
 #include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
-#include "LCD.h"              /* LCD module */
 #include "functions.h"        /* external functions */
+#include "colors.h"           /* color definitions */
 
 
 /*
@@ -44,18 +44,7 @@ uint8_t        RunsMissed;              /* counter for failed/missed measurement
 
 
 /*
- *  wait for key press and goto display line #2
- */
-
-void UpdateLine2(void)
-{
-  WaitKey();                  /* next page */
-  LCD_ClearLine2();           /* only change line #2 */
-}
-
-
-/*
- *  show pinout for semiconductor
+ *  show pinout for semiconductors
  *
  *  required:
  *  - character for pin A
@@ -68,6 +57,11 @@ void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
   uint8_t           i, j;     /* counter */
   unsigned char     Pin[3];   /* component pins */
   unsigned char     ID[3];    /* component pin IDs */
+  #ifdef SW_PROBE_COLORS
+  uint16_t          Color;         /* color value */
+
+  Color = UI.PenColor;             /* save current color */
+  #endif
 
   /* copy probe pin numbers */
   Pin[0] = Semi.A;
@@ -86,17 +80,72 @@ void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
   }
 
   /* display: = */
-  LCD_Data('=');
+  LCD_Char('=');
 
   /* display pin IDs */
   for (i = 0; i <= 2; i++)         /* loop through probe pins */
   {
+    #ifdef SW_PROBE_COLORS
+    UI.PenColor = ProbeColors[i];  /* set probe color */
+    #endif
+
     for (j = 0; j <= 2; j++)       /* loop through component pins */
     {
-      if (i == Pin[j])        /* probe pin matches */
+      if (i == Pin[j])             /* probe pin matches */
       {
-        LCD_Data(ID[j]);           /* show ID */
+        LCD_Char(ID[j]);           /* show ID */
       }
+    }
+  }
+
+  #ifdef SW_PROBE_COLORS
+  UI.PenColor = Color;             /* restore old color */
+  #endif
+}
+
+
+
+/*
+ *  show simple pinout
+ *
+ *  required:
+ *  - ID: characters for probes 1, 2 and 3
+ *    0 -> not displayed
+ */
+
+void Show_SimplePinout(uint8_t ID_1, uint8_t ID_2, uint8_t ID_3)
+{
+  uint8_t           n;        /* counter */
+  unsigned char     ID[3];    /* component pin IDs */
+  #ifdef SW_PROBE_COLORS
+  uint16_t          Color;    /* color value */
+
+  Color = UI.PenColor;             /* save current color */
+  #endif
+
+  /* copy probe pin characters/IDs */
+  ID[0] = ID_1;
+  ID[1] = ID_2;
+  ID[2] = ID_3;
+
+  for (n = 0; n <= 2; n++)         /* loop through probe pins */
+  {
+    if (ID[n] != 0)                /* display this one */
+    {
+      LCD_ProbeNumber(n);
+      LCD_Char(':');
+
+      #ifdef SW_PROBE_COLORS
+      UI.PenColor = ProbeColors[n];     /* set probe color */
+      #endif
+
+      LCD_Char(ID[n]);
+
+      #ifdef SW_PROBE_COLORS
+      UI.PenColor = Color;              /* restore old color */
+      #endif
+
+      LCD_Space();
     }
   }
 }
@@ -111,17 +160,7 @@ void Show_Fail(void)
 {
   /* display info */
   LCD_EEString(Failed1_str);            /* display: No component */
-  LCD_Line2();                          /* move to line #2 */
-  LCD_EEString(Failed2_str);            /* display: found!*/  
-
-  /* display numbers of diodes found */
-  if (Check.Diodes > 0)                 /* diodes found */
-  {
-    LCD_Space();                        /* display space */
-    LCD_Data(Check.Diodes + '0');       /* display number of diodes found */
-    LCD_Space();                        /* display space */
-    LCD_EEString(Diode_AC_str);         /* display: -|>|- */    
-  }
+  LCD_NextLine_EEString(Failed2_str);   /* display: found!*/  
 
   RunsMissed++;               /* increase counter */
   RunsPassed = 0;             /* reset counter */
@@ -140,9 +179,9 @@ void Show_Error()
     LCD_EEString(DischargeFailed_str);  /* display: Battery? */
 
     /* display probe number and remaining voltage */
-    LCD_Line2();
+    LCD_NextLine();
     LCD_ProbeNumber(Check.Probe);
-    LCD_Data(':');
+    LCD_Char(':');
     LCD_Space();
     DisplayValue(Check.U, -3, 'V');
   }
@@ -165,9 +204,9 @@ void Show_SingleResistor(uint8_t ID1, uint8_t ID2)
   Resistor = &Resistors[0];        /* pointer to first resistor */
 
   /* show pinout */
-  LCD_Data(ID1);
+  LCD_Char(ID1);
   LCD_EEString(Resistor_str);
-  LCD_Data(ID2); 
+  LCD_Char(ID2); 
 
   /* show resistance value */
   LCD_Space();
@@ -255,7 +294,7 @@ void Show_Resistor(void)
    */
 
   /* first resistor */
-  LCD_Line2();
+  LCD_NextLine();
   DisplayValue(R1->Value, R1->Scale, LCD_CHAR_OMEGA);
 
   if (R2)                /* second resistor */
@@ -310,7 +349,7 @@ void Show_Capacitor(void)
   LCD_ProbeNumber(MaxCap->B);      /* display pin #2 */
 
   /* show capacitance */
-  LCD_Line2();                     /* move to line #2 */
+  LCD_NextLine();                  /* move to next line */
   DisplayValue(MaxCap->Value, MaxCap->Scale, 'F');
 
   #ifdef SW_ESR
@@ -319,11 +358,31 @@ void Show_Capacitor(void)
   if (ESR > 0)                     /* if successfull */
   {
     LCD_Space();
-//    UpdateLine2();                           /* key press for line #2 */
-//    LCD_EEString2(ESR_str);                  /* display: ESR */
     DisplayValue(ESR, -2, LCD_CHAR_OMEGA);   /* display ESR */
   }
   #endif
+
+  /* show discharge leakage current */
+  if (MaxCap->I_leak > 0)
+  {
+    LCD_NextLine_EEString_Space(I_leak_str);
+    DisplayValue(MaxCap->I_leak, -8, 'A');   /* in 10nA */
+  }
+}
+
+
+
+/*
+ *  show current (leakage or whatever)
+ */
+
+void Show_Current(const unsigned char *String)
+{
+  if (CmpValue(Semi.I_value, Semi.I_scale, 50, -9) >= 0)  /* show if >=50nA */
+  {
+    LCD_NextLine_EEString_Space(String);            /* display: <string> */
+    DisplayValue(Semi.I_value, Semi.I_scale, 'A');   /* display current */
+  }
 }
 
 
@@ -362,7 +421,8 @@ void Show_Diode(void)
   uint8_t           C = 5;         /* ID of common cothode */
   uint8_t           R_Pin1 = 5;    /* B_E resistor's pin #1 */
   uint8_t           R_Pin2 = 5;    /* B_E resistor's pin #2 */
-  uint16_t          I_leak;        /* leakage current */
+  uint8_t           n;
+  uint8_t           m;
 
   D1 = &Diodes[0];                 /* pointer to first diode */
 
@@ -405,12 +465,9 @@ void Show_Diode(void)
   }
   else if (Check.Diodes == 3)      /* three diodes */
   {
-    uint8_t         n;
-    uint8_t         m;
-
     /*
-     *  Two diodes in series are additionally detected as third big diode:
-     *  - Check for any possible way of 2 diodes be connected in series.
+     *  Two diodes in series are detected as a virtual third diode:
+     *  - Check for any possible way the 2 diodes could be connected in series.
      *  - Only once the cathode of diode #1 matches the anode of diode #2.
      */
 
@@ -437,10 +494,11 @@ void Show_Diode(void)
     C = D1->C;                     /* cathode of first diode */
     A = 3;                         /* in series mode */
   }
-  else                             /* to much diodes */
+  else                             /* too much diodes */
   {
-    D1 = NULL;                     /* don't display any diode */
-    Show_Fail();                   /* and tell user */
+    LCD_EEString(Diode_AC_str);         /* display: -|>|- */
+    LCD_Space();                        /* display space */
+    LCD_Char(Check.Diodes + '0');       /* display number of diodes found */
     return;
   }
 
@@ -464,27 +522,28 @@ void Show_Diode(void)
     if (A <= 3) LCD_EEString(Diode_AC_str);  /* common anode or in series */
     else LCD_EEString(Diode_CA_str);         /* common cathode */
 
-    if (A == C) LCD_ProbeNumber(D2->A);           /* anti parallel */
-    else if (A <= 3) LCD_ProbeNumber(D2->C);      /* common anode or in series */
-    else LCD_ProbeNumber(D2->A);                  /* common cathode */
+    if (A == C) n = D2->A;              /* anti parallel */
+    else if (A <= 3) n = D2->C;         /* common anode or in series */
+    else n = D2->A;                     /* common cathode */
+    LCD_ProbeNumber(n);                 /* display pin */
   }
 
   /* check for B-E resistor for possible BJT */
   if (R_Pin1 < 5)                  /* possible BJT */
   {
-    if (CheckSingleResistor(R_Pin1, R_Pin2) == 1) /* found B-E resistor */
+    /* B-E resistor below 25kOhms */
+    if (CheckSingleResistor(R_Pin1, R_Pin2, 25) == 1)
     {
       /* show: PNP/NPN? */
       LCD_Space();
       if (A < 3) LCD_EEString(PNP_str);
       else LCD_EEString(NPN_str);
-      LCD_Data('?');
+      LCD_Char('?');
 
-      LCD_Line2();                        /* go to line #2 */
+      LCD_NextLine();                     /* go to line #2 */
       R_Pin1 += '1';                      /* convert to character */
       R_Pin2 += '1';
       Show_SingleResistor(R_Pin1, R_Pin2);   /* show resistor */
-      WaitKey();                          /* next page */
       CapFlag = 0;                        /* skip capacitance */
     }
   }
@@ -498,8 +557,7 @@ void Show_Diode(void)
    */
 
   /* display Uf */
-  LCD_ClearLine2();                /* only change line #2 */  
-  LCD_EEString2(Vf_str);           /* display: Vf */
+  LCD_NextLine_EEString_Space(Vf_str);  /* display: Vf */
 
   /* first diode */
   DisplayValue(D1->V_f, -3, 'V');
@@ -510,22 +568,17 @@ void Show_Diode(void)
   if (D2 == NULL)                       /* single diode */
   {
     /* display low current Uf if it's quite low (Ge/Schottky diode) */
-    if (D1->V_f2 < 250)
+    if (D1->V_f2 < 250)            /* < 250mV */
     {
-      LCD_Data('(');
+      LCD_Char('(');
       DisplayValue(D1->V_f2, 0, 0);
-      LCD_Data(')');
+      LCD_Char(')');
     }
 
     /* reverse leakage current */
     UpdateProbes(D1->C, D1->A, 0);      /* reverse diode */
-    I_leak = GetLeakageCurrent();       /* get current (in µA) */
-    if (I_leak > 0)                     /* show if not zero */
-    {
-      UpdateLine2();                    /* key press for line #2 */
-      LCD_EEString2(I_R_str);           /* display: I_R */
-      DisplayValue(I_leak, -6, 'A');    /* display current */
-    }
+    GetLeakageCurrent(1);               /* get current */
+    Show_Current(I_R_str);              /* display I_R */
   }
   else                                  /* two diodes */
   {
@@ -534,64 +587,12 @@ void Show_Diode(void)
   }
 
   /* display capacitance */
-  if (CapFlag == 1)                     /* if requested */ 
+  if (CapFlag == 1)                     /* if feasable */ 
   {
-    UpdateLine2();                      /* key press for line #2 */
-    LCD_EEString2(DiodeCap_str);        /* display: C */
+    LCD_NextLine_EEString_Space(DiodeCap_str);  /* display: C */
     Show_Diode_Cap(D1);                 /* first diode */
     LCD_Space();
     Show_Diode_Cap(D2);                 /* second diode (optional) */
-  }
-}
-
-
-
-/*
- *  show intrinsic/freewheeling diode of transistor
- */
-
-void Show_FlybackDiode(void)
-{
-  LCD_Space();                /* display space */
-
-  /* first pin */
-  if (Check.Found == COMP_FET)     /* FET */
-  {
-    LCD_Data('D');                 /* drain */
-  }
-  else                             /* BJT/IGBT */
-  {
-    LCD_Data('C');                 /* collector */
-  }
-
-  /* diode */
-  if (Check.Type & TYPE_N_CHANNEL)      /* n-channel/NPN */
-  {
-    /*
-     *  anode pointing to source/emitter
-     *  cathode pointing to drain/collector
-     */
-
-    LCD_Data(LCD_CHAR_DIODE_CA);        /* |<| */
-  }
-  else                                  /* p-channel/PNP */
-  {
-    /*
-     *  anode pointing to drain/collector
-     *  cathode pointing to source/emitter
-     */
-
-    LCD_Data(LCD_CHAR_DIODE_AC);        /* |>| */
-  }
-
-  /* second pin */
-  if (Check.Found == COMP_FET)     /* FET */
-  {
-    LCD_Data('S');                 /* source */
-  }
-  else                             /* BJT/IGBT */
-  {
-    LCD_Data('E');                 /* emitter */
   }
 }
 
@@ -605,9 +606,11 @@ void Show_BJT(void)
 {
   Diode_Type        *Diode;        /* pointer to diode */
   unsigned char     *String;       /* display string pointer */
-  uint8_t           Counter;       /* counter */
-  uint8_t           A_Pin;         /* pin acting as anode */
-  uint8_t           C_Pin;         /* pin acting as cathode */
+  uint8_t           Char;          /* display character */
+  uint8_t           BE_A;          /* V_BE: pin acting as anode */
+  uint8_t           BE_C;          /* V_BE: pin acting as cathode */
+  uint8_t           CE_A;          /* flyback diode: pin acting as anode */
+  uint8_t           CE_C;          /* flyback diode: pin acting as cathode */
   uint16_t          V_BE;          /* V_BE */
   int16_t           Slope;         /* slope of forward voltage */
 
@@ -616,9 +619,9 @@ void Show_BJT(void)
    *  A   - Base pin
    *  B   - Collector pin
    *  C   - Emitter pin
-   *  U_1 - U_BE (mV)
-   *  I_1 - I_CE0 (µA)
+   *  U_1 - U_BE (mV) (not yet)
    *  F_1 - hFE
+   *  I_value/I_scale - I_CEO
    */
 
   /* preset stuff based on BJT type */
@@ -627,129 +630,136 @@ void Show_BJT(void)
     String = (unsigned char *)NPN_str;       /* "NPN" */
 
     /* direction of B-E diode: B -> E */
-    A_Pin = Semi.A;      /* anode at base */
-    C_Pin = Semi.C;      /* cathode at emitter */
+    BE_A = Semi.A;       /* anode at base */
+    BE_C = Semi.C;       /* cathode at emitter */
+
+    /* direction of optional flyback diode */
+    CE_A = Semi.C;       /* anode at emitter */
+    CE_C = Semi.B;       /* cathode at collector */
+    Char = LCD_CHAR_DIODE_CA;      /* |<| */
   }
   else                             /* PNP */
   {
     String = (unsigned char *)PNP_str;       /* "PNP" */
 
     /* direction of B-E diode: E -> B */
-    A_Pin = Semi.C;      /* anode at emitter */
-    C_Pin = Semi.A;      /* cathode at base */
+    BE_A = Semi.C;       /* anode at emitter */
+    BE_C = Semi.A;       /* cathode at base */
+
+    /* direction of optional flyback diode */
+    CE_A = Semi.B;       /* anode at collector */
+    CE_C = Semi.C;       /* cathode at emitter */
+    Char = LCD_CHAR_DIODE_AC;      /* |>| */
   }
 
   /* display type */
-  LCD_EEString2(BJT_str);          /* display: BJT */
+  LCD_EEString_Space(BJT_str);     /* display: BJT */
   LCD_EEString(String);            /* display: NPN / PNP */
 
   /* parasitic BJT (freewheeling diode on same substrate) */
   if (Check.Type & TYPE_PARASITIC)
   {
-    LCD_Data('+');
+    LCD_Char('+');
   }
 
-  LCD_Line2();                     /* move to line #2 */
+  LCD_NextLine();                  /* next line (#2) */
 
   /* display pinout */
   Show_SemiPinout('B', 'C', 'E');
 
   /* optional freewheeling diode */
-  if (Check.Diodes > 2)       /* transistor is a set of two diodes :-) */
+  Diode = SearchDiode(CE_A, CE_C);    /* search for matching diode */
+  if (Diode != NULL)                  /* got it */
   {
-    Show_FlybackDiode();           /* show diode */
+    LCD_Space();              /* display space */
+    LCD_Char('C');            /* collector */
+    LCD_Char(Char);           /* display diode symbol */
+    LCD_Char('E');            /* emitter */
   }
 
-  UpdateLine2();                   /* key press for line #2 */
+  /*
+   *  display either optional B-E resistor or hFE & V_BE
+   */
 
-  /* display either optional B-E resistor or hFE & V_BE */
-  if (CheckSingleResistor(C_Pin, A_Pin) == 1)     /* found B-E resistor */
+  /* check for B-E resistor below 25kOhms */
+  if (CheckSingleResistor(BE_C, BE_A, 25) == 1)   /* found B-E resistor */
   {
+    LCD_NextLine();                /* next line (#3) */
     Show_SingleResistor('B', 'E');
+    /* B-E resistor renders hFE and V_BE measurements useless */
+
+    #ifdef SW_SYMBOLS
+    LCD_FancySemiPinout();           /* display fancy pinout */
+    #endif
   }
   else                                            /* no B-E resistor found */
   {
+    #ifdef SW_SYMBOLS
+    LCD_FancySemiPinout();           /* display fancy pinout */
+    #endif
+
     /* hFE and V_BE */
 
     /* display hFE */
-    LCD_EEString2(hFE_str);        /* display: h_FE */
+    LCD_NextLine_EEString_Space(h_FE_str);   /* display: hFE */
     DisplayValue(Semi.F_1, 0, 0);
 
     /* display V_BE (taken from diode forward voltage) */
-    Diode = &Diodes[0];                 /* get pointer of first diode */  
-    Counter = 0;
-
-    while (Counter < Check.Diodes)      /* check all diodes */
+    Diode = SearchDiode(BE_A, BE_C);    /* search for matching B-E diode */
+    if (Diode != NULL)                  /* got it */
     {
-      /* if the diode matches the transistor's B-E diode */
-      if ((Diode->A == A_Pin) && (Diode->C == C_Pin))
-      {
-        UpdateLine2();                  /* key press for line #2 */
-        LCD_EEString2(V_BE_str);        /* display: V_BE */
+      LCD_NextLine_EEString_Space(V_BE_str);   /* display: Vbe */
 
+      /*
+       *  Vf is quite linear for a logarithmicly scaled I_b.
+       *  So we may interpolate the Vf values of low and high test current
+       *  measurements for a virtual test current. Low test current is 10µA
+       *  and high test current is 7mA. That's a logarithmic scale of
+       *  3 decades.
+       */
+
+      /* calculate slope for one decade */
+      Slope = Diode->V_f - Diode->V_f2;
+      Slope /= 3;
+
+      /* select V_BE based on hFE */
+      if (Semi.F_1 < 100)               /* low hFE */
+      {
         /*
-         *  Vf is quite linear for a logarithmicly scaled I_b.
-         *  So we may interpolate the Vf values of low and high test current
-         *  measurements for a virtual test current. Low test current is 10µA
-         *  and high test current is 7mA. That's a logarithmic scale of
-         *  3 decades.
+         *  BJTs with low hFE are power transistors and need a large I_b
+         *  to drive the load. So we simply take Vf of the high test current
+         *  measurement (7mA). 
          */
 
-        /* calculate slope for one decade */
-        Slope = Diode->V_f - Diode->V_f2;
-        Slope /= 3;
-
-        /* select V_BE based on hFE */
-        if (Semi.F_1 < 100)             /* low hFE */
-        {
-          /*
-           *  BJTs with low hFE are power transistors and need a large I_b
-           *  to drive the load. So we simply take Vf of the high test current
-           *  measurement (7mA). 
-           */
-
-          V_BE = Diode->V_f;
-        }
-        else if (Semi.F_1 < 250)        /* mid-range hFE */
-        {
-          /*
-           *  BJTs with a mid-range hFE are signal transistors and need
-           *  a small I_b to drive the load. So we interpolate Vf for
-           *  a virtual test current of about 1mA.
-           */
-
-          V_BE = Diode->V_f - Slope;
-        }
-        else                            /* high hFE */
-        {
-          /*
-           *  BJTs with a high hFE are small signal transistors and need
-           *  only a very small I_b to drive the load. So we interpolate Vf
-           *  for a virtual test current of about 0.1mA.
-           */
-
-          V_BE = Diode->V_f2 + Slope;
-        }
-
-        DisplayValue(V_BE, -3, 'V');
-
-        Counter = 10;              /* end loop */
+        V_BE = Diode->V_f;
       }
-      else                         /* diode doesn't match */
+      else if (Semi.F_1 < 250)          /* mid-range hFE */
       {
-        Counter++;                      /* increase counter */
-        Diode++;                        /* next one */
+        /*
+         *  BJTs with a mid-range hFE are signal transistors and need
+         *  a small I_b to drive the load. So we interpolate Vf for
+         *  a virtual test current of about 1mA.
+         */
+
+        V_BE = Diode->V_f - Slope;
       }
+      else                              /* high hFE */
+      {
+        /*
+         *  BJTs with a high hFE are small signal transistors and need
+         *  only a very small I_b to drive the load. So we interpolate Vf
+         *  for a virtual test current of about 0.1mA.
+         */
+
+        V_BE = Diode->V_f2 + Slope;
+      }
+
+      DisplayValue(V_BE, -3, 'V');
     }
   }
 
-  /* I_CEO: collector emitter cutoff current (leakage) */
-  if (Semi.I_1 > 0)                     /* show if not zero */
-  {
-    UpdateLine2();                      /* key press for line #2 */
-    LCD_EEString2(I_CEO_str);           /* display: I_CE0 */
-    DisplayValue(Semi.I_1, -6, 'A');    /* display current */
-  }
+  /* I_CEO: collector emitter open current (leakage) */
+  Show_Current(I_CEO_str);              /* display Iceo */
 }
 
 
@@ -763,10 +773,59 @@ void Show_BJT(void)
 
 void Show_FET_Extras(void)
 {
-  /* show instrinsic/freewheeling diode */
-  if (Check.Diodes > 0)            /* diode found */
+  Diode_Type        *Diode;        /* pointer to diode */  
+  uint8_t           Anode;         /* anode of diode */
+  uint8_t           Cathode;       /* cathode of diode */
+  uint8_t           Char_1;        /* pin name */
+  uint8_t           Char_2;        /* pin name */
+  uint8_t           Symbol;        /* diode symbol */
+
+  /*
+   *  Mapping for Semi structure:
+   *  A   - Gate pin
+   *  B   - Drain pin
+   *  C   - Source pin
+   *  U_1 - R_DS_on (0.01 Ohms)
+   *  U_2 - V_th (mV)
+   */
+
+  /*
+   *  show instrinsic/freewheeling diode
+   */
+
+  if (Check.Type & TYPE_N_CHANNEL)      /* n-channel/NPN */
   {
-    Show_FlybackDiode();           /* show diode */
+    Anode = Semi.C;                /* source/emitter */
+    Cathode = Semi.B;              /* drain/collector */
+    Symbol = LCD_CHAR_DIODE_CA;    /* |<| */
+  }
+  else                                  /* p-channel/PNP */
+  {
+    Anode = Semi.B;                /* drain/collector */
+    Cathode = Semi.C;              /* source/emitter */
+    Symbol = LCD_CHAR_DIODE_AC;    /* |>| */
+  }
+
+  if (Check.Found == COMP_FET)     /* FET */
+  {
+    Char_1 = 'D';
+    Char_2 = 'S';
+  }
+  else                             /* IGBT */
+  {
+    Char_1 = 'C';
+    Char_2 = 'E';
+  }
+
+  /* search for matching diode */
+  Diode = SearchDiode(Anode, Cathode);
+  if (Diode != NULL)          /* got it */
+  {
+    /* show diode */
+    LCD_Space();              /* space */
+    LCD_Char(Char_1);         /* left pin name */
+    LCD_Char(Symbol);         /* diode symbol */
+    LCD_Char(Char_2);         /* right pin name */
   }
 
   /* skip remaining stuff for depletion-mode FETs/IGBTs */
@@ -775,17 +834,27 @@ void Show_FET_Extras(void)
   /* gate threshold voltage */
   if (Semi.U_2 != 0)
   {
-    UpdateLine2();                      /* key press for line #2 */
-    LCD_EEString2(Vth_str);             /* display: Vth */
+    LCD_NextLine_EEString_Space(Vth_str);    /* display: Vth */
     DisplaySignedValue(Semi.U_2, -3, 'V');   /* display V_th in mV */
   }
 
   /* display gate-source capacitance */
-  UpdateLine2();                      /* key press for line #2 */
-  LCD_EEString2(GateCap_str);         /* display: Cgs */
-  MeasureCap(Semi.A, Semi.C, 0);      /* measure capacitance */
-  /* display value and unit */
-  DisplayValue(Caps[0].Value, Caps[0].Scale, 'F');
+  LCD_NextLine_EEString_Space(GateCap_str);  /* display: Cgs */
+  DisplayValue(Semi.C_value, Semi.C_scale, 'F');  /* display value and unit */
+
+  /* display R_DS_on, if available */
+  if (Semi.U_1 > 0)
+  {
+    LCD_NextLine_EEString_Space(R_DS_str);        /* display: Rds */
+    DisplayValue(Semi.U_1, -2, LCD_CHAR_OMEGA);   /* display value */
+  }
+
+  /* display Vf of diode, if available */
+  if (Diode != NULL)
+  {
+    LCD_NextLine_EEString_Space(Vf_str);     /* display: Vf */
+    DisplayValue(Diode->V_f, -3, 'V');       /* display value */
+  }
 }
 
 
@@ -801,11 +870,11 @@ void Show_FET_Channel(void)
   /* channel type */
   if (Check.Type & TYPE_N_CHANNEL)   /* n-channel */
   {
-    LCD_Data('N');
+    LCD_Char('N');
   }
   else                               /* p-channel */
   {
-    LCD_Data('P');
+    LCD_Char('P');
   }
 
   LCD_EEString(Channel_str);         /* display: -ch */
@@ -844,6 +913,7 @@ void Show_FET(void)
    *  A   - Gate pin
    *  B   - Drain pin
    *  C   - Source pin
+   *  U_1 - R_DS_on (0.01 Ohms)
    *  U_2 - V_th (mV)
    */
 
@@ -854,7 +924,7 @@ void Show_FET(void)
   }
   else                             /* JFET */
   {
-    LCD_Data('J');                   /* display: J */
+    LCD_Char('J');                   /* display: J */
   }
   LCD_EEString(FET_str);           /* display: FET */
 
@@ -865,7 +935,7 @@ void Show_FET(void)
   if (Check.Type & TYPE_MOSFET) Show_FET_Mode();
 
   /* pinout */
-  LCD_Line2();                          /* move to line #2 */
+  LCD_NextLine();                       /* next line (#2) */
 
   if (Check.Type & TYPE_SYMMETRICAL)    /* symmetrical Drain and Source */
   {
@@ -877,8 +947,18 @@ void Show_FET(void)
     Show_SemiPinout('G', 'D', 'S');     /* show pinout */
   }
 
+  #ifdef SW_SYMBOLS
+  LCD_FancySemiPinout();           /* display fancy pinout */
+  #endif
+
   /* show diode, V_th and Cgs for MOSFETs */
   if (Check.Type & TYPE_MOSFET) Show_FET_Extras();
+
+  /* show I_DSS for depletion mode FET */
+  if (Check.Type & TYPE_DEPLETION)
+  {
+    Show_Current(I_DSS_str);              /* display Idss */
+  }
 }
 
 
@@ -901,24 +981,28 @@ void Show_IGBT(void)
   Show_FET_Channel();              /* display channel type */
   Show_FET_Mode();                 /* display mode */
 
-  LCD_Line2();                     /* move to line #2 */
+  LCD_NextLine();                  /* next line (#2) */
   Show_SemiPinout('G', 'C', 'E');  /* show pinout */
+  #ifdef SW_SYMBOLS
+  LCD_FancySemiPinout();           /* display fancy pinout */
+  #endif
   Show_FET_Extras();               /* show diode, V_th and C_GE */
 }
 
 
 
 /*
- *  show special components like Thyristor and Triac
+ *  show Thyristor and Triac
  */
 
-void Show_Special(void)
+void Show_ThyristorTriac(void)
 {
   /*
    *  Mapping for Semi structure:
-   *  A   - Gate pin
-   *  B   - Anode/MT2 pin
-   *  C   - Cathode/MT1 pin
+   *        SCR        Triac
+   *  A   - Gate       Gate
+   *  B   - Anode      MT2
+   *  C   - Cathode    MT1
    *  U_1 - V_GT (mV)
    */
 
@@ -926,24 +1010,93 @@ void Show_Special(void)
   if (Check.Found == COMP_THYRISTOR)    /* SCR */
   {
     LCD_EEString(Thyristor_str);        /* display: thyristor */
-    LCD_Line2();                        /* move to line #2 */
+    LCD_NextLine();                     /* next line (#2) */
     Show_SemiPinout('G', 'A', 'C');     /* display pinout */
   }
   else                                  /* Triac */
   {
     LCD_EEString(Triac_str);            /* display: triac */
-    LCD_Line2();                        /* move to line #2 */
+    LCD_NextLine();                     /* next line (#2) */
     Show_SemiPinout('G', '2', '1');     /* display pinout */
   }
+
+  #ifdef SW_SYMBOLS
+  LCD_FancySemiPinout();           /* display fancy pinout */
+  #endif
 
   /* show V_GT (gate trigger voltage) */
   if (Semi.U_1 > 0)                /* show if not zero */
   {
-    UpdateLine2();                      /* key press for line #2 */
-    LCD_EEString2(V_GT_str);            /* display: V_GT */
-    DisplayValue(Semi.U_1, -3, 'V');    /* display V_GT in mV */
+    LCD_NextLine_EEString_Space(V_GT_str);   /* display: V_GT */
+    DisplayValue(Semi.U_1, -3, 'V');         /* display V_GT in mV */
   }
 }
+
+
+
+/*
+ *  show PUT
+ */
+
+void Show_PUT(void)
+{
+  /*
+   *  Mapping for AltSemi structure:
+   *  A   - Gate
+   *  B   - Anode
+   *  C   - Cathode
+   *  U_1 - V_f
+   *  U_2 - V_T
+   */
+
+  LCD_EEString(PUT_str);              /* display: PUT */
+  LCD_NextLine();                     /* move to line #2 */
+  Show_SemiPinout('G', 'A', 'C');     /* display pinout */
+
+  #ifdef SW_SYMBOLS
+  LCD_FancySemiPinout();           /* display fancy pinout */
+  #endif
+
+  /* display V_T */
+  LCD_NextLine_EEString_Space(V_T_str); /* display: VT */
+  DisplayValue(AltSemi.U_2, -3, 'V');   /* display: V_T */
+
+  /* display Uf */
+  LCD_NextLine_EEString_Space(Vf_str);  /* display: Vf */
+  DisplayValue(AltSemi.U_1, -3, 'V');   /* display Vf */
+}
+
+
+
+#ifdef SW_UJT
+
+/*
+ *  show UJT
+ */
+
+void Show_UJT(void)
+{
+  /*
+   *  Mapping for AltSemi structure:
+   *  A   - Emitter
+   *  B   - B2
+   *  C   - B1
+   */
+
+  LCD_EEString(UJT_str);              /* display: UJT */
+  LCD_NextLine();                     /* next line (#2) */
+  Show_SemiPinout('E', '2', '1');     /* display pinout */
+
+  #ifdef SW_SYMBOLS
+  LCD_FancySemiPinout();           /* display fancy pinout */
+  #endif
+
+  /* display R_BB */
+  LCD_NextLine_EEString_Space(R_BB_str);  /* display: R_BB */  
+  DisplayValue(Resistors[0].Value, Resistors[0].Scale, LCD_CHAR_OMEGA);
+}
+
+#endif
 
 
 
@@ -960,6 +1113,8 @@ int main(void)
 {
   uint16_t          U_Bat;         /* voltage of power supply */
   uint8_t           Test;          /* test value */
+  uint32_t          Temp;          /* some value */
+
 
   /*
    *  init
@@ -969,14 +1124,14 @@ int main(void)
   CONTROL_DDR = (1 << POWER_CTRL);      /* set pin as output */
   CONTROL_PORT = (1 << POWER_CTRL);     /* set pin to drive power management transistor */
 
-  /* setup MCU */
+  /* set up MCU */
   MCUCR = (1 << PUD);                        /* disable pull-up resistors globally */
   ADCSRA = (1 << ADEN) | ADC_CLOCK_DIV;      /* enable ADC and set clock divider */
 
-  #ifdef HW_RELAY
-  /* init relay (safe mode) */
-                                      /* ADC_PORT should be 0 */
-  ADC_DDR = (1 << TP_REF);            /* short circuit probes */
+  #ifdef HW_DISCHARGE_RELAY
+  /* init discharge relay (safe mode) */
+                                        /* ADC_PORT should be 0 */
+  ADC_DDR = (1 << TP_REF);              /* short circuit probes */
   #endif
 
   /* catch watchdog */  
@@ -984,21 +1139,27 @@ int main(void)
   MCUSR &= ~(1 << WDRF);                /* reset watchdog flag */
   wdt_disable();                        /* disable watchdog */
 
+  #ifdef HW_I2C
+  I2C_Setup();                /* set up I2C bus */
+  #endif
+
+  /* LCD module */
+  LCD_BusSetup();                       /* set up LCD bus */
+
 
   /*
    *  watchdog was triggered (timeout 2s)
    *  - This is after the MCU done a reset driven by the watchdog.
    *  - Does only work if the capacitor at the base of the power management
    *    transistor is large enough to survive a MCU reset. Otherwise the
-   *    tester simply looses power.
+   *    tester simply loses power.
    */
 
   if (Test)
   {
     LCD_Clear();                        /* display was initialized before */
     LCD_EEString(Timeout_str);          /* display: timeout */
-    LCD_Line2();
-    LCD_EEString(Error_str);            /* display: error */
+    LCD_NextLine_EEString(Error_str);   /* display: error */
     MilliSleep(2000);                   /* give user some time to read */
     CONTROL_PORT = 0;                   /* power off myself */
     return 0;                           /* exit program */
@@ -1006,54 +1167,74 @@ int main(void)
 
 
   /*
-   *  init LCD module and load custom characters
-   */
-
-  LCD_Init();                           /* initialize LCD */
-
-  /* custom symbols for components */
-  LCD_EELoadChar(DiodeIcon1, LCD_CHAR_DIODE_AC);  /* diode symbol '|>|' */
-  LCD_EELoadChar(DiodeIcon2, LCD_CHAR_DIODE_CA);  /* diode symbol '|<|' */
-  LCD_EELoadChar(CapIcon, LCD_CHAR_CAP);          /* capacitor symbol '||' */
-  LCD_EELoadChar(ResIcon1, LCD_CHAR_RESISTOR_L);  /* resistor symbol '[' */
-  LCD_EELoadChar(ResIcon2, LCD_CHAR_RESISTOR_R);  /* resistor symbol ']' */
-
-  #ifdef LCD_CYRILLIC
-  /* kyrillish LCD character set lacks omega and µ */
-  LCD_EELoadChar(OmegaIcon, LCD_CHAR_OMEGA);      /* Omega */
-  LCD_EELoadChar(MicroIcon, LCD_CHAR_MICRO);      /* µ / micro */
-  #endif
-
-  /* return to normal output */
-  LCD_Clear();
-
-
-  /*
    *  operation mode selection
    */
 
   Config.SleepMode = SLEEP_MODE_PWR_SAVE;    /* default: power save */
-  Config.TesterMode = MODE_CONTINOUS;        /* set default mode: continous */
+  UI.TesterMode = MODE_CONTINOUS;            /* set default mode: continous */
+  Test = 0;                                  /* key press */
 
   /* catch long key press */
   if (!(CONTROL_PIN & (1 << TEST_BUTTON)))   /* if test button is pressed */
   {
-    MilliSleep(300);                         /* wait to catch a long key press */
-    if (!(CONTROL_PIN & (1 << TEST_BUTTON))) /* if button is still pressed */
+    RunsMissed = 0;
+
+    while (Test == 0)
     {
-      Config.TesterMode = MODE_AUTOHOLD;     /* set auto-hold mode */
+      MilliSleep(20);
+      if (!(CONTROL_PIN & (1 << TEST_BUTTON)))    /* if button is still pressed */
+      {
+        RunsMissed++;
+        if (RunsMissed > 100) Test = 3;      /* >2000ms */
+      }
+      else                                        /* button released */
+      {
+        Test = 1;                            /* <300ms */
+        if (RunsMissed > 15) Test = 2;       /* >300ms */
+      }
     }
   }
+
+  /* key press >300ms sets autohold mode */
+  if (Test > 1) UI.TesterMode = MODE_AUTOHOLD;
+
+  /* init LCD module */
+  LCD_Init();                           /* initialize LCD */
+  LCD_NextLine_Mode(MODE_NONE);         /* reset line mode */
+  #ifdef LCD_COLOR
+    UI.PenColor = COLOR_TITLE;          /* set pen color */
+  #endif
+
+
+  /*
+   *  load saved offsets and values
+   */
+
+  if (Test == 3)              /* key press >2s resets to defaults */
+  {
+    SetAdjustDefaults();                /* set default values */
+  }
+  else                        /* normal mode */
+  {
+    ManageAdjust(MODE_LOAD, 1);    /* load adjustment values: profile #1 */
+  }
+
+  /* set extra stuff */
+  #ifdef SW_CONTRAST
+    LCD_Contrast(NV.Contrast);          /* set LCD contrast */
+  #endif
 
 
   /*
    *  welcome user
    */
 
-  LCD_EEString(Tester_str);        /* display: Component Tester */
-  LCD_Line2();                     /* move to line #2 */
-  LCD_EEString(Version_str);       /* display firmware version */
-  MilliSleep(1000);                /* let the user read the display */
+  LCD_EEString(Tester_str);             /* display: Component Tester */
+  LCD_NextLine_EEString(Version_str);   /* display firmware version */
+  #ifdef LCD_COLOR
+    UI.PenColor = COLOR_PEN;            /* set pen color */
+  #endif
+  MilliSleep(1500);                     /* let the user read the display */
 
 
   /*
@@ -1069,8 +1250,6 @@ int main(void)
   Config.AutoScale = 1;                 /* enable ADC auto scaling */
   Config.RefFlag = 1;                   /* no ADC reference set yet */
   Config.Vcc = UREF_VCC;                /* voltage of Vcc */
-  LoadAdjust();                         /* load adjustment values */
-
   wdt_enable(WDTO_2S);		        /* enable watchdog (timeout 2s) */
 
 
@@ -1083,16 +1262,24 @@ start:
   /* reset variabels */
   Check.Found = COMP_NONE;
   Check.Type = 0;
-  Check.Done = 0;
+  Check.Done = DONE_NONE;
+  Check.AltFound = COMP_NONE;
   Check.Diodes = 0;
   Check.Resistors = 0;
   Semi.U_1 = 0;
-  Semi.I_1 = 0;
+  Semi.U_2 = 0;
   Semi.F_1 = 0;
+  Semi.I_value = 0;
+  AltSemi.U_1 = 0;
+  AltSemi.U_2 = 0;
 
   /* reset hardware */
   ADC_DDR = 0;                     /* set all pins of ADC port as input */
-                                   /* also remove short circuit by relay */
+  #ifdef HW_DISCHARGE_RELAY
+     /* this also switches the discharge relay to remove the short circuit */
+  #endif
+
+  LCD_NextLine_Mode(MODE_KEEP);    /* line mode: keep first line */
   LCD_Clear();                     /* clear LCD */
 
 
@@ -1117,11 +1304,11 @@ start:
   #endif
 
   /* internal bandgap reference */
-  Config.Bandgap = ReadU(0x0e);         /* dummy read for bandgap stabilization */
+  Config.Bandgap = ReadU(ADC_BANDGAP);  /* dummy read for bandgap stabilization */
   Config.Samples = 200;                 /* do a lot of samples for high accuracy */
-  Config.Bandgap = ReadU(0x0e);         /* get voltage of bandgap reference (mV) */
+  Config.Bandgap = ReadU(ADC_BANDGAP);  /* get voltage of bandgap reference (mV) */
   Config.Samples = ADC_SAMPLES;         /* set samples back to default */
-  Config.Bandgap += Config.RefOffset;   /* add voltage offset */ 
+  Config.Bandgap += NV.RefOffset;       /* add voltage offset */ 
 
 
   /*
@@ -1129,18 +1316,21 @@ start:
    */
 
   /*
-   *  ADC pin is connected to a voltage divider Rh = 10k and Rl = 3k3.
-   *  Ul = (Uin / (Rh + Rl)) * Rl  ->  Uin = (Ul * (Rh + Rl)) / Rl
-   *  Uin = (Ul * (10k + 3k3)) / 3k3 = 4 * Ul  
+   *  ADC pin is connected to a voltage divider (top: R1 / bottom: R2).
+   *  U2 = (Uin / (R1 + R2)) * R2 
+   *  Uin = (U2 * (R1 + R2)) / R2
    */
 
-  /* get current voltage */
-  U_Bat = ReadU(TP_BAT);                /* read voltage (mV) */
-  U_Bat *= 4;                           /* calculate U_bat (mV) */
+  /* get current battery voltage */
+  U_Bat = ReadU(TP_BAT);                /* read voltage U2 (mV) */
+  Temp = (((uint32_t)(BAT_R1 + BAT_R2) * 1000) / BAT_R2);   /* factor (0.001) */
+  Temp *= U_Bat;                        /* Uin (0.001 mV) */
+  Temp /= 1000;                         /* Uin (mV) */
+  U_Bat = (uint16_t)Temp;
   U_Bat += BAT_OFFSET;                  /* add offset for voltage drop */
 
   /* display battery voltage */
-  LCD_EEString2(Battery_str);           /* display: Bat. */
+  LCD_EEString_Space(Battery_str);      /* display: Bat. */
   DisplayValue(U_Bat / 10, -2, 'V');    /* display battery voltage */
   LCD_Space();
 
@@ -1166,8 +1356,7 @@ start:
    */
 
   /* display start of probing */
-  LCD_Line2();                     /* move to line #2 */
-  LCD_EEString(Running_str);       /* display: probing... */
+  LCD_NextLine_EEString(Running_str);   /* display: probing... */
 
   /* try to discharge any connected component */
   DischargeProbes();
@@ -1184,26 +1373,26 @@ start:
   }
 
   /* check all 6 combinations of the 3 probes */ 
-  CheckProbes(TP1, TP2, TP3);
-  CheckProbes(TP2, TP1, TP3);
-  CheckProbes(TP1, TP3, TP2);
-  CheckProbes(TP3, TP1, TP2);
-  CheckProbes(TP2, TP3, TP1);
-  CheckProbes(TP3, TP2, TP1);
+  CheckProbes(PROBE_1, PROBE_2, PROBE_3);
+  CheckProbes(PROBE_2, PROBE_1, PROBE_3);
+  CheckProbes(PROBE_1, PROBE_3, PROBE_2);
+  CheckProbes(PROBE_3, PROBE_1, PROBE_2);
+  CheckProbes(PROBE_2, PROBE_3, PROBE_1);
+  CheckProbes(PROBE_3, PROBE_2, PROBE_1);
+  CheckAlternatives();             /* process alternatives */
 
   /* if component might be a capacitor */
   if ((Check.Found == COMP_NONE) ||
       (Check.Found == COMP_RESISTOR))
   {
     /* tell user to be patient with large caps :-) */
-    LCD_ClearLine2();
-    LCD_EEString2(Running_str);
-    LCD_Data('C');    
+    LCD_Space();
+    LCD_Char('C');    
 
     /* check all possible combinations */
-    MeasureCap(TP3, TP1, 0);
-    MeasureCap(TP3, TP2, 1);
-    MeasureCap(TP2, TP1, 2);
+    MeasureCap(PROBE_3, PROBE_1, 0);
+    MeasureCap(PROBE_3, PROBE_2, 1);
+    MeasureCap(PROBE_2, PROBE_1, 2);
   }
 
 
@@ -1214,6 +1403,7 @@ start:
 result:
 
   LCD_Clear();                     /* clear LCD */
+  LCD_NextLine_Mode(MODE_KEEP | MODE_KEY);
 
   /* call output function based on component type */
   switch (Check.Found)
@@ -1240,12 +1430,22 @@ result:
       break;
 
     case COMP_THYRISTOR:
-      Show_Special();
+      Show_ThyristorTriac();
       break;
 
     case COMP_TRIAC:
-      Show_Special();
+      Show_ThyristorTriac();
       break;
+
+    case COMP_PUT:
+      Show_PUT();
+      break;
+
+    #ifdef SW_UJT
+    case COMP_UJT:
+      Show_UJT();
+      break;
+    #endif
 
     case COMP_RESISTOR:
       Show_Resistor();
@@ -1271,14 +1471,16 @@ result:
 
 end:
 
-  #ifdef HW_RELAY
+  #ifdef HW_DISCHARGE_RELAY
   ADC_DDR = (1<<TP_REF);              /* short circuit probes */
   #endif
+
+  LCD_NextLine_Mode(MODE_NONE);       /* reset next line mode */
 
   /* get key press or timeout */
   Test = TestKey((uint16_t)CYCLE_DELAY, 12);
 
-  if (Test == 0)              /* timeout (no key press) */
+  if (Test == KEY_TIMEOUT)         /* timeout (no key press) */
   {
     /* check if we reached the maximum number of rounds (continious mode only) */
     if ((RunsMissed >= CYCLE_MAX) || (RunsPassed >= CYCLE_MAX * 2))
@@ -1286,31 +1488,31 @@ end:
       goto power_off;              /* -> power off */
     }
   }
-  else if (Test == 1)         /* short key press */
+  else if (Test == KEY_SHORT)      /* short key press */
   {
     /* a second key press triggers extra functions */
     MilliSleep(50);
     Test = TestKey(300, 0);
 
-    if (Test > 0)           /* short or long key press */
+    if (Test > KEY_TIMEOUT)        /* short or long key press */
     {
-      #ifdef HW_RELAY
-      ADC_DDR = 0;               /* remove short circuit */
+      #ifdef HW_DISCHARGE_RELAY
+      ADC_DDR = 0;                 /* remove short circuit */
       #endif
 
-      MainMenu();                /* enter main menu */
-      goto end;                  /* re-run cycle control */
+      MainMenu();                  /* enter main menu */
+      goto end;                    /* re-run cycle control */
     }
   }
-  else if (Test == 2)         /* long key press */
+  else if (Test == KEY_LONG)       /* long key press */
   {
-    goto power_off;              /* -> power off */
+    goto power_off;                /* -> power off */
   }
   #ifdef HW_ENCODER
-  else if (Test == 4)         /* rotary encoder: left turn */
+  else if (Test == KEY_TURN_LEFT)  /* rotary encoder: left turn */
   {
-    MainMenu();                  /* enter main menu */
-    goto end;                    /* re-run cycle control */
+    MainMenu();                    /* enter main menu */
+    goto end;                      /* re-run cycle control */
   }
   #endif
 
@@ -1322,6 +1524,9 @@ power_off:
 
   /* display feedback (otherwise the user will wait :-) */
   LCD_Clear();
+  #ifdef LCD_COLOR
+    UI.PenColor = COLOR_TITLE;          /* set pen color */
+  #endif
   LCD_EEString(Bye_str);
 
   wdt_disable();                        /* disable watchdog */

@@ -2,7 +2,7 @@
  *
  *   user interface functions
  *
- *   (c) 2012-2015 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -23,17 +23,19 @@
 #include "config.h"           /* global configuration */
 #include "common.h"           /* common header file */
 #include "variables.h"        /* global variables */
-#include "LCD.h"              /* LCD module */
 #include "functions.h"        /* external functions */
+#include "colors.h"           /* color definitions */
 
 
 /*
  *  local constants
  */
 
+/* rotary encoder */
 #define DIR_NONE         0b00000000     /* no turn or error */
-#define DIR_RIGHT        0b00000001     /* turned to the right */
-#define DIR_LEFT         0b00000010     /* turned to the left */
+#define DIR_RESET        0b00000001     /* reset state */
+#define DIR_RIGHT        KEY_TURN_RIGHT /* turn to the right */
+#define DIR_LEFT         KEY_TURN_LEFT  /* turn to the left */
 
 
 
@@ -130,8 +132,6 @@ int8_t CmpValue(uint32_t Value1, int8_t Scale1, uint32_t Value2, int8_t Scale2)
 
 
 
-#ifdef SW_INDUCTOR
-
 /*
  *  rescale value
  *
@@ -163,8 +163,6 @@ uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
   return NewValue;
 }
 
-#endif
-
 
 
 /* ************************************************************************
@@ -172,7 +170,7 @@ uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
  * ************************************************************************ */
 
 
-#ifdef SW_SIGNAL_GEN
+#if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS)
 
 /*
  *  display unsigned value
@@ -209,7 +207,7 @@ void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
   }
 
   /* leading zero */
-  if (Pos == 0) LCD_Data('0');          /* display: 0 */
+  if (Pos == 0) LCD_Char('0');          /* display: 0 */
 
   /* display digits */
   n = 0;
@@ -217,20 +215,20 @@ void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
   {
     if (n == Pos)                       /* at position of dot */
     {
-      LCD_Data('.');                    /* display: . */
+      LCD_Char('.');                    /* display: . */
       while (DecPlaces > 0)             /* fill in more zeros if needed */
       {
-        LCD_Data('0');                  /* display: 0 */
+        LCD_Char('0');                  /* display: 0 */
         DecPlaces--;
       }
     }
 
-    LCD_Data(OutBuffer[n]);             /* display digit */
+    LCD_Char(OutBuffer[n]);             /* display digit */
     n++;                                /* next digit */
   }
 
   /* display unit */
-  if (Unit) LCD_Data(Unit);
+  if (Unit) LCD_Char(Unit);
 }
 
 #endif
@@ -299,9 +297,9 @@ void DisplayValue(uint32_t Value, int8_t Exponent, unsigned char Unit)
   if (Exponent <= 0)                    /* we have to prepend "0." */
   {
     /* 0: factor 10 / -1: factor 100 */
-    LCD_Data('0');
-    LCD_Data('.');
-    if (Exponent < 0) LCD_Data('0');    /* extra 0 for factor 100 */
+    LCD_Char('0');
+    LCD_Char('.');
+    if (Exponent < 0) LCD_Char('0');    /* extra 0 for factor 100 */
   }
 
   if (Offset == 0) Exponent = -1;       /* disable dot if not needed */
@@ -313,14 +311,14 @@ void DisplayValue(uint32_t Value, int8_t Exponent, unsigned char Unit)
   Index = 0;
   while (Index < Length)                /* loop through string */
   {
-    LCD_Data(OutBuffer[Index]);              /* display char */
-    if (Index == Exponent) LCD_Data('.');    /* display dot */
+    LCD_Char(OutBuffer[Index]);              /* display char */
+    if (Index == Exponent) LCD_Char('.');    /* display dot */
     Index++;                                 /* next one */
   }
 
   /* display prefix and unit */
-  if (Prefix) LCD_Data(Prefix);
-  if (Unit) LCD_Data(Unit);
+  if (Prefix) LCD_Char(Prefix);
+  if (Unit) LCD_Char(Unit);
 }
 
 
@@ -341,7 +339,7 @@ void DisplaySignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
   /* take care about sign */
   if (Value < 0)              /* negative value */
   {
-    LCD_Data('-');            /* display: "-" */
+    LCD_Char('-');            /* display: "-" */
     Value = -Value;           /* make value positive */
   }
 
@@ -352,7 +350,7 @@ void DisplaySignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
 
 
 /* ************************************************************************
- *   user interface
+ *   user input (testkey / rotary encoder)
  * ************************************************************************ */
 
 
@@ -375,21 +373,21 @@ uint8_t ReadEncoder(void)
   uint8_t           Old_AB;                  /* old AB state */
 
   /* set encoder's A & B pins to input */
-  Old_AB = CONTROL_DDR;                 /* save current settings */
-  CONTROL_DDR &= ~(1 << ENCODER_A);     /* A signal pin */
-  CONTROL_DDR &= ~(1 << ENCODER_B);     /* B signal pin */
+  Old_AB = ENCODER_DDR;                 /* save current settings */
+  ENCODER_DDR &= ~(1 << ENCODER_A);     /* A signal pin */
+  ENCODER_DDR &= ~(1 << ENCODER_B);     /* B signal pin */
   wait500us();                          /* settle time */
 
   /* get A & B signals */
-  Temp = CONTROL_PIN;
+  Temp = ENCODER_PIN;
   if (Temp & (1 << ENCODER_A)) AB = 0b00000010;
   if (Temp & (1 << ENCODER_B)) AB |= 0b00000001;
 
   /* restore port/pin settings */
-  CONTROL_DDR = Old_AB;                 /* restore old settings */
+  ENCODER_DDR = Old_AB;                 /* restore old settings */
 
   /* update state history */
-  if (Enc.Dir == (DIR_RIGHT | DIR_LEFT))     /* first scan */
+  if (Enc.Dir == DIR_RESET)             /* first scan */
   {
     Enc.History = AB;                   /* set as last state */
     Enc.Dir = DIR_NONE;                 /* reset direction */
@@ -418,21 +416,23 @@ uint8_t ReadEncoder(void)
 
       /* step/detent logic */
       Enc.Pulses++;                     /* got a new pulse */
+
       if (Temp != Enc.Dir)              /* direction has changed */
       {     
         Enc.Pulses = 1;                 /* first pulse for new direction */
       }
+
+      Enc.Dir = Temp;         /* update direction */
+
       if (Enc.Pulses >= ENCODER_PULSES) /* reached step */
       {
         Enc.Pulses = 0;                 /* reset pulses */
         Action = Temp;                  /* signal valid step */
       }
-
-      Enc.Dir = Temp;         /* update direction */
     }
     else                                /* invalid change */
     {
-      Enc.Dir = DIR_RIGHT | DIR_LEFT;   /* trigger reset of history */
+      Enc.Dir = DIR_RESET;              /* reset direction state */
     }
   }
 
@@ -454,26 +454,44 @@ uint8_t ReadEncoder(void)
  *    0 = no cursor
  *    1 = steady cursor
  *    2 = blinking cursor
- *    11 = steady cursor considering tester operation mode (Config.TesterMode)
- *    12 = blinking cursor considering tester operation mode (Config.TesterMode)
+ *    11 = steady cursor considering tester operation mode (UI.TesterMode)
+ *    12 = blinking cursor considering tester operation mode (UI.TesterMode)
  *
  *  returns:
- *  - 0 if timeout was reached
- *  - 1 if key was pressed short
- *  - 2 if key was pressed long
- *  - 3 if rotary encoder was turned right
- *  - 4 if rotary encoder was turned left
- *  The turning velocity is returned by Enc.Velocity.
+ *  - KEY_TIMEOUT    0 if timeout was reached
+ *  - KEY_SHORT      1 if key was pressed short
+ *  - KEY_LONG       2 if key was pressed long
+ *  - KEY_TURN_RIGHT 3 if rotary encoder was turned right
+ *  - KEY_TURN_LEFT  4 if rotary encoder was turned left
+ *  The turning velocity is returned via Enc.Velocity.
  */
 
 uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 {
-  uint8_t           Flag = 0;      /* return value */
+  uint8_t           Key = 0;       /* return value */
   uint8_t           Run = 1;       /* loop control */
   uint8_t           Counter = 0;   /* time counter */
   #ifdef HW_ENCODER
   uint8_t           Test;          /* temp. value */
-  uint8_t           Counter2 = 10; /* time counter #2 */
+  uint8_t           Counter2 = 0;  /* time counter #2 */
+  uint8_t           Timeout2;      /* step timeout */
+  uint8_t           Step = 0;      /* control flag */
+  #endif
+
+
+  /*
+   *  sampling delay for rotary encoder
+   *  - most got a bounce period of max. 3ms
+   */
+
+  #if ENCODER_PULSES < 4
+    /* default delay */
+    #define DELAY_TICK        5        /* 5ms */
+    #define DELAY_500       100        /* ticks for 500ms */
+  #else
+    /* for 4 pulses/step we have to decrease the delay */
+    #define DELAY_TICK        4        /* 4ms */
+    #define DELAY_500       125        /* ticks for 500ms */
   #endif
 
 
@@ -482,15 +500,18 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
    */
 
   #ifdef HW_ENCODER
-  Enc.History = 0;                 /* init control for rotary encoder */
-  Enc.Dir = DIR_RIGHT | DIR_LEFT;
+  /* init control for rotary encoder */
+  Enc.History = 0;
+  Enc.Dir = DIR_RESET;
   Enc.Pulses = 0;
-  Enc.Velocity = 1;
+  Enc.Velocity = 1;           /* default velocity (level #1) */
+
+  Timeout2 = 6 + (2 * ENCODER_PULSES);
   #endif
 
   if (Mode > 10)              /* consider operation mode */
   {
-    if (Config.TesterMode == MODE_AUTOHOLD)  /* auto hold mode */
+    if (UI.TesterMode == MODE_AUTOHOLD)      /* auto hold mode */
     {
       Timeout = 0;                 /* disable timeout */
       Mode -= 10;                  /* set cursor mode */
@@ -503,11 +524,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 
   if (Mode > 0)               /* cursor enabled */
   {
-    /* set position: char 16 in line 2 */
-    LCD_Cmd(CMD_SET_DD_RAM_ADDR | 0x4F);
-
-    /* enable cursor */
-    LCD_Cmd(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_ON);
+    LCD_Cursor(1);            /* enable cursor */
   }
 
 
@@ -537,7 +554,8 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
         {
           Counter++;                        /* increase counter */
           if (Counter > 26) Run = 0;        /* end loop if 300ms are reached */
-          else MilliSleep(10);              /* otherweise wait 10ms */
+          else MilliSleep(10);              /* otherwise wait 10ms */
+
         }
         else                                      /* key released */
         {
@@ -546,66 +564,87 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
       }
 
       /* determine key press type */
-      if (Counter > 26) Flag = 2;       /* long (>= 300ms) */
-      else Flag = 1;                    /* short (< 300ms) */
+      if (Counter > 26) Key = KEY_LONG;   /* long (>= 300ms) */
+      else Key = KEY_SHORT;               /* short (< 300ms) */
     }
     else                                          /* no key press */
     {
       #ifdef HW_ENCODER
       /* rotary encoder */
-      if (Flag) Counter2--;        /* decrease counter if we had a turn */
+      if (Key) Counter2++;         /* increase counter if we had a step */
+
       Test = ReadEncoder();        /* read rotary encoder */
       if (Test)                    /* got user input */
       {
-        if (Flag == 0)             /* first turn */
+        if (Key == 0)              /* no step yet */
         {
-          Flag = Test;             /* save direction */
+          Key = Test;              /* save direction */
+          Step = 1;                /* got girst step */
         }
-        else                       /* second turn */
+        else if (Test == Key)      /* second step (same direction) */
         {
-          if (Flag == Test)        /* same direction */
-          {
-            /* make it more dynamic */
-            if (Counter2 > 5) Counter2 = 100;
-            else if (Counter2 > 2) Counter2 = 10;
+          /*
+           *  determine turning velocity
+           *  - use elapsed time ticks for second step
+           *  - consider pulses/step to cope with various encoder types
+           *  - create speed levels 2-7 (default: 1 for single step)
+           *
+           *  pulses/  timeout  timeout  max time/  seen time/  
+           *   step    1. step  2. step  pulse      pulse
+           *     1        8        8       8          ?
+           *     2       10       14       7          1-5
+           *     4       14       22       5          2-4(5)
+           */
 
-            Enc.Velocity = Counter2;    /* set velocity */
-            Counter2 = 0;               /* end loop */
+          Counter2 /= ENCODER_PULSES;        /* time ticks per pulse */
+          if (Counter2 >= 6) Counter2 = 5;   /* limit value */
+          Enc.Velocity = 7 - Counter2;       /* convert delay into speed */
+
+          Counter2 = Timeout2;          /* end loop */
+        }
+      }
+      else          /* no step detected */
+      {
+        if (Step == 1)             /* got first step */
+        {
+          // Enc.Dir == Key
+          if (Enc.Pulses == 1)     /* first pulse of second step */
+          {
+            Step = 2;              /* set flag */
+            /* increase timeout based on pulses/step */
+            Timeout2 += (ENCODER_PULSES * 2);
           }
         }
       }
 
-      if (Counter2 == 0)           /* timeout for velocity detection */
+      if (Counter2 == Timeout2)    /* timeout for velocity detection */
       {      
-        Flag += 2;                 /* adjust feedback */
         break;                     /* leave loop */
       }
       #endif
 
-      MilliSleep(5);               /* wait a little bit more (5ms) */
+      MilliSleep(DELAY_TICK);      /* wait a little bit (4 or 5ms) */
 
-      /* simulate blinking cursor
-         The LCDs built in cursor blinking is ugly and slow */
+      /* blinking cursor */
+      /* HD44780's built-in blinking cursor is ugly anyway :) */
       
       if (Mode == 2)                    /* blinking cursor */
       {
         Counter++;                        /* increase counter */
 
-        if (Counter == 100)               /* every 500ms (1Hz) */
+        if (Counter == DELAY_500)         /* every 500ms (1Hz) */
         {
           Counter = 0;                    /* reset counter */
 
           /* we misuse Run as toggle switch */
           if (Run == 1)                   /* turn off */
           {
-            /* disable cursor */
-            LCD_Cmd(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_OFF);
+            LCD_Cursor(0);                /* disable cursor */
             Run = 2;                      /* toggle flag */
           }
           else                            /* turn on */
           {
-            /* enable cursor */
-            LCD_Cmd(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_ON);
+            LCD_Cursor(1);                /* enable cursor */
             Run = 1;                      /* toggle flag */
           }
         }
@@ -620,11 +659,13 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 
   if (Mode > 0)               /* cursor enabled */
   {
-    /* disable cursor */
-    LCD_Cmd(CMD_DISPLAY_CONTROL | FLAG_DISPLAY_ON | FLAG_CURSOR_OFF);
+    LCD_Cursor(0);            /* disable cursor */
   }
 
-  return Flag;
+  #undef DELAY_500
+  #undef DELAY_TICK
+
+  return Key;
 }
 
 
@@ -640,6 +681,11 @@ void WaitKey(void)
   TestKey(3000, 11);
 }
 
+
+
+/* ************************************************************************
+ *   extra UI stuff
+ * ************************************************************************ */
 
 
 /*
@@ -685,14 +731,14 @@ uint8_t ShortCircuit(uint8_t Mode)
   {
     LCD_Clear();
     LCD_EEString(String);               /* display: Remove/Create */
-    LCD_Line2();
+    LCD_NextLine();
     LCD_EEString(ShortCircuit_str);     /* display: short circuit! */
   }  
 
   /* wait until all probes are dis/connected */
   while (Flag == 2)
   {
-    Test = AllProbesShorted();     /* check for short circuits */
+    Test = AllProbesShorted();     /* check for shorted probes */
 
     if (Test == Comp)         /* job done */
     {
@@ -703,13 +749,88 @@ uint8_t ShortCircuit(uint8_t Mode)
     {
       Test = TestKey(100, 0);      /* wait 100ms or detect key press */
       if (Mode == 0) Test = 0;     /* ignore key for un-short mode */
-      if (Test > 0) Flag = 0;      /* abort on key press */
+      if (Test > KEY_TIMEOUT) Flag = 0;  /* abort on key press */
     }
   }
 
   return Flag;
 }
 
+
+
+#ifdef SW_CONTRAST
+
+/*
+ *  change LCD contrast
+ *  - takes maximum value into account
+ */
+
+void ChangeContrast(void)
+{
+  uint8_t          Flag = 1;            /* loop control */
+  uint8_t          Test = 1;            /* loop control */
+  uint8_t          Contrast;            /* contrast value */
+  uint8_t          Max;                 /* contrast maximum */
+  
+
+  /*
+   *  increase: short key press / right turn 
+   *  decrease: long key press / left turn
+   *  done:     two brief key presses          
+   */
+
+  LCD_Clear();
+  LCD_EEString_Space(Contrast_str);     /* display: Contrast */
+
+  Contrast = NV.Contrast;          /* get current value */
+  Max = UI.MaxContrast;
+
+  while (Flag)
+  {
+    LCD_ClearLine2();
+    DisplayValue(Contrast, 0, 0);
+
+    #ifdef HW_ENCODER
+    if (Flag < 3)                       /* just for test button usage */
+    #endif
+    MilliSleep(300);                    /* smooth UI */
+
+    Flag = TestKey(0, 0);               /* wait for user feedback */
+    if (Flag == KEY_SHORT)              /* short key press */
+    {
+      MilliSleep(50);                   /* debounce button a little bit longer */
+      Test = TestKey(200, 0);           /* check for second key press */
+      if (Test > KEY_TIMEOUT)           /* second key press */
+      {
+        Flag = 0;                         /* end loop */
+      }
+      else                              /* single key press */
+      {
+        if (Contrast < Max) Contrast++;   /* increase value */
+      }
+    }
+    #ifdef HW_ENCODER
+    else if (Flag == 3)                 /* rotary encoder: right turn */
+    {
+      if (Contrast < Max) Contrast++;   /* increase value */
+    }
+    #endif
+    else                                /* long key press / left turn */
+    {
+      if (Contrast > 0) Contrast--;       /* decrease */
+    }
+
+    LCD_Contrast(Contrast);        /* change contrast */
+  }
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   menues
+ * ************************************************************************ */
 
 
 /*
@@ -719,115 +840,187 @@ uint8_t ShortCircuit(uint8_t Mode)
  *  - Items: number of menu items
  *  - Type: type of menu items
  *      1  pointer (in RAM) to fixed string stored in EEPROM
- *      2  uint16_t stored in Flash or EEPROM
+ *      2  uint16_t stored in EEPROM
  *  - Menu: address of array with menu items
  *  - Unit: optional fixed string stored in EEPROM
  *
  *  returns:
- *  - number of selected item
+ *  - ID of selected item
  */
 
 uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 {
   uint8_t           Selected = 0;       /* return value / ID of selected item */
-  uint8_t           Run = 1;            /* loop control flag */
+  uint8_t           First = 0;          /* first item listed */
+  uint8_t           Run = 2;            /* loop control flag */
+  uint8_t           Lines;              /* line number */
   uint8_t           n;                  /* temp value */
   void              *Address;           /* address of menu element */
   uint16_t          Value;              /* temp. value */
 
   Items--;                    /* to match array counter */
-  LCD_Data(':');              /* whatever: */
+  Lines = UI.CharMax_Y;       /* max. number of lines */
+  Lines--;                    /* adjust to match item counter */
+  LCD_Char(':');              /* whatever: */
+
 
   while (Run)
   {
-    /*
-     *  display item
-     */
-
-    LCD_ClearLine2();
-    Address = &Menu[Selected];     /* get address of element */
-
-    if (Type == 1)                 /* fixed string */
+    if (Lines == 1)           /* 2 line display */
     {
-      LCD_EEString(*(unsigned char **)Address);
-    }
-    else                           /* uint16_t in Flash or EEPROM */
-    {
-      Value = MEM_read_word(Address);   /* read value at flash/eeprom address */
-      DisplayValue(Value, 0, 0);
-    }
-
-    if (Unit)                      /* optional fixed string */
-    {
-      LCD_EEString(Unit);
+      First = Selected;       /* just one line for items */
+      Run++;                  /* set flag for changed list */
     }
 
 
     /*
-     *  show navigation help
+     *  display item(s)
      */
 
-    MilliSleep(100);               /* smooth UI */
+    Address = &Menu[First];        /* get address of first item */
+    n = 0;
 
-    /* set position: char 16 in line 2 */
-    LCD_Cmd(CMD_SET_DD_RAM_ADDR | 0x4F);
+    while (n < Lines)
+    {
+      LCD_CharPos(1, n + 2);       /* move to start of line */
 
-    if (Selected < Items) n = '>';      /* another item follows */
-    else n = '<';                       /* last item */
+      /* display indicator for multiline displays */
+      if (Lines > 1)
+      {
+        if (Selected == (First + n))    /* selected item */
+        {
+          LCD_Char('*');
+        }
+        else                            /* not selected */
+        {
+          LCD_Space();
+        }
+      }
 
-    LCD_Data(n);
+      if (Run > 1)            /* list changed */
+      {
+        /* display item or value */
+        if (Type == 1)                  /* fixed string */
+        {
+          LCD_EEString(*(unsigned char **)Address);
+        }
+        else                            /* uint16_t in EEPROM */
+        {
+          Value = eeprom_read_word(Address); /* read value at eeprom address */
+          DisplayValue(Value, 0, 0);
+        }     
+
+        /* display optional fixed string */
+        if (Unit)
+        {
+          LCD_EEString(Unit);
+        }  
+
+        LCD_ClearLine(0);     /* clear rest of this line */
+      }
+
+      Address += 2;                /* next address (2 byte steps) */
+      n++;                         /* next item */
+
+      if (n > Items) n = Lines;    /* end loop for a short list */
+    }
+
+    Run = 1;             /* reset loop flag (changed list) */
+
+    /* show navigation help for 2 line displays */
+    if (Lines == 1)
+    {
+      LCD_CharPos(UI.CharMax_X, UI.CharMax_Y);    /* set position to bottom right */
+      if (Selected < Items) n = '>';      /* another item follows */
+      else n = '<';                       /* last item */
+      LCD_Char(n);
+    }
+
+    #ifndef HW_ENCODER
+      MilliSleep(100);        /* smooth UI */
+    #endif
 
 
     /*
      *  process user feedback
      */
-
+ 
     n = TestKey(0, 0);             /* wait for testkey */
 
-    if (n == 1)                    /* short key press: moves to next item */
-    {
-      #ifdef HW_ENCODER
-      /* alternative action for rotory encoder */
-      if (Run == 2) break;              /* select current item */
-      #endif
-
-      Selected++;                       /* move to next item */
-      if (Selected > Items)             /* max. number of items exceeded */
-      {
-        Selected = 0;                   /* roll over to first one */
-      }
-    }
-    else if (n == 2)               /* long key press: select current item */
-    {
-      Run = 0;                          /* end loop */
-    }
     #ifdef HW_ENCODER
-    else if (n == 3)               /* rotary encoder: right turn */
+    /* processing for rotary encoder */
+    if (n == KEY_SHORT)            /* short key press: select item */
     {
-      Selected++;                       /* move to next item */
-      if (Selected > Items)             /* max. number of items exceeded */
-      {
-        Selected = 0;                   /* roll over to first one */
-      }
-      Run = 2;                          /* signal change by encoder */
+      n = KEY_LONG;                     /* trigger item selection */
     }
-    else if (n == 4)               /* rotary encoder: left turn */
+    else if (n == KEY_TURN_RIGHT)  /* rotary encoder: right turn */
+    {
+      n = KEY_SHORT;                    /* trigger next item */
+    }
+    else if (n == KEY_TURN_LEFT)   /* rotary encoder: left turn */
     {
       if (Selected == 0)                /* first item */
       {
         Selected = Items;               /* roll over to last item */
+
+        if (Items >= Lines)             /* large list */
+        {
+          First = Items - Lines + 1;    /* update first item listed */
+          Run++;                        /* set flag for changed list */
+        }
       }
       else                              /* not first item */
       {
         Selected--;                     /* move to previous item */
+
+        if (Selected == First)          /* item would be the first one listed */
+        {
+          if (Selected > 0)             /* more items in list */
+          {
+            First--;                    /* scroll one item down */
+            Run++;                      /* set flag for changed list */
+          }
+        }
       }
-      Run = 2;                          /* signal change by encoder */
     }
     #endif
+
+    /* processing for testkey */
+    if (n == KEY_SHORT)            /* short key press: move to next item */
+    {
+      if (Selected == Items)       /* last item */
+      {
+        Selected = 0;              /* roll over to first one */
+        First = 0;                 /* also reset first item listed */
+
+        if (Items >= Lines)        /* large list */
+        {
+          Run++;                   /* set flag for changed list */
+        }
+      }
+      else                         /* more items follow */
+      {
+        Selected++;                /* move to next item */        
+
+        n = First + Lines - 1;     /* last item on screen */
+        if (Selected == n)         /* item would be the last one listed */
+        {
+          if (Items > Selected)    /* more items follow in list */
+          {
+            First++;               /* scroll one item up */
+            Run++;                 /* set flag for changed list */
+          }
+        }
+      }
+    }
+    else if (n == KEY_LONG)        /* long key press: select current item */
+    {
+      Run = 0;                     /* end loop */
+    }
   }
 
-  LCD_Clear();                 /* feedback for user */
-  MilliSleep(500);             /* smooth UI */
+  LCD_Clear();                /* feedback for user */
+  MilliSleep(500);            /* smooth UI */
 
   return Selected;
 }
@@ -835,59 +1028,120 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
 
 /*
- *  main menu
+ *  adjustment menu
  */
 
-void MainMenu(void)
+void AdjustmentMenu(uint8_t Mode)
 {
-  #if RES_FLASH >= 32
-    #define MENU_ITEMS  11
-  #else
-    #define MENU_ITEMS  5  
-  #endif
+  #define MENU_ITEMS  3
 
   uint8_t           Item = 0;           /* item number */
-  uint8_t           Flag = 1;           /* control flag */
+  void              *MenuItem[MENU_ITEMS];   /* menu item strings */
+  uint8_t           MenuID[MENU_ITEMS];      /* menu item IDs */
+  uint8_t           ID;            /* profile ID */
+
+  /* set up menu */
+  MenuItem[Item] = (void *)Profile1_str;     /* profile #1 */
+  MenuID[Item] = 1;
+  Item++;  
+  MenuItem[Item] = (void *)Profile2_str;     /* profile #2 */
+  MenuID[Item] = 2;
+  Item++;
+  MenuItem[Item] = (void *)Exit_str;         /* exit menu */
+  MenuID[Item] = 0;
+  Item++;                                    /* add 1 for item #0 */
+
+  /* display mode */
+  LCD_Clear();
+  if (Mode == MODE_SAVE)           /* write mode */
+  {
+    LCD_EEString(Save_str);
+  }
+  else                             /* read mode */
+  {
+    LCD_EEString(Load_str);
+  }
+
+  /* run menu */
+  ID = MenuTool(Item, 1, MenuItem, NULL);    /* menu dialog */
+  ID = MenuID[ID];                           /* get item ID */
+
+  if (ID > 0)                 /* valid profile ID */
+  {
+    ManageAdjust(Mode, ID);
+  }
+
+  #undef MENU_ITEMS
+}
+
+
+/*
+ *  create main menu and return ID of selected item  
+ */
+
+uint8_t PresentMainMenu(void)
+{
+  #define MENU_ITEMS  16
+
+  uint8_t           Item = 0;           /* item number */
   uint8_t           ID;                 /* ID of selected item */
-  #ifdef SW_PWM
-  uint16_t          Frequency;          /* PWM frequency */  
-  #endif
   void              *MenuItem[MENU_ITEMS];   /* menu item strings */
   uint8_t           MenuID[MENU_ITEMS];      /* menu item IDs */
 
+
   /*
-   *  setup menu
+   *  set up menu
    */
 
   /* extra items */
-  #ifdef SW_PWM
+  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
   MenuItem[Item] = (void *)PWM_str;          /* PWM tool */
-  MenuID[Item] = 5;
+  MenuID[Item] = 6;
   Item++;
   #endif
-  #ifdef SW_SIGNAL_GEN
-  MenuItem[Item] = (void *)FreqGen_str;      /* Squarewave Generator */
-  MenuID[Item] = 6;
+  #ifdef SW_SQUAREWAVE
+  MenuItem[Item] = (void *)SquareWave_str;   /* Square Wave Signal Generator */
+  MenuID[Item] = 7;
   Item++;
   #endif
   #ifdef HW_ZENER
   MenuItem[Item] = (void *)Zener_str;        /* Zener tool */
-  MenuID[Item] = 7;  
+  MenuID[Item] = 8;  
   Item++;
   #endif
   #ifdef SW_ESR
   MenuItem[Item] = (void *)ESR_str;          /* in-circuit ESR */
-  MenuID[Item] = 8;
+  MenuID[Item] = 9;
   Item++;
   #endif
   #ifdef HW_FREQ_COUNTER
   MenuItem[Item] = (void *)FreqCounter_str;  /* frequency counter */
-  MenuID[Item] = 9;
+  MenuID[Item] = 10;
   Item++;
   #endif
   #ifdef SW_ENCODER
   MenuItem[Item] = (void *)Encoder_str;      /* rotary encoder check */
-  MenuID[Item] = 10;
+  MenuID[Item] = 11;
+  Item++;
+  #endif
+  #ifdef SW_CONTRAST
+  MenuItem[Item] = (void *)Contrast_str;     /* change LCD contrast */
+  MenuID[Item] = 12;
+  Item++;
+  #endif
+  #ifdef SW_IR_RECEIVER
+  MenuItem[Item] = (void *)IR_Detector_str;  /* IR RC detection */
+  MenuID[Item] = 13;
+  Item++;
+  #endif
+  #ifdef SW_OPTO_COUPLER
+  MenuItem[Item] = (void *)OptoCoupler_str;  /* opto coupler tool */
+  MenuID[Item] = 14;
+  Item++;
+  #endif
+  #ifdef SW_SERVO
+  MenuItem[Item] = (void *)Servo_str;        /* servo check */
+  MenuID[Item] = 15;
   Item++;
   #endif
 
@@ -895,14 +1149,17 @@ void MainMenu(void)
   MenuItem[Item] = (void *)Selftest_str;    /* selftest */
   MenuID[Item] = 1;
   Item++;
-  MenuItem[Item] = (void *)Show_str;        /* show self-adjustment values */
-  MenuID[Item] = 4;
-  Item++;
   MenuItem[Item] = (void *)Adjustment_str;  /* self-adjustment */
   MenuID[Item] = 2;
   Item++;  
   MenuItem[Item] = (void *)Save_str;        /* store self-adjustment values */
   MenuID[Item] = 3;
+  Item++;
+  MenuItem[Item] = (void *)Load_str;        /* load self-adjustment values */
+  MenuID[Item] = 4;
+  Item++;
+  MenuItem[Item] = (void *)Show_str;        /* show self-adjustment values */
+  MenuID[Item] = 5;
   Item++;
   MenuItem[Item] = (void *)Exit_str;        /* exit menu */
   MenuID[Item] = 0;
@@ -915,8 +1172,29 @@ void MainMenu(void)
   LCD_Clear();
   LCD_EEString(Select_str);                  /* display "Select" */
   Item++;                                    /* add 1 for item #0 */
-  ID = MenuTool(Item, 1, MenuItem, NULL);
-  ID = MenuID[ID];
+  ID = MenuTool(Item, 1, MenuItem, NULL);    /* menu dialog */
+  ID = MenuID[ID];                           /* get item ID */
+
+  return(ID);                 /* return item ID */
+
+  #undef MENU_ITEMS
+}
+
+
+
+/*
+ *  main menu
+ */
+
+void MainMenu(void)
+{
+  uint8_t           ID;                 /* ID of selected item */
+  uint8_t           Flag = 1;           /* control flag */
+  #ifdef SW_PWM_SIMPLE
+  uint16_t          Frequency;          /* PWM frequency */  
+  #endif
+
+  ID = PresentMainMenu();     /* create menu and get user feedback */
 
   /* run selected item */
   switch (ID)
@@ -931,64 +1209,96 @@ void MainMenu(void)
       Flag = SelfAdjust();
       break;
 
-    case 3:              /* safe self-adjustment values */
-      SafeAdjust();
+    case 3:              /* save self-adjustment values */
+      AdjustmentMenu(MODE_SAVE);
       break;
 
-    case 4:              /* show self-adjustment values */
+    case 4:              /* load self-adjustment values */
+      AdjustmentMenu(MODE_LOAD);
+      break;
+
+    case 5:              /* show self-adjustment values */
       ShowAdjust();
       break;
 
-    #ifdef SW_PWM
-    case 5:              /* PWM tool */
+    #ifdef SW_PWM_SIMPLE
+    case 6:              /* PWM tool with simple UI */
       /* run PWM menu */
       LCD_Clear();
       LCD_EEString(PWM_str);
       ID = MenuTool(8, 2, (void *)PWM_Freq_table, (unsigned char *)Hertz_str);
-      Frequency = MEM_read_word(&PWM_Freq_table[ID]);  /* get selected frequency */
-      PWM_Tool(Frequency);                             /* and run PWM tool */
+      Frequency = eeprom_read_word(&PWM_Freq_table[ID]);    /* get selected frequency */
+      PWM_Tool(Frequency);                                  /* and run PWM tool */
       break;
     #endif
 
-    #ifdef SW_SIGNAL_GEN
-    case 6:              /* squarewave signal generator */
-      SignalGenerator();
-      break;   
+    #ifdef SW_PWM_PLUS
+    case 6:              /* PWM tool with improved UI */
+      PWM_Tool();
+      break;
+    #endif
+
+    #ifdef SW_SQUAREWAVE
+    case 7:              /* square wave signal generator */
+      SquareWave_SignalGenerator();
+      break;
     #endif
 
     #ifdef HW_ZENER
-    case 7:              /* Zener tool */
+    case 8:              /* Zener tool */
       Zener_Tool();
       break;
     #endif
 
     #ifdef SW_ESR
-    case 8:              /* ESR tool */
+    case 9:              /* ESR tool */
       ESR_Tool();
       break;
     #endif
 
     #ifdef HW_FREQ_COUNTER
-    case 9:              /* frequency counter */
+    case 10:             /* frequency counter */
       FrequencyCounter();
       break;
     #endif
 
     #ifdef SW_ENCODER
-    case 10:             /* rotary encoder check */
+    case 11:             /* rotary encoder check */
       Encoder_Tool();
+      break;
+    #endif
+
+    #ifdef SW_CONTRAST
+    case 12:             /* change contrast */
+      ChangeContrast();
+      break;
+    #endif
+
+    #ifdef SW_IR_RECEIVER
+    case 13:             /* IR RC detection */
+      IR_Detector();
+      break;
+    #endif
+
+    #ifdef SW_OPTO_COUPLER
+    case 14:             /* opto coupler tool */
+      OptoCoupler_Tool();
+      break;
+    #endif
+
+    #ifdef SW_SERVO
+    case 15:             /* servo check */
+      Servo_Check();
       break;
     #endif
   }
 
-  /* display end of item */
+  /* display result */
   LCD_Clear();
   if (Flag == 0)
     LCD_EEString(Error_str);       /* display: error! */
   else
     LCD_EEString(Done_str);        /* display: done! */
-
-#undef MENU_ITEMS
 }
 
 

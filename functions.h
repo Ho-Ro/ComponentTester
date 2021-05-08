@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2014 by Markus Reschke
+ *   (c) 2012-2017 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -20,35 +20,80 @@
 #ifndef MAIN_C
 
   extern void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C);
+  extern void Show_SimplePinout(uint8_t ID_1, uint8_t ID_2, uint8_t ID_3);
 
 #endif
 
 
 /* ************************************************************************
- *   functions from LCD.c
+ *   functions from LCD module specific driver
  * ************************************************************************ */
 
-#ifndef LCD_C
+#ifndef LCD_DRIVER_C
 
-  extern void LCD_Enable(void);
-  extern void LCD_Send(unsigned char Data);
-  extern void LCD_Cmd(unsigned char Cmd);
-  extern void LCD_Data(unsigned char Data);
-
-  extern void LCD_Clear(void);
-//  extern void LCD_Line(unsigned char Line);
-  extern void LCD_Line2(void);
+  extern void LCD_BusSetup(void);
   extern void LCD_Init(void);
-  extern void LCD_EELoadChar(const unsigned char *CharData, uint8_t ID);
+  extern void LCD_ClearLine(uint8_t Line);
+  extern void LCD_Clear(void);
+  extern void LCD_CharPos(uint8_t x, uint8_t y);
+  extern void LCD_Cursor(uint8_t Mode);
+  extern void LCD_Char(unsigned char Char);
 
-//  extern void LCD_ClearLine(unsigned char Line);
+  #ifdef SW_CONTRAST
+    extern void LCD_Contrast(uint8_t Contrast);
+  #endif
+
+  #ifdef SW_SYMBOLS
+    extern void LCD_FancySemiPinout(void);
+  #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from I2C.c
+ * ************************************************************************ */
+
+#ifndef I2C_C
+
+  #ifdef HW_I2C
+    extern uint8_t I2C_Setup(void);
+    extern uint8_t I2C_Start(uint8_t Type);
+    extern uint8_t I2C_WriteByte(uint8_t Type);
+    extern void I2C_Stop(void);
+  #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from touchscreen specific driver
+ * ************************************************************************ */
+
+#ifndef TOUCH_DRIVER_C
+  #ifdef HW_TOUCH
+
+  #endif
+#endif
+
+
+/* ************************************************************************
+ *   functions from display.c
+ * ************************************************************************ */
+
+#ifndef DISPLAY_C
+
+  extern void LCD_EEString(const unsigned char *String);
+  extern void LCD_EEString_Space(const unsigned char *String);
+  extern void LCD_ProbeNumber(uint8_t Probe);
+
   extern void LCD_ClearLine2(void);
   extern void LCD_Space(void);
-  extern void LCD_ProbeNumber(unsigned char Probe);
-//  extern void LCD_String(char *String);
-  extern void LCD_EEString(const unsigned char *String);
 
-  extern void LCD_EEString2(const unsigned char *String);
+  extern void LCD_NextLine(void);
+  extern void LCD_NextLine_Mode(uint8_t Mode);
+  extern void LCD_NextLine_EEString(const unsigned char *String);
+  extern void LCD_NextLine_EEString_Space(const unsigned char *String);
 
 #endif
 
@@ -70,9 +115,9 @@
 
 #ifndef ADJUST_C
 
+  extern void SetAdjustDefaults(void);
   extern uint8_t CheckSum(void);
-  extern void SafeAdjust(void);
-  extern void LoadAdjust(void);
+  extern void ManageAdjust(uint8_t Mode, uint8_t ID);
 
   extern void ShowAdjust(void);
   extern uint8_t SelfAdjust(void);
@@ -90,12 +135,10 @@
 
   extern int8_t CmpValue(uint32_t Value1, int8_t Scale1,
     uint32_t Value2, int8_t Scale2);
+  extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
 
-  #ifdef SW_INDUCTOR
-    extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
-  #endif
 
-  #ifdef SW_SIGNAL_GEN
+  #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS)
     extern void DisplayFullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
@@ -111,16 +154,35 @@
 
 
 /* ************************************************************************
+ *   functions from IR.c
+ * ************************************************************************ */
+
+#ifndef IR_C
+
+  #ifdef SW_IR_RECEIVER
+    extern void IR_Detector(void);
+  #endif
+
+#endif
+
+
+/* ************************************************************************
  *   functions from extras.c
  * ************************************************************************ */
 
 #ifndef EXTRAS_C
 
-  #ifdef SW_PWM
+  #ifdef SW_PWM_SIMPLE
     extern void PWM_Tool(uint16_t Frequency);
   #endif
-  #ifdef SW_SIGNAL_GEN
-    extern void SignalGenerator(void);
+  #ifdef SW_PWM_PLUS
+    extern void PWM_Tool(void);
+  #endif
+  #ifdef SW_SERVO
+    extern void Servo_Check(void);
+  #endif
+  #ifdef SW_SQUAREWAVE
+    extern void SquareWave_SignalGenerator(void);
   #endif
   #ifdef SW_ESR
     extern void ESR_Tool(void);
@@ -134,7 +196,9 @@
   #ifdef SW_ENCODER
     extern void Encoder_Tool(void);
   #endif
-
+  #ifdef SW_OPTO_COUPLER
+    extern void OptoCoupler_Tool(void);
+  #endif
 #endif
 
 
@@ -146,15 +210,21 @@
 
   extern void GetGateThreshold(uint8_t Type);
   extern uint32_t Get_hfe_c(uint8_t Type);
-  extern uint16_t GetLeakageCurrent(void);
+  extern void GetLeakageCurrent(uint8_t Mode);
 
+  extern Diode_Type *SearchDiode(uint8_t A, uint8_t C);
   extern void CheckDiode(void);
 
   extern void VerifyMOSFET(void);
-  extern void CheckBJTorEnhModeMOSFET(uint8_t BJT_Type, uint16_t U_Rl);
-  extern void CheckDepletionModeFET(void);
+  extern void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl);
+  extern void CheckDepletionModeFET(uint16_t U_Rl);
 
   extern uint8_t CheckThyristorTriac(void);
+  extern void CheckPUT(void);
+
+  #ifdef SW_UJT
+    extern void CheckUJT(void);
+  #endif
 
 #endif
 
@@ -167,7 +237,7 @@
 
   extern uint16_t SmallResistor(uint8_t ZeroFlag);
   extern void CheckResistor(void);
-  extern uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin);
+  extern uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin, uint8_t Max);
 
 #endif
 
@@ -207,6 +277,9 @@
 #ifndef PROBES_C
 
   extern void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);
+  extern void RestoreProbes(void);
+  extern void BackupProbes(void);
+  extern uint8_t GetThirdProbe(uint8_t Probe1, uint8_t Probe2);
   extern uint8_t ShortedProbes(uint8_t Probe1, uint8_t Probe2);
   extern uint8_t AllProbesShorted(void);
   extern void DischargeProbes(void);
@@ -214,6 +287,7 @@
   extern uint16_t GetFactor(uint16_t U_in, uint8_t ID);
 
   extern void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);
+  extern void CheckAlternatives(void);
 
 #endif
 

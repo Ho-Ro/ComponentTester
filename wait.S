@@ -32,8 +32,8 @@
 .global wait4s		; wait 4 seconds
 .global wait3s		; wait 3 seconds
 .global wait2s		; wait 2 seconds
-.global wait1s		; wait 1 seconds
-.global wait1000ms	; wait 2 second and wait 1000ms are identical
+.global wait1s		; wait 1 second
+.global wait1000ms	; wait 1000ms (identical with wait1s)
 .global wait500ms	; wait 500ms
 .global wait400ms	; wait 400ms
 .global wait300ms	; wait 300ms
@@ -49,16 +49,16 @@
 .global wait3ms		; wait 3ms
 .global wait2ms		; wait 2ms
 .global wait1ms		; wait 1ms
-.global wait500us	; wait 500Âµs
-.global wait400us	; wait 400Âµs
-.global wait300us	; wait 300Âµs
-.global wait200us	; wait 200Âµs
-.global wait100us	; wait 100Âµs
-.global wait50us	; wait 50Âµs
-.global wait40us	; wait 40Âµs
-.global wait30us	; wait 30Âµs
-.global wait20us	; wait 20Âµs
-.global wait10us	; wait 10Âµs
+.global wait500us	; wait 500µs
+.global wait400us	; wait 400µs
+.global wait300us	; wait 300µs
+.global wait200us	; wait 200µs
+.global wait100us	; wait 100µs
+.global wait50us	; wait 50µs
+.global wait40us	; wait 40µs
+.global wait30us	; wait 30µs
+.global wait20us	; wait 20µs
+.global wait10us	; wait 10µs
 
 ; waiting functions for MCU clock rates of 1MHz, 2MHz, 4MHz, 8MHz and 16MHz
 ; stacked design to minimize flash memory usage:
@@ -211,8 +211,8 @@ wait10us:		;	1+x return addresses
 
 #if CPU_FREQ == 2000000
 ;2MHz version			x = 1
- rcall wait5us		;5s
-;proceed with wait5us	;+5µ
+ rcall wait5us		;5µs
+;proceed with wait5us	;+5µs
 
 .global wait5us		;wait 5µs
 wait5us:
@@ -297,7 +297,7 @@ wait4us:
 
 wait3us:
  rcall wait1us		;1µs
-;proceed with wait1us	;+2µs
+;proceed with wait2us	;+2µs
 
 wait2us:
  rcall wait1us		;1µs
@@ -309,6 +309,43 @@ wait1us:
 
 wait500ns:
  nop			;500ns
+#endif
+
+
+#if CPU_FREQ == 20000000
+;20MHz Version			x = 2
+.global wait5us		;wait 5µs
+.global wait4us		;wait 4µs
+.global wait3us		;wait 3µs
+.global wait2us		;wait 2µs
+.global wait1us		;wait 1µs
+ rcall wait5us		;5µs
+;proceed with wait5us	;+5µs
+
+wait5us:
+ rcall wait1us		;1µs
+;proceed with wait4us	;+4µs
+
+wait4us:
+ rcall wait1us		;1µs
+;proceed with wait3us	;+3µs
+
+wait3us:
+ rcall wait1us		;1µs
+;proceed with wait2us	;+2µs
+
+wait2us:
+ rcall wait1us		;1µs
+;proceed with wait1us	;+1µs
+
+wait1us:
+ rcall wait500ns	;500ns
+;proceed with wait500ms	;+500ns
+
+wait500ns:
+ nop
+ nop
+ nop                    ;500ns
 #endif
 
 
