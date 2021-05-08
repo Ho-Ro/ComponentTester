@@ -53,6 +53,10 @@
     Inductor_Type   Inductor;                /* inductor */
   #endif
 
+  #ifdef HW_ENCODER
+    RotaryEncoder_Type        Enc;           /* rotary encoder */
+  #endif
+
 
   /*
    *  NVRAM values (stored in EEPROM) with their defaults
@@ -202,6 +206,9 @@
     const unsigned char PWM_Probes_str[] EEMEM = "2-13";
     const unsigned char Hertz_str[] EEMEM = "Hz";
   #endif
+  #ifdef SW_FREQ_GEN
+    const unsigned char FreqGen_str[] EEMEM = "f Gen.";
+  #endif
   #ifdef HW_ZENER
     const unsigned char Zener_str[] EEMEM = "Zener";
     const unsigned char Min_str[] EEMEM = "Min";
@@ -217,7 +224,7 @@
   const unsigned char Resistor_str[] EEMEM = {'-', LCD_CHAR_RESISTOR_L, LCD_CHAR_RESISTOR_R, '-', 0};
 
   /* version */
-  const unsigned char Version_str[] EEMEM = "v1.14m";
+  const unsigned char Version_str[] EEMEM = "v1.15m";
 
 
   /*
@@ -276,7 +283,7 @@
     const uint16_t Inductor_table[] MEM_TEXT = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
   #endif
 
-  #ifdef HW_FREQ_COUNTER
+  #if defined (HW_FREQ_COUNTER) || defined (SW_FREQ_GEN)
     /* Timer1 prescalers and corresponding bitmasks */
     const uint16_t T1_Prescaler_table[] MEM_TEXT = {1, 8, 64, 256, 1024};
     const uint8_t T1_Bitmask_table[] MEM_TEXT = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
@@ -331,8 +338,13 @@
   extern Semi_Type       Semi;                    /* semiconductor (BJT, FET, ...) */
 
   #ifdef SW_INDUCTOR
-    extern Inductor_Type Inductor;                /* inductor */
+    extern Inductor_Type          Inductor;       /* inductor */
   #endif
+
+  #ifdef HW_ENCODER
+    extern RotaryEncoder_Type      Enc;           /* rotary encoder */
+  #endif
+
 
   /*
    *  NVRAM values (stored in EEPROM) with their defaults
@@ -389,6 +401,9 @@
     extern const unsigned char PWM_Probes_str[];
     extern const unsigned char Hertz_str[];
   #endif
+  #ifdef SW_FREQ_GEN
+    extern const unsigned char FreqGen_str[];
+  #endif
   #ifdef HW_ZENER
     extern const unsigned char Zener_str[];
     extern const unsigned char Min_str[];
@@ -421,7 +436,7 @@
     extern const uint16_t Inductor_table[];
   #endif
 
-  #ifdef HW_FREQ_COUNTER
+  #if defined (HW_FREQ_COUNTER) || defined (SW_FREQ_GEN)
     /* Timer1 prescalers and corresponding bitmasks */
     extern const uint16_t T1_Prescaler_table[];
     extern const uint8_t T1_Bitmask_table[];

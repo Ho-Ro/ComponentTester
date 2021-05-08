@@ -117,9 +117,10 @@ typedef struct
 /* rotary encoder */
 typedef struct
 {
-  uint8_t           History;
-  uint8_t           Dir;
-  uint8_t           Pulses;
+  uint8_t           History;       /* last AB status */
+  uint8_t           Dir;           /* turn direction */
+  uint8_t           Pulses;        /* number of pulses */
+  uint8_t           Velocity;      /* turning velocity */
 } RotaryEncoder_Type;
 
 

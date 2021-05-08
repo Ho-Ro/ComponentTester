@@ -64,7 +64,9 @@ With ln(e^x) = x we get:
 So we can measure the current at a specific time after switching on to
 get L.
 
-I_0 = 5V / R_total = 5V / (Ri_H + R_L + Rl + Ri_L) 
+  R_total = Ri_H + R_L + Rl + Ri_L
+
+  I_0 = 5V / R_total = 5V / (Ri_H + R_L + Rl + Ri_L) 
 
 We get i_L(t) by measuring the voltage accross a shunt resistor. For a proper
 time measurement we'll use the integrated analog comparator and a timer, i.e.
@@ -104,7 +106,7 @@ current shunt (Rl = 0).
 
 Estimates for minimal and maximal values (R_L max. 40 Ohm):
 - min: 1.0V * 40 Ohm / 5V * 20 Ohm = 0,4
-- max: 1.1V * 90 Ohm / 5V * 20 Ohm = 0.950
+- max: 1.2V * 80 Ohm / 5V * 20 Ohm = 0.960
   999 is maximum due to ln(1-a/1000)
   Hence the maximum R_L supported is 40 Ohms.
 
@@ -121,8 +123,8 @@ Since the range overlaps with the low test current we may use a single table.
  *  measure inductance between two probe pins
  *
  *  requires:
- *  - pointer to time variable
- *  - measurement mode (low/high current)
+ *  - pointer to time variable (ns)
+ *  - measurement mode (low/high current, delayed start)
  *
  *  returns:
  *  - 3 on success
@@ -231,29 +233,29 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
    *  - detect timer overflows
    */
 
-   while (1)
-   {
-     Test = TIFR1;                      /* get timer1 flags */
+  while (1)
+  {
+    Test = TIFR1;                       /* get timer1 flags */
 
-     /* end loop if input capture flag is set (= same voltage) */
-     if (Test & (1 << ICF1)) break;
+    /* end loop if input capture flag is set (= same voltage) */
+    if (Test & (1 << ICF1)) break;
 
-     /* detect timer overflow by checking the overflow flag */
-     if (Test & (1 << TOV1))
-     {
-       /* happens at 65.536ms for 1MHz or 8.192ms for 8MHz */
-       TIFR1 = (1 << TOV1);             /* reset flag */
-       wdt_reset();                     /* reset watchdog */
-       Ticks_H++;                       /* increase overflow counter */
+    /* detect timer overflow by checking the overflow flag */
+    if (Test & (1 << TOV1))
+    {
+      /* happens at 65.536ms for 1MHz or 8.192ms for 8MHz */
+      TIFR1 = (1 << TOV1);              /* reset flag */
+      wdt_reset();                      /* reset watchdog */
+      Ticks_H++;                        /* increase overflow counter */
 
-       /* if it takes too long (0.26s) */
-       if (Ticks_H == (CPU_FREQ / 250000))
-       {
-         Flag = 0;            /* signal timeout */
-         break;               /* end loop */
-       }
-     }
-   }
+      /* if it takes too long (0.26s) */
+      if (Ticks_H == (CPU_FREQ / 250000))
+      {
+        Flag = 0;             /* signal timeout */
+        break;                /* end loop */
+      }
+    }
+  }
 
   /* stop counter */
   TCCR1B = 0;                           /* stop timer */
@@ -309,15 +311,15 @@ uint8_t MeasureInductance(uint32_t *Time, uint8_t Mode)
     else Counter -= Offset;                  /* subtract offset */
   }
 
-  /* convert counter (MCU cycles) to time (in µs) */
+  /* convert counter (MCU cycles) to time (in ns) */
   if (Counter > 0)
   {
-    Counter += (CPU_FREQ / 2000000);    /* add half of cycles for rounding */
-    Counter /= (CPU_FREQ / 1000000);    /* divide by frequeny and scale to µs */
+    Counter += (CPU_FREQ / 2000000);         /* add half of cycles for rounding */
+    Counter *= (1000000000 / CPU_FREQ);      /* divide by frequeny and scale to ns */
   }
 
-  if (Counter <= 1) Flag = 2;        /* signal inductance too low */
-  *Time = Counter;                   /* save time */
+  if (Counter <= 500) Flag = 2;         /* signal "inductance too low" */
+  *Time = Counter;                      /* save time */
 
   return Flag;
 }
@@ -435,24 +437,27 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
     *  L = t_stop * R_total * factor
     */
 
-    Scale = -6;               /* µH by default */
-    Value = Time1;            /* t_stop */
-    Value *= Factor;          /* * factor (µs * 10^-3) */
+    Scale = -9;               /* nH by default */
+    Value = Time1;            /* t_stop (in ns) */
 
     while (Value > 100000)    /* re-scale to prevent overflow */
     {
-      Value /= 10;
-      Scale++;
+      Value += 5;             /* for automagic rounding */
+      Value /= 10;            /* scale down by 10^1 */
+      Scale++;                /* increase exponent by 1 */
+    }
+
+    Value *= Factor;          /* * factor (in 10^-3) */
+
+    while (Value > 100000)    /* re-scale to prevent overflow */
+    {
+      Value += 5;             /* for automagic rounding */
+      Value /= 10;            /* scale down by 10^1 */
+      Scale++;                /* increase exponent by 1 */
     }
 
     Value *= R_total;         /* * R_total (in 0.1 Ohms) */
-    Value /= 10000;
-
-    while (Value > 1000)      /* re-scale to reduce resolution */
-    {
-      Value /= 10;
-      Scale++;
-    }
+    Value /= 10000;           /* /1o for 1 Ohms, /1000 for factor */
 
     /* update data */
     Inductor.Scale = Scale;

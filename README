@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:  2014-08-14
+Last edit:  2014-08-28
 
 Content
   - About
@@ -22,6 +22,7 @@ Content
   - Power Off
   - Menu
     - PWM Tool
+    - Signal Generator
     - Zener Tool
     - ESR Tool
     - Frequency Counter
@@ -60,6 +61,7 @@ for the ATmega328/P:
 - inductance measurement
 - Zener voltage measurement (hardware option)
 - PWM tool
+- SIgnal Generator (requires also rotary encoder)
 - ESR measurement and ESR tool
 - frequency counter (hardware option)
 
@@ -214,6 +216,23 @@ and to change the PWM ratio in 1% steps.
 
 Configuration of the probes:
   Probe #2:         PWM output (with 680 Ohms resistor to limit current)
+  Probe #1 and #3:  Ground
+
+
++ Signal Generator
+
+The signal generator creates a squarewave signal with variable frequency up
+to 1/4 of the MCU clock rate (2MHz for 8MHz MCU clock). The default frequency
+is 1000Hz and you can change it by turning the rotary encoder, The turning
+velocity determines the frequency change, i.e. slow turning results in small
+changes und fast turning in large changes. Since the signal generation is
+based on the MCU's internal PWM mode you can't select the frequency
+continously, but in steps. For low frequencies the steps are quite small,
+but for high frequencies they become larger and larger. To exit the signal
+generator simply press the push button.
+
+Configuration of the probes:
+  Probe #2:         output (with 680 Ohms resistor to limit current)
   Probe #1 and #3:  Ground
 
 

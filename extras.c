@@ -87,6 +87,7 @@ void ToolInfo(const unsigned char *String)
  *  PWM tool
  *  - use probe #2 (PB2, OC1B) as PWM output
  *    and probe #1 + probe #3 as ground
+ *  - max. reasonable PWM frequency for 8MHz MCU clock is 40kHz
  *
  *  requires:
  *  - Freqency in Hz
@@ -102,10 +103,16 @@ void PWM_Tool(uint16_t Frequency)
   uint32_t          Value;              /* temporary value */
 
   /*
-      fast PWM:             f = f_MCU / (prescaler * depth)
-      phase correct PWM:    f = f_MCU / (2 * prescaler * depth)
+      phase correct PWM:    f = f_MCU / (2 * prescaler * top)
       available prescalers: 1, 8, 64, 256, 1024
-      depth:                2^x (x is the bit depth)
+      top:                  (2^2 - 1) up to (2^16 - 1)
+
+      ranges for a 8MHz MCU clock:
+      prescaler  /2pre     top 2^16     top 2^2
+      1          4MHz      61Hz         1MHz
+      8          500kHz    7.6Hz        125kHz
+      64         62.5kHz   0.95Hz       15625Hz
+      256        15625Hz   0.24Hz       3906.25Hz
   */
 
   ShortCircuit(0);                    /* make sure probes are not shorted */
@@ -125,33 +132,35 @@ void PWM_Tool(uint16_t Frequency)
   /*
    *  calculate required prescaler and top value based on MCU clock
    *
-   *    depth = f_MCU / (2 * prescaler * f_PWM)
+   *    top = f_MCU / (2 * prescaler * f_PWM)
    */
 
   Value = CPU_FREQ / 2;
   Value /= Frequency;
 
-  if (Value > 2000000)        /* low frequency */
+  if (Value > 2000000)        /* low frequency (<20Hz @8MHz) */
   {
     Value /= 256;
     Prescaler = (1 << CS12);                 /* 256 */
   }
-  else if (Value > 16000)     /* mid-range frequency */
+  else if (Value > 16000)     /* mid-range frequency (<250Hz @8MHz) */
   {
     Value /= 64;
-    Prescaler = (1 << CS11) | (1 << CS10);   /* 64 */    
+    Prescaler = (1 << CS11) | (1 << CS10);   /* 64 */
   }
   else                        /* high frequency */
   {
-    Prescaler = (1 << CS10);                 /* 1 */    
+    Prescaler = (1 << CS10);                 /* 1 */
   }
 
-  Top = (uint16_t)Value;
+  Top = (uint16_t)Value;      /* keep lower 16 bits */
 
 
   /*
-   *  setup timer1 for PWM
-   *  - PWM, phase correct, top value by OCR1A
+   *  setup Timer1 for PWM
+   *  - phase correct PWM
+   *  - top value by OCR1A
+   *  - OC1B non-inverted output
    */
 
   Ratio = 50;                                /* default ratio is 50% */
@@ -220,7 +229,7 @@ void PWM_Tool(uint16_t Frequency)
       if (Ratio >= 5) Ratio -= 5;         /* -5% and limit to 0% */
     }
 
-    /* calculate toggle value: (depth * (ratio / 100)) - 1 */
+    /* calculate toggle value: (top * (ratio / 100)) - 1 */
     Value = (uint32_t)Top * Ratio;
     Value /= 100;
     Toggle = (uint16_t)Value;
@@ -228,6 +237,224 @@ void PWM_Tool(uint16_t Frequency)
 
     OCR1B = Toggle;                     /* update compare value */
   }
+
+  /* clean up */
+  TCCR1B = 0;                 /* disable timer */
+  TCCR1A = 0;                 /* reset flags (also frees PB2) */
+  R_DDR = 0;                  /* set HiZ mode */
+  Config.SleepMode = SLEEP_MODE_PWR_SAVE;    /* reset sleep mode to default */
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   Frequency (squarewave) Generator
+ * ************************************************************************ */
+
+
+#ifdef SW_FREQ_GEN
+
+/*
+ *  create squarewave signal with variable frequency
+ *  - use probe #2 (PB2, OC1B) as output
+ *    and probe #1 + probe #3 as ground
+ */
+
+void FrequencyGenerator(void)
+{
+  uint8_t           Flag = 2;           /* loop control */
+  uint8_t           Test;
+  uint8_t           Index;              /* prescaler table index */
+  uint8_t           Bitmask = 0;        /* prescaler bitmask */
+  uint16_t          Prescaler;          /* timer prescaler */
+  uint16_t          OldPrescaler;       /* old timer prescaler */
+  uint16_t          Top;                /* counter's top value */
+  uint16_t          Temp;
+  uint32_t          Value;              /* temporary value */
+
+  /*
+      fast PWM:             f = f_MCU / (prescaler * (1 + top))
+      available prescalers: 1, 8, 64, 256, 1024
+      top:                  (2^2 - 1) up to (2^16 - 1)
+
+      ranges for a 8MHz MCU clock:
+      prescaler  /pre       top 2^16     top 2^2
+      1          8MHz       122Hz        2MHz
+      8          1MHz       15.26Hz      250kHz
+      64         125kHz     1.9Hz        31.25kHz
+      256        31.25kHz   0.5Hz        7812.5Hz
+      1024       7812.5Hz   0.12Hz       1953.125Hz 
+  */
+
+  ShortCircuit(0);                    /* make sure probes are not shorted */
+  LCD_Clear();
+  LCD_EEString2(FreqGen_str);         /* display: f Gen. */
+  ToolInfo(PWM_Probes_str);           /* show probes used */
+
+  /* probes 1 and 3 are signal ground, probe 2 is signal output */
+  ADC_PORT = 0;                         /* pull down directly: */
+  ADC_DDR = (1 << TP1) | (1 << TP3);    /* probe 1 & 3 */
+  R_DDR = (1 << (TP2 * 2));             /* enable Rl for probe 2 */
+  R_PORT = 0;                           /* pull down probe 2 initially */
+
+
+  /*
+   *  setup Timer1 for PWM with 50% duty cycle 
+   *  - fast PWM mode 
+   *  - top value by OCR1A
+   *  - OC1B non-inverted output
+   */
+
+  /* power save mode would disable timer1 */
+  Config.SleepMode = SLEEP_MODE_IDLE;        /* change sleep mode to Idle */
+
+  /* enable OC1B pin and set timer mode */
+  TCCR1A = (1 << WGM11) | (1 << WGM10) | (1 << COM1B1) | (1 << COM1B0);
+  TCCR1B = (1 << WGM13); // | (1 << WGM12);
+
+
+  /*
+   *  processing loop
+   */
+
+  /* start values for 1kHz */
+  Index = 0;                       /* prescaler 1/1 */
+  Prescaler = 1;                   /* prescaler 1/1 */
+  Top = (CPU_FREQ / 1000) - 1;     /* top = f_MCU / (prescaler * f) - 1 */
+
+  while (Flag > 0)
+  {
+    /* update prescaler */
+    if (Flag >= 2)
+    {
+      OldPrescaler = Prescaler;         /* save old value */
+
+      /* read new prescaler and bitmask from table */
+      Prescaler = MEM_read_word(&T1_Prescaler_table[Index]);
+      Bitmask = MEM_read_byte(&T1_Bitmask_table[Index]);
+
+      /* auto-ranging: adjust top value for changed prescaler */
+      if (Flag == 2)          /* lower prescaler / higher frequency */
+      {
+        /* increase top value by same factor as the prescaler decreased */
+        Temp = OldPrescaler / Prescaler;
+        Top *= Temp;  
+      }
+      else                    /* higher prescaler / lower frequency */
+      {
+        /* decrease top value by same factor as the prescaler increased */
+        Temp = Prescaler / OldPrescaler;
+        Top /= Temp;
+      }
+
+      Flag = 1;                         /* reset flag */
+    }
+
+    /* display frequency: f = f_MCU / (prescaler * (1 + top)) */
+    Value = CPU_FREQ * 100;        /* scale to 0.01Hz */
+    Value /= Prescaler;
+    Test = 2;                      /* 2 decimal places */
+
+    /*
+     *  optimize resolution of frequency without causing an overflow
+     *  prescaler       :  1  8  64  256  1024
+     *  decimal places  :  2  3   4    4     5
+     */
+
+    Temp = Prescaler;
+    while (Temp >= 8)         /* loop through prescaler steps */
+    {
+      Value *= 10;            /* scale by factor 0.1 */
+      Test++;                 /* one decimal place more */
+      Temp /= 8;              /* next lower prescaler */
+    }
+
+    Value /= Top + 1;
+    LCD_ClearLine2();
+    DisplayFullValue(Value, Test, 'H');
+    LCD_Data('z');                 /* add z for Hz */
+
+    /* update timer */
+    TCCR1B = (1 << WGM13) | (1 << WGM12);    /* stop timer */
+    TCNT1 = 0;                               /* reset counter */
+    OCR1B = Top / 2;                         /* 50% duty cycle */
+    OCR1A = Top;                             /* top value for frequency */
+    TCCR1B = (1 << WGM13) | (1 << WGM12) | Bitmask;     /* start timer */
+
+    /* user feedback */
+    Test = TestKey(0, 0);          /* wait for key / rotary encoder */
+    Temp = Enc.Velocity;           /* take turning velocity into account */
+
+    if (Enc.Velocity > 1)          /* adjust steps based on frequency */
+    {
+      if (Index >= 1)              /* low frequencies */
+      {
+        Temp *= 10;                /* increase steps even more */
+      }
+      else if ((Index == 0) && (Top < 1000))  /* high frequencies */
+      {
+        Temp = 10;                 /* limit steps to 10 */
+      }
+      else                         /* default */
+      {
+        Temp *= 5;                 /* increase steps */
+      }
+    }
+
+    if (Test == 3)            /* encoder right turn */
+    {
+      /* increase frequency / decrease top value */
+      if (Top >= Temp)             /* no underflow */
+      {
+        Top -= Temp;                 /* decrease top value */
+      }
+      else                         /* underflow */
+      {
+        Top = 0;                     /* can't go below zero */
+      }
+      if (Top < 3) Top = 3;        /* enforce lower limit of top value */
+
+      /* auto-ranging */
+      if (Top < 0x03FF)            /* less than 10 bits */
+      {
+        if (Index > 0)             /* don't exceed lower prescaler limit */
+        {
+          Index--;                 /* decrease prescaler */
+          Flag = 2;                /* signal decreased prescaler */
+        }
+      }
+    }
+    else if (Test == 4)       /* encoder left turn */
+    {
+      /* decrease frequency / increase top value */
+      Value = (uint32_t)Top + Temp;
+      if (Value <= 0x0000FFFE)     /* no overflow */
+      {
+        Top += Temp;                 /* increase top value */
+      }
+      else                         /* overflow */
+      {
+        Top = 0xFFFE;                /* can't go beyond 0xFFFE */
+      }
+
+      /* auto-ranging */
+      if (Top > 0x7FFF)            /* more than 15 bits */
+      {
+        if (Index < 4)             /* don't exceed upper prescaler limit */
+        {
+          Index++;                 /* increase prescaler */
+          Flag = 3;                /* signal increased prescaler */
+        }
+      }
+    }
+    else if (Test > 0)        /* key press */
+    {
+      Flag = 0;               /* end loop */
+    }
+  }
+
 
   /* clean up */
   TCCR1B = 0;                 /* disable timer */
@@ -473,8 +700,7 @@ void FrequencyCounter(void)
   uint8_t           Old_DDR;            /* old DDR state */
   uint8_t           Index;              /* prescaler table index */
   uint8_t           Bitmask;            /* prescaler bitmask */
-  uint16_t        
-  GateTime;           /* gate time in ms */
+  uint16_t          GateTime;           /* gate time in ms */
   uint16_t          Prescaler;          /* timer prescaler */
   uint16_t          Top;                /* top value for timer */
   uint32_t          Value;
@@ -514,7 +740,7 @@ void FrequencyCounter(void)
 
   /* start values for autoranging (assuming high frequency) */
   GateTime = 1;                    /* gate time 1ms */
-  Index = 0;                       /* prescaler table index */
+  Index = 0;                       /* prescaler table index (prescaler 1/1) */
 
   /* setup Timer0 */
   TCCR0A = 0;                      /* normal mode (count up) */

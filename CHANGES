@@ -6,6 +6,13 @@
 
 ------------------------------------------------------------------------------
 
+v1.15m 2014-09
+- Improved TestKey() to detect the dynamic turning velocity of a optional
+  rotary encoder.
+- Added a squarewave signal generator with variable frequency.
+- Changed MeasureInductance() to return time in ns and adapted processing
+  in MeasureInductor() (thanks to Vlastimil Valouch).
+
 v1.14m 2014-08
 - Changed user interface for rotary encoder.
 - Fixed compiler warning about R_Pin2 in ShowDiode() (thanks to Milan Petko).

@@ -93,6 +93,10 @@
     extern unsigned long RescaleValue(unsigned long Value, int8_t Scale, int8_t NewScale);
   #endif
 
+  #ifdef SW_FREQ_GEN
+    extern void DisplayFullValue(unsigned long Value, uint8_t DecPlaces, unsigned char Unit);
+  #endif
+
   extern void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit);
   extern void DisplaySignedValue(signed long Value, int8_t Exponent, unsigned char Unit);
 
@@ -111,6 +115,9 @@
 
   #ifdef SW_PWM
     extern void PWM_Tool(uint16_t Frequency);
+  #endif
+  #ifdef SW_FREQ_GEN
+    extern void FrequencyGenerator(void);
   #endif
   #ifdef SW_ESR
     extern void ESR_Tool(void);

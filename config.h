@@ -495,6 +495,9 @@
 /* auto-enable extra features for >=32kB Flash */
 #if RES_FLASH >= 32
   #define SW_PWM
+  #ifdef HW_ENCODER
+    #define SW_FREQ_GEN
+  #endif
   #define SW_INDUCTOR
   #define SW_ESR
 #endif

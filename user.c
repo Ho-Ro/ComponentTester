@@ -36,15 +36,6 @@
 #define DIR_LEFT         0b00000010     /* turned to the left */
 
 
-/*
- *  local variables
- */
-
-#ifdef HW_ENCODER
-RotaryEncoder_Type       Enc;           /* rotary encoder */
-#endif
-
-
 
 /* ************************************************************************
  *   values and scales
@@ -181,12 +172,77 @@ unsigned long RescaleValue(unsigned long Value, int8_t Scale, int8_t NewScale)
  * ************************************************************************ */
 
 
+#ifdef SW_FREQ_GEN
+
 /*
- *  display value and unit
+ *  display unsigned value
+ *
+ *  requires:
+ *  - unsigned value
+ *  - decimal places
+ *  - unit character (0 = none)
+ */
+
+void DisplayFullValue(unsigned long Value, uint8_t DecPlaces, unsigned char Unit)
+{
+  uint8_t           n;                  /* counter */
+  uint8_t           Length;             /* string length */
+  uint8_t           Pos = 0;            /* position of dot */
+
+  /* convert value into string */
+  ultoa(Value, OutBuffer, 10);
+  Length = strlen(OutBuffer);
+
+  /* determine position of dot */
+  if (DecPlaces == 0)                   /* no dot needed */
+  {
+    Pos = 100;                          /* disable dot */
+  }
+  else if (Length >= DecPlaces)         /* position within string */
+  {
+    Pos = Length - DecPlaces;           /* position od dot */
+    DecPlaces = 0;                      /* no additional zeros needed */
+  }
+  else                                  /* position outside string */
+  {
+    DecPlaces = DecPlaces - Length;     /* number of zeros after dot */
+  }
+
+  /* leading zero */
+  if (Pos == 0) LCD_Data('0');          /* display: 0 */
+
+  /* display digits */
+  n = 0;
+  while (n < Length)                    /* process string */
+  {
+    if (n == Pos)                       /* at position of dot */
+    {
+      LCD_Data('.');                    /* display: . */
+      while (DecPlaces > 0)             /* fill in more zeros if needed */
+      {
+        LCD_Data('0');                  /* display: 0 */
+        DecPlaces--;
+      }
+    }
+
+    LCD_Data(OutBuffer[n]);             /* display digit */
+    n++;                                /* next digit */
+  }
+
+  /* display unit */
+  if (Unit) LCD_Data(Unit);
+}
+
+#endif
+
+
+
+/*
+ *  display unsigned value and unit
  *  - max. 4 digits excluding "." and unit
  *
  *  requires:
- *  - value
+ *  - unsigned value
  *  - exponent of factor related to base unit (value * 10^x)
  *    e.g: p = 10^-12 -> -12
  *  - unit character (0 = none)
@@ -274,7 +330,7 @@ void DisplayValue(unsigned long Value, int8_t Exponent, unsigned char Unit)
  *  - max. 4 digits excluding sign, "." and unit
  *
  *  requires:
- *  - value
+ *  - signed value
  *  - exponent of factor related to base unit (value * 10^x)
  *    e.g: p = 10^-12 -> -12
  *  - unit character (0 = none)
@@ -390,11 +446,12 @@ uint8_t ReadEncoder(void)
 
 
 /*
- *  detect keypress of test push button
+ *  detect keypress of the test push button and any turn of an optional
+ *  rotary encoder while tracking the turning velocity
  *
  *  requires:
  *  - Timeout in ms 
- *    0 = no timeout, wait for key press
+ *    0 = no timeout, wait for key press or rotary encoder
  *  - Mode:
  *    0 = no cursor
  *    1 = steady cursor
@@ -408,13 +465,16 @@ uint8_t ReadEncoder(void)
  *  - 2 if key was pressed long
  *  - 3 if rotary encoder was turned right
  *  - 4 if rotary encoder was turned left
+ *  The turning velocity is returned by Enc.Velocity.
  */
 
 uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
 {
   uint8_t           Flag = 0;      /* return value */
   uint8_t           Run = 1;       /* loop control */
+  uint8_t           Test;          /* temp. value */
   uint8_t           Counter = 0;   /* time counter */
+  uint8_t           Counter2 = 10; /* time counter #2 */ 
 
 
   /*
@@ -425,6 +485,7 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
   Enc.History = 0;                 /* init control for rotary encoder */
   Enc.Dir = DIR_RIGHT | DIR_LEFT;
   Enc.Pulses = 0;
+  Enc.Velocity = 1;
   #endif
 
   if (Mode > 10)              /* consider operation mode */
@@ -492,9 +553,30 @@ uint8_t TestKey(uint16_t Timeout, uint8_t Mode)
     {
       #ifdef HW_ENCODER
       /* rotary encoder */
-      Flag = ReadEncoder();        /* read rotary encoder */
-      if (Flag)                    /* got user input */
+      if (Flag) Counter2--;        /* decrease counter if we had a turn */
+      Test = ReadEncoder();        /* read rotary encoder */
+      if (Test)                    /* got user input */
       {
+        if (Flag == 0)             /* first turn */
+        {
+          Flag = Test;             /* save direction */
+        }
+        else                       /* second turn */
+        {
+          if (Flag == Test)        /* same direction */
+          {
+            /* make it more dynamic */
+            if (Counter2 > 5) Counter2 = 100;
+            else if (Counter2 > 2) Counter2 = 10;
+
+            Enc.Velocity = Counter2;    /* set velocity */
+            Counter2 = 0;               /* end loop */
+          }
+        }
+      }
+
+      if (Counter2 == 0)           /* timeout for velocity detection */
+      {      
         Flag += 2;                 /* adjust feedback */
         break;                     /* leave loop */
       }
@@ -746,7 +828,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 void MainMenu(void)
 {
   #if RES_FLASH >= 32
-    #define MENU_ITEMS  9
+    #define MENU_ITEMS  10
   #else
     #define MENU_ITEMS  5  
   #endif
@@ -766,40 +848,45 @@ void MainMenu(void)
 
   /* extra items */
   #ifdef SW_PWM
-  MenuItem[Item] = (void *)PWM_str;
+  MenuItem[Item] = (void *)PWM_str;          /* PWM tool */
   MenuID[Item] = 5;
   Item++;
   #endif
+  #ifdef SW_FREQ_GEN
+  MenuItem[Item] = (void *)FreqGen_str;      /* Squarewave Generator */
+  MenuID[Item] = 6;
+  Item++;
+  #endif
   #ifdef HW_ZENER
-  MenuItem[Item] = (void *)Zener_str;
-  MenuID[Item] = 6;  
+  MenuItem[Item] = (void *)Zener_str;        /* Zener tool */
+  MenuID[Item] = 7;  
   Item++;
   #endif
   #ifdef SW_ESR
-  MenuItem[Item] = (void *)ESR_str;
-  MenuID[Item] = 7;
+  MenuItem[Item] = (void *)ESR_str;          /* in-circuit ESR */
+  MenuID[Item] = 8;
   Item++;
   #endif
   #ifdef HW_FREQ_COUNTER
-  MenuItem[Item] = (void *)FreqCounter_str;
-  MenuID[Item] = 8;
+  MenuItem[Item] = (void *)FreqCounter_str;  /* frequency counter */
+  MenuID[Item] = 9;
   Item++;
   #endif
 
   /* standard items */
-  MenuItem[Item] = (void *)Selftest_str;
+  MenuItem[Item] = (void *)Selftest_str;    /* selftest */
   MenuID[Item] = 1;
   Item++;
-  MenuItem[Item] = (void *)Show_str;
+  MenuItem[Item] = (void *)Show_str;        /* show self-adjustment values */
   MenuID[Item] = 4;
   Item++;
-  MenuItem[Item] = (void *)Adjustment_str;
+  MenuItem[Item] = (void *)Adjustment_str;  /* self-adjustment */
   MenuID[Item] = 2;
   Item++;  
-  MenuItem[Item] = (void *)Save_str;
+  MenuItem[Item] = (void *)Save_str;        /* store self-adjustment values */
   MenuID[Item] = 3;
   Item++;
-  MenuItem[Item] = (void *)Exit_str;
+  MenuItem[Item] = (void *)Exit_str;        /* exit menu */
   MenuID[Item] = 0;
 
 
@@ -845,20 +932,26 @@ void MainMenu(void)
       break;
     #endif
 
+    #ifdef SW_FREQ_GEN
+    case 6:              /* squarewave generator */
+      FrequencyGenerator();
+      break;   
+    #endif
+
     #ifdef HW_ZENER
-    case 6:              /* Zener tool */
+    case 7:              /* Zener tool */
       Zener_Tool();
       break;
     #endif
 
     #ifdef SW_ESR
-    case 7:              /* ESR tool */
+    case 8:              /* ESR tool */
       ESR_Tool();
       break;
     #endif
 
     #ifdef HW_FREQ_COUNTER
-    case 8:              /* frequency counter */
+    case 9:              /* frequency counter */
       FrequencyCounter();
       break;
     #endif    
