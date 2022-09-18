@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit: 2021-03-12
+Last edit: 2021-08-01
 
 Content
   - About
@@ -196,8 +196,9 @@ simple frameworks for displays and interface busses were added. I hope the
 code is easy to read and maintain.
 
 You can download the lastest firmware from following sites:
-- https://github.com/Mikrocontroller-net/transistortester/tree/master/Software/Markus
 - https://github.com/madires/Transistortester-Warehouse
+- https://github.com/kubi48/TransistorTester-source/tree/master/Markus
+  (https://github.com/Mikrocontroller-net/transistortester/tree/master/Software/Markus)
 
 
 * Supported Hardware
@@ -512,6 +513,8 @@ assignment defines how the LCD is connected to the PCF8574:
   E           LCD_EN1          PCF8574_P2
   LED         LCD_LED          PCF8574_P3
 
+For a low active backlight please enable LCD_BACKLIGHT_LOW.
+
 
 + ILI9163
 
@@ -535,7 +538,7 @@ for a moment.
 
 + ILI9341/ILI9342
 
-The ILI9341/ILI9342 is driven by 4-line SPI or 8-bit parallel. The pin
+The ILI9341/ILI9342 is driven by 4-line SPI or an 8-bit parallel bus. The pin
 assignment for 4-line SPI is:
 
   display     config-<MCU>.h   default      remark
@@ -583,7 +586,8 @@ and an 8MHz MCU clock. Better use harwdare SPI or the parallel bus.
 
 + ILI9481 (partly untested)
 
-The ILI9481 is driven by 8-bit parallel or 16-bit parallel.
+The ILI9481 is driven by an 8-bit parallel bus, 16-bit parallel bus or
+4-line SPI.
 
 The pin assignment for 8-bit parallel is:
 
@@ -620,20 +624,7 @@ and additionally:
   DB14        LCD_DB14         PC6          LCD_PORT3 pin #6
   DB15        LCD_DB15         PC7          LCD_PORT3 pin #7
 
-Usually you need to rotate the display (LCD_ROTATE) for correct output.
-If neccessary you can also flip X and/or Y.
-
-
-+ ILI9486 (partly untested)
-
-The ILI9486 is driven by 8-bit parallel or 16-bit parallel. And it uses the
-same pin assignment as the ILI9481.
-
-
-+ ILI9488 (partly untested)
-
-The ILI9488 is driven by 8-bit parallel or 16-bit parallel. And it uses the
-same pin assignment as the ILI9481. Additionally, 4-line SPI is supported:
+Pin assignment for 4-line SPI:
 
   display     config-<MCU>.h   default      remark
                                ATmega 644
@@ -647,6 +638,21 @@ same pin assignment as the ILI9481. Additionally, 4-line SPI is supported:
 Because of the high resolution of the display and the RGB666 color schema (3
 bytes per pixel) SPI is quite slow, even for hardware SPI and a 16 MHz MCU
 clock. So I wouldn't recommend to use the SPI interface.
+
+Usually you need to rotate the display (LCD_ROTATE) for correct output.
+If neccessary you can also flip X and/or Y.
+
+
++ ILI9486 (partly untested)
+
+The ILI9486 is driven by an 8-bit parallel bus, 16-bit parallel bus or
+4-line SPI. And it uses the same pin assignment as the ILI9481.
+
+
++ ILI9488 (partly untested)
+
+The ILI9488 is driven by an 8-bit parallel bus, 16-bit parallel bus or
+4-line SPI. And it uses the same pin assignment as the ILI9481.
 
 
 + PCD8544
@@ -752,7 +758,7 @@ neccessary.
 
 + ST7036 (untested)
 
-The ST7036 is driven by a 4 bit parallel interface or 4-wire SPI. The pin
+The ST7036 is driven by a 4-bit parallel interface or 4-wire SPI. The pin
 assignment for the 4 bit parallel interface is:
 
   display     config-<MCU>.h   default      remark
@@ -823,7 +829,7 @@ instead of LCD_ST7735) with the same settings.
 
 + ST7920
 
-The ST7920 can be driven in 4 bit parallel mode or SPI. The pin assignment
+The ST7920 can be driven in 4 bit parallel bus mode or SPI. The pin assignment
 for the 4 bit parallel interface is:
 
   display     config-<MCU>.h   default      remark
@@ -1466,7 +1472,7 @@ Supported protocols and their data fields:
   - JVC
     <address>:<command>
 
-  - Kaseikyo (aka Japanese Code, 48 bit)
+  - Kaseikyo (aka Japanese Code, 48 bits)
     <manufacturer code>:<system>-<product>:<function>
 
   - Matsushita (Panasonic MN6014, C6D6 / 12 bits)
@@ -1878,6 +1884,8 @@ The adjustments steps are:
 Limits:
 - probe resistance   < 1.50 Ohms for two probes in series
 - probe capacitance  < 100 pF
+- IO pin's internal resistance in low mode (RiL)   < 25 Ohms
+- IO pin's internal resistance in high mode (RiH)  < 29 Ohms
 
 Hint: When the resistance values for the probe leads/pins vary too much,
 there could be a contact problem.
@@ -1946,7 +1954,9 @@ E series and the resistor's color code including the color band for tolerance.
 Be aware that colors can differ with the display module and used color
 combinations. If any color is off simply adjust the color value (COLOR_CODE_*)
 in the file colors.h. An Internet search for "RGB565 tool" will list many
-online tools for creating/picking RGB565 color values.
+online tools for creating/picking RGB565 color values. Especially for
+SMD resistors there's an additional output for the EIA-96 code (implies E96
+1%).
 
 
 * Capacitors
@@ -1985,13 +1995,13 @@ based on the MCU clock rate. I'd guess Mr. Fourier is able to explain this.
 Alternatively you can also enable the old ESR measurement method.
 
 Another measurement taken is the self-discharge leakage current for
-capacitors larger than 4.7µF. It gives a hint about the state of an 
+capacitors larger than 4.7 µF. It gives a hint about the state of an 
 electrolytic cap. From my tests the typical value for a good electrolytic
 cap seems to be about:
-  - 10-220µF    1-3µA
-  - 330-470µF   4-5µA
-  - 470-820µF   4-7µA
-  - >1000µF     5-7µA per 1000µF
+  - 10-220 µF    1-3 µA
+  - 330-470 µF   4-5 µA
+  - 470-820 µF   4-7 µA
+  - >1000 µF     5-7 µA per 1000 µF
 
 The optional check for E series norm values is also available for capacitors (
 SW_C_E*), but only in text mode because there are simply too many different
@@ -2035,8 +2045,7 @@ Hints:
 The tester tries to discharge any connected component before and while
 measuring. When it can't discharge the component below a specified threshold
 (CAP_DISCHARGED) it will output an error displaying the probe number and 
-remaining voltage. In case of a battery the displayed voltage isn't the
-battery's voltage.
+remaining voltage.
 
 The discharge function isn't based on a fixed timeout, it adapts itself
 to the discharging rate. That way a battery will be identified faster (about
@@ -2483,6 +2492,12 @@ Probing Commands:
 
 - Instruction guide and files for WinAVR (by indman@EEVblog)
   https://drive.google.com/file/d/1-IJA8uTcsCA_6SYHEuMydjfS2vNgmwdH/view?usp=sharing
+
+- Current k-firmware
+  https://github.com/kubi48/TransistorTester-source
+
+- Current documentation for k-firmware
+  https://github.com/kubi48/TransistorTester-documentation
 
 
 * References

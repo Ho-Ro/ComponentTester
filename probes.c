@@ -2,7 +2,7 @@
  *
  *   probing testpins
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -342,15 +342,19 @@ void DischargeProbes(void)
    *    large caps.
    *  - A very large cap will discharge too slowly and an external voltage
    *    maybe never :)
-   *  - The voltage measured is the voltage across the divider formed by
-   *    the probe resistors. In case of a battery it's not the battery's
-   *    voltage.
+   *  - The voltage measured is the voltage across the probe resistors Rh and
+   *    Rl in parallel referenced to Gnd. At the same time the DUT's other side
+   *    is also connected via its probe resistors to Gnd. In case of a battery
+   *    it's not the battery's voltage. Therefore we measure the unloaded
+   *    voltage later on when we encounter a discharge problem.
    */
 
-  Counter = 1;                          /* reset variables */
-  ID = 2;
-  Flags = 0;
+  /* reset variables */
+  Counter = 1;                          /* enter loop */
+  ID = 2;                               /* probe #3 */
+  Flags = 0;                            /* no probe discharged */
 
+  /* processing loop */
   while (Counter > 0)
   {
     ID++;                               /* next probe */
@@ -388,7 +392,7 @@ void DischargeProbes(void)
     }
     else if (U_c < 800)                 /* extra pull-down */
     {
-      /* it's save now to pull down probe pin directly */
+      /* it's safe now to pull down probe pin directly */
       ADC_DDR |= DATA_read_byte(&Pin_table[ID]);
     }
 
@@ -402,7 +406,14 @@ void DischargeProbes(void)
       Check.Found = COMP_ERROR;         /* report error */
       Check.Type = TYPE_DISCHARGE;      /* discharge problem */
       Check.Probe = ID;                 /* save probe */
-      Check.U = U_c;                    /* save voltage */
+
+      /* measure unloaded voltage */
+      Flags = DATA_read_byte(&Pin_table[ID]);
+      ADC_DDR &= ~Flags;                /* remove direct pull-down */
+      Flags = DATA_read_byte(&Rh_table[ID]) | DATA_read_byte(&Rl_table[ID]);
+      R_DDR &= ~Flags;                  /* disable load resistors */
+      Check.U = ReadU(ID);              /* get and save voltage */
+
       Counter = 0;                      /* end loop */
     }
     else                                /* go for another round */
@@ -555,7 +566,7 @@ uint16_t GetFactor(uint16_t U_in, uint8_t ID)
 
 
 
-#if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE)
+#if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE) || defined (FUNC_EIA96)
 
 /*
  *  get E series norm value(s)
@@ -564,13 +575,14 @@ uint16_t GetFactor(uint16_t U_in, uint8_t ID)
  *    --------------------------------------------------------
  *    Semi.I_value  Semi.C_value   norm value (10-99, 100-999)
  *    Semi.I_scale  Semi.C_scale   multiplicator (10^n)
+ *    [Semi.A       Semi.B         index number (1-)] 
  *  - range 10-99 for E series <= E24
  *    range 100-999 for E series >= E48
  *
  *  requires:
  *  - Value: unsigned value
  *  - Scale: exponent/multiplier (* 10^n)
- *  - E_Series: E24, E96
+ *  - E_Series: E6 - E96
  *  - Tolerance: tolerance (in 0.1%)
  *
  *  returns:
@@ -591,9 +603,13 @@ uint8_t GetENormValue(uint32_t Value, int8_t Scale, uint8_t E_Series, uint8_t To
   int8_t            HighScale;          /* multiplier for higher norm value */
   uint32_t          Value2;             /* normalized value */
   uint32_t          Offset;             /* offset */
+  #ifdef FUNC_EIA96
+  uint8_t           LowIndex = 0;       /* index of lower norm value */
+  uint8_t           HighIndex = 0;      /* index of higher norm value */
+  #endif
 
   /*
-   *  E series implicates maximum tolerance (may be tighter)
+   *  E series implies maximum tolerance (may be tighter)
    *  E series:   E3   E6   E12   E24   E48   E96   E192
    *  tolerance:  40%  20%  10%   5%    2%    1%    0.5%
    *
@@ -692,10 +708,16 @@ uint8_t GetENormValue(uint32_t Value, int8_t Scale, uint8_t E_Series, uint8_t To
     if (Norm < (uint16_t)Value)    /* norm value lower */
     {
       LowVal = Norm;               /* update lower norm value */
+      #ifdef FUNC_EIA96
+      LowIndex = n;                /* update index number */
+      #endif
     }
     else                           /* norm value higher */
     {
       HighVal = Norm;              /* save higher norm value */
+      #ifdef FUNC_EIA96
+      HighIndex = n;               /* save index number */
+      #endif
       break;                       /* end loop */
     }
 
@@ -708,7 +730,16 @@ uint8_t GetENormValue(uint32_t Value, int8_t Scale, uint8_t E_Series, uint8_t To
   {
     /* higher norm value is 1000 (100 and multiplier + 1) */
     HighVal = 1000;
+    #ifdef FUNC_EIA96
+    HighIndex = 0;                 /* reset index number */
+    #endif
   }
+
+  #ifdef FUNC_EIA96
+  /* adjust index number to start at 1 */
+  LowIndex += 1;
+  HighIndex += 1;
+  #endif
 
 
   /*
@@ -732,6 +763,9 @@ uint8_t GetENormValue(uint32_t Value, int8_t Scale, uint8_t E_Series, uint8_t To
     /* save result as first value (misuse Semi) */
     Semi.I_value = LowVal;         /* norm value */
     Semi.I_scale = Scale;          /* multiplier (10^n) */
+    #ifdef FUNC_EIA96
+    Semi.A = LowIndex;             /* index number */
+    #endif
 
     Flag++;                        /* got a match */
   }
@@ -767,12 +801,18 @@ uint8_t GetENormValue(uint32_t Value, int8_t Scale, uint8_t E_Series, uint8_t To
       /* save result as first value (misuse Semi) */
       Semi.I_value = HighVal;      /* norm value */
       Semi.I_scale = HighScale;    /* multiplier (10^n) */
+      #ifdef FUNC_EIA96
+      Semi.A = HighIndex;          /* index number */
+      #endif
     }
     else                           /* second match */
     {
       /* save result as second value (misuse Semi) */
       Semi.C_value = HighVal;      /* norm value */
       Semi.C_scale = HighScale;    /* multiplier (10^n) */
+      #ifdef FUNC_EIA96
+      Semi.B = HighIndex;          /* index number */
+      #endif
     }
 
     Flag++;                        /* got a match */

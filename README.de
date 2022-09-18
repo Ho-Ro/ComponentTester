@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2021-03-12
+Letzte Änderung: 2021-08-01
 
 Inhaltsübersicht:
   - Über den Tester
@@ -197,8 +197,9 @@ u.A. einfache Frameworks für Anzeige und Schnittstellen dazu gekommen. Ich
 hoffe, daß der Quellcode einfach zu lesen und gut verständlich ist.
 
 Du findest die aktuelle Firmware auf folgenden Webseiten:
-- https://github.com/Mikrocontroller-net/transistortester/tree/master/Software/Markus
 - https://github.com/madires/Transistortester-Warehouse
+- https://github.com/kubi48/TransistorTester-source/tree/master/Markus
+  (https://github.com/Mikrocontroller-net/transistortester/tree/master/Software/Markus)
 
 
 * Unterstützte Hardware
@@ -517,6 +518,8 @@ dem PCF8574 verdrahtet ist:
   E           LCD_EN1          PCF8574_P2
   LED         LCD_LED          PCF8574_P3
 
+Für eine low-aktive Hintergrundbeleuchtung bitte LCD_BACKLIGHT_LOW aktivieren.
+
 
 + ILI9163
 
@@ -540,8 +543,8 @@ Anschalten kurz zufällige Pixel zu sehen.
 
 + ILI9341/ILI9342
 
-Der ILI9341/ILI9342 wird mittels 4-Line-SPI oder 8-Bit-Parallel gesteuert. Die
-Pins für 4-Line-SPI sind:
+Der ILI9341/ILI9342 wird mittels 4-Line-SPI oder 8-Bit-Parallelus gesteuert.
+Die Pins für 4-Line-SPI sind:
 
   Modul       config-<MCU>.h   Standard     Hinweis
                                ATmega 328
@@ -553,7 +556,7 @@ Pins für 4-Line-SPI sind:
   SDI         LCD_SDI          PD1          SPI MOSI
   SDO         LCD_SDO          -            nur ILI9341, noch nicht benutzt
 
-Das Pinout für 8-Bit-Parallel ist:
+Das Pinout für den 8-Bit-Parallel-Bus ist:
 
   Modul       config-<MCU>.h   Standard     Hinweis
                                ATmega 2560
@@ -588,9 +591,10 @@ und 8MHz MCU-Takt. Besser Hardware-SPI oder den Parallel-Bus nutzen.
 
 + ILI9481 (teilweise ungetestet)
 
-Der ILI9481 wird per 8-Bit-Parallel oder 16-Bit-Parallel gesteuert.
+Der ILI9481 wird per 8-Bit-Parallel-Bus, 16-Bit-Parallel-Bus oder 4-Line-SPI
+gesteuert.
 
-Das Pinout für 8-Bit-Parallel ist:
+Das Pinout für den 8-Bit-Parallel-Bus ist:
 
   Modul       config-<MCU>.h   Standard     Hinweis
                                ATmega 2560
@@ -612,8 +616,8 @@ Das Pinout für 8-Bit-Parallel ist:
   DB7         LCD_DB7          PL7          LCD_PORT2 Pin #7
 
 
-Die Pin-Belegung für 16-Bit-Parallel ist die gleiche wie bei 8-Bit-Parallel
-plus zusätzlich:
+Die Pin-Belegung für den 16-Bit-Parallel-Bus ist die gleiche wie bei
+8-Bit-Parallel plus zusätzlich:
 
               LCD_PORT3        PORTC
   DB8         LCD_DB8          PC0          LCD_PORT3 Pin #0
@@ -625,21 +629,7 @@ plus zusätzlich:
   DB14        LCD_DB14         PC6          LCD_PORT3 Pin #6
   DB15        LCD_DB15         PC7          LCD_PORT3 Pin #7
 
-Üblicherweise muß die Anzeige für die korrekte Darstellung rotiert werden (
-LCD_ROTATE). Falls nötig, kannst Du die auch X und/oder Y umdrehen. 
-
-
-+ ILI9486 (teilweise ungetestet)
-
-Der ILI9486 wird per 8-Bit-Parallel oder 16-Bit-Parallel gesteuert. Und er
-benutzt die gleiche Pin-Belegung wie der ILI9481.
-
-
-+ ILI9488 (teilweise ungetestet)
-
-Der ILI9488 wird per 8-Bit-Parallel oder 16-Bit-Parallel gesteuert. Und er
-benutzt die gleiche Pin-Belegung wie der ILI9481. Zusätzlich wird 4-Draht-SPI
-unterstützt:
+Pinout für 4-Line-SPI:
 
   Modul       config-<MCU>.h   Standard     Hinweis
                                ATmega 644
@@ -651,8 +641,23 @@ unterstützt:
   SDA         LCD_SDA          PB5          SPI MOSI
 
 Wegen der hohen Auflösung der Anzeige und dem RGB666-Farbschema (3 Bytes pro
-Pixel) ist SPI recht langsam, selbst für Hardware-SPI und einen
-16MHz-MCU-Takt. Daher rate ich von der Nutzung der SPI-Schnittstelle ab.
+Pixel) ist SPI recht langsam, selbst für Hardware-SPI und einem MCU-Takt von
+16 MHz. Daher rate ich von der Nutzung der SPI-Schnittstelle ab.
+
+Üblicherweise muß die Anzeige für die korrekte Darstellung rotiert werden (
+LCD_ROTATE). Falls nötig, kannst Du die auch X und/oder Y umdrehen. 
+
+
++ ILI9486 (teilweise ungetestet)
+
+Der ILI9486 wird per 8-Bit-Parallel-Bus, 16-Bit-Parallel-Bus, oder 4-Line-SPI
+gesteuert. Und er benutzt die gleiche Pin-Belegung wie der ILI9481.
+
+
++ ILI9488 (teilweise ungetestet)
+
+Der ILI9486 wird per 8-Bit-Parallel-Bus, 16-Bit-Parallel-Bus, oder 4-Line-SPI
+gesteuert. Und er benutzt die gleiche Pin-Belegung wie der ILI9481.
 
 
 + PCD8544
@@ -1924,8 +1929,10 @@ Die Schritte des Selbstabgleichs sind:
 - A6 Kapazität der Testpins/kabel (in pF)
 
 Erlaubte Maximalwerte:
-- Widerstand Testpin/Kabel < 1,50 Ohm (zwei in Reihe)
-- Kapazität Testpin/Kabel < 100pF
+- Widerstand Testpin/Kabel  < 1,50 Ohm (zwei in Reihe)
+- Kapazität Testpin/Kabel   < 100 pF
+- Interner Widerstand vom IO-Pin im Low-Modus (RiL)   < 25 Ohm
+- Interner Widerstand vom IO-Pin im High-Modus (RiH)  < 29 Ohm
 
 Hinweis: Wenn der Widerstandswerte der Testpins zu sehr variieren, könnte ein
 Kontaktproblem vorliegen.
@@ -1995,7 +2002,8 @@ Normwertes inklusive Farbband für die Toleranz. Die Farben können je nach
 Displaymodul und Farbkombinationen unterschiedlich ausfallen. Falls eine Farbe
 danebenliegt, einfach den Farbwert (COLOR_CODE_*) in der Datei colors.h
 entsprechend ändern. Eine Internetsuche nach "RGB565 tool" listet viele
-Online-Tools zum Auswählen der RGB565-Farbwerte. 
+Online-Tools zum Auswählen der RGB565-Farbwerte. Speziell für SMD-Widerstände
+gibt es eine zusätzliche Ausgabe des EIA-96-Codes (impliziert E96 1%).
 
 
 * Kondensatoren
@@ -2036,12 +2044,12 @@ als gültig angesehen. Niedrigere Werte sind zu ungenau und könnten durch
 Verschiedenes, wie z.B. anderes Platzieren der Messkabel, verursacht werden.
 
 Eine weitere Messung ist der Selbstentladungsleckstrom für Kodensatoren größer
-als 4,7µF. Der Wert gibt z.B. einen Hinweis auf den Zustand eines Elkos.
+als 4,7 µF. Der Wert gibt z.B. einen Hinweis auf den Zustand eines Elkos.
 Von meinen Tests her scheinen folgende Werte typisch für Elkos zu sein:  
-  - 10-220µF    1-3µA
-  - 330-470µF   4-5µA
-  - 470-820µF   4-7µA
-  - >1000µF     5-7µA pro 1000µF
+  - 10-220 µF    1-3 µA
+  - 330-470 µF   4-5 µA
+  - 470-820 µF   4-7 µA
+  - >1000 µF     5-7 µA pro 1000 µF
 
 Die optionale Prüfung auf E-Normwerte gibt es ebenfalls für Kondensatoren (
 SW_C_E*), aber nur im Text-Modus, da es einfach zu viele unterschiedliche
@@ -2086,8 +2094,7 @@ Hinweise:
 Der Tester versucht vor und während des Messens das angeschlossene Bauteil
 zu entladen. Wenn er das Bauteil nicht auf einen vorgegebenen Nullwert (
 CAP_DISCHARGED) entladen kann, gibt er einen Fehler mit Angabe des Testpins
-und der Restspannung aus. Im Fall einer Battery entspricht die angezeigte
-Spannung nicht der Batteriespannung.
+und der Restspannung aus.
 
 Die Entladefunktion basiert nicht auf einem festen Timeout, sondern paßt
 sich automatisch dem Entladefortschritt an. Auf diese Weise wird eine
@@ -2543,6 +2550,13 @@ Testkommandos:
 
 - Anleitung plus div. Dateien für WinAVR (von indman@EEVblog)
   https://drive.google.com/file/d/1-IJA8uTcsCA_6SYHEuMydjfS2vNgmwdH/view?usp=sharing
+
+- Aktuelle k-Firmware
+  https://github.com/kubi48/TransistorTester-source
+
+- Aktuelle Dokumentation für k-Firmware
+  https://github.com/kubi48/TransistorTester-documentation
+
 
 
 * Quellenverzeichnis

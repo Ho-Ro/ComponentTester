@@ -88,6 +88,7 @@
 /* display settings */
 #define LCD_CHAR_X       16             /* characters per line */
 #define LCD_CHAR_Y       2              /* number of lines */
+//#define LCD_BACKLIGHT_LOW               /* backlight is low active */
 /* HD44780 has an internal 5x7 font */
 #define FONT_HD44780_INT                /* International font (English) */
 //#define FONT_HD44780_WIN1251             /* Cyrillic font (European) */

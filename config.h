@@ -547,6 +547,7 @@
 //#define SW_R_E24_1_CC         /* E24 1% tolerance, color-code */
 //#define SW_R_E96_T            /* E96 1% tolerance, text */
 //#define SW_R_E96_CC           /* E96 1% tolerance, color-code */
+//#define SW_R_E96_EIA96        /* E96 1% tolerance, EIA-96 code */
 
 
 /*
@@ -1658,7 +1659,7 @@
 #endif
 
 /* E96 norm values */
-#if defined (SW_R_E96_T) || defined (SW_R_E96_CC)
+#if defined (SW_R_E96_T) || defined (SW_R_E96_CC) || defined (SW_R_E96_EIA96)
   #define SW_E96
 #endif
 
@@ -1691,6 +1692,17 @@
 #endif
 
 
+/* Show_ENormEIA96(), Display_EIA96() */
+#if defined (SW_R_E96_EIA96)
+  #ifndef FUNC_EIA96
+    #define FUNC_EIA96
+  #endif
+  #ifndef SW_R_EXX
+    #define SW_R_EXX
+  #endif
+#endif
+
+
 /* SmoothLongKeyPress() */
 #if defined (SW_PWM_PLUS) || defined (SW_SERVO) || defined (HW_EVENT_COUNTER) || defined (HW_LC_METER)
   #ifndef FUNC_SMOOTHLONGKEYPRESS
@@ -1706,13 +1718,13 @@
   #endif
 #endif
 
-#if defined (SW_DS18B20) || defined (HW_EVENT_COUNTER) || defined (SW_DHTXX)
+#if defined (SW_DS18B20) || defined (HW_EVENT_COUNTER) || defined (SW_DHTXX) || defined (LC_METER_SHOW_FREQ)
   #ifndef FUNC_DISPLAY_FULLVALUE
     #define FUNC_DISPLAY_FULLVALUE
   #endif
 #endif
 
-#if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE) || defined (LC_METER_SHOW_FREQ)
+#if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE) || defined (FUNC_EIA96)
   #ifndef FUNC_DISPLAY_FULLVALUE
     #define FUNC_DISPLAY_FULLVALUE
   #endif

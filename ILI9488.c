@@ -913,9 +913,9 @@ void RGB565_2_RGB666(uint16_t Color, uint8_t *RGB666)
 
   /* copy converted values */
   *RGB666 = R6;               /* red */
-  RGB666++;                   /* next */
+  RGB666++;                   /* next byte */
   *RGB666 = G6;               /* green */
-  RGB666++;                   /* next */
+  RGB666++;                   /* next byte */
   *RGB666 = B6;               /* blue */
 }
 
@@ -1065,14 +1065,14 @@ void LCD_ClearLine(uint8_t Line)
     {
       /* send background color */
       #if defined (COLORMODE_RGB565)
-      LCD_Data2(COLOR_BACKGROUND);
+      LCD_Data2(COLOR_BACKGROUND);      /* RGB565 */
       #elif defined (COLORMODE_RGB666)
-      LCD_Data(RGB666_BG[0]);      /* R6 */
-      LCD_Data(RGB666_BG[1]);      /* G6 */
-      LCD_Data(RGB666_BG[2]);      /* B6 */
+      LCD_Data(RGB666_BG[0]);           /* R6 */
+      LCD_Data(RGB666_BG[1]);           /* G6 */
+      LCD_Data(RGB666_BG[2]);           /* B6 */
       #endif
 
-      x++;                         /* next column */
+      x++;                              /* next column */
     }
 
     y--;                           /* next page */
@@ -1316,7 +1316,7 @@ void LCD_Char(unsigned char Char)
         {
           /* send foreground/pen color */
           #if defined (COLORMODE_RGB565)
-          LCD_Data2(Offset);            /* foreground color */
+          LCD_Data2(Offset);            /* RGB565 */
           #elif defined (COLORMODE_RGB666)
           LCD_Data(RGB666_FG[0]);       /* R6 */
           LCD_Data(RGB666_FG[1]);       /* G6 */
@@ -1327,7 +1327,7 @@ void LCD_Char(unsigned char Char)
         {
           /* send background color */
           #if defined (COLORMODE_RGB565)
-          LCD_Data2(COLOR_BACKGROUND);  /* background color */
+          LCD_Data2(COLOR_BACKGROUND);  /* RGB565 */
           #elif defined (COLORMODE_RGB666)
           LCD_Data(RGB666_BG[0]);       /* R6 */
           LCD_Data(RGB666_BG[1]);       /* G6 */
@@ -1469,7 +1469,7 @@ void LCD_Symbol(uint8_t ID)
           {
             /* send foreground/pen color */
             #if defined (COLORMODE_RGB565)
-            LCD_Data2(Offset);               /* foreground color */
+            LCD_Data2(Offset);               /* RGB565 */
             #elif defined (COLORMODE_RGB666)
             LCD_Data(RGB666_FG[0]);          /* R6 */
             LCD_Data(RGB666_FG[1]);          /* G6 */
@@ -1480,7 +1480,7 @@ void LCD_Symbol(uint8_t ID)
           {
             /* send background color */
             #if defined (COLORMODE_RGB565)
-            LCD_Data2(COLOR_BACKGROUND);     /* background color */
+            LCD_Data2(COLOR_BACKGROUND);     /* RGB565 */
             #elif defined (COLORMODE_RGB666)
             LCD_Data(RGB666_BG[0]);          /* R6 */
             LCD_Data(RGB666_BG[1]);          /* G6 */
@@ -1561,9 +1561,9 @@ void LCD_Box(uint16_t Color)
 
     while (x > 0)                  /* loop through columns */
     {
-      /* send foreground/pen color */
+      /* send box color */
       #if defined (COLORMODE_RGB565)
-      LCD_Data2(Color);            /* send color code for dot */
+      LCD_Data2(Color);            /* RGB565 */
       #elif defined (COLORMODE_RGB666)
       LCD_Data(RGB666_FG[0]);      /* R6 */
       LCD_Data(RGB666_FG[1]);      /* G6 */

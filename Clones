@@ -13,7 +13,10 @@ Arduino Nano, Uno or Mega 2560
 - Download the Arduino pinout diagram to get the mapping between Arduino and
   ATmega pins.
 - The integrated USB2serial adapter makes serial communication simple
-  (enable SERIAL_HARDWARE and related options).
+  (enable SERIAL_HARDWARE and related options). Don't use the TXD/RXD pins
+  for anything else.
+- If you want to use Arduino's D13 pin remove the LED circuitry which would
+  interfere otherwise.
 - only the essential settings are listed
 
 Hardware options:
@@ -27,7 +30,7 @@ Power management:
 #define BAT_NONE
 
 Measurement settings and offsets:
-#define ADC_LARGE_BUFFER_CAP
+#define ADC_LARGE_BUFFER_CAP            /* 100nF cap at AREF */
 
 ------------------------------------------------------------------------------
 
@@ -401,7 +404,7 @@ MK-328
 - ATmega328, 8MHz clock
 - ST7565 display (bit-bang SPI)
 - external 2.5V voltage reference (TL431)
-- settings provided by brunosso@EEVblog
+- settings provided by brunosso@EEVblog and confirmed by Peeps@EEVblog
 
 Hardware Options:
 #define HW_REF25
@@ -484,10 +487,11 @@ Multifunction Tester TC-1 and family (T7)
 - initial information provided by indman@EEVblog
 
 Hints:
-- Control MCU U4 needs to be replaced with a simple control circuit (TC1-Mod,
-  see source repository for Hardware/Markus/TC1-Mod.kicad.tgz, 5µA standby
+- Control MCU U4 (STC15L104W) needs to be replaced with a simple two-transistor
+  circuit (TC1-Mod, see source repository for TC1-Mod.kicad.tgz, 5µA standby
   current in total) or reprogrammed with a modified firmware (see
-  https://github.com/atar-axis/tc1-u4).
+  https://github.com/atar-axis/tc1-u4). The designator can be also U3 (T7 Plus)
+  or U5 for newer PCBs. 
 - Set extended fuse byte to 0xfd (brown-out detection).
 - If D2 (rectifier diode for Zener test voltage) gets hot replace it with a
   Schottky diode rated for 80V reverse voltage or higher, e.g. SS18.

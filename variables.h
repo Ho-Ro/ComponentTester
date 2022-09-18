@@ -149,7 +149,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.43m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.44m";
 
 
   /* common terms and texts */
@@ -405,8 +405,8 @@
   const uint16_t LargeCap_table[NUM_LARGE_CAP] MEM_TYPE = {23022, 21195, 19629, 18272, 17084, 16036, 15104, 14271, 13520, 12841, 12224, 11660, 11143, 10668, 10229, 9822, 9445, 9093, 8765, 8458, 8170, 7900, 7645, 7405, 7178, 6963, 6760, 6567, 6384, 6209, 6043, 5885, 5733, 5589, 5450, 5318, 5191, 5069, 4952, 4839, 4731, 4627, 4526, 4430, 4336};
 
   /* voltage based factors for small caps (using Rh) */
-  /* voltages in mV:                                       1000 1050 1100 1150 1200 1250 1300 1350 1400 */
-  const uint16_t SmallCap_table[NUM_SMALL_CAP] MEM_TYPE = {954, 903, 856, 814, 775, 740, 707, 676, 648};
+  /* voltages in mV:                                       1000  1050  1100  1150  1200  1250  1300  1350  1400 */
+  const uint16_t SmallCap_table[NUM_SMALL_CAP] MEM_TYPE = { 954,  903,  856,  814,  775,  740,  707,  676,  648};
 //const uint16_t SmallCap_table[NUM_SMALL_CAP] MEM_TYPE = {9535, 9026, 8563, 8141, 7753, 7396, 7066, 6761, 6477}; 
 
   #ifdef SW_PWM_SIMPLE
@@ -460,6 +460,11 @@
     const uint16_t ColorCode_table[NUM_COLOR_CODES] MEM_TYPE = {COLOR_CODE_BLACK, COLOR_CODE_BROWN, COLOR_CODE_RED, COLOR_CODE_ORANGE, COLOR_CODE_YELLOW, COLOR_CODE_GREEN, COLOR_CODE_BLUE, COLOR_CODE_VIOLET, COLOR_CODE_GREY, COLOR_CODE_WHITE};
   #endif
 
+  #ifdef FUNC_EIA96
+    /* EIA-96 multiplier codes                                      0.001 0.01 0.1  1    10   100  1k   10k  100k */
+    const unsigned char EIA96_Mult_table[NUM_EIA96_MULT] MEM_TYPE = {'Z', 'Y', 'X', 'A', 'B', 'C', 'D', 'E', 'F'};
+  #endif
+
 
   /*
    *  tables of register bits for probe settings
@@ -468,16 +473,16 @@
    */
 
   /* register bits for Rl probe resistors based on probe ID */
-  const unsigned char Rl_table[] MEM_TYPE = {(1 << R_RL_1), (1 << R_RL_2), (1 << R_RL_3)};
+  const uint8_t Rl_table[] MEM_TYPE = {(1 << R_RL_1), (1 << R_RL_2), (1 << R_RL_3)};
 
   /* register bits for Rh probe resistors based on probe ID */
-  const unsigned char Rh_table[] MEM_TYPE = {(1 << R_RH_1), (1 << R_RH_2), (1 << R_RH_3)};
+  const uint8_t Rh_table[] MEM_TYPE = {(1 << R_RH_1), (1 << R_RH_2), (1 << R_RH_3)};
 
   /* register bits for ADC port pins based on probe ID */
-  const unsigned char Pin_table[] MEM_TYPE = {(1 << TP1), (1 << TP2), (1 << TP3)};
+  const uint8_t Pin_table[] MEM_TYPE = {(1 << TP1), (1 << TP2), (1 << TP3)};
 
   /* register bits for ADC MUX input channels based on probe ID (ADC0-7 only) */
-  const unsigned char Channel_table[] MEM_TYPE = {TP1, TP2, TP3};
+  const uint8_t Channel_table[] MEM_TYPE = {TP1, TP2, TP3};
 
 
 
@@ -931,6 +936,11 @@
     extern const uint16_t ColorCode_table[];
   #endif
 
+  #ifdef FUNC_EIA96
+    /* EIA-96 multiplier code */
+    extern const unsigned char EIA96_Mult_table[];
+  #endif
+
 
   /*
    *  tables of register bits for probe settings
@@ -938,16 +948,16 @@
    */
 
   /* register bits for Rl probe resistors based on probe ID */
-  extern const unsigned char Rl_table[];
+  extern const uint8_t Rl_table[];
 
   /* register bits for Rh probe resistors based on probe ID */
-  extern const unsigned char Rh_table[];
+  extern const uint8_t Rh_table[];
 
   /* register bits for ADC port pins based on probe ID */
-  extern const unsigned char Pin_table[];
+  extern const uint8_t Pin_table[];
 
   /* register bits for ADC MUX input channels based on probe ID (ADC0-7 only) */
-  extern const unsigned char Channel_table[];
+  extern const uint8_t Channel_table[];
 
 #endif
 

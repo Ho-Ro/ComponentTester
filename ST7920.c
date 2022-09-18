@@ -8,7 +8,7 @@
  *   - interfaces
  *     - 3 line SPI
  *     - 4 bit parallel interface
- *     - 8 bit parallel interface (not suppoprted)
+ *     - 8 bit parallel interface (not supported)
  *
  *   (c) 2017-2021 by Markus Reschke
  *
@@ -501,6 +501,9 @@ void LCD_DotPos(uint8_t x, uint8_t y)
   uint8_t           Cmd_X;    /* command for setting x */
   uint8_t           Cmd_Y;    /* command for setting y */
 
+  /* in case of a low MCU clock */
+  wdt_reset();                /* reset watchdog */
+
   /* take care about address to pixel mapping */
   if (y < 32)          /* top LCD half (0-31) */
   {
@@ -566,7 +569,7 @@ void LCD_CharPos(uint8_t x, uint8_t y)
 
   /*
    *  we don't call LCD_DotPos() here
-   *  - see LCD_DotPos() for explaination
+   *  - see LCD_DotPos() for explanation
    */
 }
 

@@ -6,7 +6,23 @@
 
 ------------------------------------------------------------------------------
 
-v1.43m 2021-?
+v1.44m 2021-08
+- Ausgabe von EIA-96-Codes für Widerstands-E96-Normwerte (SW_R_E96_EIA96,
+  Vorschlag von Chris02@EEVblog).
+- Unterstützung von 4-Draht-SPI in Treibern für ILI9481 und ILI9486 ergänzt.
+- Timeout-Problem bei ST7920-Treiber beseitigt (gemeldet von
+  ralleeiner@mikrocontroller.net).
+- Änderung der Entladefunktion: Bei einem Entladeproblem wird nun die
+  unbelastete Spannung des DUTs gemessen und von der Entlade-Fehlermeldung
+  angezeift, z.B. die unbelastete Spannung einer Batterie.
+- Verdrehtes Diodensymbol für zweite Diode bei Ausgabe von anti-parallelen
+  Dioden korrigiert (gemeldet von horo@EEVblog).
+- Option für low-aktives Backlight im HD44780-Treiber für PCF8574-I2C-Adapter
+  ergänzt (LCD_BACKLIGHT_LOW, Vorschlag von Andreas Deimel).
+- Fehlerhafte Symbole für p-Kanal-MOSFETs in 24x24-Symbol-Bitmaps korrigiert (
+  gemeldet von Peeps@EEVblog).
+
+v1.43m 2021-04
 - R&D-Anzeigentreiber zur Identifizierung von Controllern.
 - Steuersignal LCD_RD ist nun optional für ILI9341, ILI9481, ILI9486 und
   ILI9488.

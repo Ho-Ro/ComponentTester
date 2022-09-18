@@ -6,7 +6,23 @@
 
 ------------------------------------------------------------------------------
 
-v1.43m 2021-?
+v1.44m 2021-08
+- Added output of EIA-96 code for resistor E96 norm values (SW_R_E96_EIA96,
+  suggested by Chris02@EEVblog).
+- Added support for 4-line SPI to ILI9481 and ILI9486 drivers.
+- Fixed timeout issue caused by ST7920 driver (reported by
+  ralleeiner@mikrocontroller.net).
+- Changed the discharge function: in case of a discharge problem the DUT's
+  unloaded voltage is measured and displayed by the discharge error message,
+  e.g. a battery's unloaded voltage.
+- Fixed reversed diode symbol for second diode in output of anti-parallel
+  diodes (reported by horo@EEVblog).
+- Added option for low-active backlight to HD44780 driver for PCF8574 based
+  I2C backpack (LCD_BACKLIGHT_LOW, suggested by Andreas Deimel).
+- Fixed faulty symbols for p-channel MOSFETs in 24x24 symbol bitmaps (reported
+  by Peeps@EEVblog).
+
+v1.43m 2021-04
 - Added R&D display driver for identifying display controllers.
 - LCD_RD control signal is now optional for ILI9341, ILI9481, ILI9486 and
   ILI9488.

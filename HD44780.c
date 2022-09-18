@@ -6,7 +6,7 @@
  *   - 8 bit parallel interface (not supported)
  *   - I2C via PCF8574 based backpack
  *
- *   (c) 2015-2020 by Markus Reschke
+ *   (c) 2015-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -421,8 +421,13 @@ void LCD_BusSetup(void)
    *  - data lines: all 0
    */
 
-  Control = (1 << LCD_LED);
-  PCF8574_Write(Control);
+  #ifdef LCD_BACKLIGHT_LOW
+    Control = 0;                   /* enable backlight (low active) */
+  #else
+    Control = (1 << LCD_LED);      /* enable backlight (high active) */
+  #endif
+
+  PCF8574_Write(Control);          /* update port pins */
 }
 
 
@@ -634,16 +639,22 @@ void LCD_DisplaySetup(void)
 
   /* round #1 */
   MilliSleep(30);                       /* wait 30ms */
-  Bits = (1 << LCD_LED) | (1 << LCD_DB5) | (1 << LCD_DB4);
-  LCD_Write(Bits);
+  #ifdef LCD_BACKLIGHT_LOW
+    /* backlight low active */
+    Bits = (1 << LCD_DB5) | (1 << LCD_DB4);
+  #else
+    /* backlight high active */
+    Bits = (1 << LCD_LED) | (1 << LCD_DB5) | (1 << LCD_DB4);
+  #endif
+  LCD_Write(Bits);                      /* send cmd */
 
   /* round #2 */
   MilliSleep(5);                        /* wait 5ms */
-  LCD_Write(Bits);
+  LCD_Write(Bits);                      /* send again */
 
   /* round #3 */
   MilliSleep(1);                        /* wait 1ms */
-  LCD_Write(Bits);
+  LCD_Write(Bits);                      /* send again */
 
 
   /*
@@ -653,8 +664,14 @@ void LCD_DisplaySetup(void)
    */
 
   MilliSleep(1);                        /* wait 1ms */
-  Bits = (1 << LCD_LED) | (1 << LCD_DB5);
-  LCD_Write(Bits);
+  #ifdef LCD_BACKLIGHT_LOW
+    /* backlight low active */
+    Bits = (1 << LCD_DB5);
+  #else
+    /* backlight high active */
+    Bits = (1 << LCD_LED) | (1 << LCD_DB5);
+  #endif
+  LCD_Write(Bits);                      /* send cmd */
   MilliSleep(1);                        /* wait 1ms */
 }
 

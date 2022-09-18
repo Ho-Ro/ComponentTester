@@ -170,6 +170,7 @@
 #define NUM_E24              24         /* E24 norm values */
 #define NUM_E96              96         /* E24 norm values */
 #define NUM_COLOR_CODES      10         /* color codes */
+#define NUM_EIA96_MULT        9         /* EIA-96 multiplier codes */
 
 /* IR code buffer size */
 #define IR_CODE_BYTES         6         /* 6 bytes = 48 bit */

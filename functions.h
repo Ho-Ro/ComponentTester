@@ -264,6 +264,10 @@
   extern void Display_EValue(uint16_t Value, int8_t Scale, unsigned char Unit);
   #endif
 
+  #ifdef FUNC_EIA96
+  extern void Display_EIA96(uint8_t Index, int8_t Scale);
+  #endif
+
   #ifdef SW_SYMBOLS
   extern void LCD_FancySemiPinout(uint8_t Line);
   #endif
@@ -582,7 +586,7 @@
   extern void PullProbe(uint8_t Probe, uint8_t Mode);
 
   extern uint16_t GetFactor(uint16_t U_in, uint8_t ID);
-  #if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE)
+  #if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE) || defined (FUNC_EIA96)
   extern uint8_t GetENormValue(uint32_t Value, int8_t Scale, uint8_t E_Series, uint8_t Tolerance);
   #endif
 

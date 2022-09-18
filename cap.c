@@ -234,9 +234,9 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
      *  mitigate runaway of cap's charge/voltage
      */
 
-    if (U_4 < 50)
+    if (U_4 < 50)             /* voltage too low for last negative pulse */
     {
-      /* charge cap a little bit more (negative pulse) */
+      /* charge cap a little bit more: negative pulse */
 
       /* set probes: GND -- probe-2 / probe-1 -- Rl -- Vcc */
       ADC_DDR = Probes.Pin_2;      /* pull down probe-2 directly */
@@ -247,9 +247,9 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
       R_PORT = 0;                  /* reset probe resistors */
     }
 
-    if (U_2 < 50)
+    if (U_2 < 50)             /* voltage too low for last positive pulse */
     {
-      /* charge cap a little bit more (positive pulse) */
+      /* charge cap a little bit more: positive pulse */
 
       /* set probes: GND -- probe-1 / probe-2 -- Rl -- Vcc */
       ADC_DDR = Probes.Pin_1;      /* pull down probe-1 directly */

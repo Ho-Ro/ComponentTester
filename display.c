@@ -838,6 +838,7 @@ void Display_SignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
  *  requires:
  *  - Value: unsigned value (2 or 3 digits)
  *  - Scale: exponent/multiplier (10^n with n >= -12)
+ *  - Unit: unit character
  */
 
 void Display_EValue(uint16_t Value, int8_t Scale, unsigned char Unit)
@@ -872,6 +873,59 @@ void Display_EValue(uint16_t Value, int8_t Scale, unsigned char Unit)
   #endif
 
   Display_Value(Value, Scale, Unit);       /* display value */
+}
+
+#endif
+
+
+
+#ifdef FUNC_EIA96
+
+/*
+ *  display EIA-96 code
+ *
+ *  requires:
+ *  - Index: index number of norm value (1-96)
+ *  - Scale: exponent/multiplier (10^n with n >= -12)
+ */
+
+void Display_EIA96(uint8_t Index, int8_t Scale)
+{
+  uint8_t           n;             /* counter */
+  unsigned char     MultCode;      /* multiplier code */
+
+  /*
+   *  value code (index number of value)
+   *  - 2 digits
+   *  - prepend 0 for single digit number 
+   */
+
+  if (Index < 10)                  /* single digit */
+  {
+    Display_Char('0');             /* display: 0 */
+  }
+  Display_FullValue(Index, 0, 0);  /* display index number */
+
+
+  /*
+   *  multiplier code
+   *  - 0.001  0.01  0.1  1  10   100  1k  10k  100k
+   *    Z      Y/R   X/S  A  B/H  C    D   E    F
+   */
+
+  n = 0;                           /* reset index counter */
+
+  /* get table index for multiplier */
+  while (Scale > -3)               /* 10^-3 / 0.001 */
+  {
+    Scale--;                       /* decrease multiplier */
+    n++;                           /* increase index */
+  }
+
+  /* read multiplier code */
+  MultCode = DATA_read_byte(&EIA96_Mult_table[n]);
+
+  Display_Char(MultCode);          /* display multiplier code */
 }
 
 #endif

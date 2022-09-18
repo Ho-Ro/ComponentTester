@@ -231,7 +231,7 @@ void Show_ENormValues(uint32_t Value, int8_t Scale, uint8_t ESeries, uint8_t Tol
 #ifdef FUNC_COLORCODE
 
 /*
- *  show E series norm value color-codes
+ *  show E series norm values as color-code
  *
  *  requires:
  *  - Value: unsigned value
@@ -307,7 +307,10 @@ void Show_ENormCodes(uint32_t Value, int8_t Scale, uint8_t ESeries, uint8_t Tole
       Display_ColorCode(Semi.C_value, Semi.C_scale, TolBand);
     }
   }
-
+  else                        /* no norm value */
+  {
+    Display_Minus();          /* display: - */
+  }
 
   #if 0
   /*
@@ -341,6 +344,74 @@ void Show_ENormCodes(uint32_t Value, int8_t Scale, uint8_t ESeries, uint8_t Tole
 
   TestKey(0, CURSOR_BLINK);
   #endif
+}
+
+#endif
+
+
+
+#ifdef FUNC_EIA96
+
+/*
+ *  show E series norm values as EIA-96 code
+ *  - implies E96 1%
+ *
+ *  requires:
+ *  - Value: unsigned value
+ *  - Scale: exponent/multiplier (* 10^n)
+ */
+
+void Show_ENormEIA96(uint32_t Value, int8_t Scale)
+{
+  uint8_t           n;             /* number of norm values (1 or 2) */
+
+  /*
+   *  get E series norm values
+   *  - 1st: Semi.I_value, Semi.I_scale, Semi.A (index number)
+   *  - 2nd: Semi.C_value, Semi.C_scale, Semi.B (index number)
+   */
+
+  n = GetENormValue(Value, Scale, E96, 10);
+
+  /*
+   *  show E series and tolerance
+   */
+
+  Display_NextLine();                   /* move to next line */
+
+  /* display E series (E96) */
+  Display_Char('E');                    /* display: E */
+  Display_FullValue(96, 0, 0);          /* display E series */
+
+  Display_Space();                      /* display: " " */
+
+  /* display tolerance (1%) */
+  Display_FullValue(1, 0, '%');         /* display tolerance */
+
+  Display_Space();                      /* display: " " */
+
+
+  /*
+   *  show EIA-96 codes of norm values
+   */
+
+  if (n)                      /* got norm value(s) */
+  {
+    /* display EIA-96 code of first norm value */
+    Display_EIA96(Semi.A, Semi.I_scale);
+
+    if (n == 2)               /* got two norm values */
+    {
+      Display_Space();                  /* display: " " */
+
+      /* display EIA-96 code of second norm value */
+      Display_EIA96(Semi.B, Semi.C_scale);
+    }
+  }
+  else                        /* no norm value */
+  {
+    Display_Minus();          /* display: - */
+  }
 }
 
 #endif
@@ -599,6 +670,11 @@ void Show_Resistor(void)
       /* show E series norm value color-codes for E96 1% */
       Show_ENormCodes(R1->Value, R1->Scale, E96, 10, COLOR_CODE_BROWN);
       #endif
+
+      #ifdef SW_R_E96_EIA96
+      /* show E series norm value EIA-96 codes for E96 1% */
+      Show_ENormEIA96(R1->Value, R1->Scale);
+      #endif
     }
     #endif
   }
@@ -633,6 +709,11 @@ void Show_Resistor(void)
     #ifdef SW_R_E96_CC
     /* show E series norm value color-codes for E96 1% */
     Show_ENormCodes(R1->Value, R1->Scale, E96, 10, COLOR_CODE_BROWN);
+    #endif
+
+    #ifdef SW_R_E96_EIA96
+    /* show E series norm value EIA-96 codes for E96 1% */
+    Show_ENormEIA96(R1->Value, R1->Scale);
     #endif
   }
   #endif
@@ -790,7 +871,7 @@ void Show_Diode(void)
   Diode_Type        *D2 = NULL;    /* pointer to diode #2 */
   uint8_t           CapFlag = 1;   /* flag for capacitance output */
   uint8_t           A = 5;         /* ID of common anode */
-  uint8_t           C = 5;         /* ID of common cothode */
+  uint8_t           C = 5;         /* ID of common cathode */
   uint8_t           R_Pin1 = 5;    /* B_E resistor's pin #1 */
   uint8_t           R_Pin2 = 5;    /* B_E resistor's pin #2 */
   uint8_t           n;             /* counter */
@@ -812,7 +893,7 @@ void Show_Diode(void)
   }
   else if (Check.Diodes == 2)      /* two diodes */
   {
-    D2 = D1;
+    D2 = D1;                       /* copy pointer to first diode */
     D2++;                          /* pointer to second diode */
 
     if (D1->A == D2->A)            /* common anode */
@@ -895,13 +976,13 @@ void Show_Diode(void)
    */
 
   /* first diode */
-  if (A < 3)        /* common anode: show C first */
+  if (A < 3)        /* common anode or anti-parallel: show C first */
   {
     Display_ProbeNumber(D1->C);         /* show C */
     Display_EEString(Diode_CA_str);     /* show -|<- */
     Display_ProbeNumber(A);             /* show A */
   }
-  else              /* common cathode: show A first */
+  else              /* common cathode or in-series: show A first */
   {
     Display_ProbeNumber(D1->A);         /* show A */
     Display_EEString(Diode_AC_str);     /* show ->|- */
@@ -910,19 +991,19 @@ void Show_Diode(void)
 
   if (D2)           /* second diode */
   {
-    if (A == C)          /* anti parallel */
+    if (A == C)          /* anti-parallel */
     {
-      n = D2->A;              /* get anode */
+      n = D2->A;                        /* get anode */
       Display_EEString(Diode_CA_str);   /* show -|<- */
     }
     else if (A <= 3)     /* common anode or in-series */
     {
-      n = D2->C;              /* get cathode */
+      n = D2->C;                        /* get cathode */
       Display_EEString(Diode_AC_str);   /* show ->|- */
     }
     else                 /* common cathode */
     {
-      n = D2->A;              /* get anode */
+      n = D2->A;                        /* get anode */
       Display_EEString(Diode_CA_str);   /* show -|<- */
     }
 
