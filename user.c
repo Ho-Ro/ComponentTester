@@ -211,8 +211,7 @@ int32_t RoundSignedValue(int32_t Value, uint8_t Scale, uint8_t RoundScale)
  * ************************************************************************ */
 
 
-#ifdef UI_FAHRENHEIT
-  #if defined (SW_DS18B20) || defined (SW_DHTXX)
+#ifdef FUNC_CELSIUS2FAHRENHEIT
 
 /*
  *  convert temperature value from Celcius to Fahrenheit
@@ -249,7 +248,6 @@ int32_t Celsius2Fahrenheit(int32_t Value, uint8_t Scale)
   return Value;
 }
 
-  #endif
 #endif
 
 
@@ -706,7 +704,7 @@ uint8_t ReadTouchScreen(uint8_t Mode)
  *    via Cfg.OP_Control) 
  *
  *  requires:
- *  - Timeout in ms 
+ *  - Timeout in ms (0 - 65535)
  *    0 = no timeout, wait for key press or any other feedback
  *  - Mode (bitfield):
  *    CURSOR_NONE      no cursor
@@ -1523,7 +1521,12 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
 void AdjustmentMenu(uint8_t Mode)
 {
-  #define MENU_ITEMS  3       /* number of menu items */
+  /* local constants */
+  #ifdef UI_THREE_PROFILES
+    #define MENU_ITEMS  4     /* number of menu items */
+  #else
+    #define MENU_ITEMS  3     /* number of menu items */
+  #endif
 
   uint8_t           n = 0;                   /* item index number / counter */
   void              *Item_Str[MENU_ITEMS];   /* menu item strings */
@@ -1544,6 +1547,13 @@ void AdjustmentMenu(uint8_t Mode)
   Item_Str[n] = (void *)Profile2_str;
   Item_ID[n] = 2;
   n++;
+
+  #ifdef UI_THREE_PROFILES
+  /* profile #3 */
+  Item_Str[n] = (void *)Profile3_str;
+  Item_ID[n] = 3;
+  n++;
+  #endif
 
   #ifdef UI_CHOOSE_PROFILE
   if (Mode & STORAGE_SHORT)             /* short menu */
@@ -1593,8 +1603,10 @@ void AdjustmentMenu(uint8_t Mode)
     ManageAdjustmentStorage(Mode, ID);
   }
 
+  /* clean up local constants */
   #undef MENU_ITEMS
 }
+
 
 
 /*
@@ -1633,6 +1645,11 @@ void AdjustmentMenu(uint8_t Mode)
 #define MENUITEM_MONITOR_RCL      28
 #define MENUITEM_MONITOR_RL       29
 #define MENUITEM_LC_METER         30
+#define MENUITEM_RING_TESTER      31
+#define MENUITEM_LOGIC_PROBE      32
+#define MENUITEM_CONTINUITY       33
+#define MENUITEM_MAX6675          34
+#define MENUITEM_MAX31855         35
 
 
 /*
@@ -1800,9 +1817,40 @@ uint8_t PresentMainMenu(void)
     #define ITEM_25      0
   #endif
 
+  #ifdef HW_RING_TESTER
+    #define ITEM_26      1
+  #else
+    #define ITEM_26      0
+  #endif
+
+  #ifdef HW_LOGIC_PROBE
+    #define ITEM_27      1
+  #else
+    #define ITEM_27      0
+  #endif
+
+  #ifdef SW_CONTINUITY_CHECK
+    #define ITEM_28      1
+  #else
+    #define ITEM_28      0
+  #endif
+
+  #ifdef HW_MAX6675
+    #define ITEM_29      1
+  #else
+    #define ITEM_29      0
+  #endif
+
+  #ifdef HW_MAX31855
+    #define ITEM_30      1
+  #else
+    #define ITEM_30      0
+  #endif
+
+
   #define ITEMS_1        (ITEM_01 + ITEM_02 + ITEM_03 + ITEM_04 + ITEM_05 + ITEM_06 + ITEM_07 + ITEM_08 + ITEM_09 + ITEM_10)
   #define ITEMS_2        (ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20)
-  #define ITEMS_3        (ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24 + ITEM_25)
+  #define ITEMS_3        (ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24 + ITEM_25 + ITEM_26 + ITEM_27 + ITEM_28 + ITEM_29 + ITEM_30)
 
   /* number of menu items */
   #define MENU_ITEMS     (ITEMS_0 + ITEMS_1 + ITEMS_2 + ITEMS_3)
@@ -1845,6 +1893,20 @@ uint8_t PresentMainMenu(void)
   /* Zener tool */
   Item_Str[n] = (void *)Zener_str;
   Item_ID[n] = MENUITEM_ZENER;  
+  n++;
+  #endif
+
+  #ifdef HW_LOGIC_PROBE
+  /* logic probe */
+  Item_Str[n] = (void *)LogicProbe_str;
+  Item_ID[n] = MENUITEM_LOGIC_PROBE;  
+  n++;
+  #endif
+
+  #ifdef SW_CONTINUITY_CHECK
+  /* continuity check */
+  Item_Str[n] = (void *)ContinuityCheck_str;
+  Item_ID[n] = MENUITEM_CONTINUITY;  
   n++;
   #endif
 
@@ -1911,6 +1973,13 @@ uint8_t PresentMainMenu(void)
   n++;
   #endif
 
+  #ifdef HW_RING_TESTER
+  /* ring tester */
+  Item_Str[n] = (void *)RingTester_str;
+  Item_ID[n] = MENUITEM_RING_TESTER;
+  n++;
+  #endif
+
   #ifdef HW_EVENT_COUNTER
   /* event counter */
   Item_Str[n] = (void *)EventCounter_str;
@@ -1974,6 +2043,21 @@ uint8_t PresentMainMenu(void)
   n++;
   #endif
 
+  #ifdef HW_MAX6675
+  /* MAX6675 themocouple converter */
+  Item_Str[n] = (void *)MAX6675_str;
+  Item_ID[n] = MENUITEM_MAX6675;
+  n++;
+  #endif
+
+  #ifdef HW_MAX31855
+  /* MAX31855 themocouple converter */
+  Item_Str[n] = (void *)MAX31855_str;
+  Item_ID[n] = MENUITEM_MAX31855;
+  n++;
+  #endif
+
+
   /*
    *  tester management and settings
    */
@@ -2034,7 +2118,7 @@ uint8_t PresentMainMenu(void)
   /* exit menu */
   Item_Str[n] = (void *)Exit_str;
   Item_ID[n] = MENUITEM_EXIT;
-  n++;                                  /* add 1 for item #0 */
+  n++;
 
 
   /*
@@ -2084,6 +2168,11 @@ uint8_t PresentMainMenu(void)
   #undef ITEM_23
   #undef ITEM_24
   #undef ITEM_25
+  #undef ITEM_26
+  #undef ITEM_27
+  #undef ITEM_28
+  #undef ITEM_29
+  #undef ITEM_30
 
   return(ID);                 /* return item ID */
 }
@@ -2092,9 +2181,14 @@ uint8_t PresentMainMenu(void)
 
 /*
  *  main menu
+ *
+ *  returns:
+ *  - 0 on error of a menu item
+ *  - 1 on success of a menu item 
+ *  - KEY_EXIT on "exit menu"
  */
 
-void MainMenu(void)
+uint8_t MainMenu(void)
 {
   uint8_t           ID;                 /* ID of selected item */
   uint8_t           Flag = 1;           /* feedback flag */
@@ -2104,11 +2198,16 @@ void MainMenu(void)
 
   ID = PresentMainMenu();     /* create menu and get user feedback */
 
-  /* run selected item */
+  /*
+   *  run selected item
+   */
+
   switch (ID)
   {
     /* exit menu */
-    /* case MENUITEM_EXIT: */
+    case MENUITEM_EXIT:
+      Flag = KEY_EXIT;        /* signal "exit" */
+      break;
 
     /* self-test */
     case MENUITEM_SELFTEST:
@@ -2326,14 +2425,76 @@ void MainMenu(void)
       Flag = LC_Meter();
       break;
     #endif
+
+    #ifdef HW_RING_TESTER
+    /* ring tester */
+    case MENUITEM_RING_TESTER:
+      RingTester();
+      break;
+    #endif
+
+    #ifdef HW_LOGIC_PROBE
+    /* logic probe */
+    case MENUITEM_LOGIC_PROBE:
+      LogicProbe();
+      break;
+    #endif
+
+    #ifdef SW_CONTINUITY_CHECK
+    /* continuity check */
+    case MENUITEM_CONTINUITY:
+      ContinuityCheck();
+      break;
+    #endif
+
+    #ifdef HW_MAX6675
+    /* MAX6675 themocouple converter */
+    case MENUITEM_MAX6675:
+      MAX6675_Tool();
+      break;
+    #endif
+
+    #ifdef HW_MAX31855
+    /* MAX31855 themocouple converter */
+    case MENUITEM_MAX31855:
+      MAX31855_Tool();
+      break;
+    #endif
   }
 
-  /* display result */
-  LCD_Clear();                     /* clear display */
-  if (Flag == 0)
-    Display_EEString(Error_str);   /* display: error! */
-  else
-    Display_EEString(Done_str);    /* display: done! */
+
+  /*
+   *  display result
+   *  - to give feedback and smooth UI
+   */
+
+  #ifdef UI_MAINMENU_AUTOEXIT
+    /* returns to probing cycle in main() */
+    LCD_Clear();                        /* clear display */
+    if (Flag == 0)                      /* on error */
+    {
+      Display_EEString(Error_str);      /* display: error! */
+    }
+    else                                /* on success or exit */
+    {
+      Display_EEString(Done_str);       /* display: done! */
+    }
+  #else
+    /* will be called again by main() until explicit exit */
+    if (Flag == 0)                      /* on error */
+    {
+      LCD_Clear();                      /* clear display */
+      Display_EEString(Error_str);      /* display: error! */
+      WaitKey();                        /* wait for any key */
+    }
+    else if (Flag == KEY_EXIT)          /* on exit */
+    {
+      LCD_Clear();                      /* clear display */
+      Display_EEString(Done_str);       /* display: done! */
+    }
+  #endif
+
+  return Flag;
 }
 
 
@@ -2372,6 +2533,11 @@ void MainMenu(void)
 #undef MENUITEM_MONITOR_L
 #undef MENUITEM_MONITOR_RCL
 #undef MENUITEM_LC_METER
+#undef MENUITEM_RING_TESTER
+#undef MENUITEM_LOGIC_PROBE
+#undef MENUITEM_CONTINUITY
+#undef MENUITEM_MAX6675
+#undef MENUITEM_MAX31855
 
 
 

@@ -184,12 +184,25 @@
  *  - see COUNTER_CTRL_PORT in config-<MCU>.h for port pins
  *  - requires a display with more than 2 text lines
  *  - uncomment to enable
- *  - select the circuit's prescaler setting: either 16:1 or 32:1 
+ *  - select the circuit's prescaler setting: either 16:1 or 32:1
  */
 
 //#define HW_FREQ_COUNTER_EXT
 #define FREQ_COUNTER_PRESCALER     16   /* 16:1 */
 //#define FREQ_COUNTER_PRESCALER     32   /* 32:1 */
+
+
+/*
+ *  ring tester (LOPT/FBT tester)
+ *  - uses T0 directly as counter input
+ *  - uncomment to enable
+ *  - select the pulse output: either dedicated pin or probes
+ *  - see RINGTESTER_PORT in config-<MCU>.h for dedicated pin 
+ */
+
+//#define HW_RING_TESTER
+#define RING_TESTER_PIN                 /* dedicated pin */
+//#define RING_TESTER_PROBES              /* probes */
 
 
 /*
@@ -271,6 +284,51 @@
  */
 
 //#define HW_CAP_RELAY
+
+
+/*
+ *  Logic Probe
+ *  - see TP_LOGIC in config_<MCU>.h for dedicated port pin
+ *  - uses voltage divider (standard: 4:1, R1=10k, R2=3.3k, up to 20V)
+ *  - LOGIC_PROBE_R1: top resistor in Ohms
+ *  - LOGIC_PROBE_R2: bottom resistor in Ohms
+ *  - requires additional keys (e.g. rotary encoder) and a display
+ *    with more than 4 lines
+ *  - uncomment to enable and adjust resistor values
+ */
+
+//#define HW_LOGIC_PROBE
+#define LOGIC_PROBE_R1        10000
+#define LOGIC_PROBE_R2        3300
+
+
+/*
+ *  Buzzer
+ *  - see BUZZER_CTRL in config_<MCU>.h for port pin
+ *  - uncomment to enable
+ */
+
+//#define HW_BUZZER
+
+
+/*
+ *  MAX6675 thermocouple converter
+ *  - see MAX6675_CS in config_<MCU>.h for dedicated port pin
+ *  - requires SPI bus and SPI read support
+ *  - uncomment to enable
+ */
+
+//#define HW_MAX6675
+
+
+/*
+ *  MAX31855 thermocouple converter
+ *  - see MAX31855_CS in config_<MCU>.h for dedicated port pin
+ *  - requires SPI bus and SPI read support
+ *  - uncomment to enable
+ */
+
+//#define HW_MAX31855
 
 
 
@@ -570,6 +628,15 @@
 //#define SW_L_E12_T            /* E12 10% tolerance, text */
 
 
+/*
+ *  continuity check
+ *  - requires buzzer (HW_BUZZER)
+ *  - uncomment to enable
+ */
+
+//#define SW_CONTINUITY_CHECK
+
+
 
 /* ************************************************************************
  *   workarounds for some testers
@@ -706,6 +773,14 @@
 
 
 /*
+ *  Add a third profile for adjustment values.
+ *  - uncomment to enable
+ */
+
+//#define UI_THREE_PROFILES
+
+
+/*
  *  Output components found also via TTL serial interface.
  *  - uncomment to enable
  *  - also enable SERIAL_BITBANG or SERIAL_HARDWARE (see section 'Busses')
@@ -794,6 +869,14 @@
  */
 
 //#define UI_COLORED_CURSOR
+
+
+/*
+ *  automatically exit main menu after running function/tool
+ *  - uncomment to enable
+ */
+
+#define UI_MAINMENU_AUTOEXIT
 
 
 /*
@@ -1390,6 +1473,15 @@
 #endif
 
 
+/* options which require a buzzer */
+#if ! defined (HW_BUZZER)
+  /* continuity check */
+  #ifdef SW_CONTINUITY_CHECK
+    #undef SW_CONTINUITY_CHECK
+  #endif
+#endif
+
+
 /* options which require a MCU clock >= 8MHz */
 #if CPU_FREQ < 8000000
 
@@ -1406,11 +1498,12 @@
 #endif
 
 
-/* SPI */
+/* SPI: either bit-bang or hardware */
 #if defined (SPI_BITBANG) && defined (SPI_HARDWARE)
   #error <<< Select either bitbang or hardware SPI! >>>
 #endif
 
+/* SPI: common switch */
 #if defined (SPI_BITBANG) || defined (SPI_HARDWARE)
   #define HW_SPI
 #endif
@@ -1422,22 +1515,44 @@
   #endif
 #endif
 
+/* options which require SPI */
+#ifndef HW_SPI
+  /* SPI read support */
+  #ifdef SPI_RW
+    #undef SPI_RW
+  #endif
+#endif
 
-/* I2C */
+/* options which require SPI read support */
+#ifndef SPI_RW
+  /* MAX6675 */
+  #ifdef HW_MAX6675
+    #undef HW_MAX6675
+  #endif
+  /* MAX31855 */
+  #ifdef HW_MAX31855
+    #undef HW_MAX31855
+  #endif
+#endif
+
+
+/* I2C: either bit-bang or hardware */
 #if defined (I2C_BITBANG) && defined (I2C_HARDWARE)
   #error <<< Select either bitbang or hardware I2C! >>>
 #endif
 
+/* I2C: common switch */
 #if defined (I2C_BITBANG) || defined (I2C_HARDWARE)
   #define HW_I2C
 #endif
 
 
-/* TTL serial */
+/* TTL serial: either bit-bang or hardware */
 #if defined (SERIAL_BITBANG) && defined (SERIAL_HARDWARE)
   #error <<< Select either bitbang or hardware serial interface! >>>
 #endif
 
+/* TTL serial: common switch */
 #if defined (SERIAL_BITBANG) || defined (SERIAL_HARDWARE)
   #define HW_SERIAL
 #endif
@@ -1585,6 +1700,19 @@
 #endif
 
 
+/* ring tester */
+#if defined (HW_RING_TESTER)
+  /* requires pulse output */
+  #if ! defined (RING_TESTER_PIN) && ! defined (RING_TESTER_PROBES)
+    #error <<< Select pulse output for ring tester! >>>
+  #endif
+  /* prefer dedicated pin */
+  #if defined (RING_TESTER_PIN) && defined (RING_TESTER_PROBES)
+    #undef RING_TESTER_PROBES
+  #endif
+#endif
+
+
 /* IR detector/decoder */
 #if defined (SW_IR_RECEIVER) && defined (HW_IR_RECEIVER)
   #error <<< Select either probes or dedicated IO pin for IR detector! >>>
@@ -1609,10 +1737,10 @@
 
 /* read functions for display require bus with read support enabled */
 #ifdef LCD_READ
-  #if defined(LCD_SPI) && ! defined(SPI_RW)
+  #if defined (LCD_SPI) && ! defined (SPI_RW)
     #undef LCD_READ
   #endif
-  #if defined(LCD_I2C) && ! defined(I2C_RW)
+  #if defined (LCD_I2C) && ! defined (I2C_RW)
     #undef LCD_READ
   #endif
   /* can't check parallel busses */
@@ -1641,6 +1769,32 @@
 /* ************************************************************************
  *   simplify ifdefs
  * ************************************************************************ */
+
+
+/* ProbePinout() */
+#if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (SW_SQUAREWAVE) || defined (SW_SERVO)
+  #ifndef FUNC_PROBE_PINOUT
+    #define FUNC_PROBE_PINOUT
+  #endif
+#endif
+
+#if defined (SW_ESR_TOOL) || defined (SW_CONTINUITY_CHECK)
+  #ifndef FUNC_PROBE_PINOUT
+    #define FUNC_PROBE_PINOUT
+  #endif
+#endif
+
+#if defined (SW_MONITOR_R) || defined (SW_MONITOR_C) || defined (SW_MONITOR_L) || defined(SW_MONITOR_RCL) || defined(SW_MONITOR_RL)
+  #ifndef FUNC_PROBE_PINOUT
+    #define FUNC_PROBE_PINOUT
+  #endif
+#endif
+
+#if defined (HW_RING_TESTER) && defined (RING_TESTER_PROBES)
+  #ifndef FUNC_PROBE_PINOUT
+    #define FUNC_PROBE_PINOUT
+  #endif
+#endif
 
 
 /* E6 norm values */
@@ -1718,7 +1872,7 @@
   #endif
 #endif
 
-#if defined (SW_DS18B20) || defined (HW_EVENT_COUNTER) || defined (SW_DHTXX) || defined (LC_METER_SHOW_FREQ)
+#if defined (HW_EVENT_COUNTER) || defined (SW_DHTXX) || defined (LC_METER_SHOW_FREQ) || defined (HW_MAX6675)
   #ifndef FUNC_DISPLAY_FULLVALUE
     #define FUNC_DISPLAY_FULLVALUE
   #endif
@@ -1727,6 +1881,14 @@
 #if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE) || defined (FUNC_EIA96)
   #ifndef FUNC_DISPLAY_FULLVALUE
     #define FUNC_DISPLAY_FULLVALUE
+  #endif
+#endif
+
+
+/* Display_SignedFullValue() */
+#if defined (SW_DS18B20) || defined (SW_DHTXX) || defined (HW_MAX31855)
+  #ifndef FUNC_DISPLAY_SIGNEDFULLVALUE
+    #define FUNC_DISPLAY_SIGNEDFULLVALUE
   #endif
 #endif
 
@@ -1742,6 +1904,24 @@
 #if defined (SW_IR_TRANSMITTER) || defined (SW_DISPLAY_ID)
   #ifndef FUNC_DISPLAY_HEXVALUE
     #define FUNC_DISPLAY_HEXVALUE
+  #endif
+#endif
+
+
+/* Celsius2Fahrenheit() */
+#ifdef UI_FAHRENHEIT
+  #if defined (SW_DS18B20) || defined (SW_DHTXX) || defined (HW_MAX6675) || defined (HW_MAX31855)
+    #ifndef FUNC_CELSIUS2FAHRENHEIT
+      #define FUNC_CELSIUS2FAHRENHEIT
+    #endif
+  #endif
+#endif
+
+
+/* variable Start_str */
+#if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20) || defined (SW_ONEWIRE_SCAN) || defined (HW_EVENT_COUNTER) || defined (HW_MAX6675) || defined (HW_MAX31855)
+  #ifndef VAR_START_STR
+    #define VAR_START_STR
   #endif
 #endif
 

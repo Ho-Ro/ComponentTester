@@ -594,7 +594,7 @@ void Display_HexValue(uint16_t Value, uint8_t Bits)
 
 
 
-#ifdef FUNC_DISPLAY_FULLVALUE
+#if defined (FUNC_DISPLAY_FULLVALUE) || defined (FUNC_DISPLAY_SIGNEDFULLVALUE)
 
 /*
  *  display unsigned value plus unit
@@ -665,7 +665,7 @@ void Display_FullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
 
 
 
-#if defined (SW_DS18B20) || defined (SW_DHTXX)
+#ifdef FUNC_DISPLAY_SIGNEDFULLVALUE
 
 /*
  *  display signed value plus unit

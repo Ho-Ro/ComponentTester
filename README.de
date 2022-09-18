@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2021-08-01
+Letzte Änderung: 2021-12-06
 
 Inhaltsübersicht:
   - Über den Tester
@@ -45,6 +45,7 @@ Inhaltsübersicht:
     - Mehr/Weniger-Tasten
     - Touch-Screen
   - Benutzerschnittstelle
+    - Summer/Pieper
   - Kommunikation mit PC
     - Serielle Ausgabe
     - Automatisierung
@@ -57,6 +58,8 @@ Inhaltsübersicht:
     - PWM-Generator
     - Rechteck-Signalgenerator
     - Zenertest
+    - Logiktester
+    - Durchgangsprüfer
     - ESR-Tool
     - Kondensatorleckstrom
     - R/C/L-Monitore
@@ -64,6 +67,7 @@ Inhaltsübersicht:
     - Frequenzzähler
       - Einfacher Zähler
       - Erweiterter Zähler
+    - Klingeltester
     - Ereigniszähler
       - Triggerausgang
     - Drehencoder
@@ -75,6 +79,7 @@ Inhaltsübersicht:
     - OneWire-Scan
     - DS18B20-Temperatursensor
     - DHTxx-Sensoren
+    - MAX6675/MAX31855 Thermoelement-Konverter
     - Selbsttest
     - Selbstabgleich
     - Speichern/Laden
@@ -156,6 +161,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
   + Keine Panik! ;)
   + Touch Screen
   + Automatisierung (Fernsteuerkommandos)
+  + zwei Sätze Abgleichwerte
 - Adaptive Entladefunktion
 - Widerstandsmessung
   + zusätliche Methode für Widerstände <10 Ohm (anstatt ESR-Messung)
@@ -181,7 +187,12 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - OneWire (DS18B20)
 - DHTxx-Sensoren
 - Ereigniszähler
+- Klingeltester
+- Logiktester
+- Durchgangsprüfer
+- MAX6675/MAX31855 Thermoelement-Konverter
 - Strukturierter Quellcode
+- einfache Rahmenwerke für Anzeigen und Datenbusse
 - Und Manches mehr, was mir gerade nicht einfällt.
 
 Mehr Details dazu findest Du in den nachfolgenden Abschnitten.
@@ -221,6 +232,7 @@ Folgende Hardware-Optionen werden unterstützt:
   - zusätzliche Tasten (mehr/weniger)
   - Touch-Screen
   - serielle Schnittstelle (TTL, RS232, USB-Seriell-Adapter)
+  - Summer/Pieper
 
   Verbesserungen
   - externe Spannungsreferenz 2,5V
@@ -233,6 +245,10 @@ Folgende Hardware-Optionen werden unterstützt:
   - erweiterter Frequenzzähler
     mit Vorteiler und Quarzoszillatoren für niedrige und hohe Frequenzen 
   - fester IR-RC-Empfänger
+  - LC-Meter
+  - Klingeltester
+  - Logiktester
+  - MAX6675/MAX31855 Thermoelement-Konverter
 
 
 * Firmware übersetzen
@@ -387,6 +403,10 @@ festlegen (schaue nach I2C_PORT bzw. SPI_PORT).
 Falls Du Bit-Bang-SPI plus Lese-Modus (SPI_RW) auswählst, bitte darauf achten
 auch SPI_PIN und SPI_MISO zu setzen. Beispiele dazu findest Du im Abschnitt
 zu SPI in config-<MCU>.h.
+
+Wenn mehrere ICs mit dem SPI-Bus verbunden werden, muss jeder IC über ein
+eigenes /CS-Signal gesteuert werden. Nur im Fall eines einzigen IC am SPI-Bus
+darf dessen /CS-Signal fest auf Masse gelegt werden. 
 
 
 + Serielle TTL-Schnittstelle
@@ -1021,6 +1041,18 @@ Für farbige Grafikanzeigen:
 - Farbcode für Widerstände (SW_R_E24_5_CC, SW_R_E24_1_CC und SW_R_E96_CC)
 
 
++ Summer/Pieper
+
+Falls Du auch ein akustisches Signal haben möchtest, kannst Du einen aktiven
+Summer (mit integriertem Oszillator) verwenden. Der Summer wird über einen
+festen Port-Pin kontrolliert (siehe BUZZER_CTRL in config_<MCU>.h) und kann
+direkt (< 20mA) bzw. über einen Transistor (NPN oder n-Kanal-MOSFET)
+angesteuert werden.
+
+Im Augenblick wird der Summer nur vom Durchgangstest benutzt. Weitere
+Anwendungsfälle werden in der Zukunft folgen.
+
+
 * Kommunikation mit PC
 
 Der Tester kann eine serielle TTL-Schnittstelle zur Kommunilkation mit einem
@@ -1176,6 +1208,11 @@ Punkt augewählt. Hier gibt es auch wieder einen Überlauf, d.h. vom ersten zum
 letzten Punkt. Ein kurzer Tastendruck führt den Punkt aus, im Gegensatz zu
 oben.
 
+Normalerweise springt der Tester nach dem Ausführen einer Funktion wieder zur
+Bauteilsuche zurück. Wenn du lieber im Menü bleiben möchtest, kannst du
+UI_MAINMENU_AUTOEXIT abschalten. Das Menü wird dann über ein explizites "Exit"
+beendet.
+
 Manche Punkte/Extras zeigen beim Start das Pinout der benutzten Testpins kurz
 an. Die Info wird für ein paar Sekunden gezeigt, kann aber mit einem kurzen
 Tastendruck übersprungen werden.
@@ -1272,6 +1309,58 @@ und ZENER_R2).
 Beschaltung für Zenerdiode:
    Pin +: Kathode
    Pin -: Anode
+
+
++ Logiktester (Hardware-Option)
+
+Der Logiktester prüft den Zustand von Logiksignalen mittels einem festen ADC-
+Pin plus Spannungsteiler. Der Spannungsteiler sollte 4:1 sein, damit Spannungen
+bis 20V möglich sind (15V CMOS). Der ADC-Pin ist TP_LOGIC (in config_<MCU>.h)
+und der Spannungsteiler wird in config.h gesetzt (LOGIC_PROBE_R1 und
+LOGIC_PROBE_R2). Es dürfte keine schlechte Idee sei, den Eingangsschutz zu
+verbessern, z.B. mit einem Paar Schutzdioden.
+
+Nach dem Starten liest der Tester automatisch die Spannung, vergleicht die
+Spannung mit den Logikpegel-Schwellwerten und zeigt dann den Logikzustand
+plus die Spannung an:
+  - 0 für Low
+  - 1 für High
+  - Z für undefiniert/HiZ
+
+Zum Setzen der Logikfamilie bzw. Vcc/Vdd und den Logikpegel-Schwellwerten gibt
+es ein einfaches Menü. Mit der Testtaste wählst Du die gewünschte Einstellung
+aus (markiert mit einem Sternchen). Dann benutze den Drehencoder zum Ändern
+der Einstellung. Beim Ändern der Logikfamilie bzw. von Vcc/Vdd werden die
+Schwellwerte automatisch angepasst. Danach kannst Du die Schwellwerte bei
+Bedarf ändern. Im Fall einer unüblichen Vcc/Vdd-Spannung bitte die nächst
+höhere auswählen und dann die Schwellwerte entsprechend ändern. Die Standard-
+werte für Vcc/Vdd sind:
+  - TTL  : 5V
+  - CMOS : 3.3V, 5V, 9V, 12V, 15V
+
+Und wie gewohnt, zwei kurze Tastendrücke beenden den Logiktester.
+
+
++ Durchgangsprüfer
+
+Diese Funktion prüft Schaltungen auf Durchgang und gibt Dir ein akustisches
+Signal über einen Summer/Pieper, während auch die Spannung zwischen den
+Testpins ausgegeen wird. Der Teststrom wird über Rl (680 Ohm) auf etwa 7 mA
+begrenzt. Die Schwellwerte für den Summer sind:
+  - <100mV      kontinuierlicher Piep
+  - 100-700mV   wiederholender kurzer Piep
+  - >700mV      kein Piep
+
+Der kurze Piep zeigt einen möglichen Halbleiterübergang an. Bei einer Unter-
+brechung oder einem sehr hohen Widerstand liegt die Spannung nahe 5 V.
+
+Nach dem Starten vom Durchgangsprüfer zeigt der Tester die Beschaltung der
+Testpins für ein paar Sekunden an (kann mit Testtaste übersprungen werden).
+Und zwei kuze Tastendrücke beenden den Test.  
+
+Beschaltung der Testpins:
+  Pin #1:  Vcc (680 Ohm Widerstand zur Strombegrenzung)
+  Pin #3:  Masse
 
 
 + ESR-Tool
@@ -1410,6 +1499,42 @@ config.h den korrekten Vorteiler auszuwählen.
 Der Signaleingang (gepufferter Eingang, Quartz-Oszillator für niedrige
 Frequenzen, Quartz-Oszillator für hohe Frequenzen) wird über die Testtaste oder
 den Drehencoder geändert. Zwei kurze Tastendrücke beenden den Frequenzzähler.
+
+
++ Klingeltester (Hardware-Option)
+
+Der Klingeltester (LOPT/FBT-Tester) prüft Spulen und Transformatoren auf einen
+Kurzschluß. Die Schaltung erzeugt einen Trigger-Puls und der Tester zählt dann
+einfach die Anzahl der Schwingungen, welche einen Hinweis auf den Q-Wert gibt.
+Die Schaltung kann über einen festen Pin (RING_TESTER_PIN) oder über die
+Testpins (RING_TESTER_PROBES) gesteuert werden. In beiden Fällen ist der T0-Pin
+des ATmega der Zählereingang (zählt bei fallender Flanke). Der T0-Pin kann auch
+parallel zum Ansteuern einer Anzeige verwendet werden.
+
+Nach dem Starten des Klingeltesters wird die Belegung der Testpins angezeigt,
+sofern die Steuerung per Testpins aktiviert ist. Danach prüft der Tester
+automatisch Spulen/Trafos und zeigt die Anzahl der Schwingungen an. Wie üblich,
+beenden zwei kurze Tastendrücke den Test. 
+
+Interpretation der Schwingungsanzahl für die Schaltung mit der Darlington-
+Stufe, basierend auf dem Ringtester von Bob Parker:
+
+  Schwingungen   Q
+  --------------------------------------
+  0              Kurzschluß oder offen
+  1 - 3          niedriges Q (schlecht)
+  4 - 5          mittleres Q (unklar)
+  >= 6           hohes Q (gut)
+
+Neben der oben erwähnten einfachen Schaltung kann du auch komplexere Varianten
+verwenden, solange diese mit ca. 5 V laufen, wenig Strom brauchen (< 20 mA) und
+Zählimpulse mit fallender Flanke generieren.
+
+Beschaltung für die Kontrolle per Testpins:
+  Pin #1:  Vcc (5 V)
+  Pin #2:  Pulsausgang (mit 680-Ohm-Widerstand zur Strombegrenzung)
+  Pin #3:  Masse
+  T0:      Zählereingang
 
 
 + Ereigniszähler (Hardware-Option)
@@ -1862,6 +1987,21 @@ Hinweis:
   die MCU beschädigen.
 
 
++ MAX6675/MAX31855 Thermoelement-Konverter
+
+Die beiden MAX sind Thermoelement-Konverter mit Kaltstellenkompensation und
+werden über den SPI-Bus gesteuert. Der MAX6675 ist nur für Thermoelemente vom
+Typ K, während es den MAX31855 für mehrehre Typen gibt. Der MAX31855 hat eine
+Betriebsspannung von 3.3V und benötigt daher Pegelwandler.
+
+Die Bedienung für beide MAX ist gleich. Durch das Drücken der Testtaste wird
+eine Messung ausgelöst und die Temperatur angezeigt. Bei Fehlern kommt ein "-"
+stattdessen. Für den automatischen Lesemodus (jede Sekunde) die Testtaste
+lange drücken (wird durch ein "*" nach dem MAX-Namen signalisiert). Ein
+zweiter langer Tastendruck beendet wieder den automatischen Lesemodus. Und
+zwei kurze Tastendrücke beenden die Funktion.
+
+
 + Selbsttest
 
 Wenn Du den Selbsttest über das Menü gestartet hast, bittet dich der Tester
@@ -1946,12 +2086,13 @@ Vorgaben bzgl. Genauigkeit und anderer Parameter einhält.
 
 + Speichern/Laden
 
-Nach dem Selbstabgleich kannst mit dieser Funktion die im EEPROM gespeicherten
-Abgleichswerte aktualisieren. Beim nächsten Neustart vom Tester werden dann
-diese Werte (Profil #1) automatisch geladen und benutzt.
+Nach dem Selbstabgleich kannst Du mit dieser Funktion die im EEPROM
+gespeicherten Abgleichswerte aktualisieren. Beim nächsten Neustart vom Tester
+werden dann diese Werte (Profil #1) automatisch geladen und benutzt.
 
 Zur Bequemlichkeit stehen zwei Profile zum Speichern bzw. Laden zu Verfügung,
-z.B. für zwei unterschiedliche Sätze an Messkabeln.
+z.B. für zwei unterschiedliche Sätze an Messkabeln. Wenn zwei zu wenig sind,
+kann ein drittes Profil aktiviert werden (UI_THREE_PROFILES).
 
 Die Idee hinter der manuellen Speichern-Funktion ist, daß man z.B. beim
 temporären Wechsel der Messkabel nur einen Selbstabgleich macht und nach

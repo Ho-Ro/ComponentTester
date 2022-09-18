@@ -176,6 +176,30 @@
 
 
 /* ************************************************************************
+ *   functions from MAX6675.c
+ * ************************************************************************ */
+
+#ifndef MAX6675_C
+
+  extern void MAX6675_BusSetup(void);
+  extern void MAX6675_Tool(void);
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from MAX31855.c
+ * ************************************************************************ */
+
+#ifndef MAX31855_C
+
+  extern void MAX31855_BusSetup(void);
+  extern void MAX31855_Tool(void);
+
+#endif
+
+
+/* ************************************************************************
  *   functions from touchscreen specific driver
  * ************************************************************************ */
 
@@ -249,11 +273,11 @@
   extern void Display_HexValue(uint16_t Value, uint8_t Bits);
   #endif
 
-  #ifdef FUNC_DISPLAY_FULLVALUE
+  #if defined (FUNC_DISPLAY_FULLVALUE) || defined (FUNC_DISPLAY_SIGNEDFULLVALUE)
   extern void Display_FullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
-  #if defined (SW_DS18B20) || defined (SW_DHTXX)
+  #ifdef FUNC_DISPLAY_SIGNEDFULLVALUE
   extern void Display_SignedFullValue(int32_t Value, uint8_t DecPlaces, unsigned char Unit);
   #endif
 
@@ -347,10 +371,8 @@
   extern int32_t RoundSignedValue(int32_t Value, uint8_t Scale, uint8_t RoundScale);
   #endif
 
-  #ifdef UI_FAHRENHEIT
-    #if defined (SW_DS18B20) || defined (SW_DHTXX)
-    extern int32_t Celsius2Fahrenheit(int32_t Value, uint8_t Scale);
-    #endif
+  #ifdef FUNC_CELSIUS2FAHRENHEIT
+  extern int32_t Celsius2Fahrenheit(int32_t Value, uint8_t Scale);
   #endif
 
   extern uint8_t TestKey(uint16_t Timeout, uint8_t Mode);
@@ -364,7 +386,7 @@
   extern void MarkItem(uint8_t Item, uint8_t Selected);
 
   extern void AdjustmentMenu(uint8_t Mode);
-  extern void MainMenu(void);
+  extern uint8_t MainMenu(void);
 
 #endif
 
@@ -401,7 +423,9 @@
 
 #ifndef TOOLS_MISC_C
 
+  #ifdef FUNC_PROBE_PINOUT
   extern void ProbePinout(uint8_t Mode);
+  #endif
 
   #ifdef HW_ZENER
   extern void Zener_Tool(void);
@@ -447,6 +471,14 @@
   extern void Monitor_RL(void);
   #endif
 
+  #ifdef HW_LOGIC_PROBE
+  extern void LogicProbe(void);
+  #endif
+
+  #ifdef SW_CONTINUITY_CHECK
+  extern void ContinuityCheck(void);
+  #endif
+
 #endif
 
 
@@ -474,6 +506,10 @@
 
   #ifdef HW_FREQ_COUNTER
   extern void FrequencyCounter(void);
+  #endif
+
+  #ifdef HW_RING_TESTER
+  extern void RingTester(void);
   #endif
 
   #ifdef HW_EVENT_COUNTER

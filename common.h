@@ -68,6 +68,7 @@
 #define KEY_POWER_ON          102  /* just powered up */
 #define KEY_POWER_OFF         103  /* power off */
 #define KEY_PROBE             104  /* probe component */
+#define KEY_EXIT              105  /* exit (menu) */
 
 
 /* operation mode/state flags (bitfield) */
@@ -131,6 +132,7 @@
 #define PROBES_PWM            0         /* PWM output */
 #define PROBES_ESR            1         /* ESR measurement */
 #define PROBES_RCL            2         /* monitoring RCL */
+#define PROBES_RINGS          3         /* ring tester */
 
 
 /* E series */
@@ -171,6 +173,7 @@
 #define NUM_E96              96         /* E24 norm values */
 #define NUM_COLOR_CODES      10         /* color codes */
 #define NUM_EIA96_MULT        9         /* EIA-96 multiplier codes */
+#define NUM_LOGIC_TYPES       6         /* logic families and voltages */
 
 /* IR code buffer size */
 #define IR_CODE_BYTES         6         /* 6 bytes = 48 bit */
@@ -359,6 +362,10 @@
 #define LCD_CHAR_RESISTOR_L   6    /* resistor left icon '[' */
 #define LCD_CHAR_RESISTOR_R   7    /* resistor right icon ']' */
 
+/* optional custom chars */
+#define LCD_CHAR_1_INV        8    /* 1 inversed */
+#define LCD_CHAR_2_INV        9    /* 2 inversed */
+#define LCD_CHAR_3_INV       10    /* 3 inversed */
 
 /* component symbols */
 #define SYMBOL_BJT_NPN        0    /* BJT npn */

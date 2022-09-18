@@ -2204,14 +2204,24 @@ int main(void)
   /* display module */
   LCD_BusSetup();                       /* set up display bus */
 
-  /* touch screen */
   #ifdef HW_TOUCH
-  Touch_BusSetup();                     /* set up touch screen */
+  /* touch screen */
+  Touch_BusSetup();                     /* set up touch screen bus */
   #endif
 
   #ifdef ONEWIRE_IO_PIN
   /* OneWire with dedicated IO pin */
   OneWire_Setup();                      /* set up OneWire bus */
+  #endif
+
+  #ifdef HW_MAX6675
+  /* MAX6675 thermocouple converter */
+  MAX6675_BusSetup();                   /* set up MAX6675's bus */
+  #endif
+
+  #ifdef HW_MAX31855
+  /* MAX31855 thermocouple converter */
+  MAX31855_BusSetup();                  /* set up MAX31855's bus */
   #endif
 
 
@@ -2318,6 +2328,17 @@ int main(void)
 
   #ifdef HW_TOUCH
   Touch_Init();                         /* init touch screen */
+  #endif
+
+
+  /*
+   *  init additional hardware
+   */
+
+  #ifdef HW_BUZZER
+  /* set up port pin for buzzer control */
+  BUZZER_PORT &= ~(1 << BUZZER_CTRL);        /* off by default */
+  BUZZER_DDR |= (1 << BUZZER_CTRL);          /* enable output */
   #endif
 
 
@@ -2793,7 +2814,16 @@ cycle_action:
     }
     #endif
 
-    MainMenu();                    /* enter main menu */
+    #ifdef UI_MAINMENU_AUTOEXIT
+      /* run main menu once and return to probe cycle */
+      MainMenu();                  /* enter main menu */
+    #else
+      /* run main menu until explicit exit */
+      while (MainMenu() != KEY_EXIT)
+      {
+        /* keep running main menu */
+      }
+    #endif
 
     #ifdef POWER_OFF_TIMEOUT
     /* automatic power-off for auto-hold mode */

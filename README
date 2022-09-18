@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit: 2021-08-01
+Last edit: 2021-12-06
 
 Content
   - About
@@ -45,6 +45,7 @@ Content
     - Increase/Decrease Buttons
     - Touch Screen
   - User Interface
+    - Buzzer
   - Communication with PC
     - Serial Output
     - Automation
@@ -57,6 +58,8 @@ Content
     - PWM Tool
     - Square Wave Generator
     - Zener Tool
+    - Logic Probe
+    - Continuity Check
     - ESR Tool
     - Capacitor Leakage Check
     - R/C/L Monitors
@@ -64,6 +67,7 @@ Content
     - Frequency Counter
       - Basic Counter
       - Extended Counter
+    - Ring Tester
     - Event Counter
       - Trigger Output
     - Rotary Encoder
@@ -75,6 +79,7 @@ Content
     - OneWire Scan
     - DS18B20 Temperature Sensor
     - DHTxx Sensors
+    - MAX6675/MAX31855 Thermocouple Converters
     - Self Test
     - Self Adjustment
     - Save/Load
@@ -155,7 +160,8 @@ k-firmware:
   + No worries! ;)
   + touch screen
   + remote commands
-- adaptive component discharging function
+  + two sets of adjustment values
+- adaptive component discharge function
 - resistance measurement
   + dedicated method for resistances <10 Ohms (instead of using ESR check)
 - capacitance measurement
@@ -180,7 +186,12 @@ k-firmware:
 - OneWire (DS18B20)
 - DHTxx Sensors
 - event counter
+- ring tester
+- logic probe
+- continuity check
+- MAX6675/MAX31855 thermocouple converters
 - structured source code
+- simple frameworks for displays and data busses
 - some more I couldn't think of right now
 
 There are more details in the sections below.
@@ -221,6 +232,7 @@ Following hardware options are supported:
   - additional push buttons (in/decrease)
   - touch screen
   - serial interface (TTL, RS232, USB-serial adpater) 
+  - buzzer
 
   enhancements
   - external 2.5V voltage reference
@@ -233,6 +245,10 @@ Following hardware options are supported:
   - extended frequency counter
     with prescaler and crystal oscillators for low and high frequencies
   - fixed IR RC receiver
+  - LC meter
+  - ring tester
+  - logic probe
+  - MAX6675/MAX31855 thermocouple converters
 
 
 * Building the Firmware
@@ -385,6 +401,10 @@ config-<MCU>.h (look for I2C_PORT or SPI_PORT).
 If you select bit-bang SPI and enable the read mode (SPI_RW) please make sure
 to set also SPI_PIN and SPI_MISO. See the SPI section in config-<MCU>.h for
 an example. 
+
+When connecting multiple ICs to the SPI bus, each IC needs to be controlled by
+a dediacted /CS signal. Only in the case of one single IC on the SPI bus that
+IC's /CS can be tied to ground.
 
 
 + TTL Serial
@@ -1008,6 +1028,17 @@ For color graphic displays:
 - color code for resistors (SW_R_E24_5_CC, SW_R_E24_1_CC and SW_R_E96_CC)
 
 
++ Buzzer
+
+If you like to have an audible indicator you can add an active buzzer (with
+integrated oscillator). The buzzer is controlled via a fixed pin (see
+BUZZER_CTRL in config_<MCU>.h) and can be driven directly (< 20mA) or by a
+transistor (NPN or n-channel MOSFET).
+
+At the moment the buzzer is only used by the continuity check. More use cases
+will be added in the future.
+
+
 * Communication with PC
 
 The tester can support a TTL serial interface for communication with a PC.
@@ -1153,12 +1184,16 @@ With a rotary encoder you can move the items up or down based on the turning
 direction and a short key press will run the displayed item, instead of moving
 to the next item. Roll over is also enabled for the first item.
 
+Normally the tester will return to the probing cycle after running a function
+or tool. If you prefer to stay in the menu until an explicit "exit" you can
+disable UI_MAINMENU_AUTOEXIT.
+
 Some tools show you the pinout of the probe pins used before doing anything.
 That info will be displayed for a few seconds, but can be skipped by a short
 press of the test button.
 
-For tools which create a signal probe #2 is used as output by default. In that
-case probe #1 and #3 are set to ground. If your tester is configured for a
+For tools which generate a signal probe #2 is used as output by default. In
+that case probe #1 and #3 are set to ground. If your tester is configured for a
 dedicated signal output (OC1B) the probes aren't used and no probe pinout will
 be displayed.
 
@@ -1244,6 +1279,57 @@ ZENER_DIVIDER_CUSTOM and specify the resistor values (ZENER_R1 and ZENER_R2).
 How to connect the Zener diode:
    Probe +: cathode
    Probe -: anode
+
+
++ Logic Probe (hardware option)
+
+The logic probe checks the state of logic signals by using a dedicated ADC
+input with a voltage divider frontend. The voltage divider should be 4:1 to
+support voltages up to 20V (for 15V CMOS). The ADC pin is TP_LOGIC (in
+config_<MCU>.h) and the voltage divider is set in config.h (LOGIC_PROBE_R1
+and LOGIC_PROBE_R2). It might be a good idea to add some additional input
+protection, such as a pair of clamping diodes.
+
+After starting, the tester automatically reads the voltage, compares the
+voltage with logic level thresholds and displays the logic level plus the
+voltage:
+  - 0 for low
+  - 1 for high
+  - Z for undefined/HiZ
+
+For setting the logic family and Vcc/Vdd or the logic level thresholds
+there's a simple menu. Use the test push button to select a specific setting (
+marked by an asterisk). Then use the rotary encoder to change the setting.
+When changing the logic family and Vcc/Vdd the logic level thresholds are
+automatically set to default values. After that you can adjust the thresholds
+if needed. In case of a non-standard Vcc/Vdd choose the next higher one and
+adjust the thresholds. The standard Vcc/Vdd values are:
+  - TTL  : 5V
+  - CMOS : 3.3V, 5V, 9V, 12V, 15V
+
+And as usual, two short button presses will exit the logic probe.
+
+
++ Continuity Check
+
+This tool checks for continuity of a circuit and gives you an audible feedback
+by a buzzer while also displaying the voltage across the probes. The test
+current is limited by Rl (680 Ohms) to about 7 mA. The thresholds for the
+audible feedback are:
+  - < 100 mV     continuous beep
+  - 100-700 mV   repeating short beep
+  - > 700 mV     no beep
+
+The short beep is meant to indicate a possible semiconductor junction.
+For an open circuit or a very high resistance the voltage will be near 5 V.
+
+After starting the continuity check the tester displays the probe pinout for
+a few seconds which can be skipped by pressing the test button. And two short
+button presses will end the check.
+
+Pinout for probes:
+  Probe #1:  Vcc (with 680 Ohms resistor to limit current)
+  Probe #3:  Ground
 
 
 + ESR Tool
@@ -1378,6 +1464,41 @@ turning the rotary encoder. And as always, two short button presses will exit
 the frequency counter.
 
 
++ Ring Tester (hardware option)
+
+The ring tester (LOPT/FBT tester) check chokes and transformers for shorts.
+The frontend creates a trigger pulse and the tester simply counts the number
+of rings which corresponds to the Q value. The frontend can be driven by a
+dediated pin (RING_TESTER_PIN) or via the probes (RING_TESTER_PROBES). In
+either case the ATmega's TO pin is the counter input (counts on falling edge).
+The TO pin can be also shared with a display.
+
+After starting the ring tester the pinout of the probes is shown if the control
+output via probes is enabled. Then the tester automatically checks the choke
+or transformer and diplays the number of rings. As usual two short key presses
+will end the test.
+
+Interpretation of the number of rings for the frontend circuit with the
+Darlington stage based on Bob Parker's ring tester:
+
+  rings      Q
+  -------------------------------
+  0          short or open
+  1 - 3      low Q (bad)
+  4 - 5      medium Q (unclear)
+  >= 6       high Q (good)
+
+Besides the simple frontend mentioned above you can use also more sophisticated
+circuits as long as they run with about 5 V, have a low current consumption (
+< 20 mA) and generate a counter signal with falling edge.
+
+Pinout for control output via probes:
+  Probe #1:  Vcc (5 V)
+  Probe #2:  pulse output (with 680 Ohms resistor to limit current)
+  Probe #3:  Ground
+  T0:        counter input
+
+
 + Event Counter (hardware option)
 
 The event counter uses the T0 pin as dedicated input and is trigged by the
@@ -1461,7 +1582,7 @@ For a unknown protocol the tester displays the number of pauses and pulses,
 the duration of the first pulse and the first pause in units of 50µs:
   ? <pulses>:<first pulse>-<first pause>
 
-When the number of pulses stay the same for different buttons of the RC, the
+When the number of pulses stays the same for different buttons of the RC, the
 modulation is most likely PDM or PWM. A changing number of pulses indicates
 bi-phase modulation.  
 
@@ -1816,6 +1937,21 @@ Hint:
   used to limit current. Be aware that any short circuit may destroy the MCU.
 
 
++ MAX6675/MAX31855 Thermocouple Converters
+
+Both MAX are thermocouple converters with cold-junction compensation and are
+controlled via the SPI bus. MAX6675 is just for K type thermocouples, while
+there are several versions of the MAX31855 for different thermocouple types.
+MAX31855 has a Vcc of 3.3V and therefore requires level shifters.
+
+The operation of both MAX is identical. By pressing the test button a new
+measurement is triggered and the temperature will be displayed. On any error
+a "-" is shown instead. For automatic reading every second you can enable
+the auto-mode by a long press of the test button, indicated by an "*" in after
+the MAX's name. A second long key press disables the auto-mode. Two short key
+presses will end the tool.
+
+
 + Self Test
 
 If you start the self-test via the menu you'll be asked to short circuit all
@@ -1903,7 +2039,8 @@ adjustment values stored in the MCU's EEPROM. The next time you power on the
 tester the updated values (profile #1) will be loaded and used automatically.
 
 For your convenience you can save and load two profiles, e.g. if you have
-two different probe sets.
+two different probe sets. In case you need more than two profiles you can
+activate a third one (UI_THREE_PROFILES).
 
 The idea of the save function is to prevent automatic saving of adjustment
 values. If you need to use other probe leads for some tests, you'd simply

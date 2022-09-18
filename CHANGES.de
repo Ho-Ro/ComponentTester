@@ -6,7 +6,26 @@
 
 ------------------------------------------------------------------------------
 
+v1.45m 2021-12
+- Neue Hardware-Optionen: Thermoelemente-Konverter MAX6675 und MAX31855 (
+  HW_MAX6675, HW_MAX31855, Vorschlag von ricktendo@EEVblog).
+- Optional drittes Profil für Abgleichwerte (UI_THREE_PROFILES Vorschlag von
+  indman@EEVblog).
+- Neue Funktion: Durchgangsprüfer (SW_CONTINUITY_CHECK, Vorschlag von
+  indman@EEVblog).
+- Neue Hardware-Option: akustisches Signal, d.h. aktiver Summer/Pieper (
+  HW_BUZZER, Vorschlag von indman@EEVblog).
+- Neue Hardware-Option: Logiktester (HW_LOGIC_PROBE, Vorschlag von
+  Dumidan@EEVblog).
+- A-C Diodensymbol, Ä und Ü in font_12x16_hf.h und font_12x16_iso8859-2_hf.h
+  korrigiert (gemeldet von Feliciano@EEVblog).
+- Neue Hardware-Option: Ringtester (LOPT/FBT-Tester, HW_RING_TESTER).
+- Option für Hauptmenü: entweder im Menü bleiben oder automatisch Menü 
+  verlassen (UI_MAINMENU_AUTOEXIT).
+- Zeichensatz font_8x8_hf.h aktualisiert (Dank an Feliciano@EEVblog).
+
 v1.44m 2021-08
+- Aktualisierung font_8x8_hf.h (Dank an Feliciano@EEVblog).
 - Ausgabe von EIA-96-Codes für Widerstands-E96-Normwerte (SW_R_E96_EIA96,
   Vorschlag von Chris02@EEVblog).
 - Unterstützung von 4-Draht-SPI in Treibern für ILI9481 und ILI9486 ergänzt.

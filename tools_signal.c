@@ -35,7 +35,7 @@
 /* pulse counter */
 #if defined (HW_FREQ_COUNTER_EXT) || defined (HW_EVENT_COUNTER) || defined (HW_LC_METER)
   volatile uint32_t      Pulses;        /* number of pulses */
-#elif defined (HW_FREQ_COUNTER_BASIC)
+#elif defined (HW_FREQ_COUNTER_BASIC) || defined (HW_RING_TESTER)
   volatile uint16_t      Pulses;        /* number of pulses */
 #endif
 
@@ -709,10 +709,11 @@ void PWM_Tool(void)
   SIGNAL_DDR &= ~(1 << SIGNAL_OUT);     /* set HiZ mode */
   #endif
 
-  /* clean up local constants */
+  /* local constants for Mode */
   #undef MODE_RATIO
   #undef MODE_FREQ
 
+  /* local constants for Flag */
   #undef DISPLAY_RATIO
   #undef DISPLAY_FREQ
   #undef CHANGE_RATIO
@@ -940,7 +941,7 @@ void Servo_Check(void)
     /* display pulse duration / sweep period */
     if (Flag & DISPLAY_PULSE)
     {
-      LCD_ClearLine2();
+      LCD_ClearLine2();                 /* line #2 */
       MarkItem(MODE_PULSE, Mode);       /* mark mode if selected */
 
       if (Flag & SWEEP_MODE)            /* sweep mode */
@@ -976,7 +977,7 @@ void Servo_Check(void)
     /* display PWM frequency/period */
     if (Flag & DISPLAY_FREQ)
     {
-      LCD_ClearLine(3);
+      LCD_ClearLine(3);                 /* line #3 */
       LCD_CharPos(1, 3);
       MarkItem(MODE_FREQ, Mode);        /* mark mode if selected */
 
@@ -1215,7 +1216,7 @@ void Servo_Check(void)
   SIGNAL_DDR &= ~(1 << SIGNAL_OUT);     /* set HiZ mode */
   #endif
 
-  /* clean up local constants */
+  /* local constants for sweeping */
   #undef SERVO_STEP_TIME
   #undef SERVO_SWEEP_TOP
   #undef SERVO_STEP_MAX
@@ -1225,11 +1226,14 @@ void Servo_Check(void)
   #undef SERVO_LEFT_MAX
   #undef SERVO_LEFT_NORM
 
+  /* local constant for step size */
   #undef PULSE_STEP
 
+  /* local constants for Mode */
   #undef MODE_FREQ
   #undef MODE_PULSE
 
+  /* local constants for Flag */
   #undef TOGGLE_SWEEP
   #undef DISPLAY_FREQ
   #undef DISPLAY_PULSE
@@ -1563,7 +1567,7 @@ void SquareWave_SignalGenerator(void)
  * ************************************************************************ */
 
 
-#if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT) || defined (HW_EVENT_COUNTER) || defined(HW_LC_METER)
+#if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT) || defined (HW_EVENT_COUNTER) || defined (HW_LC_METER) || defined (HW_RING_TESTER)
 
 /*
  *  ISR for overflow of Timer0
@@ -1586,7 +1590,7 @@ ISR(TIMER0_OVF_vect, ISR_BLOCK)
 
 
 
-#if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT) || defined(HW_LC_METER)
+#if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT) || defined (HW_LC_METER) || defined (HW_RING_TESTER)
 
 /*
  *  ISR for match of Timer1's OCR1A (Output Compare Register A)
@@ -1638,7 +1642,7 @@ void FrequencyCounter(void)
   uint16_t          Top;                /* top value for timer */
   uint32_t          Value;              /* temporary value */
 
-  /* control flags */
+  /* local constants for Flag */
   #define RUN_FLAG       1         /* run flag */
   #define WAIT_FLAG      2         /* enter/run waiting loop */
   #define GATE_FLAG      3         /* gatetime flag */
@@ -1826,7 +1830,7 @@ void FrequencyCounter(void)
     else                                /* invalid frequency */
     {
       Display_Minus();                  /* display: no value */
-    }    
+    }
   }
 
 
@@ -1837,7 +1841,7 @@ void FrequencyCounter(void)
   TIMSK0 = 0;                 /* disable all interrupts for Timer0 */
   TIMSK1 = 0;                 /* disable all interrupts for Timer1 */
 
-  /* local constants */
+  /* local constants for Flag */
   #undef RUN_FLAG
   #undef WAIT_FLAG
   #undef GATE_FLAG
@@ -1857,6 +1861,7 @@ void FrequencyCounter(void)
 
 /*
  *  extended frequency counter
+ *  - uses frontend with buffer, prescaler and crystal oscillators
  *  - frequency input: T0 
  *  - control signals
  *    prescaler       - COUNTER_CTRL_DIV
@@ -1891,7 +1896,7 @@ void FrequencyCounter(void)
 //  uint32_t          MaxPulses = 0;      /* maximum pulses for range */
   uint32_t          Value;              /* temporary value */
 
-  /* control flags */
+  /* local constants for Flag (bitfield) */
   #define RUN_FLAG            0b00000001     /* run flag */
   #define WAIT_FLAG           0b00000010     /* wait flag */
   #define GATE_FLAG           0b00000100     /* gatetime flag */
@@ -2295,7 +2300,7 @@ void FrequencyCounter(void)
   CtrlDir &= (1 << COUNTER_CTRL_DIV) | (1 << COUNTER_CTRL_CH0) | (1 << COUNTER_CTRL_CH1);
   COUNTER_CTRL_DDR &= ~CtrlDir;         /* set former direction */
 
-  /* local constants */
+  /* local constants for Flag */
   #undef RUN_FLAG
   #undef WAIT_FLAG
   #undef GATE_FLAG
@@ -2304,6 +2309,245 @@ void FrequencyCounter(void)
   #undef SHOW_FREQ
   #undef RESCAN_FLAG
   #undef SKIP_FREQ
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   counter: ring tester for high Q chokes and transformers
+ * ************************************************************************ */
+
+
+#ifdef HW_RING_TESTER
+
+/*
+ *  ring tester (LOPT/FBT tester)
+ *  - uses frontend for ring detection
+ *  - counter input: T0
+ *  - control via probes (RING_TESTER_PROBES)
+ *    probe #1: +5V
+ *    probe #2: pulse output
+ *    probe #3: Gnd
+ *  - control via dedicated pin (RING_TESTER_PIN)
+ *    RINGTESTER_OUT: pulse output
+ *  - requires idle sleep mode to keep timers running when MCU is sleeping
+ */
+
+void RingTester(void)
+{
+  uint8_t           Flag;               /* loop control flag */
+  uint8_t           Test;               /* user feedback */
+  uint8_t           Old_DDR;            /* old DDR state */
+
+  /* local constants for Flag (bitfield) */
+  #define RUN_FLAG       1         /* run flag */
+  #define WAIT_FLAG      2         /* enter/run waiting loop */
+  #define GATE_FLAG      3         /* gatetime flag */
+  #define SHOW_RINGS     4         /* display rings */
+
+  /* show info */
+  LCD_Clear();                          /* clear display */
+  #ifdef UI_COLORED_TITLES
+    /* display: Ring Tester */
+    Display_ColoredEEString(RingTester_str, COLOR_TITLE);
+  #else
+    Display_EEString(RingTester_str);   /* display: Ring Tester */
+  #endif
+
+  #ifdef RING_TESTER_PROBES
+  ProbePinout(PROBES_RINGS);            /* show probes used */
+  #endif
+
+  /*
+   *  working priciple:
+   *  - a shorted or bad inductor has a low Q value
+   *  - a trigger pulse causes a damped oscillation in a tank circuit
+   *  - the higher the inductor's Q the longer the oscillation lasts
+   *  - so we simply count the number of rings until the oscillation
+   *    fades away
+   */
+
+  /*
+   *  set up pulse output
+   */
+
+  #ifdef RING_TESTER_PIN
+  /* use dedicated pin */
+  RINGTESTER_PORT &= ~(1 << RINGTESTER_OUT);      /* low by default */
+  RINGTESTER_DDR |= (1 << RINGTESTER_OUT);        /* enable output */
+  #endif
+
+  #ifdef RING_TESTER_PROBES
+  /* set probes: probe #1 - Vcc / probe #2 - Rl - pulse out / probe #3 - Gnd */
+  R_PORT = 0;                                /* pull down probe #2 */
+  R_DDR = (1 << R_RL_2);                     /* enable Rl for probe #2 */
+  ADC_PORT = (1 << TP1);                     /* pull up #1, pull down #3 */
+  ADC_DDR = (1 << TP1) | (1 << TP3);         /* enable direct pull for #1 and #3 */
+  #endif
+
+
+  /*
+   *  We use Timer1 for the gate time and Timer0 to count rings.
+   *  Max. frequency for Timer0 is 1/4 of the MCU clock.
+   */
+
+  Flag = RUN_FLAG;            /* enter measurement loop */
+
+  /*
+      Fixed gate time of 10ms.
+
+      Timer1 top value (gate time)
+      - top = gatetime * MCU_cycles / prescaler 
+      - gate time in µs
+      - MCU cycles per µs
+      - top max. 2^16 - 1
+
+      Using prescaler 8:1 - register bits: (1 << CS11)
+   */
+
+  /* set up Timer0 (ring counter) */
+  TCCR0A = 0;                      /* normal mode (count up) */
+  TIFR0 = (1 << TOV0);             /* clear overflow flag */
+  TIMSK0 = (1 << TOIE0);           /* enable overflow interrupt */
+
+  /* set up Timer1 (gate time) */
+  TCCR1A = 0;                      /* normal mode (count up) */
+  TIFR1 = (1 << OCF1A);            /* clear output compare A match flag */
+  TIMSK1 = (1 << OCIE1A);          /* enable output compare A match interrupt */
+  /* top = gatetime * MCU_cycles / timer prescaler */
+  OCR1A = (uint16_t)((10000UL * MCU_CYCLES_PER_US) / 8);
+
+
+  /*
+   *  measurement loop
+   */
+
+  while (Flag > 0)
+  {
+    /* set up T0 as input (pin might be shared with display) */
+    Old_DDR = COUNTER_DDR;              /* save current settings */
+    COUNTER_DDR &= ~(1 << COUNTER_IN);  /* signal input */
+    wait500us();                        /* settle time */
+
+    /* start timers */
+    Pulses = 0;                         /* reset pulse counter */
+    Flag = WAIT_FLAG;                   /* enter waiting loop */
+    TCNT0 = 0;                          /* Timer0: reset ring counter */
+    TCNT1 = 0;                          /* Timer1: reset gate time counter */
+    TCCR1B = (1 << CS11);               /* start Timer1: prescaler 8:1 */
+    TCCR0B = (1 << CS02) | (1 << CS01); /* start Timer0: clock source T0 on falling edge */
+
+
+    /*
+     *  create trigger pulse (2 ms)
+     *  - will create one pseudo ring since timers are already running
+     */
+
+    #ifdef RING_TESTER_PIN
+    RINGTESTER_PORT |= (1 << RINGTESTER_OUT);     /* set pin high */
+    wait2ms();                                    /* wait 2 ms */
+    RINGTESTER_PORT &= ~(1 << RINGTESTER_OUT);    /* set pin low */
+    #endif
+
+    #ifdef RING_TESTER_PROBES
+    R_PORT = (1 << R_RL_2);             /* pull up probe #2 via Rl */
+    wait2ms();                          /* wait 2 ms */
+    R_PORT = 0;                         /* pull down probe #2 */
+    #endif
+
+    /* wait for timer1 or key press */
+    while (Flag == WAIT_FLAG)
+    {
+      if (TCCR1B == 0)                  /* Timer1 stopped by ISR */
+      {
+        Flag = GATE_FLAG;               /* end loop and signal Timer1 event */
+      }
+      else                              /* Timer1 still running */
+      {
+        /* wait for user feedback */
+        Test = TestKey(0, CHECK_KEY_TWICE | CHECK_BAT);
+
+        if (Test == KEY_TWICE)          /* two short key presses */
+        {
+          Flag = 0;                     /* end processing loop */
+        }
+      }
+    }
+
+    /* T0 pin might be shared with display */
+    COUNTER_DDR = Old_DDR;              /* restore old settings */
+
+    Cfg.OP_Control &= ~OP_BREAK_KEY;    /* clear break signal (just in case) */
+
+
+    /*
+     *  process measurement
+     */
+
+    if (Flag == GATE_FLAG)              /* got measurement */
+    {
+      /* total sum of rings during gate period */
+      Pulses += TCNT0;                  /* add counter of Timer0 */
+
+      /* consider first/pseudo ring created by trigger pulse */
+      if (Pulses > 0)                   /* sanity check */
+      {
+        Pulses--;                       /* subtract one ring */
+      }
+
+      Flag = SHOW_RINGS;                /* display rings */
+    }
+
+
+    /*
+     *  display number of rings (in line #2)
+     */
+
+    LCD_ClearLine2();                   /* clear line #2 */
+    Display_Char('n');                  /* display: n */
+    Display_Space();
+
+    if (Flag == SHOW_RINGS)             /* valid number of rings */
+    {
+      Display_Value(Pulses, 0, 0);      /* display rings */
+      Flag = RUN_FLAG;                  /* clear flag */
+    }
+    else                                /* invalid number of rings */
+    {
+      Display_Minus();                  /* display: no value */
+    }
+
+
+    /*
+     *  add some delay to slow down the update rate
+     *  and to smooth the UI
+     */
+
+    /* check test button using a timeout of 400 ms */
+    Test = TestKey(400, CHECK_KEY_TWICE | CHECK_BAT);
+
+    /* catch double press for exit */
+    if (Test == KEY_TWICE)              /* two short key presses */
+    {
+      Flag = 0;                         /* end processing loop */
+    }
+  }
+
+
+  /*
+   *  clean up
+   */
+
+  TIMSK0 = 0;                 /* disable all interrupts for Timer0 */
+  TIMSK1 = 0;                 /* disable all interrupts for Timer1 */
+
+  /* local constants for Flag */
+  #undef RUN_FLAG
+  #undef WAIT_FLAG
+  #undef GATE_FLAG
+  #undef SHOW_RINGS
 }
 
 #endif
@@ -2373,7 +2617,7 @@ void EventCounter(void)
   uint32_t          Events;             /* events */
 
 
-  /* control flags */
+  /* local constants for Flag (bitfield) */
   #define RUN_FLAG            0b00000001     /* run flag */
   #define WAIT_FLAG           0b00000010     /* wait flag */
   #define IDLE_FLAG           0b00000100     /* idle flag (not counting) */
@@ -2382,24 +2626,24 @@ void EventCounter(void)
   #define MANAGE_COUNTING     0b00100000     /* manage counting */
   #define STOP_COUNTING       0b01000000     /* stop counting */
 
-  /* counter mode */
+  /* local constants for CounterMode */
   #define MODE_COUNT          1         /* count events and time (start/stop) */
   #define MODE_TIME           2         /* count events during given time period */
   #define MODE_EVENTS         3         /* count time for given number of events */
 
-  /* UI item */
+  /* local constants for Item */
   #define UI_COUNTERMODE      1         /* counter mode */
   #define UI_EVENTS           2         /* events */
   #define UI_TIME             3         /* time */
   #define UI_STARTSTOP        4         /* start/stop */
 
-  /* display control (follows UI items) */
+  /* local constants for Show (follows UI items, bitfield) */
   #define SHOW_MODE           0b00000001     /* show mode */
   #define SHOW_EVENTS         0b00000010     /* show events */
   #define SHOW_TIME           0b00000100     /* show time */
   #define SHOW_STARTSTOP      0b00001000     /* show start/stop */
 
-  /* defaults and maximums */
+  /* local constants for defaults and maximums */
   #define DEFAULT_TIME        60             /* one minute */
   #define DEFAULT_EVENTS      100            /* ? */
   #define MAX_TIME            43200          /* 12h (in seconds) */
@@ -2918,9 +3162,10 @@ void EventCounter(void)
   TIMSK0 = 0;                 /* disable all interrupts for Timer0 */
   TIMSK1 = 0;                 /* disable all interrupts for Timer1 */
 
-  /* local constants */
+  /* local constant for timer1 */
   #undef TOP
 
+  /* local constants for Flag */
   #undef RUN_FLAG
   #undef WAIT_FLAG
   #undef IDLE_FLAG
@@ -2929,20 +3174,24 @@ void EventCounter(void)
   #undef MANAGE_COUNTING
   #undef STOP_COUNTING
 
+  /* local constants for CounterMode */
   #undef MODE_COUNT
   #undef MODE_TIME
   #undef MODE_EVENTS
 
+  /* local constants for Item */
   #undef UI_COUNTERMODE
   #undef UI_EVENTS
   #undef UI_TIME
   #undef UI_STARTSTOP
 
+  /* local constants for Show */
   #undef SHOW_MODE
   #undef SHOW_EVENTS
   #undef SHOW_TIME
   #undef SHOW_STARTSTOP
 
+  /* local constants for defaults and maximums */
   #undef DEFAULT_TIME
   #undef DEFAULT_EVENTS
   #undef MAX_TIME
@@ -2957,11 +3206,6 @@ void EventCounter(void)
  *   clean-up of local constants
  * ************************************************************************ */
 
-
-/* probes */
-#undef PROBES_PWM
-#undef PROBES_ESR
-#undef PROBES_RCL
 
 /* source management */
 #undef TOOLS_SIGNAL_C

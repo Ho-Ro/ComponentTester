@@ -122,6 +122,11 @@
   /* basic adjustment values: profile #2 */
   const Adjust_Type     NV_Adjust_2 EEMEM = {R_MCU_LOW, R_MCU_HIGH, NV_R_ZERO, NV_C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
 
+  #ifdef UI_THREE_PROFILES
+    /* basic adjustment values: profile #3 */
+    const Adjust_Type   NV_Adjust_3 EEMEM = {R_MCU_LOW, R_MCU_HIGH, NV_R_ZERO, NV_C_ZERO, UREF_OFFSET, COMPARATOR_OFFSET, LCD_CONTRAST, 0};
+  #endif
+
   #ifdef HW_TOUCH
     /* touch screen adjustment offsets */
     const Touch_Type    NV_Touch EEMEM = {0, 0, 0, 0, 0};
@@ -149,7 +154,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.44m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.45m";
 
 
   /* common terms and texts */
@@ -192,6 +197,10 @@
 
 
   /* options */
+  #ifdef UI_THREE_PROFILES
+    const unsigned char Profile3_str[] MEM_TYPE = "#3";
+  #endif
+
   #ifdef SW_ESR_TOOL
     const unsigned char ESR_str[] MEM_TYPE = "ESR";
   #endif
@@ -267,6 +276,20 @@
   #ifdef SW_FONT_TEST
     const unsigned char FontTest_str[] MEM_TYPE = "Font";
   #endif
+
+  #ifdef HW_LOGIC_PROBE
+    const unsigned char TTL_str[] MEM_TYPE = "TTL";
+    const unsigned char CMOS_str[] MEM_TYPE = "CMOS";
+  #endif
+
+  #ifdef HW_MAX6675
+    const unsigned char MAX6675_str[] MEM_TYPE = "MAX6675";
+  #endif
+
+  #ifdef HW_MAX31855
+    const unsigned char MAX31855_str[] MEM_TYPE = "MAX31855";
+  #endif
+
 
   /* component symbols */
   const unsigned char Cap_str[] MEM_TYPE = {'-', LCD_CHAR_CAP, '-',0};
@@ -465,6 +488,12 @@
     const unsigned char EIA96_Mult_table[NUM_EIA96_MULT] MEM_TYPE = {'Z', 'Y', 'X', 'A', 'B', 'C', 'D', 'E', 'F'};
   #endif
 
+  #ifdef HW_LOGIC_PROBE
+    /* logic families and voltages */
+    /* Vcc in mV                                                TTL   CMOS  CMOS  CMOS  CMOS   CMOS */
+    const uint16_t Logic_Vcc_table[NUM_LOGIC_TYPES] MEM_TYPE = {5000, 3300, 5000, 9000, 12000, 15000};
+  #endif
+
 
   /*
    *  tables of register bits for probe settings
@@ -565,6 +594,11 @@
   /* basic adjustment values: profile #2 */
   extern const Adjust_Type    NV_Adjust_2;
 
+  #ifdef UI_THREE_PROFILES
+    /* basic adjustment values: profile #3 */
+    extern const Adjust_Type  NV_Adjust_3;
+  #endif
+
   #ifdef HW_TOUCH
     /* touch screen adjustment offsets */
     extern const Touch_Type   NV_Touch;
@@ -636,6 +670,10 @@
 
 
   /* options */
+  #ifdef UI_THREE_PROFILES
+    extern const unsigned char Profile3_str[];
+  #endif
+
   #ifdef UI_KEY_HINTS
     extern const unsigned char Menu_or_Test_str[];
   #endif
@@ -671,6 +709,10 @@
     extern const unsigned char HF_Crystal_str[];
   #endif
 
+  #ifdef HW_RING_TESTER
+    extern const unsigned char RingTester_str[];
+  #endif
+
   #ifdef HW_EVENT_COUNTER
     extern const unsigned char EventCounter_str[];
     extern const unsigned char Count_str[];
@@ -682,6 +724,20 @@
   #ifdef HW_LC_METER
     extern const unsigned char LC_Meter_str[];
     extern const unsigned char Adjusting_str[];
+  #endif
+
+  #ifdef HW_LOGIC_PROBE
+    extern const unsigned char LogicProbe_str[];
+    extern const unsigned char TTL_str[];
+    extern const unsigned char CMOS_str[];
+  #endif
+
+  #ifdef HW_MAX6675
+    extern const unsigned char MAX6675_str[];
+  #endif
+
+  #ifdef HW_MAX31855
+    extern const unsigned char MAX31855_str[];
   #endif
 
   #ifdef SW_ENCODER
@@ -740,7 +796,7 @@
     extern const unsigned char t_off_str[];
   #endif
 
-  #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20) || defined (SW_ONEWIRE_SCAN) || defined (HW_EVENT_COUNTER)
+  #ifdef VAR_START_STR
     extern const unsigned char Start_str[];
   #endif
 
@@ -809,6 +865,10 @@
 
   #ifdef SW_FONT_TEST
     extern const unsigned char FontTest_str[];
+  #endif
+
+  #ifdef SW_CONTINUITY_CHECK
+    extern const unsigned char ContinuityCheck_str[];
   #endif
 
 
@@ -928,7 +988,7 @@
 
   #ifdef SW_E96
     /* E96 (in 0.01) */
-    extern uint16_t E96_table[];
+    extern const uint16_t E96_table[];
   #endif
 
   #ifdef FUNC_COLORCODE
@@ -939,6 +999,11 @@
   #ifdef FUNC_EIA96
     /* EIA-96 multiplier code */
     extern const unsigned char EIA96_Mult_table[];
+  #endif
+
+  #ifdef HW_LOGIC_PROBE
+    /* logic families and voltages */
+    extern const uint16_t Logic_Vcc_table[];
   #endif
 
 

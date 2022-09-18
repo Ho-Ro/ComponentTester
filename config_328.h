@@ -840,9 +840,10 @@
 #define TP2              PC1       /* test pin / probe #2 */
 #define TP3              PC2       /* test pin / probe #3 */
 
-#define TP_ZENER         PC3       /* test pin for 10:1 voltage divider */
+#define TP_ZENER         PC3       /* test pin for for Zener check (10:1 voltage divider) */
 #define TP_REF           PC4       /* test pin for 2.5V reference and relay */
 #define TP_BAT           PC5       /* test pin for battery (4:1 voltage divider) */
+#define TP_LOGIC         PC3       /* test pin for Logic Probe (4:1 voltage divider) */
 
 
 /*
@@ -925,14 +926,25 @@
 
 
 /*
+ *  ring tester
+ *  - counter input must be pin PD4/T0 (uses COUNTER_IN)
+ */
+
+#define RINGTESTER_PORT  PORTD     /* port data register */
+#define RINGTESTER_DDR   DDRD      /* port data direction register */
+#define RINGTESTER_OUT   PD5       /* pulse output */
+
+
+
+/*
  *  IR detector/decoder
  *  - fixed module connected to dedicated I/O pin
  */
 
-#define IR_PORT          PORTC     /* port data register */
-#define IR_DDR           DDRC      /* port data direction register */
-#define IR_PIN           PINC      /* port input pins register */
-#define IR_DATA          PC6       /* data signal */
+#define IR_PORT          PORTD     /* port data register */
+#define IR_DDR           DDRD      /* port data direction register */
+#define IR_PIN           PIND      /* port input pins register */
+#define IR_DATA          PD5       /* data signal */
 
 
 /*
@@ -995,10 +1007,37 @@
  *  - dedicated I/O pin
  */
 
-#define ONEWIRE_PORT     PORTC     /* port data register */
-#define ONEWIRE_DDR      DDRC      /* port data direction register */
-#define ONEWIRE_PIN      PINC      /* port input pins register */
-#define ONEWIRE_DQ       PC6       /* DQ (data line) */
+#define ONEWIRE_PORT     PORTD     /* port data register */
+#define ONEWIRE_DDR      DDRD      /* port data direction register */
+#define ONEWIRE_PIN      PIND      /* port input pins register */
+#define ONEWIRE_DQ       PD5       /* DQ (data line) */
+
+
+/*
+ *  buzzer
+ */
+
+#define BUZZER_PORT      PORTD     /* port data register */
+#define BUZZER_DDR       DDRD      /* port data direction register */
+#define BUZZER_CTRL      PD5       /* control pin (low: off / high: on) */
+
+
+/*
+ *  MAX6675
+ */
+
+#define MAX6675_PORT     PORTD     /* port data register */
+#define MAX6675_DDR      DDRD      /* port data direction register */
+#define MAX6675_CS       PD5       /* port pin used for /CS */
+
+
+/*
+ *  MAX31855
+ */
+
+#define MAX31855_PORT    PORTD     /* port data register */
+#define MAX31855_DDR     DDRD      /* port data direction register */
+#define MAX31855_CS      PD5       /* port pin used for /CS */
 
 
 

@@ -29,25 +29,6 @@
 
 
 
-/*
- *  local constants
- *  - simplify ifdefs
- */
-
-/* ProbePinout() */
-#if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (SW_SQUAREWAVE) || defined (SW_SERVO) || defined (SW_ESR_TOOL)
-  #ifndef FUNC_PROBE_PINOUT
-    #define FUNC_PROBE_PINOUT
-  #endif
-#endif
-
-#if defined (SW_MONITOR_R) || defined (SW_MONITOR_C) || defined (SW_MONITOR_L) || defined(SW_MONITOR_RCL) || defined(SW_MONITOR_RL)
-  #ifndef FUNC_PROBE_PINOUT
-    #define FUNC_PROBE_PINOUT
-  #endif
-#endif
-
-
 /* ************************************************************************
  *   support functions
  * ************************************************************************ */
@@ -60,9 +41,10 @@
  *
  *  required:
  *  - Mode
- *    PROBES_PWM  PWM signal
- *    PROBES_ESR  ESR measurement
- *    PROBES_RCL  monitoring RCL
+ *    PROBES_PWM         PWM signal
+ *    PROBES_ESR         ESR measurement
+ *    PROBES_RCL         monitoring RCL
+ *    PROBES_RINGS       ring tester
  */
 
 void ProbePinout(uint8_t Mode)
@@ -73,31 +55,49 @@ void ProbePinout(uint8_t Mode)
 
   LCD_ClearLine2();                /* info goes to line #2 */
 
-  if (Mode == PROBES_PWM)          /* PWM signal */
+
+  /*
+   *  set probe pinout based on mode
+   */
+
+  switch (Mode)
   {
-    /* probe #1: Gnd / probe #2: signal / probe #3: Gnd */
-    ID_1 = '-';
-    ID_2 = 's';
-    ID_3 = '-';
+    #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (SW_SERVO) || defined (SW_SQUAREWAVE)
+    case PROBES_PWM:
+      /* probe #1: Gnd / probe #2: signal / probe #3: Gnd */
+      ID_1 = '-';
+      ID_2 = 's';
+      ID_3 = '-';
+      break;
+    #endif
+
+    #if defined (SW_ESR_TOOL) || defined (SW_CONTINUITY_CHECK)
+    case PROBES_ESR:
+      /* probe #1: + / probe #3: - */
+      ID_1 = '+';
+      ID_2 = 0;
+      ID_3 = '-';
+      break;
+    #endif
+
+    #if defined (SW_MONITOR_R) || defined (SW_MONITOR_C) || defined (SW_MONITOR_L) || defined(SW_MONITOR_RCL) || defined(SW_MONITOR_RL)
+    case PROBES_RCL:
+      /* probe #1: * / probe #3: * */
+      ID_1 = '*';
+      ID_2 = 0;
+      ID_3 = '*';
+      break;
+    #endif
+
+    #if defined (HW_RING_TESTER) && defined (RING_TESTER_PROBES)
+    case PROBES_RINGS:
+      /* probe #1: Vcc / probe #2: pulse out / probe #3: Gnd */
+      ID_1 = '+';
+      ID_2 = 'p';
+      ID_3 = '-';
+      break;
+    #endif
   }
-  #ifdef SW_ESR_TOOL
-  else if (Mode == PROBES_ESR)     /* ESR measurement */
-  {
-    /* probe #1: + / probe #3: - */
-    ID_1 = '+';
-    ID_2 = 0;
-    ID_3 = '-';
-  }
-  #endif
-  #if defined (SW_MONITOR_R) || defined (SW_MONITOR_C) || defined (SW_MONITOR_L) || defined(SW_MONITOR_RCL) || defined(SW_MONITOR_RL)
-  else if (Mode == PROBES_RCL)     /* monitoring RCL */
-  {
-    /* probe #1: * / probe #3: * */
-    ID_1 = '*';
-    ID_2 = 0;
-    ID_3 = '*';
-  }
-  #endif
 
   Show_SimplePinout(ID_1, ID_2, ID_3);  /* display pinout */
 
@@ -528,7 +528,7 @@ void ESR_Tool(void)
 
 #ifdef SW_ENCODER
 
-/* local constants */
+/* local constants for direction */
 #define DIR_NONE         0b00000000     /* no turn or error */
 #define DIR_RIGHT        0b00000001     /* turned to the right */
 #define DIR_LEFT         0b00000010     /* turned to the left */
@@ -737,7 +737,7 @@ void Encoder_Tool(void)
   }
 }
 
-/* local constants */
+/* clean up local constants for direction */
 #undef DIR_LEFT
 #undef DIR_RIGHT
 #undef DIR_NONE
@@ -807,7 +807,7 @@ void OptoCoupler_Tool(void)
   uint16_t          U3, U4;             /* voltages */
   uint32_t          CTR = 0;            /* CTR in % */
 
-  /* status */
+  /* local constants for status */
   #define DETECTED_LED        50
   #define DETECTED_BJT       100
   #define DETECTED_TRIAC     101
@@ -1125,7 +1125,7 @@ void OptoCoupler_Tool(void)
     }
   }
 
-  /* clean up */
+  /* clean up local constants for status */
   #undef DETECTED_LED
   #undef DETECTED_BJT
   #undef DETECTED_TRIAC
@@ -1156,11 +1156,11 @@ void Cap_Leakage(void)
   uint16_t          U1 = 0;             /* voltage #1 */
   uint32_t          Value;              /* temp. value */
 
-  /* control flags (bitfield) */
+  /* local constants for Flag (bitfield) */
   #define RUN_FLAG            0b00000001     /* run flag */
   #define CHANGED_MODE        0b00000100     /* mode has changed */
 
-  /* mode */
+  /* local constants for Mode */
   #define MODE_NONE           0         /* no mode (show pinout) */
   #define MODE_HIGH           1         /* charge cap: high current */
   #define MODE_LOW            2         /* charge cap: low current */
@@ -1354,12 +1354,18 @@ void Cap_Leakage(void)
     }
   }
 
-  /* clean up */
+
+  /*
+   *  clean up
+   */
+
+  /* local constants for Mode */
   #undef MODE_NONE
   #undef MODE_CHARGE
   #undef MODE_LEAK
   #undef MODE_DISCHARGE
 
+  /* local constants for Flag */
   #undef RUN_FLAG
   #undef CHANGED_MODE
 }
@@ -1803,14 +1809,467 @@ void Monitor_RL(void)
 
 
 /* ************************************************************************
- *   clean-up of local constants
+ *   logic probe
  * ************************************************************************ */
 
 
-/* probes */
-#undef PROBES_PWM
-#undef PROBES_ESR
-#undef PROBES_RCL
+#ifdef HW_LOGIC_PROBE
+
+/*
+ *  Logic Probe
+ *  - analog input: TP_LOGIC
+ *  - uses voltage divider (default: 4:1)
+ *    LOGIC_PROBE_R1 and LOGIC_PROBE_R2
+ */
+
+void LogicProbe(void)
+{
+  uint8_t           Flag;               /* loop control */
+  uint8_t           Test;               /* user feedback */
+  uint8_t           Item;               /* menu item */
+  uint8_t           VccIndex;           /* index for Vcc table */
+  unsigned char     State;              /* logic state */
+  uint16_t          U1;                 /* measured voltage */
+  uint16_t          U_max = 0;          /* Vcc/Vdd */
+  uint16_t          U_low = 0;          /* voltage threshold for low */
+  uint16_t          U_high = 0;         /* voltage threshold for high */
+  uint32_t          Value;              /* temporary value */
+
+  /* local constants for Flag (bitfield) */
+  #define RUN_FLAG            0b00000001     /* run / otherwise end */
+  #define CHANGE_TYPE         0b00000010     /* change logic type */
+  #define CHANGE_LOW          0b00001000     /* change low threshold */
+  #define CHANGE_HIGH         0b00010000     /* change high threshold */
+
+  /* local constants for Item */
+  #define ITEM_TYPE      1              /* logic type (family and Vcc) */
+  #define ITEM_LOW       2              /* voltage threshold for low */
+  #define ITEM_HIGH      3              /* voltage threshold for high */
+
+
+  /*
+   *  show info
+   */
+
+  LCD_Clear();
+  #ifdef UI_COLORED_TITLES
+    /* display: Logic Probe */
+    Display_ColoredEEString(LogicProbe_str, COLOR_TITLE);
+  #else
+    Display_EEString(LogicProbe_str);   /* display: Logic Probe */
+  #endif
+
+
+  /*
+   *  init
+   */
+
+  ADC_DDR &= ~(1 << TP_LOGIC);          /* set pin to HiZ */
+  Cfg.Samples = 5;                      /* do just 5 samples to be fast */
+  VccIndex = 0;                         /* TTL 5V */
+  Item = ITEM_TYPE;                     /* default item */
+  Flag = RUN_FLAG | CHANGE_TYPE | CHANGE_LOW | CHANGE_HIGH;
+
+
+  /*
+   *  processing loop
+   */
+
+  while (Flag > 0)
+  {
+    /*
+     *  display family and Vcc/Vdd
+     */
+
+    if (Flag & CHANGE_TYPE)
+    {
+      LCD_ClearLine2();                 /* line #2 */
+      MarkItem(ITEM_TYPE, Item);        /* mark item if selected */
+
+      /* display family */
+      if (VccIndex == 0)                /* TTL */
+      {
+        Display_EEString(TTL_str);      /* display: TTL */
+      }
+      else                              /* CMOS */
+      {
+        Display_EEString(CMOS_str);     /* display: CMOS */
+      }
+
+      /* read Vcc/Vdd from table */
+      U_max = DATA_read_word(&Logic_Vcc_table[VccIndex]);
+
+      /* display Vcc/Vdd */
+      Display_Space();
+      U1 = U_max / 100;                 /* scale to 0.1V */
+      Display_Value(U1, -1, 'V');       /* display voltage in 0.1V */
+
+      /* update thresholds */
+      if (VccIndex == 0)                /* TTL */
+      {
+        /* fixed thresholds for 5V */
+        U_low = 800;                    /* 0.8V */
+        U_high = 2000;                  /* 2.0V */
+      }
+      else                              /* CMOS */
+      {
+        /* thresholds based on Vdd (in mV) */
+        /* L: 0.3 Vdd */
+        U_low = U1 * 30;                /* U in 0.1V * 0.3 * 100 */
+
+        /* H: 0.7 Vdd */
+        U_high = U1 * 70;               /* U in 0.1V * 0.7 * 100  */
+      }
+
+      Flag &= ~CHANGE_TYPE;             /* clear flag */
+    }
+
+
+    /*
+     *  display low threshold
+     */
+
+    if (Flag & CHANGE_LOW)
+    {
+      LCD_ClearLine(3);                 /* line #3 */
+      LCD_CharPos(1, 3);
+      MarkItem(ITEM_LOW, Item);         /* mark item if selected */
+      LCD_Char('L');                    /* display: L */
+      Display_Space();
+      U1 = U_low / 100;                 /* scale to 0.1V */
+      Display_Value(U1, -1, 'V');       /* display voltage in 0.1V */
+
+      Flag &= ~CHANGE_LOW;              /* clear flag */
+    }
+
+
+    /*
+     *  display high threshold
+     */
+
+    if (Flag & CHANGE_HIGH)
+    {
+      LCD_ClearLine(4);                 /* line #4 */
+      LCD_CharPos(1, 4);
+      MarkItem(ITEM_HIGH, Item);        /* mark item if selected */
+      LCD_Char('H');                    /* display: H */
+      Display_Space();
+      U1 = U_high / 100;                /* scale to 0.1V */
+      Display_Value(U1, -1, 'V');       /* display voltage in 0.1V */
+
+      Flag &= ~CHANGE_HIGH;             /* clear flag */
+    }
+
+
+    /*
+     *  display logic state
+     *  - 0, 1 or Z
+     *  - ADC pin is connected to a voltage divider (top: R1 / bottom: R2).
+     *    - U2 = (Uin / (R1 + R2)) * R2 
+     *    - Uin = (U2 * (R1 + R2)) / R2
+     */
+
+    /* get voltage */
+    U1 = ReadU(TP_LOGIC);          /* read voltage */
+
+    /* consider voltage divider */
+    Value = (((uint32_t)(LOGIC_PROBE_R1 + LOGIC_PROBE_R2) * 1000) / LOGIC_PROBE_R2);  /* factor (0.001) */
+    Value *= U1;                   /* voltage (0.001 mV) */
+    Value /= 1000;                 /* scale to mV */
+    U1 = (uint16_t)Value;          /* keep 2 bytes */
+
+    /* compare with thresholds  */
+    if (U1 <= U_low)               /* below low threshold */
+    {
+      State = '0';                 /* 0 for low */
+    }
+    else if (U1 >= U_high)         /* above high threshold */
+    {
+      State = '1';                 /* 1 for high */
+    }
+    else                           /* in between (undefined, HiZ) */
+    {
+      State = 'Z';                 /* z for undefined/HiZ */
+    }
+
+    /* display state and voltage */
+    LCD_ClearLine(5);                   /* line #5 */
+    LCD_CharPos(1, 5);
+    #ifdef LCD_COLOR
+    UI.PenColor = COLOR_SYMBOL;         /* change color */
+    #endif
+    LCD_Char(State);                    /* display state */
+    #ifdef LCD_COLOR
+    UI.PenColor = COLOR_PEN;            /* reset color */
+    #endif
+    Display_Space();
+    Display_Value(U1, -3, 'V');         /* display voltage */
+
+
+    /*
+     *  user feedback
+     */
+
+    /* check for user feedback and slow down update rate */
+    Test = TestKey(200, CHECK_KEY_TWICE | CHECK_BAT);
+
+    /* process user input */
+    if (Test == KEY_SHORT)              /* short key press */
+    {
+      /* select next item */
+      Item++;                           /* next item */
+
+      if (Item > ITEM_HIGH)             /* overflow */
+      {
+        Item = ITEM_TYPE;               /* ... to first item */
+      }
+
+      Flag |= CHANGE_TYPE | CHANGE_LOW | CHANGE_HIGH;       /* update display */
+    }
+    else if (Test == KEY_TWICE)         /* two short key presses */
+    {
+      Flag = 0;                         /* end loop */
+    }
+    else if (Test == KEY_RIGHT)         /* right key */
+    {
+      if (Item == ITEM_TYPE)                 /* family and Vcc/Vdd */
+      {
+        /* next set */
+        VccIndex++;                          /* increase index */
+        if (VccIndex >= NUM_LOGIC_TYPES)     /* overflow */
+        {
+          VccIndex = 0;                      /* roll over to first */
+        }
+        Flag |= CHANGE_TYPE | CHANGE_LOW | CHANGE_HIGH;     /* update display */
+      }
+      else if (Item == ITEM_LOW)             /* low threshold */
+      {
+        /* increase low threshold */
+        U_low += 100;                        /* + 100mV */
+        if (U_low > U_high)                  /* prevent overflow */
+        {
+          U_low = U_high;                    /* limit to high threshold */
+        }
+        Flag |= CHANGE_LOW;                  /* update display */
+      }
+      else if (Item == ITEM_HIGH)            /* high threshold */
+      {
+        /* increase high threshold */
+        U_high += 100;                       /* + 100mV */
+        if (U_high > U_max)                  /* prevent overflow */
+        {
+          U_high = U_max;                    /* limit to Vcc/Vdd */
+        }
+        Flag |= CHANGE_HIGH;                 /* update display */
+      }
+    }
+    else if (Test == KEY_LEFT)          /* left key */
+    {
+      if (Item == ITEM_TYPE)                 /* family and Vcc/Vdd */
+      {
+        /* previous set */
+        if (VccIndex > 0)                    /* prevent underun */
+        {
+          VccIndex--;                        /* decrease index */
+        }
+        else                                 /* roll over */
+        {
+          VccIndex = NUM_LOGIC_TYPES - 1;    /* ... to last */
+        }
+        Flag |= CHANGE_TYPE | CHANGE_LOW | CHANGE_HIGH;     /* update display */
+      }
+      else if (Item == ITEM_LOW)             /* low threshold */
+      {
+        /* decrease low threshold */
+        if (U_low >= 100)                    /* prevent underflow (limit to 0V) */
+        {
+          U_low -= 100;                      /* - 100mV */
+        }
+        Flag |= CHANGE_LOW;                  /* update display */
+      }
+      else if (Item == ITEM_HIGH)            /* high threshold */
+      {
+        /* decrease high threshold */
+        U1 = U_low + 100;                    /* limit to low threshold */
+        if (U_high >= U1)                    /* prevent underflow */
+        {
+          U_high -= 100;                     /* - 100mV */
+        }
+        Flag |= CHANGE_HIGH;                 /* update display */
+      }
+    }
+  }
+
+
+  /*
+   *  clean up
+   */
+
+  /* global settings */
+  Cfg.Samples = ADC_SAMPLES;            /* set ADC samples back to default */
+
+  /* local constants for Flag */
+  #undef RUN_FLAG
+  #undef CHANGE_TYPE
+  #undef CHANGE_LOW
+  #undef CHANGE_HIGH
+
+  /* local constants for Item */
+  #undef ITEM_LOW
+  #undef ITEM_HIGH
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   continuity check
+ * ************************************************************************ */
+
+
+#ifdef SW_CONTINUITY_CHECK
+
+/*
+ *  continuity check
+ *  - uses probes #1 and #3
+ *  - requires buzzer
+ */
+
+void ContinuityCheck(void)
+{
+  uint8_t           Flag;               /* loop control */
+  uint8_t           Test;               /* user feedback */
+  uint16_t          U1;                 /* measured voltage #1 */
+  uint16_t          U2;                 /* measured voltage #2 */
+
+  /* local constants for Flag (bitfield) */
+  #define RUN_FLAG            0b00000001     /* run / otherwise end */
+  #define BEEP_SHORT          0b00000010     /* short beep */
+
+
+  /*
+   *  show info
+   */
+
+  LCD_Clear();
+  #ifdef UI_COLORED_TITLES
+    /* display: Continuity */
+    Display_ColoredEEString(ContinuityCheck_str, COLOR_TITLE);
+  #else
+    Display_EEString(ContinuityCheck_str);   /* display: Continuity */
+  #endif
+  ProbePinout(PROBES_ESR);         /* show probes used */
+
+
+  /*
+   *  init
+   */
+
+  UpdateProbes(PROBE_1, PROBE_2, PROBE_3);        /* update probes */
+
+  /* set probes: Vcc -- Rl -- probe #1 / probe #3 -- Gnd */
+  R_PORT = Probes.Rl_1;                 /* pull up probe #1 via Rl */
+  R_DDR = Probes.Rl_1;                  /* enable pull-up resistor */
+  ADC_PORT = 0;                         /* pull down directly */
+  ADC_DDR = Probes.Pin_3;               /* enable Gnd for probe #3 */
+
+  Cfg.Samples = 5;                      /* do just 5 samples to be fast */
+  Flag = RUN_FLAG;                      /* enter processing loop */
+
+
+  /*
+   *  processing loop
+   */
+
+  while (Flag > 0)
+  {
+    /*
+     *  check voltage across probes
+     *  and output result
+     */
+
+    U1 = ReadU(Probes.Ch_1);            /* read voltage at probe #1 */
+    U2 = ReadU(Probes.Ch_3);            /* read voltage at probe #3 */
+
+    /* consider voltage drop by RiL */
+    if (U1 > U2)                        /* sanity check */
+    {
+      U1 -= U2;                         /* subtract voltage of RiL */
+    }
+
+    /* compare voltage with thresholds */
+    if (U1 < 100)                       /* < 100mV */
+    {
+      /* short: continuous beep */
+
+      /* enable buzzer */
+      BUZZER_PORT |= (1 << BUZZER_CTRL);     /* set pin high */      
+    }
+    else if (U1 <= 700)                 /* 100-700mV */
+    {
+      /* pn junction: short beep */
+
+      /* enable buzzer */
+      BUZZER_PORT |= (1 << BUZZER_CTRL);     /* set pin high */
+      Flag |= BEEP_SHORT;                    /* set flag */
+    }
+    else                                /* > 700mV */
+    {
+      /* something else or open circuit: no beep */
+
+      /* disable buzzer */
+      BUZZER_PORT &= ~(1 << BUZZER_CTRL);    /* set pin low */
+    }
+
+    /* display voltage */
+    LCD_ClearLine2();                   /* line #2 */
+    Display_Value(U1, -3, 'V');         /* display voltage */
+    /* this is also used as delay for the short beep */
+    /* todo: do we need an additional delay for fast displays? */
+
+    if (Flag & BEEP_SHORT)              /* short beep */
+    {
+      /* disable buzzer */
+      BUZZER_PORT &= ~(1 << BUZZER_CTRL);    /* set pin low */
+      Flag &= ~BEEP_SHORT;                   /* clear flag */
+    }
+
+
+    /*
+     *  user feedback
+     */
+
+    /* check for user feedback and slow down update rate */
+    Test = TestKey(50, CHECK_KEY_TWICE | CHECK_BAT);
+
+    if (Test == KEY_TWICE)         /* two short key presses */
+    {
+      Flag = 0;                    /* end loop */
+    }
+  }
+
+
+  /*
+   *  clean up
+   */
+
+  /* global settings */
+  Cfg.Samples = ADC_SAMPLES;            /* set ADC samples back to default */
+
+  /* local constants for Flag */
+  #undef RUN_FLAG
+  #undef BEEP_SHORT
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   clean-up of local constants
+ * ************************************************************************ */
+
 
 /* source management */
 #undef TOOLS_MISC_C

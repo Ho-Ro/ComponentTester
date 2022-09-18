@@ -6,6 +6,23 @@
 
 ------------------------------------------------------------------------------
 
+v1.45m 2021-12  
+- New hardware options: MAX6675 and MAX31855 thermocouple converters (
+  HW_MAX6675, HW_MAX31855, suggested by ricktendo@EEVblog).
+- Added option to have three profiles for adjustment values (
+  UI_THREE_PROFILES, suggested by indman@EEVblog).
+- Added continuity check (SW_CONTINUITY_CHECK, suggested by indman@EEVblog).
+- New hardware option: audible indicator, i.e. active buzzer (HW_BUZZER,
+  suggested by indman@EEVblog).
+- New hardware option: logic probe (HW_LOGIC_PROBE, suggested by
+  Dumidan@EEVblog).
+- Fixed A-C diode symbol, A umlaut and U umlaut in font_12x16_hf.h and
+  font_12x16_iso8859-2_hf.h (reported by Feliciano@EEVblog).
+- New hardware option: ring tester (LOPT/FBT tester, HW_RING_TESTER).
+- Added option to choose between staying in the main menu or automatically
+  exiting (UI_MAINMENU_AUTOEXIT).
+- Updated font_8x8_hf.h (thanks to Feliciano@EEVblog).
+
 v1.44m 2021-08
 - Added output of EIA-96 code for resistor E96 norm values (SW_R_E96_EIA96,
   suggested by Chris02@EEVblog).

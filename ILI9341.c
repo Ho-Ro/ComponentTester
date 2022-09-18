@@ -10,7 +10,7 @@
  *     - 16 bit parallel in 8080-I and 8080-II mode (not supported)
  *     - 18 bit parallel in 8080-I and 8080-II mode (not supported)
  *     - 4 line SPI
- *     - 3 line SPI (not supported)
+ *     - 3 line SPI (not supported, requires bit-bang SPI)
  *
  *   (c) 2015-2021 by Markus Reschke
  *
@@ -158,7 +158,16 @@ uint16_t            LineFlags;     /* bitfield for up to 16 lines */
 
 /*
  *  protocol:
- *  - CSX -> D/CX -> D7-0 with rising edge of SCL
+ *  - write: CSX -> D/CX -> D7-0 with rising edge of SCL
+ *  - read ILI9341 interface mode I or ILI9342:
+ *    - SDI is also used as SDO
+ *    - MCU has to switch MOSI pin to HiZ during read
+ *      just before falling edge of command's last bit
+ *    - CSX has to stay low for command and read
+ *    - CSX -> send command -> D/CX -> D7-0 with falling edge of SCL
+ *  - read ILI9341 interface mode II:
+ *    - CSX has to stay low for command and read
+ *    - CSX -> send command -> D/CX -> D7-0 with falling edge of SCL
  *  - D/CX: high = data / low = command
  *
  *  hints:

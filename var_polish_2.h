@@ -98,6 +98,10 @@
     const unsigned char HF_Crystal_str[] MEM_TYPE = "Kwarc HF";
   #endif
 
+  #ifdef HW_RING_TESTER
+    const unsigned char RingTester_str[] MEM_TYPE = "Ring Tester";
+  #endif
+
   #ifdef HW_EVENT_COUNTER
     const unsigned char EventCounter_str[] MEM_TYPE = "Licznik zdarzeñ";
     const unsigned char Count_str[] MEM_TYPE = "Liczenie";
@@ -109,6 +113,10 @@
   #ifdef HW_LC_METER
     const unsigned char LC_Meter_str[] MEM_TYPE = "Miernik LC";
     const unsigned char Adjusting_str[] MEM_TYPE = "regulacja...";
+  #endif
+
+  #ifdef HW_LOGIC_PROBE
+    const unsigned char LogicProbe_str[] MEM_TYPE = "Logic Probe";
   #endif
 
   #ifdef SW_ENCODER
@@ -135,9 +143,8 @@
     const unsigned char CTR_str[] MEM_TYPE = "CTR";
   #endif
 
-  #if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20) || defined (SW_ONEWIRE_SCAN) || defined (HW_EVENT_COUNTER)
+  #ifdef VAR_START_STR
     const unsigned char Start_str[] MEM_TYPE = "Start";
-/*    const unsigned char None_str[] MEM_TYPE = "Brak"; */
   #endif
 
   #ifdef SW_UJT
@@ -188,6 +195,10 @@
   #ifdef SW_ONEWIRE_SCAN
     const unsigned char OneWire_Scan_str[] MEM_TYPE = "Skanuj 1-Wire";
     const unsigned char Bus_str[] MEM_TYPE = "Bus";
+  #endif
+
+  #ifdef SW_CONTINUITY_CHECK
+    const unsigned char ContinuityCheck_str[] MEM_TYPE = "Continuity";
   #endif
 
 #endif

@@ -210,7 +210,7 @@ uint8_t I2C_Start(uint8_t Type)
     #endif
 
     /* follow common start condition */
-    I2C_Start();
+    /* ... code from above (I2C_START) ... */
 
     /*
      *  current state:

@@ -2,7 +2,7 @@
  *
  *   OneWire communication and tools
  *
- *   (c) 2018-2020 by Markus Reschke
+ *   (c) 2018-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1126,8 +1126,8 @@ uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale)
      */
 
     n = 3 - Run;                        /* number of bits to ignore */
-    *Value = 10000;                     /* 4 decimal places */  
-    *Scale = -4;                        /* 4 decimal places */
+    *Value = 10000;                     /* scale to 4 decimal places */  
+    *Scale = -4;                        /* *10^-4 (4 decimal places) */
     Run = 16;                           /* 4 binary places (*16) */
     Sign = ScratchPad[1] & 0b11111000;  /* set flag when negative */
     while (n)

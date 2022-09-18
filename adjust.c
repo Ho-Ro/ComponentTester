@@ -260,6 +260,12 @@ void ManageAdjustmentStorage(uint8_t Mode, uint8_t ID)
   {
     Data_EE = (uint8_t *)&NV_Adjust_2;
   }
+  #ifdef UI_THREE_PROFILES
+  else if (ID == 3)                /* profile #3 */
+  {
+    Data_EE = (uint8_t *)&NV_Adjust_3;
+  }
+  #endif
   else                             /* profile #1 */
   {
     Data_EE = (uint8_t *)&NV_Adjust_1;
@@ -327,7 +333,7 @@ uint8_t CheckSum(void)
  *  - mode: load/save
  *    STORAGE_LOAD  load data from EEPROM to RAM
  *    STORAGE_SAVE  save data from RAM to EEPROM
- *  - ID: profile ID
+ *  - ID: profile ID (1 or 2)
  */
 
 void ManageAdjustmentStorage(uint8_t Mode, uint8_t ID)
@@ -341,6 +347,12 @@ void ManageAdjustmentStorage(uint8_t Mode, uint8_t ID)
   {
     Addr_EE = (uint8_t *)&NV_Adjust_2;
   }
+  #ifdef UI_THREE_PROFILES
+  else if (ID == 3)                /* profile #3 */
+  {
+    Addr_EE = (uint8_t *)&NV_Adjust_3;
+  }
+  #endif
   else                             /* profile #1 */
   {
     Addr_EE = (uint8_t *)&NV_Adjust_1;

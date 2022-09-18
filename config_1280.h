@@ -1012,10 +1012,11 @@
 #define TP2              PF1       /* test pin / probe #2 */
 #define TP3              PF2       /* test pin / probe #3 */
 
-#define TP_ZENER         PF3       /* test pin for 10:1 voltage divider */
+#define TP_ZENER         PF3       /* test pin for Zener check (10:1 voltage divider) */
 #define TP_REF           PF4       /* test pin for 2.5V reference and relay */
 #define TP_BAT           PF5       /* test pin for battery (4:1 voltage divider) */
 #define TP_CAP           PF7       /* test pin for self-adjustment cap */
+#define TP_LOGIC         PF6       /* test pin for Logic Probe (4:1 voltage divider) */
 
 
 /*
@@ -1104,6 +1105,16 @@
 #define COUNTER_CTRL_DIV      PD4       /* prescaler (low 1:1, high x:1) */
 #define COUNTER_CTRL_CH0      PD5       /* channel addr #0 */
 #define COUNTER_CTRL_CH1      PD6       /* channel addr #1 */
+
+
+/*
+ *  ring tester
+ *  - counter input must be pin PD7/T0 (uses COUNTER_IN)
+ */
+
+#define RINGTESTER_PORT       PORTD     /* port data register */
+#define RINGTESTER_DDR        DDRD      /* port data direction register */
+#define RINGTESTER_OUT        PD4       /* pulse output */
 
 
 /*
@@ -1208,6 +1219,34 @@
 #define ADJUST_PORT      PORTA     /* port data register */
 #define ADJUST_DDR       DDRA      /* port data direction register */
 #define ADJUST_RH        PA5       /* Rh (470k) for fixed cap */
+
+
+/*
+ *  buzzer
+ */
+
+#define BUZZER_PORT      PORTA     /* port data register */
+#define BUZZER_DDR       DDRA      /* port data direction register */
+#define BUZZER_CTRL      PA2       /* control pin (low: off / high: on) */
+
+
+/*
+ *  MAX6675
+ */
+
+#define MAX6675_PORT     PORTA     /* port data register */
+#define MAX6675_DDR      DDRA      /* port data direction register */
+#define MAX6675_CS       PA2       /* port pin used for /CS */
+
+
+/*
+ *  MAX31855
+ */
+
+#define MAX31855_PORT    PORTA     /* port data register */
+#define MAX31855_DDR     DDRA      /* port data direction register */
+#define MAX31855_CS      PA2       /* port pin used for /CS */
+
 
 
 /*

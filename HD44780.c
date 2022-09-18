@@ -694,6 +694,9 @@ void LCD_Clear(void)
   LCD_Cmd(CMD_CLEAR_DISPLAY);      /* send clear command */
   MilliSleep(2);                   /* LCD needs some time for processing */
 
+  /* If the first characters in the first line are missing your display
+     has a slow controller. Increase the delay to 3-5 ms. */
+
   /* reset character position */
   UI.CharPos_X = 1;
   UI.CharPos_Y = 1;
