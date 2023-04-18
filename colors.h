@@ -382,13 +382,16 @@
 /* titles */
 #define COLOR_TITLE           COLOR_YELLOW
 
+/* values */
+#define COLOR_VALUE           COLOR_YELLOW
+
 /* cursor */
 #define COLOR_CURSOR          COLOR_YELLOW
 
 /* infos (hello/bye) */
 #define COLOR_INFO            COLOR_CYAN
 
-/* warnings */
+/* warnings (not used yet) */
 #define COLOR_WARN            COLOR_YELLOW
 
 /* errors */

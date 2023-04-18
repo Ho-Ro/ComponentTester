@@ -1743,6 +1743,16 @@ result:
   {
     IR_State = 0;                  /* reset multi packet state */
 
+    #ifdef SW_IR_RX_BEEP
+    /* buzzer: short beep for valid packet */
+    if (Flag >= PACKET_OK)         /* valid packet */
+    {
+      BUZZER_PORT |= (1 << BUZZER_CTRL);     /* enable: set pin high */
+      MilliSleep(20);                        /* wait for 20 ms */
+      BUZZER_PORT &= ~(1 << BUZZER_CTRL);    /* disable: set pin low */
+    }
+    #endif
+
     /* slow down display updates and try to skip early repeats */
     MilliSleep(200);               /* don't proceed too soon */
   }

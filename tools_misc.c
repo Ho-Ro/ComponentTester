@@ -122,7 +122,8 @@ void ProbePinout(uint8_t Mode)
  *  - hardware option for voltage measurement of Zener diode 
  *  - uses dedicated analog input (TP_ZENER) with voltage divider
  *    (default 10:1)
- *  - test push button enables boost converter
+ *  - boost converter enabled by test push button (default) or
+ *    dedicated I/O pin (switched mode)
  */
 
 void Zener_Tool(void)
@@ -183,6 +184,17 @@ void Zener_Tool(void)
 
     while (!(BUTTON_PIN & (1 << TEST_BUTTON)))    /* as long as key is pressed */
     {
+      #ifdef ZENER_SWITCHED
+      /* turn on boost converter */
+        #ifdef ZENER_BOOST_HIGH
+          /* high active */
+          BOOST_PORT |= (1 << BOOST_CTRL);        /* set pin high */
+        #else
+          /* low active */
+          BOOST_PORT &= ~(1 << BOOST_CTRL);       /* set pin low */
+        #endif
+      #endif
+
       /* get voltage (10:1 voltage divider) */
       U1 = ReadU(TP_ZENER);        /* read voltage (in mV) */
 
@@ -236,6 +248,17 @@ void Zener_Tool(void)
         #endif
       }
     }
+
+    #ifdef ZENER_SWITCHED
+    /* turn off boost converter */
+      #ifdef ZENER_BOOST_HIGH
+        /* high active */
+        BOOST_PORT &= ~(1 << BOOST_CTRL);    /* set pin low */
+      #else
+        /* low active */
+        BOOST_PORT |= (1 << BOOST_CTRL);     /* set pin high */
+      #endif
+    #endif
 
 
     /*
@@ -294,12 +317,13 @@ void Zener_Tool(void)
 #if defined (HW_ZENER) && defined (ZENER_UNSWITCHED)
 
 /*
- *  Zener tool (alternative mode)
+ *  Zener tool (alternative mode: unswitched boost converter)
  *  - hardware option for voltage measurement of Zener diode
  *    or external voltage
  *  - uses dedicated analog input (TP_ZENER) with voltage divider
  *    (default 10:1)
- *  - boost converter runs all the time or circuit without boost converter
+ *  - boost converter runs all the time or circuit without boost
+ *    converter (just measuring external voltage)
  */
 
 void Zener_Tool(void)
@@ -383,7 +407,9 @@ void Zener_Tool(void)
  *    or external voltage
  *  - uses dedicated analog input (TP_ZENER) with voltage divider
  *    (default 10:1)
- *  - boost converter runs all the time or circuit without boost converter
+ *  - boost converter runs all the time, circuit without boost
+ *    converter (just measuring external voltage), or boost converter
+ *    switched by dedicated I/O pin
  */
 
 void CheckZener(void)
@@ -393,8 +419,31 @@ void CheckZener(void)
   uint32_t               Value;         /* value */
   #endif
 
+  #ifdef ZENER_SWITCHED
+  /* turn on boost converter */
+    #ifdef ZENER_BOOST_HIGH
+      /* high active */
+      BOOST_PORT |= (1 << BOOST_CTRL);       /* set pin high */
+    #else
+      /* low active */
+      BOOST_PORT &= ~(1 << BOOST_CTRL);      /* set pin low */
+    #endif
+  MilliSleep(300);                           /* time for stabilization */
+  #endif
+
   /* get voltage */
   U1 = ReadU(TP_ZENER);            /* read voltage (in mV) */
+
+  #ifdef ZENER_SWITCHED
+  /* turn off boost converter */
+    #ifdef ZENER_BOOST_HIGH
+      /* high active */
+      BOOST_PORT &= ~(1 << BOOST_CTRL);      /* set pin low */
+    #else
+      /* low active */
+      BOOST_PORT |= (1 << BOOST_CTRL);       /* set pin high */
+    #endif
+  #endif
 
   #ifndef ZENER_DIVIDER_CUSTOM
   /* ADC pin is connected to a 10:1 voltage divider */

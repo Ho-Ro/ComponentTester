@@ -6,6 +6,36 @@
 
 ------------------------------------------------------------------------------
 
+v1.48m 2022-12
+- Fernsteuerkommando V_F_clamp für V_f der Klemmdiode von Schottky-
+  Transistoren.
+- Pinzuordnung für die drei Testpins kann nun geändert werden (Vorschlag von
+  dreieck@mikrocontroller.net).
+- Optionaler Bestätigungston für gültiges Datenpaket im IR-Empfänger/Decoder (
+  SW_IR_RX_BEEP) oder nach der Bauteilesuche (UI_PROBING_DONE_BEEP).
+- Lizenz auf EUPL v. 1.2 aktualisiert.
+- Option zur zentrierten Ausgabe von Infos und ein paar anderen Texten (
+  UI_CENTER_ALIGN).
+- Option zur Anzeige des Spannungsverlusts durch Selbstentladung bei
+  Kondensatoren > 50nF (SW_C_VLOSS, Vorschlag von indman@EEVblog). Auch
+  als Fernsteuerkommando implementiert.
+- Option zur Anzeige zusätzlicher Infos bei einem möglichen Poti/Trimmer (
+  SW_R_TRIMMER)
+- Workaround-Option für Tester mit SCT15L104W Management-MCU, wenn der Tester
+  sich plötzlich nach der ersten Bauteilesuche abschaltet (PASSIVE_POWER_CTRL,
+  nach Idee von lhlad@EEVblog).
+- Option zum Schalten des Boost-Konverters für den Zener-Test über festen
+  I/O-Pin (ZENER_SWITCHED, Vorschlag von Per Hansson@EEVblog).
+- Option zur Anzeige von Werten in eigener Farbe (UI_COLORED_VALUES, Vorschlag
+  von indman@EEVblog).
+- Überprüfung durch Precompiler, ob mehrere Anzeigemodule konfiguriert sind (
+  Vorschlag von Per Hansson@EEVblog). 
+- Unterstützendes Konfigurationsmanagement von config.h und config_<MCU>.h in
+  neue Headerdatei verschoben (config_support.h). Dabei ein paar zusätzliche
+  Konfigurationsprüfungen ergänzt. Problem mit fehlendem Text für SW_DHTXX
+  beseitigt (gemeldet von BroMarduk@EEVblog).
+- Symbolbitmap für UJT zu Standardsymbolen verschoben.
+
 v1.47m 2022-07
 - Korrektur von verdrehten Widerstandssymbolen in font_8x12t_iso8859-2_vfp.h
   und font_8x12t_iso8859-2_hf.h (gemeldet von b0hoon@EEVblog).
@@ -21,7 +51,7 @@ v1.47m 2022-07
 - Neuer Symbolsatz 32x39, ideal für Zeichensätze mit Höhe von 26 Pixel (
   SYMBOLS_32X39_HF, Dank an indman@EEVblog).
 - Optionen zum Halten von ESR und Induktivität für C und L-Monitor (
-  SW_MONITOR_HOLD_ESR, SW_MONITOR_HOLD_L, Vorschlag von theHWcav@EEVblog).
+  SW_MONITOR_HOLD_ESR, SW_MONITOR_HOLD_L, Vorschlag von theHWcave@EEVblog).
 - Zeichenübersetzung für inverse Testpinnummern in Serial_Char() ergänzt.
 - ST7735-Treiber um Option für /RESX auf separatem Port erweitert (
   LCD_RES_PORT, LCD_RES_DDR, nach Idee von lhlad@EEVblog).
@@ -108,7 +138,7 @@ v1.44m 2021-08
   ralleeiner@mikrocontroller.net).
 - Änderung der Entladefunktion: Bei einem Entladeproblem wird nun die
   unbelastete Spannung des DUTs gemessen und von der Entlade-Fehlermeldung
-  angezeift, z.B. die unbelastete Spannung einer Batterie.
+  angezeigt, z.B. die unbelastete Spannung einer Batterie.
 - Verdrehtes Diodensymbol für zweite Diode bei Ausgabe von anti-parallelen
   Dioden korrigiert (gemeldet von horo@EEVblog).
 - Option für low-aktives Backlight im HD44780-Treiber für PCF8574-I2C-Adapter

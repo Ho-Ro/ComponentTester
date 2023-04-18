@@ -83,19 +83,20 @@ int8_t CmpValue(uint32_t Value1, int8_t Scale1, uint32_t Value2, int8_t Scale2)
   Len1 = NumberOfDigits(Value1) + Scale1;
   Len2 = NumberOfDigits(Value2) + Scale2;
 
+  /* pre-process */
   if ((Value1 == 0) || (Value2 == 0))    /* special case */
   {
     Flag = 10;                /* perform direct comparison */
   }
   else if (Len1 > Len2)       /* more digits -> larger */
   {
-    Flag = 1;
+    Flag = 1;                 /* first value is larger */
   }
   else if (Len1 == Len2)      /* same length */
   {
     /* re-scale to longer value */
-    Len1 -= Scale1;
-    Len2 -= Scale2;
+    Len1 -= Scale1;           /* just number of digits */
+    Len2 -= Scale2;           /* just number of digits */
 
     while (Len1 > Len2)       /* up-scale Value #2 */
     {
@@ -115,14 +116,24 @@ int8_t CmpValue(uint32_t Value1, int8_t Scale1, uint32_t Value2, int8_t Scale2)
   }
   else                        /* less digits -> smaller */
   {
-    Flag = -1;
+    Flag = -1;                /* first value is smaller */
   }
 
-  if (Flag == 10)             /* perform direct comparison */
+  /* direct comparison */
+  if (Flag == 10)             /* requested direct comparison */
   {
-    if (Value1 > Value2) Flag = 1;
-    else if (Value1 < Value2) Flag = -1;
-    else Flag = 0;
+    if (Value1 > Value2)
+    {
+      Flag = 1;               /* first value is larger */
+    }
+    else if (Value1 < Value2)
+    {
+      Flag = -1;              /* first value is smaller */
+    }
+    else
+    {
+      Flag = 0;               /* values are equal */
+    }
   }
 
   return Flag;
@@ -136,6 +147,9 @@ int8_t CmpValue(uint32_t Value1, int8_t Scale1, uint32_t Value2, int8_t Scale2)
  *  requires:
  *  - value and scale (*10^x)
  *  - new scale (*10^x)
+ *
+ *  returns:
+ *  - rescaled value
  */
 
 uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
@@ -160,6 +174,70 @@ uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale)
 
   return NewValue;
 }
+
+
+
+#ifdef SW_R_TRIMMER
+
+/*
+ *  normalize values
+ *  - determine the most suitable scale factor
+ *
+ *  requires:
+ *  - value and scale (*10^x) of first value
+ *  - value and scale (*10^x) of second value
+ *
+ *  returns:
+ *  - normalized scale
+ */
+
+int8_t NormalizeValue(uint32_t Value1, int8_t Scale1, uint32_t Value2, int8_t Scale2)
+{
+  int8_t            NewScale;           /* return value */
+  int8_t            Len1, Len2;         /* length */
+
+  /* determine virtual length */
+  Len1 = NumberOfDigits(Value1) + Scale1;
+  Len2 = NumberOfDigits(Value2) + Scale2;
+
+  /* determine best scale */
+  if (Len1 > Len2)                 /* value #1 longer */
+  {
+    NewScale = Scale1;             /* use scale of value #1 */
+    Len1 -= Scale1;                /* just number of digits */
+    if (Len1 > 4)                  /* more than 4 digits (>9999) */
+    {
+      NewScale += (Len1 - 4);      /* scale up to 4 digits */
+    }
+  }
+  else if (Len2 > Len1)            /* value #2 longer */
+  {
+    NewScale = Scale2;             /* use scale of value #2 */
+    Len2 -= Scale2;                /* just number of digits */
+    if (Len2 > 4)                  /* more than 4 digits (>9999) */
+    {
+      NewScale += (Len2 - 4);      /* scale up to 4 digits */
+    }
+  }
+  else                             /* same length */
+  {
+    /* take scale of value with more digits */
+    Len1 -= Scale1;                /* just number of digits */
+    Len2 -= Scale2;                /* just number of digits */
+    if (Len1 > Len2)               /* value #1 has more digits */
+    {
+      NewScale = Scale1;           /* use scale of value #1 */
+    }
+    else                           /* value #2 has more digits or same number */
+    {
+      NewScale = Scale2;           /* use scale of value #2 */
+    }
+  }
+
+  return NewScale;
+}
+
+#endif
 
 
 
@@ -1230,9 +1308,14 @@ uint8_t ShortCircuit(uint8_t Mode)
   {
     /* tell user what to do */
     LCD_Clear();
-    Display_EEString(String);             /* display: Remove/Create */
-    Display_NextLine();
-    Display_EEString(ShortCircuit_str);   /* display: short circuit! */
+    #ifdef UI_CENTER_ALIGN
+      Display_CenterLine(2);                           /* center block: 2 lines */
+      Display_EEString_Center(String);                 /* display: Remove/Create */
+      Display_NL_EEString_Center(ShortCircuit_str);    /* display: short circuit! */
+    #else
+      Display_EEString(String);                   /* display: Remove/Create */
+      Display_NL_EEString(ShortCircuit_str);      /* display: short circuit! */
+    #endif
   }  
 
   /* wait until all probes are dis/connected */
@@ -1330,9 +1413,11 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
   #ifdef UI_COLORED_TITLES
   Display_UseTitleColor();    /* use title color */
   #endif
+
   Display_Colon();            /* display: <whatever>: */
+
   #ifdef UI_COLORED_TITLES
-  Display_UsePenColor();      /* use pen color */
+  Display_UseOldColor();      /* use old color */
   #endif
 
 
@@ -1398,7 +1483,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
     Run = 1;             /* reset loop flag (changed list) */
 
     /* show navigation help for 2-line displays */
-    if (Lines == 1)
+    if (Lines == 1)                /* display with two lines */
     {
       LCD_CharPos(UI.CharMax_X, UI.CharMax_Y);    /* set position to bottom right */
       if (Selected < Items)        /* another item follows */
@@ -2497,24 +2582,45 @@ uint8_t MainMenu(void)
     LCD_Clear();                        /* clear display */
     if (Flag == 0)                      /* on error */
     {
-      Display_EEString(Error_str);      /* display: error! */
+      #ifdef UI_CENTER_ALIGN
+        Display_CenterLine(1);               /* center block: 1 line */
+        Display_EEString_Center(Error_str);  /* display: error! */
+      #else
+        Display_EEString(Error_str);    /* display: error! */
+      #endif
     }
     else                                /* on success or exit */
     {
-      Display_EEString(Done_str);       /* display: done! */
+      #ifdef UI_CENTER_ALIGN
+        Display_CenterLine(1);               /* center block: 1 line */
+        Display_EEString_Center(Done_str);   /* display: done! */
+      #else
+        Display_EEString(Done_str);     /* display: done! */
+      #endif
     }
   #else
     /* will be called again by main() until explicit exit */
     if (Flag == 0)                      /* on error */
     {
       LCD_Clear();                      /* clear display */
-      Display_EEString(Error_str);      /* display: error! */
+      #ifdef UI_CENTER_ALIGN
+        Display_CenterLine(1);               /* center block: 1 line */
+        Display_EEString_Center(Error_str);  /* display: error! */
+      #else
+        Display_EEString(Error_str);    /* display: error! */
+      #endif
+
       WaitKey();                        /* wait for any key */
     }
     else if (Flag == KEY_EXIT)          /* on exit */
     {
       LCD_Clear();                      /* clear display */
-      Display_EEString(Done_str);       /* display: done! */
+      #ifdef UI_CENTER_ALIGN
+        Display_CenterLine(1);               /* center block: 1 line */
+        Display_EEString_Center(Done_str);   /* display: done! */
+      #else
+        Display_EEString(Done_str);     /* display: done! */
+      #endif
     }
   #endif
 

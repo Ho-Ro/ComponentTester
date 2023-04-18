@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit: 2022-06-13
+Last edit: 2022-12-13
 
 Content
   - About
@@ -144,7 +144,7 @@ sufficient time to tell us his wishes regarding the license. Since the source
 code of this firmware version is a major rewrite with tons of new code and
 features, I think that this approach is justified.
 
-Licensed under the EUPL V.1.1
+Licensed under the EUPL v. 1.2
 
 
 + Additional Disclaimer
@@ -1031,6 +1031,7 @@ to read.
 
 For displays with more then two text lines:
 - show key hints instead of cursor if available (UI_KEY_HINTS)
+- center-align infos and some other texts (UI_CENTER_ALIGN)
 
 For graphic displays:
 - all options listed before
@@ -1052,6 +1053,7 @@ For color graphic displays:
 - all options listed before
 - color coding for probes/testpins (UI_PROBE_COLORS)
 - dedicated color for titles (UI_COLORED_TITLES)
+- dedicated color for values (not units, UI_COLORED_VALUES)
 - dedicated color for cursor and key hints (UI_COLORED_CURSOR)
 - color code for resistors (SW_R_E24_5_CC, SW_R_E24_1_CC and SW_R_E96_CC)
 
@@ -1063,8 +1065,11 @@ integrated oscillator). The buzzer is controlled via a fixed pin (see
 BUZZER_CTRL in config_<MCU>.h) and can be driven directly (< 20mA) or by a
 transistor (NPN or n-channel MOSFET).
 
-At the moment the buzzer is only used by the continuity check. More use cases
-will be added in the future.
+At the moment the buzzer is used for
+- continuity check (SW_CONTINUITY_CHECK)
+- confirmation beep when probing is done (UI_PROBING_DONE_BEEP)
+- confirmation beep for valid frame/packet in IR receiver/decoder
+  (SW_IR_RX_BEEP)
 
 
 * Communication with PC
@@ -1160,6 +1165,9 @@ active during probing cycles.
 
 In both modes you can enter a menu with additional functions or power off
 the tester. For details please see below.
+
+With the buzzer harwdare option you can enable a short confirmation beep for
+a completed probing cycle (UI_PROBING_DONE_BEEP).
 
 
 * Battery Monitoring
@@ -1292,14 +1300,20 @@ measured is shown when the test button was pressed long enough for a stable test
 voltage. You may repeat this as long as you like. :) To exit the Zener tool
 press the test button twice quickly.
 
-If your tester has just a 10:1 voltage divider without boost converter for
-measuring an external voltage or the boost converter runs all the time, you
-can choose the alternative mode (ZENER_UNSWITCHED) which measures the voltage 
+The boost converter can also be driven by a dedicated I/O pin for a longer
+battery life (ZENER_SWITCHED).
+
+If your tester has just a 10:1 voltage divider without a boost converter for
+measuring an external voltage, or the boost converter runs all the time, you
+can choose an alternative mode (ZENER_UNSWITCHED) which measures the voltage
 periodically without pressing the test button. When you see the cursor at the
 bottom right between measurements you can exit the Zener tool by two short
-presses of the test button. There's another option to run the Zener check
-during normal probing (HW_PROBE_ZENER). When no component is found at the
-standard probes the tester will check for a voltage at the Zener probes. 
+presses of the test button.
+
+There's another option to run the Zener check during normal probing (
+HW_PROBE_ZENER). When no component is found at the standard probes the tester
+will check for a voltage at the Zener probes. This option is only available
+when either ZENER_UNSWITCHED or ZENER_SWITCHED is enabled.
 
 In case your tester has a non-standard voltage divider (not 10:1) enable
 ZENER_DIVIDER_CUSTOM and specify the resistor values (ZENER_R1 and ZENER_R2).
@@ -1441,7 +1455,7 @@ comparator or a Schmitt trigger logic gate seem to be the best choice to clean
 up the signal of the oscillator output. The CMOS quad NAND 4093 works fine for
 that. With a clean output signal the maximum capacitance is around 120nF (
 beyond that the LC oscillator becomes unstable). The tester enforces a lower
-frequency limit of 10kHz, i.e. the maximum values are theoretically 250nH
+frequency limit of 10kHz, i.e. the maximum values are theoretically 250mH
 or 3.5µF if the LC oscillator would run stable.
 
 When starting the LC Meter the tester will run a self-adjustment indicated
@@ -1618,7 +1632,7 @@ When the number of pulses stays the same for different buttons of the RC, the
 modulation is most likely PDM or PWM. A changing number of pulses indicates
 bi-phase modulation.  
 
-To exit the tool please press the test key. 
+To exit the tool please press the test key.
 
 Supported protocols and their data fields:
 
@@ -1681,8 +1695,11 @@ Optional protocols (SW_IR_RX_EXTRA):
     <device>:<function>
 
 The carrier frequency of the TSOP receiver module doesn't have to match the RC
-exactly. A mismatch reduces the possible range, but that doesn't matter much
+exactly. A mismatch reduces the maximum distance, but that doesn't matter much
 for this application.
+
+With the buzzer harwdare option you can enable a short confirmation beep for
+valid data frames/packets (SW_IR_RX_BEEP).
 
 
 - IR receiver module connected to probes
@@ -2116,10 +2133,12 @@ If the values differ too much the tester assumes that there are two resistors
 instead of just a single one. In that case the tester displays the result as
 two resistors with the same pins, like "1 -- 2 -- 1", and the two different
 resistance values. For resistors lower than 10 Ohms an extra measurement with
-a higher resolution is performed.
+a higher resolution is performed. In some rare cases the tester might not be
+able to detect a very low resistance. If that happens simply re-run the test.
 
-In some rare cases the tester might not be able to detect a very low
-resistance. If that happens simply re-run the test.
+For checking potentiometers or trimpots you can enable the additional output
+of the total resistance (Rt) and the ratio of the first resistor to the total
+resistance (R1) in % (SW_R_TRIMMER).
 
 When the optional check for E series norm values (SW_R_E*) is enabled the
 tester takes the next lower and next higher norm value and compares them with
@@ -2169,8 +2188,6 @@ be comparable with a 1kHz test. Anyway, the results are good enough to check
 electrolytic caps. For low value film caps you could get different results
 based on the MCU clock rate. I'd guess Mr. Fourier is able to explain this.
 
-Alternatively you can also enable the old ESR measurement method.
-
 Another measurement taken is the self-discharge leakage current for
 capacitors larger than 4.7 µF. It gives a hint about the state of an 
 electrolytic cap. From my tests the typical value for a good electrolytic
@@ -2179,6 +2196,9 @@ cap seems to be about:
   - 330-470 µF   4-5 µA
   - 470-820 µF   4-7 µA
   - >1000 µF     5-7 µA per 1000 µF
+
+If you're also interested in the voltage loss (in %) you can enable SW_C_VLOSS (
+for capacitors > 50nF).  
 
 The optional check for E series norm values is also available for capacitors (
 SW_C_E*), but only in text mode because there are simply too many different
@@ -2320,13 +2340,14 @@ quadrants. Usually some parameters will differ for each quadrant, like the
 gate trigger current (I_GT). In some cases it's possible that the tester's
 test current is sufficient to trigger the gate in one quadrant but not in
 another one. Since two test runs are needed to figure out the pins for MT1 and
-MT2 the tester won't be able to distinguish between them in those cases, i.e. 
+MT2, the tester won't be able to distinguish between them in those cases, i.e. 
 the pins could be swapped.
 
 You might also have TRIACs which can be triggered by the tester but have a too
 high holding current (I_H) preventing their correct detection. If a TRIAC's
-gate trigger current is too high the tester will detect just a resistor
-typically. 
+gate trigger current is too high the tester will detect typically just a
+resistor. It's also possible that the tester falsely shows an NPN with a
+parasitic BJT (NPN+) and base-emitter resistor.
 
 
 CLDs
@@ -2367,6 +2388,19 @@ workaround:
 
   Workaround:
   Enable NO_HFE_C_RL in config.h!
+
+
+- clone with SCT15L104W management MCU: tester turns off suddenly
+
+  Problem:
+  Tester turns off suddenly after the first probing cycle. Seems to be caused
+  by a voltage level issue (SCT15L104W is 3.3V, ATmega 5V).
+
+  Affected testers:
+  T7-H, presumably also other models of the TC-1 family 
+
+  Workaround:
+  Enable PASSIVE_POWER_CTRL in config.h!
 
 
 * Known Issues
@@ -2539,6 +2573,12 @@ Probing Commands:
   - applies to capacitor
   - example response: "3.25uA"
 
+  V_l
+  - returns V_loss (voltage loss due to self-discharge)
+  - requires output of self-discharge voltage loss to be enabled
+  - applies to capacitor > 4.7µF
+  - example response: "1.2%"
+
   V_F
   - returns V_F value (forward voltage)
   - applies to diode and PUT
@@ -2650,6 +2690,12 @@ Probing Commands:
   - requires Zener check during normal probing to be enabled
   - applies to Zener diode or external voltage (hardware option)
   - example response: "6750mV"
+
+  V_F_clamp
+  - returns V_F value of clamping diode (forward voltage)
+  - applies to Schottky transistor / Schottky-clamped BJT
+  - requires detection of Schottky transistor to be enabled
+  - example response: "354mV"
 
 
 * Helpful Links

@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2022-06-13
+Letzte Änderung: 2022-12-13
 
 Inhaltsübersicht:
   - Über den Tester
@@ -145,7 +145,7 @@ Lizenz mitzuteilen. Da diese Firmwareversion eine komplett neue Version ist,
 die lediglich ein paar Ideen der ursprünglichen Firmware aufgreift, aber
 keinen Code teilt, sollte dieses Vorgehen gerechtfertigt sein. 
 
-Lizenziert unter der EUPL V.1.1
+Lizenziert unter der EUPL v. 1.2
 
 
 + Zusätzliche Hinweise
@@ -1047,6 +1047,7 @@ verständlicher zu gestalten.
 
 Für Anzeigen mit mehr als zwei Textzeilen:
 - Anzeige von Tastenhinweisen statt Cursor, sofern verfügbar (UI_KEY_HINTS)
+- Infos und ein paar andere Text zentriert ausgeben (UI_CENTER_ALIGN)
 
 Für graphische Anzeigen:
 - alle vorherigen Optionen
@@ -1069,6 +1070,7 @@ Für farbige Grafikanzeigen:
 - alle vorherigen Optionen
 - Farbcodierung für Testpins (UI_PROBE_COLORS)
 - Titel mit eigener Farbe (UI_COLORED_TITLES)
+- Werte mit eigener Farbe (nicht Einheiten, UI_COLORED_VALUES)
 - Cursor und Tastenhinweise mit eigener Farbe (UI_COLORED_CURSOR)
 - Farbcode für Widerstände (SW_R_E24_5_CC, SW_R_E24_1_CC und SW_R_E96_CC)
 
@@ -1081,8 +1083,11 @@ festen Port-Pin kontrolliert (siehe BUZZER_CTRL in config_<MCU>.h) und kann
 direkt (< 20mA) bzw. über einen Transistor (NPN oder n-Kanal-MOSFET)
 angesteuert werden.
 
-Im Augenblick wird der Summer nur vom Durchgangstest benutzt. Weitere
-Anwendungsfälle werden in der Zukunft folgen.
+Im Augenblick wird der Summer benutzt für
+- Durchgangstest (SW_CONTINUITY_CHECK)
+- Bestätigungston nach Bauteilesuche (UI_PROBING_DONE_BEEP)
+- Bestätigungston für gültiges Datenpaket im IR-Empfänger/Decoder (
+  SW_IR_RX_BEEP)
 
 
 * Kommunikation mit PC
@@ -1182,6 +1187,9 @@ Hold-Modus gibt es eine optionale automatische Abschaltung (POWER_OFF_TIMEOUT),
 welche nur während der Bauteilesuche und Ausgabe aktiv ist.
 
 In beiden Modi kannst Du das Hauptmenü aufrufen (siehe weiter unten).
+
+Ist die Summer/Pieper-Option vorhanden, kannst Du einen kurzen Bestätigungston
+für das Ende der Bauteilesuche aktivieren (UI_PROBING_DONE_BEEP).
 
 
 * Batterieüberwachung
@@ -1324,15 +1332,21 @@ ausreichend lange für eine stabile Testspannung lief. Dieser Vorgang kann
 beliebig oft wiederholt werden. Zum Beenden die Test-Taste zweimal kurz
 hintereinander drücken.
 
+Der Boost-Konverter kann auch über einen festen I/O-Pin geschaltet werden (
+ZENER_SWITCHED), um die Batterielaufzeit zu erhöhen.
+
 Wenn Dein Tester nur den 10:1 Spannungsteiler ohne Boost-Konverter zum
 Messen einer externen Spannung hat, oder der Boost-Konverter ständig läuft,
-kannst Du den alternativen Modus (ZENER_UNSWITCHED) aktivieren, welcher
+kannst Du einen alternativen Modus (ZENER_UNSWITCHED) aktivieren, welcher
 die Spannung periodisch ohne Drücken der Test-Taste misst. Zeigt der Tester
 zwischen den Messungen unten rechts einen Cursor an, kannst Du den Zenertest 
-über zweimaliges Drücken der Test-Taste beenden. Als weitere Option kannst Du
-den Zenertest auch während der normalen Bauteilesuche automatisch laufen
-lassen (HW_PROBE_ZENER). Wird kein Bauteil an den normalen Testpins gefunden,
-prüft der Tester die Spannung an den Zener-Testpins.
+über zweimaliges Drücken der Test-Taste beenden.
+
+Als weitere Option kannst Du den Zenertest auch während der normalen Bauteile-
+suche automatisch laufen lassen (HW_PROBE_ZENER). Wird kein Bauteil an den
+normalen Testpins gefunden, prüft der Tester die Spannung an den Zener-Testpins.
+Diese Option steht nur zu Verfügung, sofern entweder ZENER_UNSWITCHED oder
+ZENER_SWITCHED aktiviert ist.
 
 Für den Fall, dass Dein Tester einen Nicht-Standard-Spannungsteiler hat (nicht
 10:1), aktiviere ZENER_DIVIDER_CUSTOM und setze die Widerstandswerte (ZENER_R1
@@ -1728,6 +1742,9 @@ Optionale Protokolle (SW_IR_RX_EXTRA):
 Die Trägerfrequenz vom TSOP IR-Empfängermodul muß nicht genau zur Fernsteuerung
 passen. Es verringert sich eigentlich nur die Reichweite, was für unseren Zweck
 aber kein Problem darstellt.
+
+Ist die Summer/Pieper-Option vorhanden, kannst Du einen kurzen Bestätigungston
+für gültige Daten-Pakete aktivieren (SW_IR_RX_BEEP).
 
 
 - IR-Empfängermodul an Testpins
@@ -2172,10 +2189,13 @@ dann verglichen. Wenn die Werte zu unterschiedlich sind, nimmt der Tester an,
 daß es zwei Widerstände sind und nicht nur einer. In dem Fall zeigt die
 Ausgabe zwei Widerstände mit gleichen Pins in der Form "1 -- 2 -- 1" mit den
 beiden Werten an. Für Widerstände kleiner als 10 Ohm wird eine zusätzliche
-Messung mit höherer Auflösung durchgeführt. 
+Messung mit höherer Auflösung durchgeführt. In seltenen Fällen kann der Tester
+sehr kleine Widerstände nicht erkennen. Am besten dann die Messung einfach
+wiederholen. 
 
-In seltenen Fällen kann der Tester sehr kleine Widerstände nicht erkennen. Am
-besten dann die Messung einfach wiederholen. 
+Zum Prüfen von Potentiometern bzw. Trimmern kann die zusätzliche Ausgabe vom
+Gesamtwiderstand (Rt) und dem Verhältnis des ersten Widerstands zum Gesamt-
+widerstand (R1) in % aktiviert werden (SW_R_TRIMMER).
 
 Wenn die optionale Prüfung auf E-Normwerte (SW_R_E*) aktiviert ist, nimmt
 der Tester den nächst kleineren und nächst größeren Normwert, und vergleicht
@@ -2235,6 +2255,9 @@ Von meinen Tests her scheinen folgende Werte typisch für Elkos zu sein:
   - 330-470 µF   4-5 µA
   - 470-820 µF   4-7 µA
   - >1000 µF     5-7 µA pro 1000 µF
+
+Wenn Du auch den Spannungsverlust in % wissen möchtest, dann aktiviere
+SW_C_VLOSS (für Kondensatoren > 50nF).
 
 Die optionale Prüfung auf E-Normwerte gibt es ebenfalls für Kondensatoren (
 SW_C_E*), aber nur im Text-Modus, da es einfach zu viele unterschiedliche
@@ -2389,7 +2412,9 @@ unterscheiden, d.h. sie könnten vertauscht sein.
 Manche TRIACs können vom Tester getriggert werden, haben aber einen zu hohen
 Haltestrom (I_H), wodurch sie nicht korrekt erkannt werden können. Wenn bei
 einem TRIAC der Triggerstom zu hoch für den Tester ist, wird er meistens
-als Widerstand erkannt.
+als Widerstand erkannt. Es ist auch möglich, dass der Tester einen
+vermeintlichen NPN mit parasitärem BJT (NPN+) und Basis-Emitter-Widerstand
+anzeigt.
 
 
 CLDs
@@ -2431,6 +2456,20 @@ versuchen:
 
   Abhilfe:
   Aktiviere NO_HFE_C_RL in config.h!
+
+
+- Tester mit SCT15L104W Management-MCU: Tester schaltet sich plötzlich ab
+
+  Problem:
+  Tester schaltet sich plötzlich nach der ersten Bauteilesuche ab. Wird
+  wahrscheinlich durch unterschiedliche Spannungspegel verursacht (SCT15L104W
+  hat 3,3V, der ATmega 5V)
+
+  Betroffene Tester:
+  T7-H, wahrscheinlich auch andere Modelle der TC-1-Familie
+
+  Abhilfe:
+  Aktiviere PASSIVE_POWER_CTRL in config.h!
 
 
 * Bekannte Probleme
@@ -2605,6 +2644,12 @@ Testkommandos:
   - nur für Kondensator
   - Beispielantwort: "3.25uA"
 
+  V_l
+  - gibt V_loss zurück (Spannungsverlust durch Selbstentladung)
+  - benötigt aktivierte Ausgabe des Spannungsverlusts durch Selbstentladung
+  - nur für Kondensator > 4.7µF
+  - Beispielantwort: "1.2%"
+
   V_F
   - gibt V_F zurück (forward voltage)
   - nur für Diode und PUT
@@ -2713,9 +2758,15 @@ Testkommandos:
 
   V_Z
   - gibt V_Z zurück (Zener- oder externe Spannung)
-  - benötigt aktvierten Zener-Test während normaler Bauteilesuche
+  - benötigt aktivierten Zener-Test während normaler Bauteilesuche
   - nur für Zenerdiode oder externe Spannung (Hardware-Option)
   - Beispielantwort: "6750mV"
+
+  V_F_clamp
+  - gibt V_F der Klemmdiode zurück (forward voltage)
+  - nur für Schottky-Transistor
+  - benötigt aktivierte Erkennung von Schottky-Transistor
+  - Beispielantwort: "354mV"
 
 
 * Hilfreiche Links

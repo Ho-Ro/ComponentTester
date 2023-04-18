@@ -2,7 +2,7 @@
  *
  *   capacitor measurements
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2022 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -991,15 +991,26 @@ large_cap:
     TempInt = Pulses;
     while (TempInt > 0)
     {
-      TempInt--;                        /* descrease timeout */
+      TempInt--;                        /* decrease timeout */
       U_Drop = ReadU(Probes.Ch_1);      /* get voltage */
-      U_Drop -= U_Zero;                 /* zero offset */
+      U_Drop -= U_Zero;                 /* subtract zero offset */
       wdt_reset();                      /* reset watchdog */
     }
 
     /* calculate voltage drop */
-    if (U_Cap > U_Drop) U_Drop = U_Cap - U_Drop;
-    else U_Drop = 0;
+    if (U_Cap > U_Drop)            /* sanity check */
+    {
+      U_Drop = U_Cap - U_Drop;     /* voltage drop */
+
+      #ifdef SW_C_VLOSS
+      /* voltage loss in 0.1% */
+      Cap->U_loss = (uint16_t)((unsigned long)(U_Drop * 1000UL) / U_Cap);
+      #endif
+    }
+    else                           /* bad values */
+    {
+      U_Drop = 0;                  /* zero drop */
+    }
 
     /* if voltage drop is too large, consider DUT not to be a cap */
     if (U_Drop > 100) Flag = 0;
@@ -1026,7 +1037,20 @@ large_cap:
     /* calculate voltage drop */
     if (U_Zero > TempInt)               /* sanity check */
     {
+      #if 0
+      /* SW_C_VLOSS alternative */
+      uint16_t           U_Temp;        /* temp. value */
+
+      U_Temp = U_Zero;                  /* save voltage */
+      #endif
+
       U_Zero -= TempInt;                /* voltage drop */
+
+      #if 0
+      /* SW_C_VLOSS alternative */
+      /* voltage loss in 0.1% */
+      Cap->U_loss = (unsigned long)(U_Zero * 1000UL) / U_Temp;
+      #endif
     }
     else                                /* no drop */
     {
@@ -1103,8 +1127,14 @@ large_cap:
     }
     /* long pulses: / 1s */
 
-    Raw = RescaleValue(Value, Scale, -8);    /* rescale to 10nA */
-    Cap->I_leak = Raw;                       /* leakage current (in 10nA) */
+    while (Value > UINT16_MAX)     /* scale to uint16_t */
+    {
+      Value /= 10;
+      Scale++;
+    }
+
+    Cap->I_leak_Value = (uint16_t)Value;     /* save result */
+    Cap->I_leak_Scale = Scale;
   }
 
   return Flag;
@@ -1266,7 +1296,7 @@ uint8_t SmallCap(Capacitor_Type *Cap)
    *  - use factor from pre-calculated SmallCap_table
    */
 
-  if (Flag == 3)
+  if (Flag == 3)              /* measurement successful */
   {
     /*  combine both counter values */
     Raw = (uint32_t)Ticks;                /* set lower 16 bits */
@@ -1332,12 +1362,11 @@ uint8_t SmallCap(Capacitor_Type *Cap)
 
 
     #ifndef HW_ADJUST_CAP
-
     /*
      *  Self-adjust the voltage offset of the analog comparator and internal
      *  bandgap reference if C is 100nF up to 20µF. The minimum of 100nF
      *  should keep the voltage stable long enough for the measurements. 
-     *  Changed offsets will be used in next test run.
+     *  Changed offsets will be used in the next test run.
      */
 
     if (((Scale == -12) && (Value >= 100000)) ||
@@ -1410,6 +1439,91 @@ uint8_t SmallCap(Capacitor_Type *Cap)
       }
     }
     #endif
+
+    #ifdef SW_C_VLOSS
+    uint16_t             U_Zero;        /* zero offset */
+
+    /*
+     *  get V_loss (in 0.1%)
+     *  - discharge cap and measure voltage offset
+     *  - charge cap for a specific time and measure start voltage
+     *  - wait for a specific time and measure end voltage
+     *  - calculate V_loss
+     *  - based on Karl-Heinz' GetVloss()
+     */
+
+    if (CmpValue(Value, Scale, 50, -9) == 1)      /* > 50nF */
+    {
+      /* use value in 10nF for timing */
+      Ticks = RescaleValue(Value, Scale, -8);     /* rescale to 10nF */
+
+      /* discharge cap */
+      DischargeProbes();                          /* try to discharge probes */
+      if (Check.Found == COMP_ERROR) return 0;    /* skip on error */
+
+      /* get zero offset */
+      /* set probes: Gnd -- probe-2 / Gnd -- Rl -- probe-1 */
+      ADC_PORT = 0;                     /* set ADC port to low */      
+      ADC_DDR = Probes.Pin_2;           /* pull down probe #2 directly */
+      R_PORT = 0;                       /* set R port to low */
+      R_DDR = Probes.Rl_1;              /* pull down probe #1 via Rl */
+      U_Zero = ReadU(Probes.Ch_1);      /* voltage at probe #1 */
+
+      /* charge cap for a specific time (half of time units) */
+      /* set probes: Gnd -- probe-2 / probe-1 -- Rl - Vcc */
+      R_PORT = Probes.Rl_1;             /* pull up probe #1 via Rl */
+      Ticks2 = Ticks / 2;               /* 50% of time units */
+      while (Ticks2)                    /* delay loop */
+      {
+        wait5us();                      /* wait 5µs */
+        Ticks2--;                       /* next time unit */
+      }
+
+      /* get start voltage */
+      /* set probes: Gnd -- probe-2 / probe-1 -- HiZ */
+      R_DDR = 0;                        /* set R port to HiZ mode */
+      R_PORT = 0;                       /* set R port to low */
+      wdt_reset();                      /* reset watchdog */
+      Cfg.Samples = 5;                  /* just 5 samples to reduce loss of charge */
+      Ticks2 = ReadU(Probes.Ch_1);      /* voltage at probe #1 */
+      if (Ticks2 > U_Zero)              /* sanity check */
+      {
+        Ticks2 -= U_Zero;               /* consider zero offset */
+      }
+      else                              /* no voltage rise */
+      {
+        Ticks2 = 0;                     /* reset voltage */
+      }
+
+      /* wait for a specific time (full time) */
+      while (Ticks)                     /* delay loop */
+      {
+        wait5us();                      /* wait 5µs */
+        Ticks--;                        /* next time unit */
+      }
+
+      /* get end voltage */
+      Ticks = ReadU(Probes.Ch_1);       /* voltage at probe #1 */
+      Cfg.Samples = ADC_SAMPLES;        /* set ADC samples back to default */
+      wdt_reset();                      /* reset watchdog */
+      if (Ticks > U_Zero)               /* sanity check */
+      {
+        Ticks -= U_Zero;                /* consider zero offset */
+      }
+      else                              /* no voltage rise */
+      {
+        Ticks = 0;                      /* reset voltage */
+      }
+
+      /* calculate V_loss */
+      if (Ticks2 > Ticks)               /* sanity check */
+      {
+        U_Zero = Ticks2 - Ticks;        /* voltage drop */
+        /* voltage loss in 0.1% */
+        Cap->U_loss = (uint16_t)((unsigned long)(U_Zero * 500UL) / Ticks2);
+      }
+    }
+    #endif
   }
 
   return Flag;
@@ -1439,13 +1553,16 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
    */
 
   /* reset cap data */
-  Cap = &Caps[ID];
+  Cap = &Caps[ID];            /* get pointer */
   Cap->A = 0;
   Cap->B = 0;
   Cap->Scale = -12;           /* pF by default */
   Cap->Raw = 0;
   Cap->Value = 0;
-  Cap->I_leak = 0;
+  Cap->I_leak_Value = 0;
+  #ifdef SW_C_VLOSS
+  Cap->U_loss = 0;
+  #endif
 
   if (Check.Found == COMP_ERROR) return;    /* skip check on any error */
 

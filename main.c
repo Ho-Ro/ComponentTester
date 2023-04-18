@@ -434,13 +434,20 @@ void Show_ENormEIA96(uint32_t Value, int8_t Scale)
 
 /*
  *  show failed test
+ *  - no component found
  */
 
 void Show_Fail(void)
 {
   /* display info */
-  Display_EEString(Failed1_str);        /* display: No component */
-  Display_NL_EEString(Failed2_str);     /* display: found! */
+  #ifdef UI_CENTER_ALIGN
+    Display_CenterLine(2);                        /* center block: 2 lines */
+    Display_EEString_Center(Failed1_str);         /* display: No component */
+    Display_NL_EEString_Center(Failed2_str);      /* display: found! */
+  #else
+    Display_EEString(Failed1_str);      /* display: No component */
+    Display_NL_EEString(Failed2_str);   /* display: found! */
+  #endif
 
   #ifdef UI_QUESTION_MARK
   /* display question mark symbol */
@@ -463,6 +470,7 @@ void Show_Error()
 {
   if (Check.Type == TYPE_DISCHARGE)          /* discharge failed */
   {
+    /* possibly a voltage source */
     Display_EEString(DischargeFailed_str);   /* display: Battery? */
 
     /* display probe number and remaining voltage */
@@ -666,7 +674,7 @@ void Show_Resistor(void)
   }
 
   #ifdef UI_COLORED_TITLES
-  Display_UsePenColor();           /* use pen color */
+  Display_UseOldColor();           /* use old color */
   #endif
 
 
@@ -684,6 +692,32 @@ void Show_Resistor(void)
   {
     Display_Space();
     Display_Value(R2->Value, R2->Scale, LCD_CHAR_OMEGA);
+
+    #ifdef SW_R_TRIMMER
+    /* potentiometer/trimpot */
+    uint32_t        R_Value;       /* value of R1 */
+    uint32_t        Rt_Value;      /* value of R_t */
+    int8_t          Scale;         /* scale of R1 and R_t */
+
+    /* normalize R1 and R2 */
+    Scale = NormalizeValue(R1->Value, R1->Scale, R2->Value, R2->Scale);
+    R_Value = RescaleValue(R1->Value, R1->Scale, Scale);    /* normalized R1 */
+    Rt_Value = RescaleValue(R2->Value, R2->Scale, Scale);   /* normalized R2 */
+
+    Rt_Value += R_Value;                     /* R2 + R1 */
+    if (Rt_Value > 0)                        /* sanity check */
+    {
+      /* show sum: R1 + R2 */
+      Display_NL_EEString_Space(R_t_str);         /* display: R_t */
+      Display_Value(Rt_Value, Scale, LCD_CHAR_OMEGA);  /* display sum */
+
+      /* show ratio (in %): R1 / (R1 + R2) */
+      Display_NL_EEString_Space(r_R1_str);        /* display: R1 */
+      R_Value *= 100;                             /* for % */
+      R_Value /= Rt_Value;                        /* R1 / (R1 + R2) */
+      Display_Value(R_Value, 0, '%');             /* display ratio in % */
+    }
+    #endif
   }
   #ifdef SW_INDUCTOR
   else                   /* single resistor */
@@ -840,7 +874,7 @@ void Show_Capacitor(void)
   Display_ProbeNumber(MaxCap->B);  /* display pin #2 */
 
   #ifdef UI_COLORED_TITLES
-  Display_UsePenColor();           /* use pen color */
+  Display_UseOldColor();           /* use old color */
   #endif
 
 
@@ -871,12 +905,21 @@ void Show_Capacitor(void)
    *  display additional stuff
    */
 
-  /* display discharge leakage current in next line */
-  if (MaxCap->I_leak > 0)
+  /* display self-discharge equivalent leakage current */
+  if (MaxCap->I_leak_Value > 0)         /* got value */
   {
     Display_NL_EEString_Space(I_leak_str);
-    Display_Value(MaxCap->I_leak, -8, 'A');  /* in 10nA */
+    Display_Value(MaxCap->I_leak_Value, MaxCap->I_leak_Scale, 'A');  /* in A */
   }
+
+  #ifdef SW_C_VLOSS
+  /* display self-discharge voltage loss in % */
+  if (MaxCap->U_loss > 0)               /* got value */
+  {
+    Display_NL_EEString_Space(U_loss_str);
+    Display_Value(MaxCap->U_loss, -1, '%');  /* in 0.1% */
+  }
+  #endif
 
   #ifdef SW_C_E6_T
   /* show E series norm values for E6 20% */
@@ -1105,7 +1148,7 @@ void Show_Diode(void)
   }
 
   #ifdef UI_COLORED_TITLES
-  Display_UsePenColor();           /* use pen color */
+  Display_UseOldColor();           /* use old color */
   #endif
 
 
@@ -1507,6 +1550,7 @@ void Show_BJT(void)
    *  Schottky transistor / Schottky-clamped BJT
    *  - V_BC of a Germanium BJT is as low as V_f of a Schottky diode.
    *    So we check only Silicon BJTs.
+   *  - display V_f of clamping diode
    */
 
   /* check for Si BJT */
@@ -1530,7 +1574,7 @@ void Show_BJT(void)
         #ifdef UI_SERIAL_COMMANDS
         /* set data for remote commands */
         Info.Flags |= INFO_BJT_SCHOTTKY;     /* Schottky-clamped BJT */
-//        Info.Comp2 = Diode;                  /* link diode */
+        Info.Comp2 = Diode;                  /* link clamping diode */
         #endif
       }
     }
@@ -1744,7 +1788,7 @@ void Show_FET(void)
   if (Check.Type & TYPE_MOSFET) Show_FET_Mode();
 
   #ifdef UI_COLORED_TITLES
-  Display_UsePenColor();           /* use pen color */
+  Display_UseOldColor();           /* use old color */
   #endif
 
 
@@ -1811,7 +1855,7 @@ void Show_IGBT(void)
   Show_FET_Mode();                 /* display mode */
 
   #ifdef UI_COLORED_TITLES
-  Display_UsePenColor();           /* use pen color */
+  Display_UseOldColor();           /* use old color */
   #endif
 
   #ifndef UI_NO_TEXTPINOUT
@@ -2074,12 +2118,23 @@ void PowerOff(void)
   #ifdef LCD_COLOR
   UI.PenColor = COLOR_INFO;             /* set pen color */
   #endif
-  Display_EEString(Bye_str);            /* display: Bye! */
+  #ifdef UI_CENTER_ALIGN
+    Display_CenterLine(1);              /* center block: 1 line */
+    Display_EEString_Center(Bye_str);   /* display: Bye! */
+  #else
+    Display_EEString(Bye_str);          /* display: Bye! */
+  #endif
 
+  /* disable stuff */
   cli();                                /* disable interrupts */
   wdt_disable();                        /* disable watchdog */
+
+  /* power down */
   #ifdef POWER_SWITCH_SOFT
-  POWER_PORT &= ~(1 << POWER_CTRL);     /* power off myself */
+  POWER_PORT &= ~(1 << POWER_CTRL);     /* power off myself: set pin low */
+    #ifdef PASSIVE_POWER_CTRL
+    POWER_DDR |= (1 << POWER_CTRL);     /* set pin to output mode */
+    #endif
   #endif
 
   /*
@@ -2245,9 +2300,14 @@ int main(void)
    */
 
   #ifdef POWER_SWITCH_SOFT
-  /* switch on power to keep me alive */
-  POWER_DDR = (1 << POWER_CTRL);        /* set pin as output */
-  POWER_PORT = (1 << POWER_CTRL);       /* set pin to drive power management transistor */
+    #ifdef PASSIVE_POWER_CTRL
+      /* switch on power to keep me alive (passive way) */
+      /* pin in input mode and low by default */
+    #else
+      /* switch on power to keep me alive (standard way) */
+      POWER_DDR = (1 << POWER_CTRL);        /* set pin as output */
+      POWER_PORT = (1 << POWER_CTRL);       /* set pin high to drive power management transistor */
+    #endif
   #endif
 
   /* set up MCU */
@@ -2332,7 +2392,7 @@ int main(void)
 
   /*
    *  watchdog was triggered (timeout 2s)
-   *  - This is after the MCU done a reset driven by the watchdog.
+   *  - This is after the MCU has performed a reset driven by the watchdog.
    *  - Does only work if the capacitor at the base of the power management
    *    transistor is large enough to survive a MCU reset. Otherwise the
    *    tester simply loses power.
@@ -2340,17 +2400,32 @@ int main(void)
 
   if (Test)
   {
-    /* Display was initialized before but some global variables in the driver
-       might be zeroed. Drivers with line tracking won't clear screen. */
+    /*
+     *  inform user
+     *  - Display was initialized before but some global variables in the
+     *    driver might be zeroed. Drivers with line tracking won't clear screen.
+     */
+
     LCD_Clear();                        /* clear display */
     #ifdef LCD_COLOR
     UI.PenColor = COLOR_ERROR;          /* set pen color */
     #endif
-    Display_EEString(Timeout_str);      /* display: timeout */
-    Display_NL_EEString(Error_str);     /* display: error */
+    #ifdef UI_CENTER_ALIGN
+      Display_CenterLine(2);                 /* center block: 2 lines */
+      Display_EEString_Center(Timeout_str);  /* display: timeout */
+      Display_NL_EEString_Center(Error_str); /* display: error */
+    #else
+      Display_EEString(Timeout_str);    /* display: timeout */
+      Display_NL_EEString(Error_str);   /* display: error */
+    #endif
     MilliSleep(2000);                   /* give user some time to read */
+
+    /* power down */
     #ifdef POWER_SWITCH_SOFT
-      POWER_PORT &= ~(1 << POWER_CTRL);      /* power off myself */
+      POWER_PORT &= ~(1 << POWER_CTRL);      /* power off myself: set pin low */
+      #ifdef PASSIVE_POWER_CTRL
+      POWER_DDR |= (1 << POWER_CTRL);        /* set pin to output mode */
+      #endif
     #elif defined (POWER_SWITCH_MANUAL)
       /* enter sleep mode to prevent any further action */
       /* user should power off tester */
@@ -2441,9 +2516,21 @@ int main(void)
    */
 
   #ifdef HW_BUZZER
-  /* set up port pin for buzzer control */
-  BUZZER_PORT &= ~(1 << BUZZER_CTRL);        /* off by default */
-  BUZZER_DDR |= (1 << BUZZER_CTRL);          /* enable output */
+  /* set up port pin for buzzer control: off by default */
+  BUZZER_PORT &= ~(1 << BUZZER_CTRL);   /* set pin low */
+  BUZZER_DDR |= (1 << BUZZER_CTRL);     /* enable output */
+  #endif
+
+  #ifdef ZENER_SWITCHED
+  /* set up port pin for boost converter control: off by default */
+    #ifdef ZENER_BOOST_HIGH
+      /* high active */
+      BOOST_PORT &= ~(1 << BOOST_CTRL);    /* set pin low */
+    #else
+      /* low active */
+      BOOST_PORT |= (1 << BOOST_CTRL);     /* set pin high */
+    #endif
+  BOOST_DDR |= (1 << BOOST_CTRL);          /* enable output */
   #endif
 
 
@@ -2475,8 +2562,14 @@ int main(void)
   Display_Serial_On();                  /* enable serial output & NL */
   #endif
 
-  Display_EEString(Tester_str);         /* display: Component Tester */
-  Display_NL_EEString(Version_str);     /* display firmware version */
+  #ifdef UI_CENTER_ALIGN
+    Display_CenterLine(2);                   /* center block: 2 lines */
+    Display_EEString_Center(Tester_str);     /* display: Component Tester */
+    Display_NL_EEString_Center(Version_str); /* display firmware version */
+  #else
+    Display_EEString(Tester_str);       /* display: Component Tester */
+    Display_NL_EEString(Version_str);   /* display firmware version */
+  #endif
 
   #ifdef SW_DISPLAY_ID
   /* show ID of display controller */
@@ -2528,7 +2621,12 @@ int main(void)
     if (Test == 0)                 /* error */
     {
       LCD_ClearLine2();
-      Display_EEString(Error_str);      /* display: Error */
+      #ifdef UI_CENTER_ALIGN
+        Display_CenterLine(1);               /* center block: 1 line */
+        Display_EEString_Center(Error_str);  /* display: Error */
+      #else
+        Display_EEString(Error_str);    /* display: Error */
+      #endif
       MilliSleep(1000);                 /* smooth UI */
       TestKey(2500, CURSOR_BLINK | CHECK_OP_MODE | CHECK_BAT);
     }
@@ -2613,12 +2711,12 @@ cycle_start:
 
   #ifdef BAT_NONE
     /* no battery monitoring */
-    Display_EEString(Tester_str);       /* display: Component Tester */
+    Display_EEString(Tester_str);       /* display (line #1): Component Tester */
   #else
     /* battery monitoring */
     CheckBattery();                     /* check battery voltage */
                                         /* will power off on low battery */
-    ShowBattery();                      /* display battery status */
+    ShowBattery();                      /* display (line #1) battery status */
   #endif
 
 
@@ -2636,7 +2734,15 @@ cycle_start:
   #endif
 
   /* display start of probing */
-  Display_NL_EEString(Probing_str);     /* display: probing... */
+  #ifdef UI_CENTER_ALIGN
+    Display_CenterLine(1);                   /* center block: 1 line */
+    /* move text left by one char for optional ' C' */
+    UI.CharMax_X--;                          /* simulate shorter line */
+    Display_EEString_Center(Probing_str);    /* display: probing... */
+    UI.CharMax_X++;                          /* original line size */
+  #else
+    Display_NL_EEString(Probing_str);        /* display (line #2): probing... */
+  #endif
 
   /* try to discharge any connected component */
   DischargeProbes();
@@ -2717,6 +2823,13 @@ show_component:
   {
     Info.Quantity = 1;             /* got one at least */
   }
+  #endif
+
+  #ifdef UI_PROBING_DONE_BEEP
+  /* buzzer: short beep for probing result (probing done) */
+  BUZZER_PORT |= (1 << BUZZER_CTRL);    /* enable: set pin high */
+  MilliSleep(20);                       /* wait for 20 ms */
+  BUZZER_PORT &= ~(1 << BUZZER_CTRL);   /* disable: set pin low */
   #endif
 
   /* call output function based on component type */

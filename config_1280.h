@@ -1004,16 +1004,6 @@
 
 
 
-/*
- *  check if a LCD module is specified
- */
-
-#if !defined(LCD_TEXT) && !defined(LCD_GRAPHIC)
-  #error <<< No LCD module specified! >>>
-#endif
-
-
-
 /* ************************************************************************
  *   touchscreen (optional)
  * ************************************************************************ */
@@ -1058,10 +1048,9 @@
 
 /*
  *  test pins / probes:
- *  - Must be an ADC port
- *    - Port K (ADC8-15) not supported
- *  - Lower 3 pins of the port must be used for probes.
- *  - Please don't change the definitions of TP1, TP2 and TP3!
+ *  - Must be an ADC port!
+ *    - Port K (ADC8-15) is not supported.
+ *  - It's recommended to use the lower 3 pins for the probes.
  *  - Don't share this port with POWER_CTRL or TEST_BUTTON!
  */
 
@@ -1307,6 +1296,14 @@
 #define MAX31855_DDR     DDRA      /* port data direction register */
 #define MAX31855_CS      PA2       /* port pin used for /CS */
 
+
+/*
+ *  boost converter for Zener check (dedicated I/O pin)
+ */
+
+#define BOOST_PORT       PORTA     /* port data register */
+#define BOOST_DDR        DDRA      /* port data direction register */
+#define BOOST_CTRL       PA2       /* control pin */
 
 
 /*

@@ -47,7 +47,11 @@ DIY Kit "AY-AT" / GM328A
 Hints:
 - Some GM328A have an ST7735 semi-compatible display which won't run with the
   standard ST7735 driver. On those modules the level shifter is followed by an
-  additional IC (U3). In this case use the Semi-ST7735 driver.
+  additional IC (U3, some MCU). In this case use the Semi-ST7735 driver.
+- The model with a round PCB uses also an ST7735 semi-compatible display. This
+  one comes with a level shifter (CD4050) followed by a shift register (
+  74HC164) and some MCU on the main PCB. The display doesn't support high
+  SPI clock rates. So dont run the ATmega with any clock rate higher than 8MHz.
 
 Hardware Options:
 #define HW_ENCODER
@@ -275,6 +279,10 @@ Hardware Options:
 #define FREQ_COUNTER_PRESCALER     16   /* 16:1 */
 #define HW_ADJUST_CAP
 
+Optionally with boost converter driver mod:
+#define ZENER_SWITCHED
+#define ZENER_BOOST_LOW                 /* low active */
+
 Workarounds:
 #define NO_HFE_C_RL                     /* if hFE values too high */
 
@@ -440,6 +448,10 @@ T3/T4
 - settings provided by tom666@EEVblog
 - LCD_RESET could be also PD0
 
+Beware:
+- Some newer T4 come with an APT32F172K8T6 (fake Atmel marking) instead of
+  an ATmega328. This MCU is not supported.
+
 LCD module:
 #define LCD_ST7565R
 #define LCD_GRAPHIC                     /* graphic display */
@@ -472,6 +484,53 @@ Some T4 variants use a slightly different pin assignment for the display:
 
 ------------------------------------------------------------------------------
 
+Multifunction Tester LCR-T5
+- ATmega328, 8MHz clock
+- ST7565 display (bit-bang SPI)
+- settings provided by techie@EEVblog
+
+Hardware Options:
+#define HW_REF25
+
+LCD module:
+#define LCD_ST7565R                     /* display controller ST7565R */
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_SPI                         /* SPI interface */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RESET        PD2            /* port pin used for /RES (optional) */
+#define LCD_CS           PD5            /* port pin used for /CS1 (optional) */
+#define LCD_A0           PD1            /* port pin used for A0 */
+#define LCD_SCL          PD3            /* port pin used for SCL */
+#define LCD_SI           PD4            /* port pin used for SI (data input) */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       64             /* number of vertical dots */
+//#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
+//#define LCD_FLIP_X                      /* enable horizontal flip */
+#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_START_Y      0              /* start line (0-63) */
+#define LCD_CONTRAST     25             /* default contrast 22 (0-63) */
+#define FONT_8X8_VF                     /* 8x8 font */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+#define SPI_BITBANG                     /* bit-bang SPI */
+#define SPI_PORT         LCD_PORT       /* SPI port data register */
+#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
+#define SPI_SCK          LCD_SCL        /* port pin used for SCK */
+#define SPI_MOSI         LCD_SI         /* port pin used for MOSI */
+
+In case the LCD contrast doesn't work properly edit function LCD_Init() in
+ST7565R.c and change
+
+  /* set contrast: resistor ratio 6.5 */
+  LCD_Cmd(CMD_V0_RATIO | FLAG_RATIO_65);
+
+to
+
+  /* set contrast: resistor ratio 4.5 */
+  LCD_Cmd(CMD_V0_RATIO | FLAG_RATIO_45);
+
+------------------------------------------------------------------------------
+
 Multifunction Tester TC-1 and family (T7) with ATmega324/644
 - ATmega324 (very poor pin assignment), 16MHz clock
   later models may have an ATmega644
@@ -479,12 +538,17 @@ Multifunction Tester TC-1 and family (T7) with ATmega324/644
 - external 2.5V voltage reference (TL431)
 - fixed IR receiver module
 - boost converter for Zener check
-  (runs all the time, non-standard voltage divider 100k/12k)
+  (runs all the time, non-standard voltage divider 100k/12k,
+  no constant current source, just series resistor)
 - fixed adjustment cap
   (in case of problems replace MLCC with 220nF film cap)
 - powered by Li-Ion cell 3.7V
 - sample testers provided by jellytot@EEVblog and joystik@EEVblog
 - initial information provided by indman@EEVblog
+
+Beware:
+- Some newer T7 come with an APT32F172K8T6 (fake Atmel marking) instead of
+  an ATmega328. This MCU is not supported.
 
 Hints:
 - Control MCU U4 (STC15L104W) needs to be replaced with a simple two-transistor
@@ -509,6 +573,8 @@ Hints:
   PB5 (display's D/C) and PB6 (display's SDA).
 - You can also get the frequency counter by using PB0 (T0) as input und
   adding a simple input stage.
+- In case the tester turns off suddenly after the first probing cycle try to
+  enable the workaround option PASSIVE_POWER_CTRL.
 - PD0 solder bridge (open: pull-up, shorted: Gnd, unused by m-firmware)
 
 Hardware Options:
@@ -525,6 +591,9 @@ Optionally:
 #define HW_PROBE_ZENER
 #define ZENER_VOLTAGE_MIN     1000      /* min. voltage in mV */
 #define ZENER_VOLTAGE_MAX     40000     /* max. voltage in mV */
+
+Workarounds (if required):
+#define PASSIVE_POWER_CTRL              /* if tester turns off suddenly */
 
 Power management settings:
 #define BAT_DIRECT
@@ -605,13 +674,16 @@ Multifunction Tester T7 with ATmega328
   /RESET line on separate MCU port
 - fixed IR receiver module
 - boost converter for Zener check
-  (runs all the time, about 26V, non-standard voltage divider 100k/12k)
+  (runs all the time, about 26V, non-standard voltage divider 100k/12k,
+  no constant current source, just series resistor)
 - connector for serial TTL interface (J5, 5V)
 - settings provided by lhlad@EEVblog (see https://gitlab.com/a11059/t7_328_m)
 
 Hints:
 - This model can't provide any signal output (PWM/squarewave/etc.).
 - Purpose of additional MCU (STC15L104W) is unknown.
+- In case the tester turns off suddenly after the first probing cycle try to
+  enable the workaround option PASSIVE_POWER_CTRL.
 
 Hardware Options:
 #define HW_ZENER
@@ -625,6 +697,9 @@ Optionally:
 #define HW_PROBE_ZENER
 #define ZENER_VOLTAGE_MIN     500
 #define ZENER_VOLTAGE_MAX     25500
+
+Workarounds (if required):
+#define PASSIVE_POWER_CTRL              /* if tester turns off suddenly */
 
 Power management settings:
 #define BAT_DIRECT

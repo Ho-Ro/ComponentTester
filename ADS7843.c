@@ -579,13 +579,24 @@ uint8_t Touch_Adjust(void)
 
   /* tell user */
   LCD_Clear();                     /* clear display */
-  LCD_CharPos(1, 1);
+  LCD_CharPos(1, 1);               /* do we need LCD_CharPos()? */
   // todo: make sure we output string only to display
   #ifdef UI_COLORED_TITLES
-    /* display: Touch Setup */
-    Display_ColoredEEString(TouchSetup_str, COLOR_TITLE);
+    #ifdef UI_CENTER_ALIGN
+      Display_CenterLine(1);                      /* center block: 1 line */
+      /* display: Touch Setup */
+      Display_ColoredEEString_Center(TouchSetup_str, COLOR_TITLE);
+    #else
+      /* display: Touch Setup */
+      Display_ColoredEEString(TouchSetup_str, COLOR_TITLE);
+    #endif
   #else
-    Display_EEString(TouchSetup_str);   /* display: Touch Setup */
+    #ifdef UI_CENTER_ALIGN
+      Display_CenterLine(1);                      /* center block: 1 line */
+      Display_EEString_Center(TouchSetup_str);    /* display: Touch Setup */
+    #else
+      Display_EEString(TouchSetup_str);      /* display: Touch Setup */
+    #endif
   #endif
 
 

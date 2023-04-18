@@ -2,7 +2,7 @@
  *
  *   resistor measurements
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2022 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -314,7 +314,7 @@ void CheckResistor(void)
     R_DDR = Probes.Rh_2;                /* pull down probe-2 via Rh */
     U_Rh_L = ReadU_5ms(Probes.Ch_2);    /* get voltage at Rh pulled down */
 
-    /* if voltage breakdown is sufficient */
+    /* check voltage breakdown to filter out other components */
     if ((U_Rl_H >= 4400) || (U_Rh_H <= 97))   /* R >= 5.1k or R < 9.3k */
     {
       if (U_Rh_H < 4972)            /* R < 83.4M & prevent division by zero */

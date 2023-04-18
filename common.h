@@ -230,6 +230,8 @@
 #define CMD_I_C               43   /* return I_C */
 #define CMD_I_E               44   /* return I_E */
 #define CMD_V_Z               45   /* return V_Z */
+#define CMD_V_L               46   /* return V_loss */
+#define CMD_V_F_CLAMP         47   /* return V_f of clamping diode */
 
 
 
@@ -383,9 +385,9 @@
 #define SYMBOL_SCR           10    /* SCR / thyristor */
 #define SYMBOL_TRIAC         11    /* TRIAC */
 #define SYMBOL_PUT           12    /* PUT */
+#define SYMBOL_UJT           13    /* UJT */
 
 /* additional component symbols */
-#define SYMBOL_UJT           13    /* UJT */
 #define SYMBOL_QUESTIONMARK  14    /* question mark */
 #define SYMBOL_DIODE_ZENER   15    /* Zener diode */
 #define SYMBOL_CRYSTAL       16    /* quartz crystal */
@@ -394,7 +396,7 @@
 #ifdef SYMBOLS_EXTRA
   #define NUM_SYMBOLS        17    /* basic plus additional symbols */
 #else
-  #define NUM_SYMBOLS        13    /* basic symbols */
+  #define NUM_SYMBOLS        14    /* basic symbols */
 #endif
 
 
@@ -526,8 +528,12 @@ typedef struct
 
   /* color support */
   #ifdef LCD_COLOR
-  uint16_t          PenColor;      /* pen color */ 
+  uint16_t          PenColor;      /* pen color */
+    #if defined (UI_COLORED_TITLES) || defined (UI_COLORED_VALUES)
+    uint16_t          OldColor;      /* old color */
+    #endif
   #endif
+
 
   /* fancy pinout with symbols */
   #ifdef SW_SYMBOLS
@@ -638,7 +644,11 @@ typedef struct
   int8_t            Scale;         /* exponent of factor (value * 10^x) */
   unsigned long     Value;         /* capacitance incl. zero offset */
   unsigned long     Raw;           /* capacitance excl. zero offset */
-  unsigned long     I_leak;        /* leakage current (in 10nA) */
+  uint16_t          I_leak_Value;  /* leakage current: value (in A) */
+  int8_t            I_leak_Scale;  /* leakage current: exponent (10^x) */
+  #ifdef SW_C_VLOSS
+  uint16_t          U_loss;        /* voltage loss (in 0.1%) */
+  #endif
 } Capacitor_Type;
 
 

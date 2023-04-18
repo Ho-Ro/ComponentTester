@@ -2,7 +2,7 @@
  *
  *   self-adjustment functions
  *
- *   (c) 2012-2021 by Markus Reschke
+ *   (c) 2012-2022 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -220,8 +220,14 @@ uint8_t DataStorage(uint8_t *Data_RAM, uint8_t *Data_EE, uint8_t Size, uint8_t M
       {
         /* tell user */
         LCD_Clear();
-        Display_EEString(Checksum_str);      /* display: Checksum */
-        Display_NL_EEString(Error_str);      /* display: error! */
+        #ifdef UI_CENTER_ALIGN
+          Display_CenterLine(2);                  /* center block: 2 lines */
+          Display_EEString_Center(Checksum_str);  /* display: Checksum */
+          Display_NL_EEString_Center(Error_str);  /* display: error! */
+        #else
+          Display_EEString(Checksum_str);    /* display: Checksum */
+          Display_NL_EEString(Error_str);    /* display: error! */
+        #endif
         MilliSleep(2000);                    /* give user some time to read */
 
         n = 0;           /* signal checksum problem */
@@ -395,8 +401,14 @@ void ManageAdjustmentStorage(uint8_t Mode, uint8_t ID)
       {
         /* tell user */
         LCD_Clear();
-        Display_EEString(Checksum_str);      /* display: Checksum */
-        Display_NL_EEString(Error_str);      /* display: error! */
+        #ifdef UI_CENTER_ALIGN
+          Display_CenterLine(2);                  /* center block: 2 lines */
+          Display_EEString_Center(Checksum_str);  /* display: Checksum */
+          Display_NL_EEString_Center(Error_str);  /* display: error! */
+        #else
+          Display_EEString(Checksum_str);    /* display: Checksum */
+          Display_NL_EEString(Error_str);    /* display: error! */
+        #endif
         MilliSleep(2000);                    /* give user some time to read */
 
         SetAdjustmentDefaults();             /* set defaults */
@@ -561,7 +573,7 @@ uint8_t SelfAdjustment(void)
       Display_Char('A');                /* display: A (for Adjust) */
       Display_Char('0' + Step);         /* display number */
       #ifdef UI_COLORED_TITLES
-      Display_UsePenColor();            /* use pen color */
+      Display_UseOldColor();            /* use old color */
       #endif
       Display_Space();
 
@@ -947,7 +959,7 @@ uint8_t SelfTest(void)
       Display_Char('T');                /* display: T */
       Display_Char('0' + Test);         /* display test number */
       #ifdef UI_COLORED_TITLES
-      Display_UsePenColor();            /* use pen color */
+      Display_UseOldColor();            /* use old color */
       #endif
       Display_Space();
 

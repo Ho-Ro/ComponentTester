@@ -232,6 +232,9 @@
   extern void Display_Char(unsigned char Char);
   #endif
   extern void Display_EEString(const unsigned char *String);
+  #ifdef UI_CENTER_ALIGN
+  extern void Display_EEString_Center(const unsigned char *String);
+  #endif
 
   extern void Display_ProbeNumber(uint8_t Probe);
   extern void Display_SemiPinDesignator(uint8_t Probe);
@@ -240,6 +243,9 @@
   extern void Display_Colon(void);
   extern void Display_EEString_Space(const unsigned char *String);
   extern void Display_NL_EEString(const unsigned char *String);
+  #ifdef UI_CENTER_ALIGN
+  extern void Display_NL_EEString_Center(const unsigned char *String);
+  #endif  
   extern void Display_NL_EEString_Space(const unsigned char *String);
 
   extern void LCD_ClearLine2(void);
@@ -263,7 +269,22 @@
   extern void Display_ColoredEEString(const unsigned char *String, uint16_t Color);
   extern void Display_ColoredEEString_Space(const unsigned char *String, uint16_t Color);
   extern void Display_UseTitleColor(void);
-  extern void Display_UsePenColor(void);
+  #endif
+
+  #ifdef UI_CENTER_ALIGN
+  extern void Display_CenterLine(uint8_t Lines);
+  #endif
+
+  #ifdef FUNC_DISPLAY_COLOREDEESTRING_CENTER
+  extern void Display_ColoredEEString_Center(const unsigned char *String, uint16_t Color);
+  #endif
+
+  #if defined (UI_COLORED_TITLES) || defined (UI_COLORED_VALUES)
+  extern void Display_UseOldColor(void);
+  #endif
+
+  #ifdef UI_COLORED_VALUES
+  extern void Display_UseValueColor(void);
   #endif
 
   #if defined (FUNC_DISPLAY_HEXBYTE) || defined (FUNC_DISPLAY_HEXVALUE)
@@ -379,6 +400,10 @@
   extern int8_t CmpValue(uint32_t Value1, int8_t Scale1,
     uint32_t Value2, int8_t Scale2);
   extern uint32_t RescaleValue(uint32_t Value, int8_t Scale, int8_t NewScale);
+
+  #ifdef SW_R_TRIMMER
+  extern int8_t NormalizeValue(uint32_t Value1, int8_t Scale1, uint32_t Value2, int8_t Scale2);
+  #endif
 
   #ifdef UI_ROUND_DS18B20
   extern int32_t RoundSignedValue(int32_t Value, uint8_t Scale, uint8_t RoundScale);

@@ -313,6 +313,7 @@ void DischargeProbes(void)
   uint8_t           Limit = 40;         /* sliding timeout (2s) */
   uint8_t           ID;                 /* test pin */
   uint8_t           Flags;              /* discharge state flags */
+  uint8_t           Channel;            /* ADC MUX channel */
   uint16_t          U_c;                /* current voltage */
   uint16_t          U_old[3];           /* old voltages */
 
@@ -347,6 +348,9 @@ void DischargeProbes(void)
    *    is also connected via its probe resistors to Gnd. In case of a battery
    *    it's not the battery's voltage. Therefore we measure the unloaded
    *    voltage later on when we encounter a discharge problem.
+   *  - The protection relay option comes in two variants, i.e. probes shorted
+   *    directly or via resistors. So we dont't use it here to keep things
+   *    simple.
    */
 
   /* reset variables */
@@ -363,7 +367,9 @@ void DischargeProbes(void)
     if (Flags & (1 << ID))              /* skip discharged probe */
       continue;
 
-    U_c = ReadU(ID);                    /* get voltage of probe */
+    /* get voltage at probe */
+    Channel = DATA_read_byte(&Channel_table[ID]);    /* update ADC channel */
+    U_c = ReadU(Channel);                            /* get voltage */
 
     if (U_c < U_old[ID])                /* voltage decreased */
     {
@@ -412,7 +418,7 @@ void DischargeProbes(void)
       ADC_DDR &= ~Flags;                /* remove direct pull-down */
       Flags = DATA_read_byte(&Rh_table[ID]) | DATA_read_byte(&Rl_table[ID]);
       R_DDR &= ~Flags;                  /* disable load resistors */
-      Check.U = ReadU(ID);              /* get and save voltage */
+      Check.U = ReadU(Channel);         /* get and save voltage */
 
       Counter = 0;                      /* end loop */
     }
@@ -941,8 +947,8 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
       ADC_PORT = Probes.Pin_1;            /* pull up emitter directly */
       wait5ms();
       R_DDR = Probes.Rl_2 | Probes.Rl_3;  /* pull down base via Rl */
-      U_1 = ReadU_5ms(Probe2);            /* get voltage at collector */ 
- 
+      U_1 = ReadU_5ms(Probes.Ch_2);       /* get voltage at collector */
+
       /*
        *  If DUT is conducting we might have a PNP BJT or p-channel FET.
        */
@@ -977,7 +983,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
       ADC_PORT = 0;                          /* pull down probe-2 directly */
       R_DDR = Probes.Rl_1 | Probes.Rl_3;     /* select Rl for probe-1 & Rl for probe-3 */
       R_PORT = Probes.Rl_1 | Probes.Rl_3;    /* pull up collector & base via Rl */
-      U_1 = ReadU_5ms(Probe1);               /* get voltage at collector */
+      U_1 = ReadU_5ms(Probes.Ch_1);          /* get voltage at collector */
 
       /*
        *  If DUT is conducting we might have an NPN BJT, something similar or

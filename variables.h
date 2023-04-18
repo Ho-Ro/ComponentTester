@@ -154,7 +154,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.47m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.48m";
 
 
   /* common terms and texts */
@@ -294,6 +294,14 @@
     const unsigned char MAX31855_str[] MEM_TYPE = "MAX31855";
   #endif
 
+  #ifdef SW_R_TRIMMER
+    const unsigned char R_t_str[] MEM_TYPE = "Rt";
+    const unsigned char r_R1_str[] MEM_TYPE = "R1";
+  #endif
+
+  #ifdef SW_C_VLOSS
+    const unsigned char U_loss_str[] MEM_TYPE = "V_l";
+  #endif
 
   /* component symbols */
   const unsigned char Cap_str[] MEM_TYPE = {'-', LCD_CHAR_CAP, '-',0};
@@ -362,6 +370,9 @@
     #ifdef HW_PROBE_ZENER
       const unsigned char Cmd_V_Z_str[] MEM_TYPE = "V_Z";
     #endif
+    #ifdef SW_SCHOTTKY_BJT
+      const unsigned char Cmd_V_F_clamp_str[] MEM_TYPE = "V_F_clamp";
+    #endif
 
     /* command reference table */
     const Cmd_Type Cmd_Table[] MEM_TYPE = {
@@ -413,6 +424,12 @@
       #endif
       #ifdef HW_PROBE_ZENER
         {CMD_V_Z, Cmd_V_Z_str},
+      #endif
+      #ifdef SW_C_VLOSS
+        {CMD_V_L, U_loss_str},
+      #endif
+      #ifdef SW_SCHOTTKY_BJT
+        {CMD_V_F_CLAMP, Cmd_V_F_clamp_str},
       #endif
       {0, 0}
     };
@@ -877,6 +894,15 @@
 
   #ifdef SW_CONTINUITY_CHECK
     extern const unsigned char ContinuityCheck_str[];
+  #endif
+
+  #ifdef SW_R_TRIMMER
+    extern const unsigned char R_t_str[];
+    extern const unsigned char r_R1_str[];
+  #endif
+
+  #ifdef SW_C_VLOSS
+    extern const unsigned char U_loss_str[];
   #endif
 
 

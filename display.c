@@ -197,15 +197,61 @@ void Display_Char(unsigned char Char)
 
 void Display_EEString(const unsigned char *String)
 {
-  unsigned char     Char;
+  unsigned char     Char;          /* character */
 
   /* read characters until we get the terminating 0 */
   while ((Char = DATA_read_byte(String)))
   {
-    Display_Char(Char);                 /* send character */
-    String++;                           /* next one */
+    Display_Char(Char);            /* send character */
+    String++;                      /* next one */
   }
 }
+
+
+
+#ifdef UI_CENTER_ALIGN
+
+/*
+ *  display a fixed string stored in EEPROM/Flash center-aligned
+ *
+ *  requires:
+ *  - pointer to fixed string
+ */
+
+void Display_EEString_Center(const unsigned char *String)
+{
+  uint8_t                Length = 0;    /* string length */
+  uint8_t                n;             /* temporary value */
+  const unsigned char    *TempStr;      /* string pointer */
+
+  /* get string length */
+  TempStr = String;
+  /* read characters until we get the terminating 0 */
+  while ((n = DATA_read_byte(TempStr)))
+  {
+    Length++;                      /* got one character */
+    TempStr++;                     /* next one */
+  }
+
+  /* calculate start position */
+  n = UI.CharMax_X;                /* get line size */
+  if (n >= Length)                 /* sanity check */
+  {
+    n -= Length;                   /* free space */
+    n /= 2;                        /* left half */
+    n++;                           /* position start at 1 */
+  }
+  else                             /* string too long */
+  {
+    n = 1;                         /* left-aligned */
+  }
+
+  /* display string in center of line */
+  LCD_CharPos(n, UI.CharPos_Y);    /* move cursor to start position */
+  Display_EEString(String);        /* display string */
+}
+
+#endif
 
 
 
@@ -338,6 +384,26 @@ void Display_NL_EEString(const unsigned char *String)
   Display_NextLine();
   Display_EEString(String);   /* display string */
 }
+
+
+
+#ifdef UI_CENTER_ALIGN
+
+/*
+ *  move to the next line and
+ *  display a fixed string stored in EEPROM center-aligned
+ *
+ *  requires:
+ *  - pointer to fixed string
+ */
+
+void Display_NL_EEString_Center(const unsigned char *String)
+{
+  Display_NextLine();
+  Display_EEString_Center(String);      /* display string */
+}
+
+#endif
 
 
 
@@ -510,18 +576,98 @@ void Display_ColoredEEString_Space(const unsigned char *String, uint16_t Color)
 
 void Display_UseTitleColor(void)
 {
-  UI.PenColor = COLOR_TITLE;       /* set pen color */
+  UI.OldColor = UI.PenColor;       /* save current color */
+  UI.PenColor = COLOR_TITLE;       /* set new pen color */
 }
 
+#endif
 
+
+
+#if defined (UI_COLORED_TITLES) || defined (UI_COLORED_VALUES)
 
 /*
- *  set pen color to COLOR_PEN
+ *  reset pen color to old color
  */
 
-void Display_UsePenColor(void)
+void Display_UseOldColor(void)
 {
-  UI.PenColor = COLOR_PEN;         /* reset pen color */
+  UI.PenColor = UI.OldColor;       /* reset pen color */
+}
+
+#endif
+
+
+
+#ifdef UI_COLORED_VALUES
+
+/*
+ *  set pen color to COLOR_VALUE
+ */
+
+void Display_UseValueColor(void)
+{
+  UI.OldColor = UI.PenColor;       /* save current color */
+  UI.PenColor = COLOR_VALUE;       /* set new pen color */
+}
+
+#endif
+
+
+
+#ifdef UI_CENTER_ALIGN
+
+/*
+ *  set text line to vertical center
+ *
+ *  requires:
+ *  - Lines: number of lines for text block
+ */
+
+void Display_CenterLine(uint8_t Lines)
+{
+  uint8_t           n;
+
+  n = UI.CharMax_Y;                /* get max number of lines */
+  if (n > Lines)                   /* sanity check */
+  {
+    n -= Lines;                    /* free lines */
+    n /= 2;                        /* first half */
+    n++;                           /* lines start at #1 */
+  }
+  else                             /* block too large */
+  {
+    n = 1;                         /* line #1 */
+  }
+
+  LCD_CharPos(1, n);               /* set new line */
+}
+
+#endif
+
+
+
+#ifdef FUNC_DISPLAY_COLOREDEESTRING_CENTER
+
+/*
+ *  display a fixed string stored in EEPROM center-aligned
+ *  using a specific color
+ *
+ *  requires:
+ *  - pointer to fixed string
+ *  - color
+ */
+
+void Display_ColoredEEString_Center(const unsigned char *String, uint16_t Color)
+{
+  uint16_t               OldColor;
+
+  OldColor = UI.PenColor;               /* get current color */
+  UI.PenColor = Color;                  /* set new color */
+
+  Display_EEString_Center(String);      /* display string */
+
+  UI.PenColor = OldColor;               /* reset color to old one */
 }
 
 #endif
@@ -567,7 +713,15 @@ void Display_HexDigit(uint8_t Digit)
     #endif
   }
 
+  #ifdef UI_COLORED_VALUES
+  Display_UseValueColor();    /* set value color */
+  #endif
+
   Display_Char(Digit);        /* display digit */
+
+  #ifdef UI_COLORED_VALUES
+  Display_UseOldColor();      /* reset pen color */
+  #endif
 }
 
 #endif
@@ -659,6 +813,10 @@ void Display_FullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
   uint8_t           Length;             /* string length */
   uint8_t           Pos = 0;            /* position of dot */
 
+  #ifdef UI_COLORED_VALUES
+  Display_UseValueColor();              /* set value color */
+  #endif
+
   /* convert value into string */
   ultoa(Value, OutBuffer, 10);          /* radix 10: max. 10 chars + /0 */
   Length = strlen(OutBuffer);           /* get string length */
@@ -704,6 +862,10 @@ void Display_FullValue(uint32_t Value, uint8_t DecPlaces, unsigned char Unit)
     n++;                                /* next digit */
   }
 
+  #ifdef UI_COLORED_VALUES
+  Display_UseOldColor();                /* reset pen color */
+  #endif
+
   /* display unit */
   if (Unit) Display_Char(Unit);
 }
@@ -729,7 +891,16 @@ void Display_SignedFullValue(int32_t Value, uint8_t DecPlaces, unsigned char Uni
   /* take care about sign */
   if (Value < 0)              /* negative value */
   {
+    #ifdef UI_COLORED_VALUES
+    Display_UseValueColor();  /* set value color */
+    #endif
+
     Display_Minus();          /* display: "-" */
+
+    #ifdef UI_COLORED_VALUES
+    Display_UseOldColor();    /* reset pen color */
+    #endif
+
     Value = -Value;           /* make value positive */
   }
 
@@ -796,6 +967,10 @@ void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit)
    *  display value
    */
 
+  #ifdef UI_COLORED_VALUES
+  Display_UseValueColor();              /* set value color */
+  #endif
+
   /* convert value into string */
   utoa((uint16_t)Value, OutBuffer, 10);   /* radix 10: max. 5 chars + /0 */
   Length = strlen(OutBuffer);             /* get string length */
@@ -844,6 +1019,10 @@ void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit)
     Index++;                            /* next one */
   }
 
+  #ifdef UI_COLORED_VALUES
+  Display_UseOldColor();                /* reset pen color */
+  #endif
+
   /* display prefix and unit */
   if (Prefix) Display_Char(Prefix);
   if (Unit) Display_Char(Unit);
@@ -867,7 +1046,16 @@ void Display_SignedValue(int32_t Value, int8_t Exponent, unsigned char Unit)
   /* take care about sign */
   if (Value < 0)              /* negative value */
   {
+    #ifdef UI_COLORED_VALUES
+    Display_UseValueColor();  /* set value color */
+    #endif
+
     Display_Minus();          /* display: "-" */
+
+    #ifdef UI_COLORED_VALUES
+    Display_UseOldColor();    /* reset pen color */
+    #endif
+
     Value = -Value;           /* make value positive */
   }
 
@@ -949,8 +1137,17 @@ void Display_EIA96(uint8_t Index, int8_t Scale)
 
   if (Index < 10)                  /* single digit */
   {
+    #ifdef UI_COLORED_VALUES
+    Display_UseValueColor();       /* set value color */
+    #endif
+
     Display_Char('0');             /* display: 0 */
+
+    #ifdef UI_COLORED_VALUES
+    Display_UseOldColor();         /* reset pen color */
+    #endif
   }
+
   Display_FullValue(Index, 0, 0);  /* display index number */
 
 
@@ -972,7 +1169,15 @@ void Display_EIA96(uint8_t Index, int8_t Scale)
   /* read multiplier code */
   MultCode = DATA_read_byte(&EIA96_Mult_table[n]);
 
+  #ifdef UI_COLORED_VALUES
+  Display_UseValueColor();         /* set value color */
+  #endif
+
   Display_Char(MultCode);          /* display multiplier code */
+
+  #ifdef UI_COLORED_VALUES
+  Display_UseOldColor();           /* reset pen color */
+  #endif
 }
 
 #endif

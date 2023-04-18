@@ -761,10 +761,10 @@ uint8_t Cmd_I_L(void)
 
     if (C)                              /* valid pointer */
     {
-      if (C->I_leak > 0)                /* got I_leak */
+      if (C->I_leak_Value > 0)          /* got I_leak */
       {
         /* send value */
-        Display_Value(C->I_leak, -8, 'A');   /* in 10nA */
+        Display_Value(C->I_leak_Value, C->I_leak_Scale, 'A');  /* in A */
       }
       else
       {
@@ -779,6 +779,52 @@ uint8_t Cmd_I_L(void)
 
   return Flag;
 }
+
+
+
+#ifdef SW_C_VLOSS
+
+/*
+ *  command: V_L
+ *  - return V_loss value
+ *
+ *  returns:
+ *  - SIGNAL_ERR on error
+ *  - SIGNAL_NA on n/a
+ *  - SIGNAL_OK on success
+ */
+
+uint8_t Cmd_V_L(void)
+{
+  uint8_t           Flag = SIGNAL_OK;   /* return value */
+  Capacitor_Type    *C;                 /* pointer to cap */
+
+  if (Check.Found == COMP_CAPACITOR)    /* capacitor */
+  {
+    C = (Capacitor_Type *)Info.Comp1;   /* get pointer */
+
+    if (C)                              /* valid pointer */
+    {
+      if (C->U_loss > 0)                /* got V_loss */
+      {
+        /* send value */
+        Display_Value(C->U_loss, -1, '%');  /* in 0.1% */
+      }
+      else
+      {
+        Flag = SIGNAL_NA;                 /* signal n/a */
+      }
+    }
+  }
+  else                                  /* other component */
+  {
+    Flag = SIGNAL_ERR;                  /* signal error */
+  }
+
+  return Flag;
+}
+
+#endif
 
 
 
@@ -804,17 +850,25 @@ uint8_t Cmd_V_F(void)
       break;
 
     case COMP_BJT:            /* BJT */
-      if (Info.Flags & INFO_BJT_D_FB)   /* found diode */
+      if (Info.Flags & INFO_BJT_D_FB)   /* found flyback diode */
       {
         D = (Diode_Type *)Info.Comp1;        /* get pointer */
+      }
+      else
+      {
+        Flag = SIGNAL_NA;                    /* signal n/a */
       }
       break;
 
     case COMP_FET:            /* FET (JFET/MOSFET) */
     case COMP_IGBT:           /* IGBT */
-      if (Info.Flags & INFO_FET_D_FB)   /* found diode */
+      if (Info.Flags & INFO_FET_D_FB)   /* found body/flyback diode */
       {
         D = (Diode_Type *)Info.Comp1;        /* get pointer */
+      }
+      else
+      {
+        Flag = SIGNAL_NA;                    /* signal n/a */
       }
       break;
 
@@ -823,7 +877,7 @@ uint8_t Cmd_V_F(void)
       break;
 
     default:                  /* unsupported */
-      Flag = SIGNAL_ERR;      /* signal error */
+      Flag = SIGNAL_ERR;                     /* signal error */
       break;
   }
 
@@ -1501,6 +1555,53 @@ uint8_t Cmd_V_Z(void)
 
 
 
+#ifdef SW_SCHOTTKY_BJT
+
+/*
+ *  command: V_F_clamp
+ *  - return V_f of clamping diode (base-collector diode)
+ *    for Schottky transistor / Schottky-clamped BJT
+ *
+ *  returns:
+ *  - SIGNAL_ERR on error
+ *  - SIGNAL_NA on n/a
+ *  - SIGNAL_OK on success
+ */
+
+uint8_t Cmd_V_F_clamp(void)
+{
+  uint8_t           Flag = SIGNAL_OK;   /* return value */
+  Diode_Type        *D;                 /* pointer to diode */
+
+  if (Check.Found == COMP_BJT)          /* BJT */
+  {
+    if (Info.Flags & INFO_BJT_SCHOTTKY)      /* Schottky-clamped BJT */
+    {
+      D = (Diode_Type *)Info.Comp2;          /* get pointer */
+
+      if (D)                                 /* valid pointer */
+      {
+        /* send Vf */
+        Display_Value(D->V_f, -3, 'V');      /* in mV */        
+      }
+    }
+    else
+    {
+      Flag = SIGNAL_NA;                      /* signal n/a */
+    }
+  }
+  else                                  /* other component */
+  {
+    Flag = SIGNAL_ERR;                       /* signal error */
+  }
+
+  return Flag;
+}
+
+#endif
+
+
+
 /* ************************************************************************
  *   command parsing and processing
  * ************************************************************************ */
@@ -1793,6 +1894,18 @@ uint8_t RunCommand(uint8_t ID)
       Flag = Cmd_V_Z();                      /* run command */
       break;
     #endif
+
+    #ifdef SW_C_VLOSS
+    case CMD_V_L:             /* return V_loss */
+      Flag = Cmd_V_L();                      /* run command */
+      break;
+    #endif
+
+    #ifdef SW_SCHOTTKY_BJT
+    case CMD_V_F_CLAMP:       /* return V_f of clamping diode */
+      Flag = Cmd_V_F_clamp();                /* run command */
+      break;
+    #endif    
 
     default:                  /* unknown/unsupported */
       Flag = SIGNAL_ERR;                     /* signal error */

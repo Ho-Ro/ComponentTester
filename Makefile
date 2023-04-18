@@ -1,7 +1,7 @@
 #
 #  Makefile
 #
-#  (c) 2012-2021 by Markus Reschke
+#  (c) 2012-2022 by Markus Reschke
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
@@ -250,7 +250,7 @@ dist: clean
 	  ${DIST}/*.h ${DIST}/*.c ${DIST}/*.S ${DIST}/bitmaps/*.h \
 	  ${DIST}/Makefile ${DIST}/README ${DIST}/CHANGES \
 	  ${DIST}/README.de ${DIST}/CHANGES.de ${DIST}/Clones \
-	  ${DIST}/*.pdf ${DIST}/dep
+	  ${DIST}/EUPL-v1.2.txt ${DIST}/dep
 
 # clean up
 clean:
