@@ -6,7 +6,7 @@
  *   - interfaces
  *     - 4 line SPI
  *
- *   (c) 2016-2021 by Markus Reschke
+ *   (c) 2016-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -56,6 +56,7 @@
   #include "font_6x8_vf.h"
   #include "font_6x8_iso8859-2_vf.h"
   #include "symbols_24x24_vfp.h"
+  #include "symbols_24x24_old_vfp.h"
 #endif
 
 #ifdef LCD_ROT180
@@ -63,6 +64,7 @@
   #include "font_6x8_v_f.h"
   #include "font_6x8_iso8859-2_v_f.h"
   #include "symbols_24x24_vp_f.h"
+  #include "symbols_24x24_old_vp_f.h"
 #endif
 
 /* sanity check */

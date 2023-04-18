@@ -2,7 +2,7 @@
  *
  *   common header file
  *
- *   (c) 2012-2021 by Markus Reschke
+ *   (c) 2012-2022 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -363,9 +363,9 @@
 #define LCD_CHAR_RESISTOR_R   7    /* resistor right icon ']' */
 
 /* optional custom chars */
-#define LCD_CHAR_1_INV        8    /* 1 inversed */
-#define LCD_CHAR_2_INV        9    /* 2 inversed */
-#define LCD_CHAR_3_INV       10    /* 3 inversed */
+#define LCD_CHAR_1_INV        8    /* 1 (reversed color) */
+#define LCD_CHAR_2_INV        9    /* 2 (reversed color) */
+#define LCD_CHAR_3_INV       10    /* 3 (reversed color) */
 
 /* component symbols */
 #define SYMBOL_BJT_NPN        0    /* BJT npn */
@@ -558,9 +558,9 @@ typedef struct
   uint8_t           Pin_1;         /* pin mask for probe-1 */
   uint8_t           Pin_2;         /* pin mask for probe-2 */
   uint8_t           Pin_3;         /* pin mask for probe-3 */
-  uint8_t           Ch_1;         /* ADC MUX input channel for probe-1 */
-  uint8_t           Ch_2;         /* ADC MUX input channel for probe-2 */
-  uint8_t           Ch_3;         /* ADC MUX input channel for probe-3 */
+  uint8_t           Ch_1;          /* ADC MUX input channel for probe-1 */
+  uint8_t           Ch_2;          /* ADC MUX input channel for probe-2 */
+  uint8_t           Ch_3;          /* ADC MUX input channel for probe-3 */
 } Probe_Type;
 
 
@@ -625,9 +625,12 @@ typedef struct
 /* common semiconductors */
 typedef struct
 {
-  uint8_t           A;             /* probe pin connected to pin A */
-  uint8_t           B;             /* probe pin connected to pin B */
-  uint8_t           C;             /* probe pin connected to pin C */
+  uint8_t           A;             /* probe connected to pin A [0-2] */
+  uint8_t           B;             /* probe connected to pin B [0-2] */
+  uint8_t           C;             /* probe connected to pin C [0-2] */
+  uint8_t           DesA;          /* designator for pin A (char) */
+  uint8_t           DesB;          /* designator for pin B (char) */
+  uint8_t           DesC;          /* designator for pin C (char) */
   uint8_t           Flags;         /* misc flags */
   uint16_t          U_1;           /* voltage #1 */
   int16_t           U_2;           /* voltage #2 (+/-) */
@@ -669,9 +672,9 @@ typedef struct
 /* special semiconductors */
 typedef struct
 {
-  uint8_t           A;             /* probe pin connected to pin A */
-  uint8_t           B;             /* probe pin connected to pin B */
-  uint8_t           C;             /* probe pin connected to pin C */
+  uint8_t           A;             /* probe connected to pin A [0-2] */
+  uint8_t           B;             /* probe connected to pin B [0-2] */
+  uint8_t           C;             /* probe connected to pin C [0-2] */
   uint16_t          U_1;           /* voltage #1 */
   uint16_t          U_2;           /* voltage #2 */
 } AltSemi_Type;

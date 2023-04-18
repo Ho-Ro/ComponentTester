@@ -3,8 +3,9 @@
  *   thin monospaced 8x8 font based on Windows-1251
  *   vertically aligned, vertical bit order flipped
  *
- *   ASCII characters (c) 2015-2020 by Markus Reschke
+ *   ASCII characters (c) 2015-2021 by Markus Reschke
  *   cyrillic characters added by Andrey@EEVblog
+ *   Inverted digits 1-3 by Feliciano
  *
  * ************************************************************************ */
 
@@ -206,6 +207,14 @@ const uint8_t FontData[] PROGMEM = {
   0x02,0x7E,0x42,0x40,0x42,0x7E,0x42,0xC0,   /* 0x9c 'ö' Cyr_c */
   0x7F,0x40,0x40,0x7F,0x40,0x40,0x7F,0xC0,   /* 0x9d 'Ù' Cyr_Schtsch */
   0x7E,0x40,0x40,0x7C,0x40,0x40,0x7E,0xC0    /* 0x9e 'ù' Cyr_schtsch */
+  #ifdef FONT_EXTRA
+  ,
+
+  /* extra characters */
+  0xFF,0xBD,0x80,0x80,0xBF,0xFF,0xFF,0xFF,   /* 0x9f 1 (reversed color) */
+  0x9D,0x8C,0xAE,0xA6,0xB6,0xB0,0xB9,0xFF,   /* 0xa0 2 (reversed color) */
+  0xDD,0x9C,0xBE,0xB6,0xB6,0x88,0xC9,0xFF    /* 0xa1 3 (reversed color) */
+  #endif
 };
 
 
@@ -224,9 +233,15 @@ const uint8_t FontTable[] PROGMEM = {
   0x05,        /* 0x05 -> µ (micro) */
   0x06,        /* 0x06 -> symbol: resistor left side */
   0x07,        /* 0x07 -> symbol: resistor right side */
+  #ifdef FONT_EXTRA
+  0x9f,        /* 0x08 -> 1 (reversed color) */
+  0xa0,        /* 0x09 -> 2 (reversed color) */
+  0xa1,        /* 0x0a -> 3 (reversed color)*/
+  #else
   0xff,        /* 0x08 -> n/a */
   0xff,        /* 0x09 -> n/a */
   0xff,        /* 0x0a -> n/a */
+  #endif
   0xff,        /* 0x0b -> n/a */
   0xff,        /* 0x0c -> n/a */
   0xff,        /* 0x0d -> n/a */

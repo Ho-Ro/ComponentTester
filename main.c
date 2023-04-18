@@ -2,7 +2,7 @@
  *
  *   main part
  *
- *   (c) 2012-2021 by Markus Reschke
+ *   (c) 2012-2022 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -44,52 +44,66 @@ uint8_t        MissedParts;          /* counter for failed/missed components */
 
 
 /*
- *  show pinout for semiconductors
- *  - diplays: =abc
+ *  get pin designator for specific probe ID
  *
- *  required:
- *  - character for pin A
- *  - character for pin B
- *  - character for pin C
+ *  requires:
+ *  - probe ID [0-2]
+ *
+ *  returns:
+ *  - pin designator
  */
 
-void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
+uint8_t Get_SemiPinDesignator(uint8_t Probe)
+{
+  uint8_t           Char;          /* designator / return value */
+
+  /* looking for matching probe ID */
+  if (Probe == Semi.A)             /* matches pin A */
+  {
+    Char = Semi.DesA;              /* designator for pin A */
+  }
+  else if (Probe == Semi.B)        /* matches pin B */
+  {
+    Char = Semi.DesB;              /* designator for pin B */
+  }
+  else                             /* matches pin C */
+  {
+    Char = Semi.DesC;              /* designator for pin C */
+  }
+
+  return Char;
+}
+
+
+
+#if ! defined (UI_NO_TEXTPINOUT) || defined (SW_ENCODER)
+
+/*
+ *  show pinout for semiconductors
+ *  - displays: 123=abc
+ */
+
+void Show_SemiPinout(void)
 {
   uint8_t           n;             /* counter */
-  uint8_t           Char;          /* character */
-  #ifdef UI_PROBE_COLORS
-  uint16_t          Color;         /* color value */
-
-  Color = UI.PenColor;             /* save current color */
-  #endif
 
   /* display: 123 */
-  for (n = 0; n <= 2; n++)
+  for (n = 0; n <= 2; n++)         /* loop through probe pins */
   {
-    Display_ProbeNumber(n);
+    Display_ProbeNumber(n);        /* display probe ID */
   }
 
   /* display: = */
   Display_Char('=');
 
-  /* display pin IDs */
+  /* display pin designators */
   for (n = 0; n <= 2; n++)         /* loop through probe pins */
   {
-    #ifdef UI_PROBE_COLORS
-    UI.PenColor = ProbeColors[n];  /* set probe color */
-    #endif
-
-    if (n == Semi.A) Char = A;          /* probe A - ID A */
-    else if (n == Semi.B) Char = B;     /* probe B - ID B */
-    else Char = C;                      /*         - ID C */
-
-    Display_Char(Char);            /* display ID */
+    Display_SemiPinDesignator(n);  /* display pin designator */
   }
-
-  #ifdef UI_PROBE_COLORS
-  UI.PenColor = Color;             /* restore old color */
-  #endif
 }
+
+#endif
 
 
 
@@ -98,28 +112,28 @@ void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C)
  *  - displays: 1:a 2:b 3:c 
  *
  *  required:
- *  - ID: characters for probes 1, 2 and 3
+ *  - DesX: designators for probes #1, #2 and #3
  *    0 -> not displayed
  */
 
-void Show_SimplePinout(uint8_t ID_1, uint8_t ID_2, uint8_t ID_3)
+void Show_SimplePinout(uint8_t Des1, uint8_t Des2, uint8_t Des3)
 {
   uint8_t           n;        /* counter */
-  unsigned char     ID[3];    /* component pin IDs */
+  unsigned char     Des[3];   /* component pin designators */
   #ifdef UI_PROBE_COLORS
   uint16_t          Color;    /* color value */
 
   Color = UI.PenColor;             /* save current color */
   #endif
 
-  /* copy probe pin characters/IDs */
-  ID[0] = ID_1;
-  ID[1] = ID_2;
-  ID[2] = ID_3;
+  /* copy probe pin designators */
+  Des[0] = Des1;
+  Des[1] = Des2;
+  Des[2] = Des3;
 
   for (n = 0; n <= 2; n++)         /* loop through probe pins */
   {
-    if (ID[n] != 0)                /* display this one */
+    if (Des[n] != 0)               /* display this one */
     {
       Display_ProbeNumber(n);
       Display_Colon();
@@ -128,7 +142,7 @@ void Show_SimplePinout(uint8_t ID_1, uint8_t ID_2, uint8_t ID_3)
       UI.PenColor = ProbeColors[n];     /* set probe color */
       #endif
 
-      Display_Char(ID[n]);
+      Display_Char(Des[n]);
 
       #ifdef UI_PROBE_COLORS
       UI.PenColor = Color;              /* restore old color */
@@ -461,6 +475,55 @@ void Show_Error()
 
 
 
+#ifdef UI_PROBE_COLORS
+
+/*
+ *  show single (first) resistor
+ *
+ *  requires:
+ *  - Probe1: probe ID #1 [0-2]
+ *  - Probe2: probe ID #2 [0-2]
+ *  - Mode: 0 for probe ID
+ *          >0 for pin designator
+ */
+
+void Show_SingleResistor(uint8_t Probe1, uint8_t Probe2, int8_t Mode)
+{
+  Resistor_Type     *Resistor;     /* pointer to resistor */
+
+  Resistor = &Resistors[0];        /* pointer to first resistor */
+
+  /*
+   *  show pinout
+   */
+
+  if (Mode)
+  {
+    Display_SemiPinDesignator(Probe1);
+  }
+  else
+  {
+    Display_ProbeNumber(Probe1);
+  }
+
+  Display_EEString(Resistor_str);
+
+  if (Mode)
+  {
+    Display_SemiPinDesignator(Probe2); 
+  }
+  else
+  {
+    Display_ProbeNumber(Probe2);
+  }
+
+  /* show resistance value */
+  Display_Space();
+  Display_Value(Resistor->Value, Resistor->Scale, LCD_CHAR_OMEGA);
+}
+
+#else
+
 /*
  *  show single (first) resistor
  *
@@ -484,6 +547,8 @@ void Show_SingleResistor(uint8_t ID1, uint8_t ID2)
   Display_Space();
   Display_Value(Resistor->Value, Resistor->Scale, LCD_CHAR_OMEGA);
 }
+
+#endif
 
 
 
@@ -862,6 +927,24 @@ void Show_Diode_Cap(Diode_Type *Diode)
 
 
 /*
+ *  show flyback diode of 3-pin semiconductor and pin designators
+ *  - convenience function to reduce firmware size
+ *
+ *  requires:
+ *  - Anode:   probe ID of anode [0-2]
+ *  - Cathode: probe ID of cathode [0-2]
+ */
+
+void Show_SemiFlybackDiode(uint8_t Anode, uint8_t Cathode)
+{
+  Display_SemiPinDesignator(Anode);     /* designator for anode side */
+  Display_Char(LCD_CHAR_DIODE_AC);      /* diode symbol |>| */
+  Display_SemiPinDesignator(Cathode);   /* designator for cathode side */
+}
+
+
+
+/*
  *  show diode(s)
  */
 
@@ -1050,9 +1133,16 @@ void Show_Diode(void)
       Display_Char('?');                /* display: ? */
 
       Display_NextLine();               /* move to line #2 */
-      R_Pin1 += '1';                    /* convert pin ID to character */
-      R_Pin2 += '1';
-      Show_SingleResistor(R_Pin1, R_Pin2);   /* show resistor */
+
+      /* show B-E resistor */
+      #ifdef UI_PROBE_COLORS
+        Show_SingleResistor(R_Pin1, R_Pin2, 0);   /* show resistor */
+      #else 
+        R_Pin1 += '1';                  /* convert probe ID to character */
+        R_Pin2 += '1';
+        Show_SingleResistor(R_Pin1, R_Pin2);      /* show resistor */
+      #endif
+
       CapFlag = 0;                      /* skip capacitance */
     }
   }
@@ -1149,11 +1239,9 @@ void Show_BJT(void)
   uint8_t           BE_C;          /* V_BE: pin acting as cathode */
   uint8_t           CE_A;          /* flyback diode: pin acting as anode */
   uint8_t           CE_C;          /* flyback diode: pin acting as cathode */
-  uint8_t           CE_Char;       /* character */
   #ifdef SW_SCHOTTKY_BJT
   uint8_t           BC_A;          /* clamping diode: pin acting as anode */
   uint8_t           BC_C;          /* clamping diode: pin acting as cathode */
-  uint8_t           BC_Char;       /* character */
   #endif
   uint16_t          V_BE = 0;      /* V_BE */
   int16_t           Slope;         /* slope of forward voltage */
@@ -1185,13 +1273,11 @@ void Show_BJT(void)
     /* direction of optional flyback diode */
     CE_A = Semi.C;                 /* anode at emitter */
     CE_C = Semi.B;                 /* cathode at collector */
-    CE_Char = LCD_CHAR_DIODE_CA;   /* |<| */
 
     #ifdef SW_SCHOTTKY_BJT
     /* direction of B-C diode: B -> C */
     BC_A = Semi.A;                 /* anode at base */
     BC_C = Semi.B;                 /* cathode at collector */
-    BC_Char = LCD_CHAR_DIODE_AC;   /* |>| */
     #endif
   }
   else                             /* PNP */
@@ -1205,13 +1291,11 @@ void Show_BJT(void)
     /* direction of optional flyback diode */
     CE_A = Semi.B;                 /* anode at collector */
     CE_C = Semi.C;                 /* cathode at emitter */
-    CE_Char = LCD_CHAR_DIODE_AC;   /* |>| */
 
     #ifdef SW_SCHOTTKY_BJT
     /* direction of B-C diode: C -> B */
     BC_A = Semi.B;                 /* anode at collector */
     BC_C = Semi.A;                 /* cathode at base */
-    BC_Char = LCD_CHAR_DIODE_CA;   /* |<| */
     #endif
   }
 
@@ -1236,28 +1320,35 @@ void Show_BJT(void)
     Display_Char('+');                  /* display: + */
   }
 
-  Display_NextLine();                   /* next line (#2) */
-
 
   /*
    *  display pinout in line #2
    */
 
-  Show_SemiPinout('B', 'C', 'E');
+  #ifndef UI_NO_TEXTPINOUT
+  Display_NextLine();                   /* next line (#2) */
+  Show_SemiPinout();
+  #endif
 
   /* optional freewheeling diode */
-  Diode = SearchDiode(CE_A, CE_C);     /* search for matching diode */
-  if (Diode != NULL)                   /* got it */
+  Diode = SearchDiode(CE_A, CE_C);      /* search for matching diode */
+  if (Diode != NULL)                    /* got it */
   {
-    Display_Space();          /* display space */
-    Display_Char('C');        /* display: collector */
-    Display_Char(CE_Char);    /* display diode symbol */
-    Display_Char('E');        /* display: emitter */
+    #ifndef UI_NO_TEXTPINOUT
+      /* follows pinout */
+      Display_Space();                  /* space */
+    #else
+      /* no classic pinout */
+      Display_NextLine();               /* next line (#2) */
+    #endif
+
+    /* display diode and pin designators */
+    Show_SemiFlybackDiode(CE_A, CE_C);
 
     #ifdef UI_SERIAL_COMMANDS
     /* set data for remote commands */
-    Info.Flags |= INFO_BJT_D_FB;   /* found flyback diode */
-    Info.Comp1 = Diode;            /* link diode */
+    Info.Flags |= INFO_BJT_D_FB;        /* found flyback diode */
+    Info.Comp1 = Diode;                 /* link diode */
     #endif
   }
 
@@ -1270,7 +1361,11 @@ void Show_BJT(void)
   if (CheckSingleResistor(BE_C, BE_A, 25) == 1)   /* found B-E resistor */
   {
     Display_NextLine();            /* next line (#3) */
-    Show_SingleResistor('B', 'E');
+    #ifdef UI_PROBE_COLORS
+      Show_SingleResistor(Semi.A, Semi.C, 1);     /* show resistor */
+    #else
+      Show_SingleResistor('B', 'E');              /* show resistor */
+    #endif
     /* B-E resistor renders hFE and V_BE measurements useless */
 
     #ifdef SW_SYMBOLS
@@ -1419,10 +1514,8 @@ void Show_BJT(void)
       {
         Display_NextLine();             /* next line */
 
-        /* display diode */
-        Display_Char('B');              /* display: base */
-        Display_Char(BC_Char);          /* display diode symbol */
-        Display_Char('C');              /* display: collector */
+        /* display base-collector diode and pin designators */
+        Show_SemiFlybackDiode(BC_A, BC_C);
 
         /* display diode's V_f */
         Display_Space();                     /* display space */
@@ -1453,9 +1546,6 @@ void Show_FET_Extras(void)
   Diode_Type        *Diode;        /* pointer to diode */  
   uint8_t           Anode;         /* anode of diode */
   uint8_t           Cathode;       /* cathode of diode */
-  uint8_t           Char_1;        /* pin name */
-  uint8_t           Char_2;        /* pin name */
-  uint8_t           Symbol;        /* diode symbol */
 
   /*
    *  Mapping for Semi structure:
@@ -1474,35 +1564,27 @@ void Show_FET_Extras(void)
   {
     Anode = Semi.C;                /* source/emitter */
     Cathode = Semi.B;              /* drain/collector */
-    Symbol = LCD_CHAR_DIODE_CA;    /* |<| */
   }
   else                                  /* p-channel/PNP */
   {
     Anode = Semi.B;                /* drain/collector */
     Cathode = Semi.C;              /* source/emitter */
-    Symbol = LCD_CHAR_DIODE_AC;    /* |>| */
-  }
-
-  if (Check.Found == COMP_FET)     /* FET */
-  {
-    Char_1 = 'D';
-    Char_2 = 'S';
-  }
-  else                             /* IGBT */
-  {
-    Char_1 = 'C';
-    Char_2 = 'E';
   }
 
   /* search for matching diode */
   Diode = SearchDiode(Anode, Cathode);
   if (Diode != NULL)          /* got it */
   {
-    /* show diode */
-    Display_Space();          /* space */
-    Display_Char(Char_1);     /* left pin name */
-    Display_Char(Symbol);     /* diode symbol */
-    Display_Char(Char_2);     /* right pin name */
+    #ifndef UI_NO_TEXTPINOUT
+      /* follows pinout */
+      Display_Space();                  /* space */
+    #else
+      /* no classic pinout */
+      Display_NextLine();               /* next line (#2) */
+    #endif
+
+    /* show diode and pin designators */
+    Show_SemiFlybackDiode(Anode, Cathode);
 
     #ifdef UI_SERIAL_COMMANDS
     /* set data for remote commands */
@@ -1651,17 +1733,10 @@ void Show_FET(void)
    *  display pinout in line #2
    */
 
+  #ifndef UI_NO_TEXTPINOUT
   Display_NextLine();                   /* next line (#2) */
-
-  if (Check.Type & TYPE_SYMMETRICAL)    /* symmetrical Drain and Source */
-  {
-    /* we can't distinguish D and S */
-    Show_SemiPinout('G', 'x', 'x');     /* show pinout */
-  }
-  else                                  /* unsymmetrical Drain and Source */
-  {
-    Show_SemiPinout('G', 'D', 'S');     /* show pinout */
-  }
+  Show_SemiPinout();                    /* show pinout */
+  #endif
 
 
   /*
@@ -1720,9 +1795,11 @@ void Show_IGBT(void)
   Display_UsePenColor();           /* use pen color */
   #endif
 
+  #ifndef UI_NO_TEXTPINOUT
   /* display pinout in line #2 */
   Display_NextLine();              /* next line (#2) */
-  Show_SemiPinout('G', 'C', 'E');  /* show pinout */
+  Show_SemiPinout();               /* show pinout */
+  #endif
 
   /* display additional stuff */
   Show_FET_Extras();               /* show diode, V_th and C_GE */
@@ -1754,9 +1831,6 @@ void Show_ThyristorTriac(void)
     #else
       Display_EEString(Thyristor_str);  /* display: thyristor */
     #endif
-
-    Display_NextLine();                 /* next line (#2) */
-    Show_SemiPinout('G', 'A', 'C');     /* display pinout */
   }
   else                                  /* TRIAC */
   {
@@ -1766,10 +1840,12 @@ void Show_ThyristorTriac(void)
     #else
       Display_EEString(Triac_str);      /* display: TRIAC */
     #endif
-
-    Display_NextLine();                 /* next line (#2) */
-    Show_SemiPinout('G', '2', '1');     /* display pinout */
   }
+
+  #ifndef UI_NO_TEXTPINOUT
+  Display_NextLine();                   /* next line (#2) */
+  Show_SemiPinout();                    /* display pinout */
+  #endif
 
   /* show V_GT (gate trigger voltage) in line #3 */
   if (Semi.U_1 > 0)                /* show if not zero */
@@ -1809,9 +1885,11 @@ void Show_PUT(void)
     Display_EEString(PUT_str);          /* display: PUT */
   #endif
 
+  #ifndef UI_NO_TEXTPINOUT
   /* display pinout in line #2 */
   Display_NextLine();                   /* move to line #2 */
-  Show_SemiPinout('G', 'A', 'C');       /* display pinout */
+  Show_SemiPinout();                    /* display pinout */
+  #endif
 
   /* display V_T in line #3 */
   Display_NL_EEString_Space(V_T_str);   /* display: VT */
@@ -1827,7 +1905,7 @@ void Show_PUT(void)
 #ifdef SW_UJT
 
 /*
- *  show UJT
+ *  show UJT (n-type)
  */
 
 void Show_UJT(void)
@@ -1852,9 +1930,11 @@ void Show_UJT(void)
     Display_EEString(UJT_str);          /* display: UJT */
   #endif
 
+  #ifndef UI_NO_TEXTPINOUT
   /* display pinout in line #2 */  
   Display_NextLine();                   /* next line (#2) */
-  Show_SemiPinout('E', '2', '1');       /* display pinout */
+  Show_SemiPinout();                    /* display pinout */
+  #endif
 
   /* display r_BB in line #3 */
   Display_NL_EEString_Space(R_BB_str);  /* display: R_BB */  
@@ -2558,6 +2638,7 @@ cycle_start:
   CheckProbes(PROBE_3, PROBE_2, PROBE_1);
 
   CheckAlternatives();             /* process alternatives */
+  SemiPinDesignators();            /* manage semi pin designators */
 
   /* if component might be a capacitor */
   if ((Check.Found == COMP_NONE) ||
@@ -2616,54 +2697,54 @@ show_component:
   /* call output function based on component type */
   switch (Check.Found)
   {
-    case COMP_ERROR:
+    case COMP_ERROR:          /* error */
       Show_Error();
       break;
 
-    case COMP_DIODE:
+    case COMP_DIODE:          /* diode */
       Show_Diode();
       break;
 
-    case COMP_BJT:
+    case COMP_BJT:            /* BJT */
       Show_BJT();
       break;
 
-    case COMP_FET:
+    case COMP_FET:            /* FET */
       Show_FET();
       break;
 
-    case COMP_IGBT:
+    case COMP_IGBT:           /* IGBT */
       Show_IGBT();
       break;
 
-    case COMP_THYRISTOR:
+    case COMP_THYRISTOR:      /* Thyristor/SCR */
       Show_ThyristorTriac();
       break;
 
-    case COMP_TRIAC:
+    case COMP_TRIAC:          /* TRIAC */
       Show_ThyristorTriac();
       break;
 
-    case COMP_PUT:
+    case COMP_PUT:            /* PUT */
       Show_PUT();
       break;
 
     #ifdef SW_UJT
-    case COMP_UJT:
+    case COMP_UJT:            /* UJT */
       Show_UJT();
       break;
     #endif
 
-    case COMP_RESISTOR:
+    case COMP_RESISTOR:       /* resistor(s) */
       Show_Resistor();
       break;
 
-    case COMP_CAPACITOR:
+    case COMP_CAPACITOR:      /* capacitor(s) */
       Show_Capacitor();
       break;
 
     #ifdef HW_PROBE_ZENER
-    case COMP_ZENER:
+    case COMP_ZENER:          /* Zener diode */
       Show_Zener();
       break;
     #endif

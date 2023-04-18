@@ -10,7 +10,7 @@
  *     so we have to use BGR color codes instead of RGB
  *   - added changes based on info by b0hoon4@gmail.com
  *
- *   (c) 2016-2021 by Markus Reschke
+ *   (c) 2016-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -64,7 +64,9 @@
 #include "font_8x16_win1251_hf.h"
 #include "font_8x16alt_win1251_hf.h"
 #include "symbols_24x24_hf.h"
+#include "symbols_24x24_old_hf.h"
 #include "symbols_30x32_hf.h"
+#include "symbols_30x32_old_hf.h"
 
 /* sanity check */
 #ifndef FONT_SET

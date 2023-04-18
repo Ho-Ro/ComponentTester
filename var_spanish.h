@@ -99,7 +99,7 @@
   #endif
 
   #ifdef HW_RING_TESTER
-    const unsigned char RingTester_str[] MEM_TYPE = "Ring Tester";
+    const unsigned char RingTester_str[] MEM_TYPE = "Test de anillo";
   #endif
 
   #ifdef HW_EVENT_COUNTER
@@ -198,7 +198,7 @@
   #endif
 
   #ifdef SW_CONTINUITY_CHECK
-    const unsigned char ContinuityCheck_str[] MEM_TYPE = "Continuity";
+    const unsigned char ContinuityCheck_str[] MEM_TYPE = "Continuidad";
   #endif
 
 #endif

@@ -2,7 +2,7 @@
  *
  *   misc tools (hardware and software options)
  *
- *   (c) 2012-2021 by Markus Reschke
+ *   (c) 2012-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -49,9 +49,9 @@
 
 void ProbePinout(uint8_t Mode)
 {
-  uint8_t           ID_1 = 0;      /* character for probe #1 */
-  uint8_t           ID_2 = 0;      /* character for probe #2 */
-  uint8_t           ID_3 = 0;      /* character for probe #3 */
+  uint8_t           Char1 = 0;     /* designator for probe #1 */
+  uint8_t           Char2 = 0;     /* designator for probe #2 */
+  uint8_t           Char3 = 0;     /* designator for probe #3 */
 
   LCD_ClearLine2();                /* info goes to line #2 */
 
@@ -65,41 +65,41 @@ void ProbePinout(uint8_t Mode)
     #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (SW_SERVO) || defined (SW_SQUAREWAVE)
     case PROBES_PWM:
       /* probe #1: Gnd / probe #2: signal / probe #3: Gnd */
-      ID_1 = '-';
-      ID_2 = 's';
-      ID_3 = '-';
+      Char1 = '-';
+      Char2 = 's';
+      Char3 = '-';
       break;
     #endif
 
     #if defined (SW_ESR_TOOL) || defined (SW_CONTINUITY_CHECK)
     case PROBES_ESR:
       /* probe #1: + / probe #3: - */
-      ID_1 = '+';
-      ID_2 = 0;
-      ID_3 = '-';
+      Char1 = '+';
+      Char2 = 0;
+      Char3 = '-';
       break;
     #endif
 
     #if defined (SW_MONITOR_R) || defined (SW_MONITOR_C) || defined (SW_MONITOR_L) || defined(SW_MONITOR_RCL) || defined(SW_MONITOR_RL)
     case PROBES_RCL:
       /* probe #1: * / probe #3: * */
-      ID_1 = '*';
-      ID_2 = 0;
-      ID_3 = '*';
+      Char1 = '*';
+      Char2 = 0;
+      Char3 = '*';
       break;
     #endif
 
     #if defined (HW_RING_TESTER) && defined (RING_TESTER_PROBES)
     case PROBES_RINGS:
       /* probe #1: Vcc / probe #2: pulse out / probe #3: Gnd */
-      ID_1 = '+';
-      ID_2 = 'p';
-      ID_3 = '-';
+      Char1 = '+';
+      Char2 = 'p';
+      Char3 = '-';
       break;
     #endif
   }
 
-  Show_SimplePinout(ID_1, ID_2, ID_3);  /* display pinout */
+  Show_SimplePinout(Char1, Char2, Char3);    /* display pinout */
 
   /* wait for any key press or 5s */
   TestKey(5000, CHECK_BAT);
@@ -629,7 +629,10 @@ uint8_t CheckEncoder(uint8_t *History)
           Semi.C = Probes.ID_3;         /* Common */
 
           /* display pinout */
-          Show_SemiPinout('A', 'B', 'C');
+          Semi.DesA = 'A';              /* pin designator for A */
+          Semi.DesB = 'B';              /* pin designator for B */
+          Semi.DesC = 'C';              /* pin designator for C */
+          Show_SemiPinout();
 
           Steps = 0;                      /* reset steps */
           Action = Temp;                  /* signal valid step */

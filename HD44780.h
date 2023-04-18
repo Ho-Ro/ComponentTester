@@ -2,7 +2,7 @@
  *
  *   HD44780 compatible character display
  *
- *   (c) 2012-2017 by Markus Reschke
+ *   (c) 2012-2021 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -23,7 +23,7 @@
 /*
  *  CGRAM
  *  - 64 bytes
- *  - used-defined characters
+ *  - user-defined characters
  *  - 8 characters 5x8 or 4 characters 5x10
  */
 
@@ -33,7 +33,7 @@
  *  - 80 bytes
  */
 
-/* start adddresses of lines */
+/* start addresses of text lines */
 #define ADDR_LINE_1           0x00    /* line #1 */
 #define ADDR_LINE_2           0x40    /* line #2 */
 #define ADDR_LINE_3           0x14    /* line #3 */

@@ -2,7 +2,7 @@
  *
  *   automation / remote commands via serial interface 
  *
- *   (c) 2018-2021 by Markus Reschke
+ *   (c) 2018-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -122,27 +122,19 @@ void FET_Mode(void)
 
 
 /*
- *  pinout for 3 pin semiconductors
- *
- *  required:
- *  - character for pin A
- *  - character for pin B
- *  - character for pin C
+ *  pinout for 3-pin semiconductors
  */
 
-void SemiPinout(uint8_t A, uint8_t B, uint8_t C)
+void SemiPinout(void)
 {
   uint8_t           n;        /* counter */
   uint8_t           Char;     /* character */
 
   /* display pin IDs */
-  for (n = 0; n <= 2; n++)         /* loop through probe pins */
+  for (n = 0; n <= 2; n++)              /* loop through probe pins */
   {
-    if (n == Semi.A) Char = A;          /* probe A - ID A */
-    else if (n == Semi.B) Char = B;     /* probe B - ID B */
-    else Char = C;                      /*         - ID C */
-
-    Display_Char(Char);            /* send ID */
+    Char = Get_SemiPinDesignator(n);    /* get pin designator */
+    Display_Char(Char);                 /* send designator */
   }
 }
 
@@ -560,42 +552,16 @@ uint8_t Cmd_PIN(void)
       break;
 
     case COMP_BJT:            /* BJT */
-      SemiPinout('B', 'C', 'E');             /* send pinout */
-      break;
-
     case COMP_FET:            /* FET (JFET/MOSFET) */
-      if (Check.Type & TYPE_SYMMETRICAL)     /* symmetrical Drain and Source */
-      {
-        /* we can't distinguish D and S */
-        SemiPinout('G', 'x', 'x');           /* send pinout */
-      }
-      else                                   /* unsymmetrical Drain and Source */
-      {
-        SemiPinout('G', 'D', 'S');           /* send pinout */
-      }
-      break;
-
     case COMP_IGBT:           /* IGBT */
-      SemiPinout('G', 'C', 'E');             /* send pinout */
-      break;
-
     case COMP_THYRISTOR:      /* SCR */
-      SemiPinout('G', 'A', 'C');             /* send pinout */
-      break;
-
     case COMP_TRIAC:          /* TRIAC */
-      SemiPinout('G', '2', '1');             /* send pinout */
-      break;
-
     case COMP_PUT:            /* PUT */
-      SemiPinout('G', 'A', 'C');             /* send pinout */
-      break;
-
     #ifdef SW_UJT
     case COMP_UJT:            /* UJT */
-      SemiPinout('E', '2', '1');             /* send pinout */
-      break;
     #endif
+      SemiPinout();                          /* send pinout */
+      break;
 
     case COMP_RESISTOR:       /* resistor(s) */
       R = (Resistor_Type *)SelectedComp();   /* get pointer */

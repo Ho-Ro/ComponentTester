@@ -2,7 +2,7 @@
  *
  *   semiconductor tests and measurements
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2022 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -31,6 +31,80 @@
 /* ************************************************************************
  *   support functions
  * ************************************************************************ */
+
+
+/*
+ *  manage pin designators for semiconductors
+ *  - results in smaller firmware than setting the designators in
+ *    each semiconductor check function
+ */
+
+void SemiPinDesignators(void)
+{
+  uint8_t           A = 0;         /* designator for pin A */
+  uint8_t           B = 0;         /* designator for pin B */
+  uint8_t           C = 0;         /* designator for pin C */
+
+  /*
+   *  set pin designators based on semiconductor type
+   */
+
+  switch (Check.Found)
+  {
+    case COMP_BJT:            /* BJT */
+      A = 'B';                /* base */
+      B = 'C';                /* collector */
+      C = 'E';                /* emitter */
+      break;
+
+    case COMP_FET:            /* FET */
+      A = 'G';                /* gate */
+      if (Check.Type & TYPE_SYMMETRICAL)     /* symmetrical */
+      {
+        B = 'x';              /* drain */
+        C = 'x';              /* source */
+      }
+      else                                   /* normal */
+      {
+        B = 'D';              /* drain */
+        C = 'S';              /* source */
+      }
+      break;
+
+    case COMP_IGBT:           /* IGBT */
+      A = 'G';                /* gate */
+      B = 'C';                /* collector */
+      C = 'E';                /* emitter */
+      break;
+
+    case COMP_THYRISTOR:      /* Thyristor / SCR */
+    case COMP_PUT:            /* PUT */
+      A = 'G';                /* gate */
+      B = 'A';                /* anode */
+      C = 'C';                /* cathode */
+      break;
+
+    case COMP_TRIAC:          /* TRIAC */
+      A = 'G';                /* gate */
+      B = '2';                /* MT2 */
+      C = '1';                /* MT1 */
+      break;
+
+    #ifdef SW_UJT
+    case COMP_UJT:            /* UJT */
+      A = 'E';                /* emitter */
+      B = '2';                /* B2 */
+      C = '1';                /* B1 */
+      break;
+    #endif
+  }
+
+  /* update pin designators */
+  Semi.DesA = A;              /* designator for pin A */
+  Semi.DesB = B;              /* designator for pin B */
+  Semi.DesC = C;              /* designator for pin C */
+}
+
 
 
 /*
@@ -423,8 +497,8 @@ void CheckDiode(void)
 
     /* save data */
     Diode = &Diodes[Check.Diodes];
-    Diode->A = Probes.ID_1;
-    Diode->C = Probes.ID_2;
+    Diode->A = Probes.ID_1;   /* probe ID for Anode */
+    Diode->C = Probes.ID_2;   /* probe ID for Cathode */ 
     Diode->V_f = U2_Rl;       /* Vf for high measurement current */
     Diode->V_f2 = U2_Rh;      /* Vf for low measurement current */
     Check.Diodes++;
@@ -1080,13 +1154,13 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
       #endif
       Semi.C_value = Caps[0].Value;     /* B-E/E-B capacitance */
       Semi.C_scale = Caps[0].Scale;
-      Semi.A = Probes.ID_3;             /* base pin */
+      Semi.A = Probes.ID_3;             /* probe ID for base */
 
       /* update Collector and Emitter pins */
       if (BJT_Type == TYPE_NPN)    /* NPN */
       {
-        Semi.B = Probes.ID_1;      /* collector pin */
-        Semi.C = Probes.ID_2;      /* emitter pin */
+        Semi.B = Probes.ID_1;      /* probe ID for collector */
+        Semi.C = Probes.ID_2;      /* probe ID for emitter */
 
         #ifdef SW_SYMBOLS
         Check.Symbol = SYMBOL_BJT_NPN;  /* set symbol ID */
@@ -1094,8 +1168,8 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
       }
       else                         /* PNP */
       {
-        Semi.B = Probes.ID_2;      /* collector pin */
-        Semi.C = Probes.ID_1;      /* emitter pin */
+        Semi.B = Probes.ID_2;      /* probe ID for collector */
+        Semi.C = Probes.ID_1;      /* probe ID for emitter */
 
         #ifdef SW_SYMBOLS
         Check.Symbol = SYMBOL_BJT_PNP;  /* set symbol ID */
@@ -1206,17 +1280,17 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
     Check.Done |= DONE_SEMI;       /* transistor detected */
 
     /* save data */
-    Semi.A = Probes.ID_3;           /* gate pin */
+    Semi.A = Probes.ID_3;           /* probe ID for gate */
 
     if (FET_Type == TYPE_N_CHANNEL)     /* n-channel */
     {
-      Semi.B = Probes.ID_1;        /* drain pin */
-      Semi.C = Probes.ID_2;        /* source pin */
+      Semi.B = Probes.ID_1;        /* probe ID for drain */
+      Semi.C = Probes.ID_2;        /* probe ID for source */
     }
     else                                /* p-channel */
     {
-      Semi.B = Probes.ID_2;        /* drain pin */
-      Semi.C = Probes.ID_1;        /* source pin */
+      Semi.B = Probes.ID_2;        /* probe ID for drain */
+      Semi.C = Probes.ID_1;        /* probe ID for source */
     }
 
     /* Gate-Source capacitance */
@@ -1576,7 +1650,7 @@ void CheckDepletionModeFET(uint16_t U_Rl)
     /* common stuff */
     Check.Found = COMP_FET;        /* it's a FET */
     Check.Done |= DONE_SEMI;       /* transistor detection done */
-    Semi.A = Probes.ID_3;          /* gate pin */
+    Semi.A = Probes.ID_3;          /* probe ID for gate */
 
     /*
      *  drain & source pinout
@@ -1585,13 +1659,13 @@ void CheckDepletionModeFET(uint16_t U_Rl)
 
     if (Diff_1 > Diff_2)      /* drain and source as assumed */
     {
-      Semi.B = Probes.ID_1;        /* drain pin */
-      Semi.C = Probes.ID_2;        /* source pin */
+      Semi.B = Probes.ID_1;        /* probe ID for drain */
+      Semi.C = Probes.ID_2;        /* probe ID for source */
     }
     else                      /* drain and source reversed */
     {
-      Semi.B = Probes.ID_2;        /* drain pin */
-      Semi.C = Probes.ID_1;        /* source pin */
+      Semi.B = Probes.ID_2;        /* probe ID for drain */
+      Semi.C = Probes.ID_1;        /* probe ID for source */
     }
 
     /*
@@ -1605,7 +1679,7 @@ void CheckDepletionModeFET(uint16_t U_Rl)
     U_2 += Diff_1;                 /* 102% */
     if ((Diff_2 >= U_1) && (Diff_2 <= U_2))   /* within +/- 2% */
     {
-      Check.Type |= TYPE_SYMMETRICAL; 
+      Check.Type |= TYPE_SYMMETRICAL;
     }
 
 
@@ -1844,9 +1918,9 @@ uint8_t CheckThyristorTriac(void)
   if (Flag == 2)         /* save data and signal success */
   {
     /* save data */
-    Semi.A = Probes.ID_3;     /* Gate pin */
-    Semi.B = Probes.ID_1;     /* Anode/MT2 pin */
-    Semi.C = Probes.ID_2;     /* Cathode/MT1 pin */
+    Semi.A = Probes.ID_3;     /* probe ID for Gate */
+    Semi.B = Probes.ID_1;     /* probe ID for Anode/MT2 */
+    Semi.C = Probes.ID_2;     /* probe ID for Cathode/MT1 */
     Semi.U_1 = V_GT;          /* gate trigger voltage (in mV) */
 
     Flag = 1;                 /* signal success */
@@ -1914,9 +1988,9 @@ void CheckPUT(void)
     #endif
     
     /* save data */
-    AltSemi.A = Probes.ID_3;       /* Gate pin */
-    AltSemi.B = Probes.ID_1;       /* Anode */
-    AltSemi.C = Probes.ID_2;       /* Cathode */
+    AltSemi.A = Probes.ID_3;       /* probe ID for Gate */
+    AltSemi.B = Probes.ID_1;       /* probe ID for Anode */
+    AltSemi.C = Probes.ID_2;       /* probe ID for Cathode */
     AltSemi.U_1 = U_2;             /* U_f */
     AltSemi.U_2 = U_3;             /* V_T */
   }
@@ -2021,9 +2095,9 @@ void CheckUJT(void)
           #endif
 
           /* save data */
-          AltSemi.A = Probes.ID_3;      /* Emitter */
-          AltSemi.B = Probes.ID_1;      /* B2 */
-          AltSemi.C = Probes.ID_2;      /* B1 */
+          AltSemi.A = Probes.ID_3;      /* probe ID for Emitter */
+          AltSemi.B = Probes.ID_1;      /* probe ID for B2 */
+          AltSemi.C = Probes.ID_2;      /* probe ID for B1 */
           AltSemi.U_1 = U_2;            /* voltage drop when switched on */
           /* R_BB is stored in Resistors[0] */
         }

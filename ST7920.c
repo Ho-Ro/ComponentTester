@@ -10,7 +10,7 @@
  *     - 4 bit parallel interface
  *     - 8 bit parallel interface (not supported)
  *
- *   (c) 2017-2021 by Markus Reschke
+ *   (c) 2017-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -78,6 +78,7 @@
   #include "font_8x8_h.h"
   #include "font_8x8_iso8859-2_h.h"
   #include "symbols_24x24_h.h"
+  #include "symbols_24x24_old_h.h"
 #endif
 
 #ifdef LCD_ROT180
@@ -85,6 +86,7 @@
   #include "font_8x8_hf.h"
   #include "font_8x8_iso8859-2_hf.h"
   #include "symbols_24x24_hf.h"
+  #include "symbols_24x24_old_hf.h"
 #endif
 
 /* sanity check */

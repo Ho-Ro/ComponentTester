@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2021-12-06
+Letzte Änderung: 2022-04-04
 
 Inhaltsübersicht:
   - Über den Tester
@@ -23,6 +23,7 @@ Inhaltsübersicht:
     - Serielle TTL-Schnittstelle
     - OneWire
   - Anzeige-Module
+    - Zeichensätze und Symbole
     - HD44780
     - ILI9163
     - ILI9341/ILI9342
@@ -505,6 +506,19 @@ Wenn Du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom Anzeige-
 Modul mit PD5 und setze LCD_CS in config_328.h (nur für grafische Anzeige-
 Module). Anderenfalls würde der Drehencoder den Datenbus durcheinander bringen
 und zu fehlerhaften Ausgaben führen.
+
+
++ Zeichensätze und Symbole
+
+Die Anzeigenmodulkonfiguration beinhaltet auch einen Zeichensatz und optional
+einen Symbolsatz. Passende Zeichensätze und Symbole sind jeweils unter den
+Einstellungen für jedes Anzeigenmodul in config_<MCU>.h gelistet. Für
+grafische Anzeigen kannst Du meistens aus mehreren Zeichensätzen wählen.
+Die Symbole werden über den Schalter "SW_SYMBOLS" in config.h aktiviert.
+
+Wenn Dir der Stil der alten Symbole besser gefällt, kannst Du diese weiterhin
+verwenden, indem Du die Symboleinstellung auf SYMBOLS_<size>_OLD_<format>.h
+änderst. 
 
 
 + HD44780
@@ -1032,6 +1046,9 @@ Für graphische Anzeigen:
 - alle vorherigen Optionen
 - Symbole mit Pinout für dreibeinige Halbleiter (SW_SYMBOLS, nicht für
   Anzeigen mit niedriger Auflösung)
+- keine Ausgabe von Text-Pinout für dreibeinige Halbleiter (UI_NO_TEXTPINOUT,
+  wenn SW_SYMBOLS aktiviert)
+- Anzeige von Testpins in invertierter Darstellung (UI_PROBE_REVERSED)
 
 Für farbige Grafikanzeigen:
 - alle vorherigen Optionen
@@ -1493,7 +1510,7 @@ Ansteuern einer Anzeige verwendet werden.
 Der erweiterte Frequenzzähler hat einen zusätzlichen Vorteiler, welcher die
 Messung höherer Frequenzen erlaubt. Das theoretische Maximum liegt bei 
 1/4 des MCU-Taktes multipliziert mit dem Vorteiler (16:1 or 32:1). Die Steuer-
-signale werden in config_<mcu>.h definiert, und bitte nicht vergessen, in
+signale werden in config_<MCU>.h definiert, und bitte nicht vergessen, in
 config.h den korrekten Vorteiler auszuwählen.
 
 Der Signaleingang (gepufferter Eingang, Quartz-Oszillator für niedrige
@@ -2285,10 +2302,10 @@ Die Pinbelegung eines TRIAC wird mit den Pins 'G', '1' and '2'. angezeigt.
 '1' ist MT1 und '2' ist MT2. Und für einen UJT, sofern die Erkennung aktiviert
 ist, ist es '1' für B1, '2' für B2 und 'E' für den Emitter.
 
-Wenn die "Fancy Pinout" Funktion aktiviert wurde (über das Setzen einer
-Symboldatei in config.h), wird das Bauteilesymbol mit den entsprechenden
-Testpins für 3-Pin-Halbleiter angezeigt. Sollte nicht genügend Platz auf dem
-Display sein, wird die Ausgabe des Symbols übersprungen.
+Wenn die "Fancy Pinout"-Funktion aktiviert wurde (SW_SYMBOLS), wird das
+Bauteilesymbol mit den entsprechenden Testpins für 3-Pin-Halbleiter angezeigt.
+Sollte nicht genügend Platz auf dem Display sein, wird die Ausgabe des Symbols
+übersprungen.
 
 
 + Zusätzliche Hinweise

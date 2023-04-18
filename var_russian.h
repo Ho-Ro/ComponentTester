@@ -99,7 +99,7 @@
   #endif
 
   #ifdef HW_RING_TESTER
-    const unsigned char RingTester_str[] MEM_TYPE = "Ring Tester";
+    const unsigned char RingTester_str[] MEM_TYPE = "Тестер LOPT/FBT";
   #endif
 
   #ifdef HW_EVENT_COUNTER
@@ -111,12 +111,12 @@
   #endif
 
   #ifdef HW_LC_METER
-    const unsigned char LC_Meter_str[] MEM_TYPE = "LC Meter";
+    const unsigned char LC_Meter_str[] MEM_TYPE = "LC измерит.";
     const unsigned char Adjusting_str[] MEM_TYPE = "настройка...";
   #endif
 
   #ifdef HW_LOGIC_PROBE
-    const unsigned char LogicProbe_str[] MEM_TYPE = "Logic Probe";
+    const unsigned char LogicProbe_str[] MEM_TYPE = "Лог.пробник";
   #endif
 
   #ifdef SW_ENCODER
@@ -198,7 +198,7 @@
   #endif
 
   #ifdef SW_CONTINUITY_CHECK
-    const unsigned char ContinuityCheck_str[] MEM_TYPE = "Continuity";
+    const unsigned char ContinuityCheck_str[] MEM_TYPE = "Звук.прозвонка";
   #endif
 
 #endif

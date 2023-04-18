@@ -3,7 +3,7 @@
  *   monospaced 6x8 font based on ISO 8859-2
  *   horizontally aligned, horizontal bit order flipped
  *
- *   (c) 2015-2020 by Markus Reschke
+ *   (c) 2015-2021 by Markus Reschke
  *   Central European characters added by Bohu
  *
  * ************************************************************************ */
@@ -18,6 +18,10 @@
 
 /* source management */
 #define FONT_SET                   /* font set included */
+
+#ifdef FONT_EXTRA
+  #error <<< Font does not support extra characters! >>>
+#endif
 
 /* font size */
 #define FONT_SIZE_X          6     /* width:  8 dots */
@@ -230,7 +234,15 @@ const uint8_t FontData[] PROGMEM = {
 
   /* additional Albanian characters */
   0x1C,0x22,0x02,0x02,0x22,0x1C,0x08,0x04,   /* 0xac Ç (C with cedilla) */
-  0x00,0x00,0x1C,0x02,0x22,0x1E,0x08,0x04,    /* 0xad ç (c with cedilla) */
+  0x00,0x00,0x1C,0x02,0x22,0x1E,0x08,0x04    /* 0xad ç (c with cedilla) */
+  #ifdef FONT_EXTRA
+  ,
+
+  /* extra characters */
+  0x37,0x33,0x37,0x37,0x37,0x37,0x23,0x3F,   /* 0xae 1 (reversed color) */
+  0x23,0x1D,0x1F,0x27,0x3B,0x3D,0x01,0x3F,   /* 0xaf 2 (reversed color) */
+  0x23,0x1D,0x1F,0x23,0x1F,0x1D,0x23,0x3F    /* 0xb0 3 (reversed color) */
+  #endif
 };
 
 
@@ -249,9 +261,15 @@ const uint8_t FontTable[] PROGMEM = {
   0x05,        /* 0x05 -> µ (micro) */
   0x06,        /* 0x06 -> symbol: resistor left side */
   0x07,        /* 0x07 -> symbol: resistor right side */
+  #ifdef FONT_EXTRA
+  0xae,        /* 0x08 -> 1 (reversed color) */
+  0xaf,        /* 0x09 -> 2 (reversed color) */
+  0xb0,        /* 0x0a -> 3 (reversed color)*/
+  #else
   0xff,        /* 0x08 -> n/a */
   0xff,        /* 0x09 -> n/a */
   0xff,        /* 0x0a -> n/a */
+  #endif
   0xff,        /* 0x0b -> n/a */
   0xff,        /* 0x0c -> n/a */
   0xff,        /* 0x0d -> n/a */

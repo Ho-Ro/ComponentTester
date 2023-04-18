@@ -2,7 +2,7 @@
  *
  *   common display functions and common functions for LCD modules
  *
- *   (c) 2015-2021 by Markus Reschke
+ *   (c) 2015-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -60,37 +60,37 @@ void Display_NextLine(void)
   {
   #endif
 
-  Mode = UI.LineMode;              /* get current mode */
-  Line = UI.CharPos_Y;             /* get current line number */
+    Mode = UI.LineMode;            /* get current mode */
+    Line = UI.CharPos_Y;           /* get current line number */
 
-  /* check if we reached the last line */
-  if (Line == UI.CharMax_Y)
-  {
-    if (Mode & LINE_KEY) WaitKey();     /* wait for key press */
-
-    /* clear screen */
-    if (Mode & LINE_KEEP)          /* keep first line */
+    /* check if we reached the last line */
+    if (Line == UI.CharMax_Y)
     {
-      Line = UI.CharMax_Y;         /* start at the last line */
-      while (Line > 1)
+      if (Mode & LINE_KEY) WaitKey();   /* wait for key press */
+
+      /* clear screen */
+      if (Mode & LINE_KEEP)        /* keep first line */
       {
-        LCD_ClearLine(Line);       /* clear line */
-        Line--;                    /* next line */
-      }
+        Line = UI.CharMax_Y;       /* start at the last line */
+        while (Line > 1)
+        {
+          LCD_ClearLine(Line);     /* clear line */
+          Line--;                  /* next line */
+        }
 
-      LCD_CharPos(1, 2);           /* move to second line */
+        LCD_CharPos(1, 2);         /* move to second line */
+      }
+      else                         /* clear complete screen */
+      {
+        LCD_Clear();               /* clear screen */
+      }
     }
-    else                           /* clear complete screen */
+    else
     {
-      LCD_Clear();                 /* clear screen */
+      /* simply move to the next line */
+      Line++;                      /* add one line */
+      LCD_CharPos(1, Line);        /* move to new line */
     }
-  }
-  else
-  {
-    /* simply move to the next line */
-    Line++;                        /* add one line */
-    LCD_CharPos(1, Line);          /* move to new line */
-  }
 
   #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
   }
@@ -130,16 +130,16 @@ void Display_LastLine(void)
   {
   #endif
 
-  Line = UI.CharPos_Y;             /* get current line number */
+    Line = UI.CharPos_Y;           /* get current line number */
 
-  /* check if we reached the last line */
-  if (Line == UI.CharMax_Y)         
-  {
-    WaitKey();                     /* wait for key press */
-    LCD_ClearLine(Line);           /* clear last line */
-    LCD_CharPos(1, Line);          /* move to start of last line */
-    MilliSleep(500);               /* smooth UI */
-  }
+    /* check if we reached the last line */
+    if (Line == UI.CharMax_Y)         
+    {
+      WaitKey();                   /* wait for key press */
+      LCD_ClearLine(Line);         /* clear last line */
+      LCD_CharPos(1, Line);        /* move to start of last line */
+      MilliSleep(500);             /* smooth UI */
+    }
 
   #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
   }
@@ -217,8 +217,9 @@ void Display_EEString(const unsigned char *String)
 /*
  *  display probe number
  *  - probe-1 -> '1'
- *  - probe-2 -> '2'
- *  - probe-3 -> '3'
+ *    probe-2 -> '2'
+ *    probe-3 -> '3'
+ *  - color coded (if enabled)
  *
  *  requires:
  *  - probe/testpin ID (0-2)
@@ -227,17 +228,50 @@ void Display_EEString(const unsigned char *String)
 void Display_ProbeNumber(uint8_t Probe)
 {
   #ifdef UI_PROBE_COLORS
-  uint16_t          Color;         /* color value */
+  uint16_t          Color;              /* color value */
 
-  Color = UI.PenColor;               /* save current color */
-  UI.PenColor = ProbeColors[Probe];  /* set probe color */
+  Color = UI.PenColor;                  /* save current color */
+  UI.PenColor = ProbeColors[Probe];     /* set probe color */
   #endif
 
-  /* since probe-1 is 0 we simply add the value to ASCII '1' */
-  Display_Char('1' + Probe);       /* send char */
+  #ifdef UI_PROBE_REVERSED
+    /* since probe-1 is 0 we simply add the ID to ASCII LCD_CHAR_1_INV */
+    Display_Char(LCD_CHAR_1_INV + Probe);    /* send char */
+  #else
+    /* since probe-1 is 0 we simply add the ID to ASCII '1' */
+    Display_Char('1' + Probe);               /* send char */
+  #endif
 
   #ifdef UI_PROBE_COLORS
-  UI.PenColor = Color;             /* restore old color */
+  UI.PenColor = Color;                  /* restore old color */
+  #endif
+}
+
+
+
+/*
+ *  display semiconductor pin designator based on probe ID
+ *  - color coded (if enabled)
+ *
+ *  requires:
+ *  - probe/testpin ID (0-2)
+ */
+
+void Display_SemiPinDesignator(uint8_t Probe)
+{
+  uint8_t           Char;               /* designator */
+  #ifdef UI_PROBE_COLORS
+  uint16_t          Color;              /* color value */
+
+  Color = UI.PenColor;                  /* save current color */
+  UI.PenColor = ProbeColors[Probe];     /* set probe color */
+  #endif
+
+  Char = Get_SemiPinDesignator(Probe);  /* get pin designator */
+  Display_Char(Char);                   /* display ID */
+
+  #ifdef UI_PROBE_COLORS
+  UI.PenColor = Color;                  /* restore old color */
   #endif
 }
 
@@ -949,11 +983,11 @@ extern const uint8_t PinTable[];
 
 
 /*
- *  display fancy probe number
+ *  display fancy probe number for semiconductors
  *  - display pin numbers left and right of symbol
  *
  *  requires:
- *  - Probe: probe number
+ *  - Probe: probe number (0-2)
  *  - Index: pin index (0-2)
  */
 
@@ -988,8 +1022,16 @@ void LCD_FancyProbeNumber(uint8_t Probe, uint8_t Index)
     }
 
     /* show probe number */
-    LCD_CharPos(x, y);           /* set position */
-    Display_ProbeNumber(Probe);  /* display probe number */
+    LCD_CharPos(x, y);                       /* set position */
+    Data = Get_SemiPinDesignator(Probe);     /* get pin designator */
+    if (Data == 'x')                    /* special case: x */
+    {
+      Display_SemiPinDesignator(Probe); /* display pin designator (x) */
+    }
+    else                                /* normal case */
+    { 
+      Display_ProbeNumber(Probe);       /* display probe number */
+    }
   }
 }
 
@@ -1062,15 +1104,15 @@ void LCD_FancySemiPinout(uint8_t Line)
 
     /* display symbol */
     #ifdef LCD_COLOR
-      Color = UI.PenColor;              /* save color */
-      UI.PenColor = COLOR_SYMBOL;       /* set pen color */
+    Color = UI.PenColor;                /* save color */
+    UI.PenColor = COLOR_SYMBOL;         /* set pen color */
     #endif
 
     LCD_CharPos(UI.SymbolPos_X, UI.SymbolPos_Y);  /* set position */
     LCD_Symbol(Check.Symbol);                     /* display symbol */
 
     #ifdef LCD_COLOR
-      UI.PenColor = Color;              /* restore pen color */
+    UI.PenColor = Color;                /* restore pen color */
     #endif
 
     /* hint: we don't restore the old char position */

@@ -19,8 +19,11 @@
 
 #ifndef MAIN_C
 
-  extern void Show_SemiPinout(uint8_t A, uint8_t B, uint8_t C);
-  extern void Show_SimplePinout(uint8_t ID_1, uint8_t ID_2, uint8_t ID_3);
+  extern uint8_t Get_SemiPinDesignator(uint8_t Probe);
+  #if ! defined (UI_NO_TEXTPINOUT) || defined (SW_ENCODER)
+  extern void Show_SemiPinout(void);
+  #endif
+  extern void Show_SimplePinout(uint8_t Des1, uint8_t Des2, uint8_t Des3);
 
   extern void CheckVoltageRefs(void);
 
@@ -231,6 +234,7 @@
   extern void Display_EEString(const unsigned char *String);
 
   extern void Display_ProbeNumber(uint8_t Probe);
+  extern void Display_SemiPinDesignator(uint8_t Probe);
   extern void Display_Space(void);
   extern void Display_Minus(void);
   extern void Display_Colon(void);
@@ -538,6 +542,7 @@
 
 #ifndef SEMI_C
 
+  extern void SemiPinDesignators(void);
   extern void GetGateThreshold(uint8_t Type);
   extern uint32_t Get_hfe_c(uint8_t Type);
   extern void GetLeakageCurrent(uint8_t Mode);

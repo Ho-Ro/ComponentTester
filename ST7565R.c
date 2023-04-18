@@ -8,7 +8,7 @@
  *     - 8 bit parallel in 8080 mode (not supported)
  *     - 4 line SPI
  *
- *   (c) 2015-2021 by Markus Reschke
+ *   (c) 2015-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -69,6 +69,7 @@
 #include "font_8x12t_win1251_vfp.h"
 #include "font_8x16_win1251_vfp.h"
 #include "symbols_24x24_vfp.h"
+#include "symbols_24x24_old_vfp.h"
 
 /* sanity check */
 #ifndef FONT_SET

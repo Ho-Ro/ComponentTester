@@ -491,7 +491,9 @@ Hints:
   circuit (TC1-Mod, see source repository for TC1-Mod.kicad.tgz, 5µA standby
   current in total) or reprogrammed with a modified firmware (see
   https://github.com/atar-axis/tc1-u4). The designator can be also U3 (T7 Plus)
-  or U5 for newer PCBs. 
+  or U5 for newer PCBs.
+  The latest PCB revision has also a footprint for an alternative MCU (details
+  unknown). The hardware mod should still work.
 - Set extended fuse byte to 0xfd (brown-out detection).
 - If D2 (rectifier diode for Zener test voltage) gets hot replace it with a
   Schottky diode rated for 80V reverse voltage or higher, e.g. SS18.

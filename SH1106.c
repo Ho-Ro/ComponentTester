@@ -9,7 +9,7 @@
  *      - 3 line SPI (untested)
  *      - I2C
  *
- *   (c) 2020-2021 by Markus Reschke
+ *   (c) 2020-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -82,6 +82,7 @@
 #include "font_8x12t_win1251_vfp.h"
 #include "font_8x16_win1251_vfp.h"
 #include "symbols_24x24_vfp.h"
+#include "symbols_24x24_old_vfp.h"
 
 /* sanity check */
 #ifndef FONT_SET

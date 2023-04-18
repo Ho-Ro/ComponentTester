@@ -8,7 +8,7 @@
  *     - 3 line SPI (not supported)
  *     - 4 line SPI
  *
- *   (c) 2017-2021 by Markus Reschke
+ *   (c) 2017-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -63,7 +63,9 @@
 #include "font_8x16_win1251_hf.h"
 #include "font_8x16alt_win1251_hf.h"
 #include "symbols_24x24_hf.h"
+#include "symbols_24x24_old_hf.h"
 #include "symbols_30x32_hf.h"
+#include "symbols_30x32_old_hf.h"
 
 /* sanity check */
 #ifndef FONT_SET

@@ -11,7 +11,7 @@
  *     - 3 line SPI (not supported, would be insanely slow)
  *     - 4 line SPI (hardware SPI strongly recommended)
  *
- *   (c) 2020-2021 by Markus Reschke
+ *   (c) 2020-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -100,7 +100,9 @@
 #include "font_16x26_iso8859-2_hf.h"
 #include "font_16x26_win1251_hf.h"
 #include "symbols_24x24_hf.h"
+#include "symbols_24x24_old_hf.h"
 #include "symbols_32x32_hf.h"
+#include "symbols_32x32_old_hf.h"
 
 /* sanity check */
 #ifndef FONT_SET

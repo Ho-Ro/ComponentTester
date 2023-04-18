@@ -2,7 +2,7 @@
  *
  *   global configuration, setup and settings
  *
- *   (c) 2012-2021 by Markus Reschke
+ *   (c) 2012-2022 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -832,12 +832,31 @@
 
 /*
  *  component symbols for fancy pinout
- *  - for 3-pin semiconductors
- *  - requires graphics display and symbol bitmap
+ *  - just for 3-pin semiconductors
+ *  - requires graphics display and symbol bitmaps (config_<MCU>.h)
  *  - uncomment to enable
  */
 
 #define SW_SYMBOLS
+
+
+/*
+ *  disable text based pinout
+ *  - just for 3-pin semiconductors
+ *  - requires component symbols (SW_SYMBOLS) to be enabled
+ *  - uncomment to enable
+ */
+
+//#define UI_NO_TEXTPINOUT
+
+
+/*
+ *  display probe IDs using reversed colors
+ *  - requires font with extra characters
+ *  - uncomment to enable
+ */
+
+//#define UI_PROBE_REVERSED
 
 
 /*
@@ -1435,9 +1454,19 @@
     #undef SW_SERVO
   #endif
 
+  /* event counter */
+  #ifdef HW_EVENT_COUNTER
+    #undef HW_EVENT_COUNTER
+  #endif
+
   /* IR Sender */
   #ifdef SW_IR_TRANSMITTER
     #undef SW_IR_TRANSMITTER
+  #endif
+
+  /* logic probe */
+  #ifdef HW_LOGIC_PROBE
+    #undef HW_LOGIC_PROBE
   #endif
 
 #endif
@@ -1664,19 +1693,40 @@
 #endif
 
 
+/* additional font characters */
+#if defined (UI_PROBE_REVERSED)
+  #ifndef FONT_EXTRA
+    #define FONT_EXTRA
+  #endif
+#endif
+
+
 /* component symbols for fancy pinout */
 #if defined (SYMBOLS_24X24_H)
+  #define SYMBOLS_SELECTED
+#endif
+#if defined (SYMBOLS_24X24_OLD_H)
   #define SYMBOLS_SELECTED
 #endif
 #if defined (SYMBOLS_24X24_HF) || defined (SYMBOLS_30X32_HF) || defined (SYMBOLS_32X32_HF)
   #define SYMBOLS_SELECTED
 #endif
+#if defined (SYMBOLS_24X24_OLD_HF) || defined (SYMBOLS_30X32_OLD_HF) || defined (SYMBOLS_32X32_OLD_HF)
+  #define SYMBOLS_SELECTED
+#endif
 #if defined (SYMBOLS_24X24_VFP)
+  #define SYMBOLS_SELECTED
+#endif
+#if defined (SYMBOLS_24X24_OLD_VFP)
   #define SYMBOLS_SELECTED
 #endif
 #if defined (SYMBOLS_24X24_VP_F)
   #define SYMBOLS_SELECTED
 #endif
+#if defined (SYMBOLS_24X24_OLD_VP_F)
+  #define SYMBOLS_SELECTED
+#endif
+
 
 /* fancy pinout requires graphic display and symbol set */
 #ifdef SW_SYMBOLS
@@ -1691,6 +1741,22 @@
     #undef SW_SYMBOLS
   #endif
 
+#endif
+
+
+/* additional component symbols */
+#if defined (SW_UJT)
+  #ifndef SYMBOLS_EXTRA
+    #define SYMBOLS_EXTRA
+  #endif
+#endif
+
+
+/* disabling text pinout requires fancy pinout */
+#if defined (UI_NO_TEXTPINOUT)
+  #ifndef SW_SYMBOLS
+    #undef UI_NO_TEXTPINOUT
+  #endif
 #endif
 
 

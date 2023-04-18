@@ -3,7 +3,7 @@
  *   monospaced 5x8 font based on ISO 8859-1
  *   - uses internal font of ST7036
  *
- *   (c) 2019-2020 by Markus Reschke
+ *   (c) 2019-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -17,6 +17,10 @@
 
 /* source management */
 #define FONT_SET                   /* font set included */
+
+#ifdef FONT_EXTRA
+  #error <<< Font does not support extra characters! >>>
+#endif
 
 /* font size */
 #define FONT_SIZE_X          5     /* width:  5 dots */

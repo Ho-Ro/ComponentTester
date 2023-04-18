@@ -19,6 +19,10 @@
 /* source management */
 #define FONT_SET                   /* font set included */
 
+#ifdef FONT_EXTRA
+  #error <<< Font does not support extra characters! >>>
+#endif
+
 /* font size */
 #define FONT_SIZE_X          5     /* width:  5 dots */
 #define FONT_SIZE_Y          8     /* height: 8 dots */

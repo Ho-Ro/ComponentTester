@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit: 2021-12-06
+Last edit: 2022-04-04
 
 Content
   - About
@@ -23,6 +23,7 @@ Content
     - TTL Serial
     - OneWire
   - Displays
+    - Fonts and Symbols
     - HD44780
     - ILI9163
     - ILI9341/ILI9342
@@ -497,9 +498,20 @@ enable LCD_BGR to swap the red and blue color channels. Some displays have
 reversed RGB sub-pixels and the display controller doesn't know about that.
 
 Hint for ATmega 328:
-If you connect a rotary encoder to PD2/PD3, please connect the module's /CS to
+If you connect a rotary encoder to PD2/PD3, please connect the display's /CS to
 PD5 and set LCD_CS in config_328.h (applies to graphic displays). Otherwise
 the rotary encoder would screw up the display by interfering with the data bus.
+
+
++ Fonts and Symbols
+
+The display configuration includes also a font and optionally a set of
+component symbols. Suitable fonts and symbols are listed for each display in
+config_<MCU>.h. For a graphic display you can choose from multiple fonts in
+most cases. The symbols are activated by the SW_SYMBOLS switch in config.h.
+
+If you prefer the old style of component symbols you can still use them by
+changing the symbols setting to SYMBOLS_<size>_OLD_<format>.h.
 
 
 + HD44780
@@ -1018,7 +1030,10 @@ For displays with more then two text lines:
 For graphic displays:
 - all options listed before
 - symbols incl. pinout for three-legged semiconductors (SW_SYMBOLS, not for
-  low resolution diplays)
+  low resolution displays)
+- disable text based pinout for three-legged semiconductors (UI_NO_TEXTPINOUT,
+  when SW_SYMBOLS is enabled)
+- display probe/testpin IDs with reversed colors (UI_PROBE_REVERSED)
 
 For color graphic displays:
 - all options listed before
@@ -1455,7 +1470,7 @@ the frequency. The TO pin can be shared with a display.
 The extended frequency counter has an additional prescaler and allows to
 measure higher frequencies. The theoretical upper limit is 1/4 of the MCU's
 clock rate multiplied by the prescaler (16:1 or 32:1). The control lines
-are configured in config_<mcu>.h, and don't forget to set the correct
+are configured in config_<MCU>.h, and don't forget to set the correct
 prescaler in config.h.
 
 The input channel (buffered input, low frequency crystal oscillator, high
@@ -2228,10 +2243,10 @@ The pinout for a TRIAC is shown with the pin IDs 'G', '1' and '2'. '1' is MT1
 and '2' is MT2. And for a UJT, in case the detection is enabled, it's '1' for
 B1, '2' for B2 and 'E' for the Emitter.
 
-When the fancy pinout option is enabled (by selecting a symbols file in
-config.h) a component symbol with the corresponding probe pin numbers will be
-shown for 3-pin semiconductors. If there's not enough space left on the display
-for the symbol, the pinout will be skipped. 
+When the fancy pinout option is enabled (SW_SYMBOLS) a component symbol with
+the corresponding probe pin numbers will be shown for 3-pin semiconductors.
+If there's not enough space left on the display for the symbol, the pinout
+will be skipped. 
 
 
 + Additional Hints

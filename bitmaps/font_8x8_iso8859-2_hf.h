@@ -3,8 +3,9 @@
  *   monospaced 8x8 font based on ISO 8859-2
  *   horizontally aligned, horizontal bit order flipped
  *
- *   (c) 2015-2020 by Markus Reschke
+ *   (c) 2015-2021 by Markus Reschke
  *   Central European characters added by Bohu
+ *   Inverted digits 1-3 by Feliciano
  *
  * ************************************************************************ */
 
@@ -231,6 +232,14 @@ const uint8_t FontData[] PROGMEM = {
   /* additional Albanian characters */
   0x3C,0x66,0x03,0x03,0x03,0x66,0x3C,0x03,   /* 0xac Ç (C with cedilla) */
   0x00,0x3C,0x66,0x03,0x03,0x66,0x3C,0x03    /* 0xad ç (c with cedilla) */
+  #ifdef FONT_EXTRA
+  ,
+
+  /* extra characters */
+  0xF3,0xF1,0xF3,0xF3,0xF3,0xF3,0xE1,0xFF,   /* 0xae 1 (reversed color) */
+  0xC1,0x9C,0x9F,0xC7,0xF1,0xFC,0x80,0xFF,   /* 0xaf 2 (reversed color) */
+  0xC1,0x9C,0x9F,0xE7,0x9F,0x9C,0xC1,0xFF    /* 0xb0 3 (reversed color) */
+  #endif
 };
 
 
@@ -249,9 +258,15 @@ const uint8_t FontTable[] PROGMEM = {
   0x05,        /* 0x05 -> µ (micro) */
   0x06,        /* 0x06 -> symbol: resistor left side */
   0x07,        /* 0x07 -> symbol: resistor right side */
+  #ifdef FONT_EXTRA
+  0xae,        /* 0x08 -> 1 (reversed color) */
+  0xaf,        /* 0x09 -> 2 (reversed color) */
+  0xb0,        /* 0x0a -> 3 (reversed color)*/
+  #else
   0xff,        /* 0x08 -> n/a */
   0xff,        /* 0x09 -> n/a */
   0xff,        /* 0x0a -> n/a */
+  #endif
   0xff,        /* 0x0b -> n/a */
   0xff,        /* 0x0c -> n/a */
   0xff,        /* 0x0d -> n/a */

@@ -3,7 +3,8 @@
  *   monospaced 6x8 font based on ISO 8859-1
  *   vertically aligned, vertical bit order flipped
  *
- *   (c) 2016-2020 by Markus Reschke
+ *   (c) 2016-2021 by Markus Reschke
+ *   Inverted digits 1-3 by Feliciano
  *
  * ************************************************************************ */
 
@@ -17,6 +18,7 @@
 
 /* source management */
 #define FONT_SET                   /* font set included */
+
 /* font size */
 #define FONT_SIZE_X          6     /* width:  6 dots */
 #define FONT_SIZE_Y          8     /* height: 8 dots */
@@ -154,6 +156,14 @@ const uint8_t FontData[] PROGMEM = {
   0x00,0x00,0x00,0x77,0x00,0x00,   /* 0x6c | */
   0x00,0x00,0x41,0x41,0x3E,0x08,   /* 0x6d } */
   0x00,0x02,0x01,0x02,0x01,0x00    /* 0x6e ~ */
+  #ifdef FONT_EXTRA
+  ,
+
+  /* extra characters */
+  0xFF,0xFF,0xBD,0x80,0xBF,0xFF,   /* 0x6f 1 (reversed color) */
+  0xFF,0x9D,0xAE,0xB6,0xB6,0xB9,   /* 0x70 2 (reversed color) */
+  0xFF,0xDD,0xB6,0xB6,0xB6,0xC9    /* 0x71 3 (reversed color) */
+  #endif
 };
 
 
@@ -172,9 +182,15 @@ const uint8_t FontTable[] PROGMEM = {
   0x05,        /* 0x05 -> µ (micro) */
   0x06,        /* 0x06 -> symbol: resistor left side */
   0x07,        /* 0x07 -> symbol: resistor right side */
+  #ifdef FONT_EXTRA
+  0x6f,        /* 0x08 -> 1 (reversed color) */
+  0x70,        /* 0x09 -> 2 (reversed color) */
+  0x71,        /* 0x0a -> 3 (reversed color)*/
+  #else
   0xff,        /* 0x08 -> n/a */
   0xff,        /* 0x09 -> n/a */
   0xff,        /* 0x0a -> n/a */
+  #endif
   0xff,        /* 0x0b -> n/a */
   0xff,        /* 0x0c -> n/a */
   0xff,        /* 0x0d -> n/a */

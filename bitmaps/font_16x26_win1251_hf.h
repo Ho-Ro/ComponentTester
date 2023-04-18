@@ -3,7 +3,7 @@
  *   monospaced 16x26 font based on Windows-1251
  *   horizontally aligned, horizontal bit order flipped
  *   provided by Yuriy_K @VRTP.RU
- *   ASCII characters (c) 2015-2020 by Markus Reschke
+ *   ASCII characters (c) 2015-2021 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -17,6 +17,10 @@
 
 /* source management */
 #define FONT_SET                   /* font set included */
+
+#ifdef FONT_EXTRA
+  #error <<< Font does not support extra characters! >>>
+#endif
 
 /* font size */
 #define FONT_SIZE_X         16     /* width:  16 dots */

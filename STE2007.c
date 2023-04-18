@@ -10,7 +10,7 @@
  *     - 4 line SPI (not supported yet)
  *     - I2C (not supported yet)
  *
- *   (c) 2019-2021 by Markus Reschke
+ *   (c) 2019-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -57,6 +57,7 @@
 #include "font_6x8_vf.h"
 #include "font_6x8_iso8859-2_vf.h"
 #include "symbols_24x24_vfp.h"
+#include "symbols_24x24_old_vfp.h"
 
 /* sanity check */
 #ifndef FONT_SET

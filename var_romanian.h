@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Romana (ISO 8859-1)
  *
- *   (c) 2016-2021 by Markus Reschke
+ *   (c) 2016-2022 by Markus Reschke
  *   translation by Dumidan
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
@@ -48,7 +48,7 @@
   const unsigned char Thyristor_str[] MEM_TYPE = "Tiristor";
   const unsigned char Triac_str[] MEM_TYPE = "Triac";
   const unsigned char PUT_str[] MEM_TYPE = "Tranz. PUT";
-  const unsigned char Bye_str[] MEM_TYPE = "Pa !";
+  const unsigned char Bye_str[] MEM_TYPE = "La revedere !";
 
 
   /* units */
@@ -99,7 +99,7 @@
   #endif
 
   #ifdef HW_RING_TESTER
-    const unsigned char RingTester_str[] MEM_TYPE = "Ring Tester";
+    const unsigned char RingTester_str[] MEM_TYPE = "Tester Spire SC";
   #endif
 
   #ifdef HW_EVENT_COUNTER
@@ -198,7 +198,7 @@
   #endif
 
   #ifdef SW_CONTINUITY_CHECK
-    const unsigned char ContinuityCheck_str[] MEM_TYPE = "Continuity";
+    const unsigned char ContinuityCheck_str[] MEM_TYPE = "Continuitate";
   #endif
 
 #endif
