@@ -2,7 +2,7 @@
  *
  *   global variables
  *
- *   (c) 2012-2022 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -139,6 +139,7 @@
    */
 
   /* language specific text */
+  #include "var_brazilian.h"
   #include "var_czech.h"
   #include "var_czech_2.h"
   #include "var_danish.h"
@@ -154,7 +155,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.48m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.49m";
 
 
   /* common terms and texts */
@@ -254,6 +255,10 @@
     const unsigned char DS18B20_str[] MEM_TYPE = "DS18B20";
   #endif
 
+  #ifdef SW_DS18S20
+    const unsigned char DS18S20_str[] MEM_TYPE = "DS18S20";
+  #endif
+
   #ifdef SW_HFE_CURRENT
     const unsigned char I_str[] MEM_TYPE ="I_";
   #endif
@@ -273,14 +278,6 @@
     const unsigned char CRC_str[] MEM_TYPE = "CRC";
   #endif
 
-  #ifdef SW_FONT_TEST
-    const unsigned char FontTest_str[] MEM_TYPE = "Font";
-  #endif
-
-  #ifdef SW_SYMBOL_TEST
-    const unsigned char SymbolTest_str[] MEM_TYPE = "Symbols";
-  #endif
-
   #ifdef HW_LOGIC_PROBE
     const unsigned char TTL_str[] MEM_TYPE = "TTL";
     const unsigned char CMOS_str[] MEM_TYPE = "CMOS";
@@ -296,7 +293,8 @@
 
   #ifdef SW_R_TRIMMER
     const unsigned char R_t_str[] MEM_TYPE = "Rt";
-    const unsigned char r_R1_str[] MEM_TYPE = "R1";
+    const unsigned char R1_str[] MEM_TYPE = "R1";
+    const unsigned char R2_str[] MEM_TYPE = "R2";
   #endif
 
   #ifdef SW_C_VLOSS
@@ -839,6 +837,10 @@
     extern const unsigned char DS18B20_str[];
   #endif
 
+  #ifdef SW_DS18S20
+    extern const unsigned char DS18S20_str[];
+  #endif
+
   #ifdef SW_CAP_LEAKAGE
     extern const unsigned char CapLeak_str[];
     extern const unsigned char CapCharge_str[];
@@ -898,11 +900,16 @@
 
   #ifdef SW_R_TRIMMER
     extern const unsigned char R_t_str[];
-    extern const unsigned char r_R1_str[];
+    extern const unsigned char R1_str[];
+    extern const unsigned char R2_str[];
   #endif
 
   #ifdef SW_C_VLOSS
     extern const unsigned char U_loss_str[];
+  #endif
+
+  #ifdef HW_FLASHLIGHT
+    extern const unsigned char Flashlight_str[];
   #endif
 
 

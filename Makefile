@@ -1,7 +1,7 @@
 #
 #  Makefile
 #
-#  (c) 2012-2022 by Markus Reschke
+#  (c) 2012-2023 by Markus Reschke
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
@@ -155,7 +155,7 @@ HEADERS += ST7036.h ST7565R.h ST7735.h ST7920.h STE2007.h
 # objects
 OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o display.o
 OBJECTS_C += resistor.o cap.o semi.o inductor.o
-OBJECTS_C += tools_misc.o tools_signal.o tools_LC_Meter.o
+OBJECTS_C += tools_misc.o tools_signal.o tools_counter.o tools_LC_Meter.o
 OBJECTS_C += SPI.o I2C.o serial.o commands.o OneWire.o
 OBJECTS_C += IR_RX.o IR_TX.o DHTxx.o ADS7843.o MAX6675.o MAX31855.o
 OBJECTS_C += HD44780.o ILI9163.o ILI9341.o ILI9481.o ILI9486.o ILI9488.o
@@ -312,33 +312,33 @@ ifeq (${FAMILY},atmega328_324_640)
   ifeq (${FREQ},1)
     # internal RC oscillator (8MHz) and /1 clock divider
     LFUSE_RC = -U lfuse:w:0x62:m
-    # external 8MHz full swing crystal and /8 clock divider
+    # external 8MHz crystal, full swing osc, /8 clock divider
     LFUSE_CRYSTAL = -U lfuse:w:0x77:m
-    # external 8MHz low power crystal and /8 clock divider
+    # external 8MHz crystal, low power osc, /8 clock divider
     LFUSE_LOWPOWER = -U lfuse:w:0x7f:m
   endif
   ifeq (${FREQ},8)
     # internal RC oscillator (8MHz) and /1 clock divider
     LFUSE_RC = -U lfuse:w:0xe2:m
-    # external 8MHz full swing crystal and /1 clock divider
+    # external 8MHz crystal, full swing osc, /1 clock divider
     LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
-    # external 8MHz low power crystal and /1 clock divider
+    # external 8MHz crystal, low power osc, /1 clock divider
     LFUSE_LOWPOWER = -U lfuse:w:0xff:m
   endif
   ifeq (${FREQ},16)
     # internal RC oscillator (8MHz) not possible
     LFUSE_RC =
-    # external 16MHz full swing crystal and /1 clock divider
+    # external 16MHz crystal, full swing osc, /1 clock divider
     LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
-    # external 16MHz low power crystal and /1 clock divider
+    # external 16MHz crystal, low power osc, /1 clock divider
     LFUSE_LOWPOWER = -U lfuse:w:0xff:m
   endif
   ifeq (${FREQ},20)
     # internal RC oscillator (8MHz) not possible
     LFUSE_RC =
-    # external 20MHz full swing crystal and /1 clock divider
+    # external 20MHz crystal, full swing osc, /1 clock divider
     LFUSE_CRYSTAL = -U lfuse:w:0xf7:m
-    # external 20MHz low power crystal and /1 clock divider
+    # external 20MHz crystal, low power osc, /1 clock divider
     LFUSE_LOWPOWER = -U lfuse:w:0xff:m
   endif
 endif
@@ -353,17 +353,17 @@ ifeq (${FAMILY},atmega328pb)
   ifeq (${FREQ},8)
     # internal RC oscillator (8MHz) and /1 clock divider
     LFUSE_RC = -U lfuse:w:0xe2:m
-    # full swing crystal not supported, use low power crystal
+    # external crystal with full swing osc not supported, use low power osc
     LFUSE_CRYSTAL = -U lfuse:w:0xff:m
-    # external 8MHz low power crystal and /1 clock divider
+    # external 8MHz crystal, low power osc, /1 clock divider
     LFUSE_LOWPOWER = -U lfuse:w:0xff:m
   endif
   ifeq (${FREQ},16)
     # internal RC oscillator (8MHz) not possible
     LFUSE_RC =
-    # full swing crystal not supported, use low power crystal
+    # external crystal with full swing osc not supported, use low power osc
     LFUSE_CRYSTAL = -U lfuse:w:0xff:m
-    # external 16MHz low power crystal and /1 clock divider
+    # external 16MHz crystal, low power osc, /1 clock divider
     LFUSE_LOWPOWER = -U lfuse:w:0xff:m
   endif
 endif

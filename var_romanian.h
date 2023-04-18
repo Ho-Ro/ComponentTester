@@ -201,6 +201,18 @@
     const unsigned char ContinuityCheck_str[] MEM_TYPE = "Continuitate";
   #endif
 
+  #ifdef SW_FONT_TEST
+    const unsigned char FontTest_str[] MEM_TYPE = "Font";
+  #endif
+
+  #ifdef SW_SYMBOL_TEST
+    const unsigned char SymbolTest_str[] MEM_TYPE = "Symbols";
+  #endif
+
+  #ifdef HW_FLASHLIGHT
+    const unsigned char Flashlight_str[] MEM_TYPE = "Flashlight";
+  #endif
+
 #endif
 
 

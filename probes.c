@@ -872,8 +872,8 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   ADC_PORT = Probes.Pin_1;         /* pull-up probe-1 directly */
 
   /*
-   *  For a possible n channel FET we pull down the gate for a few ms,
-   *  assuming: probe-1 = D / probe-2 = S / probe-3 = G
+   *  For a possible n-channel FET we pull down the gate for a few ms.
+   *  - assuming: probe-1 = D / probe-2 = S / probe-3 = G
    *
    *  Hint: The pull-down of the gate will trigger a possible PUT.
    */
@@ -881,20 +881,61 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
   PullProbe(Probes.Rl_3, PULL_10MS | PULL_DOWN);  /* discharge gate via Rl */
   U_Rl = ReadU_5ms(Probes.Ch_2);                  /* get voltage at Rl */
 
+
+  /*
+   *  Additional check for Darlington NPN BJT plus EMI issues causing
+   *  a high U_Rl. With base pulled down U_Rl should drop down to a few mV.
+   *  - get emitter current with base pulled down
+   *  - assuming: probe-1 = C / probe-2 = E / probe-3 = B
+   */
+
+  /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc / Gnd -- Rl -- probe-3 */
+  R_DDR = Probes.Rl_2 | Probes.Rl_3;    /* pull down probe-2 via Rl, probe-3 via Rl */
+  U_1 = ReadU_5ms(Probes.Ch_2);         /* get voltage at emitter (Rl) */
+  /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
+  R_DDR = Probes.Rl_2;                  /* pull down probe-2 via Rl */
+
+  if ((U_1 < U_Rl) && (U_1 < 5))        /* < 5mV (base pulled down) */
+  {
+    U_Rl = U_1;                         /* use U_1 instead */
+  }
+
+
   /*
    *  If we got conduction we could have a p-channel FET. For any
    *  other part U_Rl will stay the same.
    */
- 
+
   if (U_Rl >= 977)            /* > 1.4mA */
   {
     /*
-     *  For a possible p-channel FET we pull up the gate for a few ms,
-     *  assuming: probe-1 = S / probe-2 = D / probe-3 = G
+     *  For a possible p-channel FET we pull up the gate for a few ms.
+     *  - assuming: probe-1 = S / probe-2 = D / probe-3 = G
      */
 
     PullProbe(Probes.Rl_3, PULL_10MS | PULL_UP);  /* discharge gate via Rl */
     U_Rl = ReadU_5ms(Probes.Ch_2);                /* get voltage at Rl */
+
+
+    /*
+     *  Additional check for Darlington PNP BJT plus EMI issues causing
+     *  a high U_Rl. With base pulled up U_Rl should drop down to a few mV.
+     *  - get collector current with base pulled up
+     *  - assuming: probe-1 = E / probe-2 = C / probe-3 = B
+     */
+
+    /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc / probe-3 -- Rl -- Vcc */
+    R_PORT = Probes.Rl_3;                 /* pull up probe-3 via Rl */
+    R_DDR = Probes.Rl_2 | Probes.Rl_3;    /* pull down probe-2 via Rl */
+    U_1 = ReadU_5ms(Probes.Ch_2);         /* get voltage at collector (Rl) */
+    /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
+    R_PORT = 0;                           /* set resistor port to Gnd */
+    R_DDR = Probes.Rl_2;                  /* pull down probe-2 via Rl */
+
+    if ((U_1 < U_Rl) && (U_1 < 5))        /* < 5mV (base pulled up) */
+    {
+      U_Rl = U_1;             /* use U_1 instead */
+    }
   }
 
 
@@ -903,7 +944,9 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
    *  (self-conducting).
    *
    *  Other possibilities:
-   *  - diode or resistor
+   *  - diode, resistor
+   *  - Germanium BJT with high leakage current
+   *  - high hFE Darlington plus long probe leads and/or noisy environment
    */
 
   if (U_Rl > 15)         /* > 21µA */
@@ -916,7 +959,7 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 
 
   /*
-   *  If there's nearly no conduction (just a small leakage current) between
+   *  If there's only a low conduction (leakage current) between
    *  probe-1 and probe-2 we might have a semiconductor:
    *  - BJT
    *  - enhancement mode FET or IGBT
@@ -1008,7 +1051,6 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
     }
 
     #ifdef SW_UJT
-
     /*
      *  check for UJT
      */
@@ -1017,7 +1059,6 @@ void CheckProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
     {
       CheckUJT();
     }
-
     #endif
   }
 

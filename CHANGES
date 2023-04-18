@@ -2,9 +2,42 @@
 
             Change Log for the Component Tester firmware (m-firmware)
 
-                       (c) 2012-2022 by Markus Reschke
+                       (c) 2012-2023 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.49m 2023-04
+- Alternative pinouts for IR receiver module (SW_IR_RX_PINOUT_G_V_D,
+  SW_IR_RX_PINOUT_D_G_V, SW_IR_RX_PINOUT_D_V_G, suggested by
+  boleslaw_43@mikrocontroller.net).
+- Fixed capacitor detection issue in ESR tool. Happened after a semiconductor
+  was found before by normal probing (reported by indman@EEVblog).
+- Fixed bug in configuration management for touchscreens.
+- Added check for frequency counter options to config_support.h.
+- Moved code for counter tools from tools_signal.c to new tools_counter.c.
+- Added checks for SPI_PIN and SPI_MISO to config_support.h in case bit-bang
+  SPI with read support is enabled. Also extended SPI section in all
+  config_<MCU>.h for easier handling.
+- SW_R_TRIMMER shows now also the ratio of the second resistor (suggested by
+  wandows@EEVblog).
+- Display OneWire device symbol in DS18B20, DS18S20 and DHTXX tool (
+  UI_ONEWIRE, suggested by indman@EEVblog).
+- Added symbol for OneWire devices to all symbol sets (thanks to 
+  indman@EEVblog).
+- Support for temperature sensor DS18S20 (SW_DS18S20, DS18S20_HIGHRES,
+  suggested by indman@EEVblog).
+- Added checks for Darlington BJTs to CheckProbes() & CheckDepletionModeFET()
+  to prevent false detection as JFET in case EMI issues cause a high leakage
+  current (reported by wandows@EEVblog).
+- Fixed bug in check for Germanium PNP BJTs in CheckDepletionModeFET().
+- Added configuration switch for sequential COM pin layout to OLED drivers
+  for SH1106 and SSD1306 (LCD_COM_SEQ), and a switch for reversed COM mapping
+  to the SSD1306 driver (LCD_COM_REMAP, suggested by boneDragon@EEVblog).
+- Added support for a passive buzzer (BUZZER_ACTIVE or BUZZER_PASSIVE,
+  suggested by boneDragon@EEVblog).
+- Texts in Brazilian Portuguese (thanks to wandows@EEVblog).
+- Added general purpose switched output, e.g. for an LED flashlight (
+  HW_FLASHLIGHT, suggested by boneDragon@EEVblog).
 
 v1.48m 2022-12
 - Added remote command V_F_clamp for V_f of clamping diode for Schottky

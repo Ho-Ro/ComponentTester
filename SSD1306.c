@@ -737,6 +737,10 @@ void LCD_Contrast(uint8_t Contrast)
  
 void LCD_Init(void)
 {
+  #if defined (LCD_COM_SEQ) || defined (LCD_COM_REMAP)
+  uint8_t           Byte = 0;      /* temporary byte value */
+  #endif
+
   #ifdef LCD_RESET
   /* reset display */
   LCD_PORT &= ~(1 << LCD_RESET);        /* set /RES low */
@@ -748,6 +752,20 @@ void LCD_Init(void)
   /* enable internal charge pump */
   LCD_Cmd(CMD_CHARGE_PUMP);
   LCD_Cmd(FLAG_CHARGEPUMP_ON);
+
+  /* COM pin hardware configuration */
+  #ifdef LCD_COM_SEQ
+    /* sequential COM pin layout */
+    Byte |= FLAG_COM_SEQ;               /* sequential */
+  #endif
+  #ifdef LCD_COM_REMAP
+    /* reversed left/right COM mapping (which side is mapped to top position) */
+    Byte |= FLAG_COM_REMAP;             /* reversed mapping */
+  #endif
+  #if defined (LCD_COM_SEQ) || defined (LCD_COM_REMAP)
+    LCD_Cmd(CMD_COM_CONFIG_SET);        /* COM pin hardware config */
+    LCD_Cmd(Byte);                      /* config flags */
+  #endif
 
   /* segment mapping */
   #ifdef LCD_FLIP_X

@@ -2,7 +2,7 @@
  *
  *   support for global configuration
  *
- *   (c) 2012-2022 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -93,17 +93,17 @@
 
 
 /*
- *  check if a display module is specified
+ *  check if a display module is enabled
  */
 
 #if ! defined (LCD_TEXT) && ! defined (LCD_GRAPHIC)
-  #error <<< No display module specified! >>>
+  #error <<< No display module enabled! >>>
 #endif
 
 
 /*
- *  check if more than one display module is specified
- *  - does not work for enabling same display multiple times 
+ *  check if more than one display module is enabled
+ *  - does not work for enabling same display driver multiple times
  */
 
 #ifdef LCD_HD44780
@@ -111,7 +111,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_HD44780
   #else
     #define DISPLAY_ONE
   #endif
@@ -122,7 +121,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_ILI9163
   #else
     #define DISPLAY_ONE
   #endif
@@ -133,7 +131,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_ILI9341
   #else
     #define DISPLAY_ONE
   #endif
@@ -144,7 +141,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_ILI9481
   #else
     #define DISPLAY_ONE
   #endif
@@ -155,7 +151,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_ILI9486
   #else
     #define DISPLAY_ONE
   #endif
@@ -166,7 +161,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_ILI9488
   #else
     #define DISPLAY_ONE
   #endif
@@ -177,7 +171,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_PCD8544
   #else
     #define DISPLAY_ONE
   #endif
@@ -188,7 +181,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_PCF8814
   #else
     #define DISPLAY_ONE
   #endif
@@ -199,7 +191,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_SH1106
   #else
     #define DISPLAY_ONE
   #endif
@@ -210,7 +201,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_SSD1306
   #else
     #define DISPLAY_ONE
   #endif
@@ -221,7 +211,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_ST7036
   #else
     #define DISPLAY_ONE
   #endif
@@ -232,7 +221,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_ST7565R
   #else
     #define DISPLAY_ONE
   #endif
@@ -243,7 +231,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_ST7735
   #else
     #define DISPLAY_ONE
   #endif
@@ -254,7 +241,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_SEMI_ST7735
   #else
     #define DISPLAY_ONE
   #endif
@@ -265,7 +251,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_ST7920
   #else
     #define DISPLAY_ONE
   #endif
@@ -276,7 +261,6 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_STE2007
   #else
     #define DISPLAY_ONE
   #endif
@@ -287,20 +271,41 @@
     #ifndef DISPLAY_MULTI
       #define DISPLAY_MULTI
     #endif
-    #undef LCD_VT100
   #else
     #define DISPLAY_ONE
   #endif
 #endif
 
-/* show error */
+/* multiple displays: show error */
 #ifdef DISPLAY_MULTI
-  #error <<< Multiple display modules specified! >>>
+  #error <<< Multiple display modules enabled! >>>
 #endif
 
 /* clean up */
 #undef DISPLAY_ONE
 #undef DISPLAY_MULTI
+
+
+
+/* ************************************************************************
+ *   check touchscreen drivers
+ * ************************************************************************ */
+
+
+/* check for activated drivers */
+#ifdef TOUCH_ADS7843
+  #ifndef TOUCH_ONE
+    #define TOUCH_ONE
+  #endif
+#endif
+
+/* touchscreen: common switch */
+#ifdef TOUCH_ONE
+  #define HW_TOUCH
+#endif
+
+/* clean up */
+#undef TOUCH_ONE
 
 
 
@@ -421,6 +426,17 @@
 #endif
 
 
+/* buzzer type: either active or passive */
+#ifdef HW_BUZZER
+  #if defined (BUZZER_ACTIVE) && defined (BUZZER_PASSIVE)
+    #error <<< Buzzer: select either active or passive buzzer! >>>
+  #endif
+
+  #if ! defined (BUZZER_ACTIVE) && ! defined (BUZZER_PASSIVE)
+    #error <<< Buzzer: select buzzer type! >>>
+  #endif
+#endif
+
 /* options which require a buzzer */
 #if ! defined (HW_BUZZER)
 
@@ -460,7 +476,7 @@
 
 /* SPI: either bit-bang or hardware */
 #if defined (SPI_BITBANG) && defined (SPI_HARDWARE)
-  #error <<< Select either bitbang or hardware SPI! >>>
+  #error <<< SPI: select either bitbang or hardware SPI! >>>
 #endif
 
 /* SPI: common switch */
@@ -471,7 +487,7 @@
 /* 9-Bit SPI requires bit-bang mode */
 #ifdef SPI_9
   #ifndef SPI_BITBANG
-    #error <<< 9-Bit SPI requires bit-bang mode! >>>
+    #error <<< SPI: 9-Bit SPI requires bit-bang mode! >>>
   #endif
 #endif
 
@@ -495,10 +511,20 @@
   #endif
 #endif
 
+/* bit-bang SPI with read support requires SPI_PIN and SPI_MISO */
+#if defined (SPI_BITBANG) && defined (SPI_RW)
+  #ifndef SPI_PIN
+    #error <<< SPI: bit-bang SPI with read support requires SPI_PIN to be set! >>>
+  #endif
+  #ifndef SPI_MISO
+    #error <<< SPI: bit-bang SPI with read support requires SPI_MISO to be set! >>>
+  #endif
+#endif
+
 
 /* I2C: either bit-bang or hardware */
 #if defined (I2C_BITBANG) && defined (I2C_HARDWARE)
-  #error <<< Select either bitbang or hardware I2C! >>>
+  #error <<< I2C: select either bitbang or hardware I2C! >>>
 #endif
 
 /* I2C: common switch */
@@ -509,7 +535,7 @@
 
 /* TTL serial: either bit-bang or hardware */
 #if defined (SERIAL_BITBANG) && defined (SERIAL_HARDWARE)
-  #error <<< Select either bitbang or hardware serial interface! >>>
+  #error <<< Serial: select either bitbang or hardware serial interface! >>>
 #endif
 
 /* TTL serial: common switch */
@@ -553,7 +579,7 @@
 
 /* OneWire */
 #if defined (ONEWIRE_PROBES) && defined (ONEWIRE_IO_PIN)
-  #error <<< Select either probes or dedicated IO pin for Onewire! >>>
+  #error <<< OneWire: select either probes or dedicated IO pin! >>>
 #endif
 
 /* options which require OneWire */
@@ -564,17 +590,16 @@
     #undef SW_DS18B20
   #endif
 
+  /* DS18S20 */
+  #ifdef SW_DS18S20
+    #undef SW_DS18S20
+  #endif
+
   /* OneWire scan */
   #ifdef SW_ONEWIRE_SCAN
     #undef SW_ONEWIRE_SCAN
   #endif
 
-#endif
-
-
-/* touchscreen */
-#ifdef TOUCH_PORT
-  #define HW_TOUCH
 #endif
 
 
@@ -681,7 +706,7 @@
 
 
 /* additional component symbols */
-#if defined (SW_UJT) || defined (UI_QUESTION_MARK) || defined (UI_ZENER_DIODE) || defined (UI_QUARTZ_CRYSTAL)
+#if defined (UI_QUESTION_MARK) || defined (UI_ZENER_DIODE) || defined (UI_QUARTZ_CRYSTAL) || defined (UI_ONEWIRE)
   #ifndef SYMBOLS_EXTRA
     #define SYMBOLS_EXTRA
   #endif
@@ -706,6 +731,11 @@
     #undef UI_QUARTZ_CRYSTAL
   #endif
 
+  /* OneWire sensor symbol */
+  #ifdef UI_ONEWIRE
+    #undef UI_ONEWIRE
+  #endif
+
   /* disabling text pinout */
   #ifdef UI_NO_TEXTPINOUT
     #undef UI_NO_TEXTPINOUT
@@ -721,11 +751,16 @@
 
 /* PWM generators: can't have both variants */
 #if defined (SW_PWM_SIMPLE) && defined (SW_PWM_PLUS)
-  #error <<< Select either PWM generator with simple UI or fancy UI! >>>
+  #error <<< PWM: select either PWM generator with simple UI or fancy UI! >>>
 #endif
 
 
-/* frequency counter */
+/* frequency counter: can't have both variants */
+#if defined (HW_FREQ_COUNTER_BASIC) && defined (HW_FREQ_COUNTER_EXT)
+  #error <<< Counter: select either basic or extended frequency counter! >>>
+#endif
+
+/* frequency counter: common switch */
 #if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT)
   #define HW_FREQ_COUNTER
 #endif
@@ -735,7 +770,7 @@
 #if defined (HW_RING_TESTER)
   /* requires pulse output */
   #if ! defined (RING_TESTER_PIN) && ! defined (RING_TESTER_PROBES)
-    #error <<< Select pulse output for ring tester! >>>
+    #error <<< Ring tester: select pulse output! >>>
   #endif
   /* prefer dedicated pin */
   #if defined (RING_TESTER_PIN) && defined (RING_TESTER_PROBES)
@@ -750,6 +785,14 @@
 #endif
 
 
+/* IR detector/decoder (via probes): one pinout variant */
+#if defined (SW_IR_RECEIVER)
+  #if ! defined (SW_IR_RX_PINOUT_G_V_D) && ! defined (SW_IR_RX_PINOUT_D_G_V) && ! defined (SW_IR_RX_PINOUT_D_V_G)
+    #error <<< IR receiver: no pinout selected! >>>
+  #endif
+#endif
+
+
 /* rounding for DS18B20 requires DS18B20 support */
 #ifdef UI_ROUND_DS18B20
   #ifndef SW_DS18B20
@@ -760,7 +803,7 @@
 
 /* Zener check: can't have unswitched and switched mode */
 #if defined (ZENER_UNSWITCHED) && defined (ZENER_SWITCHED)
-  #error <<< Select either unswitched or switched mode for Zener check! >>>
+  #error <<< Zener check: select either unswitched or switched mode! >>>
 #endif
 
 
@@ -769,12 +812,12 @@
 
   /* can't have high and low active */
   #if defined (ZENER_BOOST_HIGH) && defined (ZENER_BOOST_LOW)
-    #error <<< Select either high or low active for boost converter! >>>
+    #error <<< Zener check: select either high or low active for boost converter! >>>
   #endif
 
   /* must have one drive method */
   #if ! defined (ZENER_BOOST_HIGH) && ! defined (ZENER_BOOST_LOW)
-    #error <<< Select drive method for boost converter! >>>
+    #error <<< Zener check: select drive method for boost converter! >>>
   #endif
 
 #endif
@@ -939,7 +982,7 @@
 
 
 /* Display_SignedFullValue() */
-#if defined (SW_DS18B20) || defined (SW_DHTXX) || defined (HW_MAX31855)
+#if defined (SW_DS18B20) || defined (SW_DS18S20) || defined (SW_DHTXX) || defined (HW_MAX31855)
   #ifndef FUNC_DISPLAY_SIGNEDFULLVALUE
     #define FUNC_DISPLAY_SIGNEDFULLVALUE
   #endif
@@ -968,9 +1011,17 @@
 #endif
 
 
+/* RoundSignedValue() */
+#if defined (UI_ROUND_DS18B20)
+  #ifndef FUNC_ROUNDSIGNEDVALUE
+    #define FUNC_ROUNDSIGNEDVALUE
+  #endif
+#endif
+
+
 /* Celsius2Fahrenheit() */
 #ifdef UI_FAHRENHEIT
-  #if defined (SW_DS18B20) || defined (SW_DHTXX) || defined (HW_MAX6675) || defined (HW_MAX31855)
+  #if defined (SW_DS18B20) || defined (SW_DS18S20) || defined (SW_DHTXX) || defined (HW_MAX6675) || defined (HW_MAX31855)
     #ifndef FUNC_CELSIUS2FAHRENHEIT
       #define FUNC_CELSIUS2FAHRENHEIT
     #endif
@@ -979,7 +1030,7 @@
 
 
 /* variable Start_str */
-#if defined (SW_OPTO_COUPLER) || defined (HW_EVENT_COUNTER) || defined (SW_DS18B20) || defined (SW_ONEWIRE_SCAN)
+#if defined (SW_OPTO_COUPLER) || defined (HW_EVENT_COUNTER) || defined (SW_DS18B20) || defined (SW_DS18S20) || defined (SW_ONEWIRE_SCAN)
   #ifndef VAR_START_STR
     #define VAR_START_STR
   #endif

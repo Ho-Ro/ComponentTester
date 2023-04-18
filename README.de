@@ -3,11 +3,11 @@
 
             ReadMe für die Component-Tester-Firmware (m-Firmware)
 
-        (c) 2012-2022 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2023 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2022-12-13
+Letzte Änderung: 2023-04-03
 
 Inhaltsübersicht:
   - Über den Tester
@@ -78,9 +78,10 @@ Inhaltsübersicht:
     - Opto-Koppler-Test
     - Modellbau-Servo-Test
     - OneWire-Scan
-    - DS18B20-Temperatursensor
+    - DS18B20/DS18S20-Temperatursensoren
     - DHTxx-Sensoren
     - MAX6675/MAX31855 Thermoelement-Konverter
+    - Licht
     - Selbsttest
     - Selbstabgleich
     - Speichern/Laden
@@ -186,13 +187,14 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - IR-Fernbedienung
 - Test von Opto-Kopplern
 - Test von Modellbau-Servos
-- OneWire (DS18B20)
+- OneWire (DS18B20, DS18S20)
 - DHTxx-Sensoren
 - Ereigniszähler
 - Klingeltester (LOPT/FBT-Tester)
 - Logiktester
 - Durchgangsprüfer
 - MAX6675/MAX31855 Thermoelement-Konverter
+- Licht / allgemeiner Schaltausgang
 - Strukturierter Quellcode
 - einfache Rahmenwerke für Anzeigen und Datenbusse
 - Und Manches mehr, was mir gerade nicht einfällt.
@@ -251,6 +253,7 @@ Folgende Hardware-Optionen werden unterstützt:
   - Klingeltester (LOPT/FBT-Tester)
   - Logiktester
   - MAX6675/MAX31855 Thermoelement-Konverter
+  - Licht / allgemeiner Schaltausgang
 
 
 * Firmware übersetzen
@@ -305,7 +308,7 @@ Und natürlich die Software-Optionen:
 - Test von Modellbau-Servos (braucht zusätzliche Tasten, Display >2 Zeilen)
 - Erkennung von UJTs
 - Test für Kondensatorleckstrom
-- DS18B20 Temperatursensor
+- DS18B20/DS18S20-Temperatursensoren
 - Farbkodierung für Testpins (benötigt Farbdisplay)
 - Ausgabe der gefundenen Bauteile parallel über TTL-Serielle, z.B auf PC
 - Fernsteuerkommandos über TTL-Serielle.
@@ -319,6 +322,8 @@ zu groß werden, versuche für Dich nicht so wichtige Optionen wieder zu
 deaktivieren.
 
 Verfügbare Sprachen:
+- brasilianisches Portugiesisch
+  - von wandows@EEVblog
 - Dänisch
   - von glenndk@mikrocontroller.net
   - benötigt kleine Änderungen im Font
@@ -678,7 +683,7 @@ Pinout für 4-Line-SPI:
   /CS         LCD_CS           PB5          optional
   D/C         LCD_DC           PB3
   SCL         LCD_SCL          PB7          SPI Clock
-  SDA         LCD_SDA          PB5          SPI MOSI
+  SDA         LCD_SDA          PB1          SPI MOSI
 
 Wegen der hohen Auflösung der Anzeige und dem RGB666-Farbschema (3 Bytes pro
 Pixel) ist SPI recht langsam, selbst für Hardware-SPI und einem MCU-Takt von
@@ -768,7 +773,8 @@ Und für I2C:
 
 Mit den X/Y-Flip Einstellungen kannst Du die Orientierung der Anzeige
 anpassen, wenn notwenig. Bei vielen SH1106-Display-Modulen muss der X-Offset
-auf 2 gesetzt werden. 
+auf 2 gesetzt werden. Falls the Pixelzeilen total durcheinander sind, kannst
+Du das sequenzielle COM-Pin-Layout (LCD_COM_SEQ) versuchen.
 
 
 + SSD1306
@@ -801,7 +807,9 @@ Und für I2C:
   SA0 (D/C)                    Gnd (0x3c) / 3.3V (0x3d)
 
 Mit den X/Y-Flip Einstellungen kannst Du die Orientierung der Anzeige
-anpassen, wenn notwenig.
+anpassen, wenn notwenig. Falls the Pixelzeilen total durcheinander sind, kannst
+Du das sequenzielle COM-Pin-Layout (LCD_COM_SEQ) und/oder die umgedrehte
+COM-Pin-Zuordnung (LCD_COM_REMAP) versuchen.
 
 
 + ST7036 (ungetestet)
@@ -1065,6 +1073,8 @@ Für graphische Anzeigen:
 - Anzeige eines Zenerdiodensymbols bei allen Zener-Tests (UI_ZENER_DIODE)
 - Anzeige eines Schwingquartzsymbols für LF/HF-Modi im erweiterten
   Frequenzzähler (UI_QUARTZ_CRYSTAL)
+- Anzeige eines Symbols für OneWire-Bauteile in DS18B20, DS18S20 und
+  DHTXX-Funktion
 
 Für farbige Grafikanzeigen:
 - alle vorherigen Optionen
@@ -1078,10 +1088,12 @@ Für farbige Grafikanzeigen:
 + Summer/Pieper (Hardware-Option)
 
 Falls Du auch ein akustisches Signal haben möchtest, kannst Du einen aktiven
-Summer (mit integriertem Oszillator) verwenden. Der Summer wird über einen
-festen Port-Pin kontrolliert (siehe BUZZER_CTRL in config_<MCU>.h) und kann
-direkt (< 20mA) bzw. über einen Transistor (NPN oder n-Kanal-MOSFET)
-angesteuert werden.
+Summer (mit integriertem Oszillator) oder einen passiven Summer verwenden. Der
+Summer wird über einen festen Port-Pin kontrolliert (siehe BUZZER_CTRL in
+config_<MCU>.h) und kann direkt (< 20mA) bzw. über einen Transistor (NPN oder
+n-Kanal-MOSFET) angesteuert werden.
+
+Der passive Summer gibt kurze Töne mit den Frequenzen 2,5 und 5 kHz aus.
 
 Im Augenblick wird der Summer benutzt für
 - Durchgangstest (SW_CONTINUITY_CHECK)
@@ -1386,6 +1398,30 @@ werte für Vcc/Vdd sind:
 
 Und wie gewohnt, zwei kurze Tastendrücke beenden den Logiktester.
 
+Spannungsteiler-Eingang:
+
+  Signal +
+         |
+         |
+         -
+        | | R1
+        | | 10k
+        | |
+         -
+         |
+         |
+         x----- TP_LOGIC 
+         |      (ADC-Pin)
+         |
+         -
+        | | R2
+        | | 3k3
+        | |
+         -
+         |
+         |
+     Gnd -
+
 
 + Durchgangsprüfer (Hardware-Option)
 
@@ -1393,8 +1429,10 @@ Diese Funktion prüft Schaltungen auf Durchgang und gibt Dir ein akustisches
 Signal über einen Summer/Pieper, während auch die Spannung zwischen den
 Testpins ausgegeen wird. Der Teststrom wird über Rl (680 Ohm) auf etwa 7 mA
 begrenzt. Die Schwellwerte für den Summer sind:
-  - <100mV      kontinuierlicher Piep
-  - 100-700mV   wiederholender kurzer Piep
+  - <100mV      aktiver Summer: kontinuierlicher Piep
+                passiver Smmer: wiederholender Piep mit hoher Frequenz
+  - 100-700mV   aktiver Summer: wiederholender kurzer Piep
+                passiver Smmer: wiederholender Piep mit niedriger Frequenz
   - >700mV      kein Piep
 
 Der kurze Piep zeigt einen möglichen Halbleiterübergang an. Bei einer Unter-
@@ -1658,9 +1696,9 @@ vorhanden, kann der Kontrastwert damit ebenfalls geändert werden.
 Diese Funktion erkennt und dekodiert Signale von IR-Fernbedienungen und
 benötigt ein IR-Empfängermodul, wie z.B. aus der TSOP-Serie. Beim Übersetzen
 der Firmware kannst Du zwischen zwei Anschlussvarianten wählen. Bei der ersten
-Variante wird das Moduls mit den normalen Testpins verbunden. Die zweite
-Variante ist ein festes Modul, welches mit einem bestimmten MCU-Pin verbunden
-ist.
+Variante wird das Moduls mit den normalen Testpins verbunden (SW_IR_RECEIVER).
+Die zweite Variante ist ein festes Modul, welches mit einem bestimmten MCU-Pin
+verbunden ist (HW_IR_RECEIVER).
 
 Wenn ein bekanntes Protokoll erkannt wird, gibt der Tester das Protokoll,
 Adresse (sofern verfügbar), Kommando und ggf. zusätzliche Informationen
@@ -1751,10 +1789,22 @@ für gültige Daten-Pakete aktivieren (SW_IR_RX_BEEP).
 
 Das IR-Empfängermodul bitte erst im IR-Fernbedienungsdetektor anschliessen!
 
-Beschaltung für das TSOP-Modul:
-  Probe #1:  Masse/Gnd
-  Probe #2:  Vs (680 Ohm Widerstand zur Strombegrenzung)
-  Probe #3:  Data/Out
+Beschaltung für das TSOP-Modul (Standard-Pinout SW_IR_RX_PINOUT_G_V_D):
+  Pin #1:  Masse/Gnd
+  Pin #2:  Vs (680 Ohm Widerstand zur Strombegrenzung)
+  Pin #3:  Data/Out
+
+Die Firmware kann auch auf ein alternatives Pinout umgestellt werden, sofern
+es notwendig sein sollte. Dies ist insbesondere für Tester mit Nullkraftsockel
+nützlich:
+  - alternative Beschaltung SW_IR_RX_PINOUT_D_G_V
+    Pin #1:  Data/Out
+    Pin #2:  Masse/Gnd
+    Pin #3:  Vs (680 Ohm Widerstand zur Strombegrenzung)
+  - alternative Beschaltung SW_IR_RX_PINOUT_D_V_G
+    Pin #1:  Data/Out
+    Pin #2:  Vs (680 Ohm Widerstand zur Strombegrenzung)
+    Pin #3:  Masse/Gnd
 
 Hinweis:
   Der Widerstand zur Strombegrenzung setzt ein IR-Empfängermodul mit einem
@@ -1983,19 +2033,20 @@ Busfehlers kannst Du per Tastendruck einen komplett neuen Scandurchlauf
 starten. Wie üblich beenden zwei kurze Tastendrücke die Funktion. 
 
 
-+ DS18B20-Temperatursensor
++ DS18B20/DS18S20-Temperatursensoren
 
-Hiermit wird der OneWire-Temperatursensor DS18B20 ausgelesen. Zum Einrichten
-des OneWire-Busses siehe bitte den Abschnitt "Busse & Schnittstellen". Bei
-Benutzung der Test-Pins informiert der Tester über die Beschaltung und wartet
-dann bis ein externer Pull-Up-Widerstand erkannt wurde. Mit einem Tastendruck
-läßt sich dies überspringen.
+Hiermit wird der OneWire-Temperatursensor DS18B20/DS18S20 ausgelesen. Zum Ein-
+richten des OneWire-Busses siehe bitte den Abschnitt "Busse & Schnittstellen".
+Bei Benutzung der Test-Pins informiert der Tester über die Beschaltung und
+wartet dann bis ein externer Pull-Up-Widerstand erkannt wurde. Mit einem
+Tastendruck läßt sich dies überspringen.
 
-Nach den Verbinden des DS18B20 als einziger Client am Bus startet ein Tasten-
-druck das Auslesen der Temperatur (kann fast eine Sekunde dauen). Zum Beenden
-zweimal kurz die Test-Taste drücken. Und mit einem langen Tastendruck wählst
-Du den Auto-Modus (automatische Aktualisierung), welcher durch ein "*" in der
-ersten Zeile signalisert wird.
+Nach den Verbinden des DS18B20/DS18S20 als einziger Client am Bus startet ein
+Tastendruck das Auslesen der Temperatur (kann fast eine Sekunde dauen). Zum
+Beenden zweimal kurz die Test-Taste drücken. Mit einem langen Tastendruck
+wählst Du den Auto-Modus (automatische Aktualisierung), welcher durch ein "*"
+in der ersten Zeile signalisert wird. Ein weiterer langer Tastendruck schaltet
+wieder zurück zum manuellen Modus.
 
 Beschaltung von Test-Pins:
   Probe #1:  Gnd
@@ -2003,6 +2054,11 @@ Beschaltung von Test-Pins:
   Probe #3:  Vcc (Strom durch 680 Ohm Widerstand begrenzt)
   Ein externer Pull-Up-Widerstand von 4,7kOhm zwischen DQ and Vcc wird
   benötigt!
+
+Hints:
+- Option für DS18B20: Runden auf 0,1 °C/F (UI_ROUND_DS18B20)
+- Option für DS18S20: hohe Auflösung (DS18S20_HIGHRES)
+- Die DS18B20-Funktion kann auch den Sensor DS1822 lesen.
 
 
 + DHTxx-Sensoren
@@ -2053,6 +2109,14 @@ stattdessen. Für den automatischen Lesemodus (jede Sekunde) die Testtaste
 lange drücken (wird durch ein "*" nach dem MAX-Namen signalisiert). Ein
 zweiter langer Tastendruck beendet wieder den automatischen Lesemodus. Und
 zwei kurze Tastendrücke beenden die Funktion.
+
+
++ Licht
+
+Dies ist ein allgemeiner Schaltausgang zum Steuern von einem zusätzlichen
+Schaltungsteil, wie z.B. einem LED-Licht. Der Tester schaltet einfach den
+Ausgang zwischen Low und High um, jedes Mal bei Aufruf. Lasten kleiner 20mA
+können direkt betrieben werden.
 
 
 + Selbsttest
@@ -2194,8 +2258,8 @@ sehr kleine Widerstände nicht erkennen. Am besten dann die Messung einfach
 wiederholen. 
 
 Zum Prüfen von Potentiometern bzw. Trimmern kann die zusätzliche Ausgabe vom
-Gesamtwiderstand (Rt) und dem Verhältnis des ersten Widerstands zum Gesamt-
-widerstand (R1) in % aktiviert werden (SW_R_TRIMMER).
+Gesamtwiderstand (Rt) und dem Verhältnis der beiden Widerstände zum Gesamt-
+widerstand (R1 und R2) in % aktiviert werden (SW_R_TRIMMER).
 
 Wenn die optionale Prüfung auf E-Normwerte (SW_R_E*) aktiviert ist, nimmt
 der Tester den nächst kleineren und nächst größeren Normwert, und vergleicht
@@ -2397,6 +2461,10 @@ Bei einem Schottky-Transistor (Schottky-clamped BJT) wird die Schottky-
 Diode zwischen Basis und Kollektor incl. V_f angezeigt, sofern die Erkennung
 aktiviert ist (SW_SCHOTTKY_BJT). Es sei darauf hingewiesen, dass I_CEO bei
 einem Schottky-Transistor erhöht ist.
+
+Hinweis:
+- Der hohe hFE von Darlington-Transistoren kann in Verbindung mit EMV zu
+  falschen I_CEO-Werten führen. 
 
 
 TRIACs

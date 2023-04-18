@@ -2,7 +2,7 @@
  *
  *   OneWire communication and tools
  *
- *   (c) 2018-2021 by Markus Reschke
+ *   (c) 2018-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1117,7 +1117,7 @@ uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale)
     int16_t         *Ptr;          /* pointer to mitigate compiler warning */
 
     Ptr = (int16_t *)&ScratchPad[0];    /* combine LSB and MSB */
-    Temp = *Ptr;                        /* copy value */  
+    Temp = *Ptr;                        /* copy value */
 
 
     /*
@@ -1148,7 +1148,7 @@ uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale)
       n--;                         /* next bit */
     }
 
-    *Value *= Temp;                /* scale temperature */ 
+    *Value *= Temp;                /* scale temperature */
     *Value /= Run;                 /* and adjust for binary scaling */
   }
 
@@ -1192,6 +1192,19 @@ uint8_t DS18B20_Tool(void)
   /* start info */
   LCD_ClearLine2();                     /* clear line #2 */
   Display_EEString(Start_str);          /* display: Start */
+
+  #ifdef UI_ONEWIRE
+  /* display sensor symbol */
+  Check.Symbol = SYMBOL_ONEWIRE;        /* set symbol ID */
+  Semi.A = 1;                           /* DQ/Data: probe #2 */
+  Semi.B = 2;                           /* Vcc/+: probe #3 */
+  Semi.C = 0;                           /* Gnd/-: probe #1 */
+    #ifdef ONEWIRE_READ_ROM
+      Display_FancySemiPinout(4);       /* show symbol starting in line #4 */
+    #else
+      Display_FancySemiPinout(3);       /* show symbol starting in line #3 */
+    #endif
+  #endif
 
 
   /*
@@ -1271,6 +1284,350 @@ uint8_t DS18B20_Tool(void)
         /* round value and scale to 0.1° */
         Value = RoundSignedValue(Value, Scale, 1);
         Scale = 1;                 /* 1 decimal */
+        #endif
+
+        /* todo: add degree symbol to bitmap fonts */
+        Display_SignedFullValue(Value, Scale, '°');
+
+        #ifdef UI_FAHRENHEIT
+          Display_Char('F');       /* display: F (Fahrenheit) */
+        #else
+          Display_Char('C');       /* display: C (Celsius) */
+        #endif
+      }
+      else                         /* some error */
+      {
+        Display_Minus();           /* display n/a */
+      }
+
+      #ifdef ONEWIRE_READ_ROM
+      /* read and display ROM code */
+      LCD_CharPos(1, 3);           /* move to line #3 */
+      OneWire_Read_ROM_Code();     /* read and display ROM code */
+      #endif
+    }
+  }
+
+  return Flag;
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   DS18S20
+ * ************************************************************************ */
+
+
+#ifdef SW_DS18S20
+
+/*
+ *  DS18S20: read temperature
+ *  - single client on the bus
+ *
+ *  requires:
+ *  - Value: pointer to temperature in °C
+ *  - Scale: pointer to scale factor (*10^x)
+ *
+ *  returns:
+ *  - 1 on success
+ *  - 0 on any problem
+ */
+
+uint8_t DS18S20_ReadTemperature(int32_t *Value, int8_t *Scale)
+{
+  uint8_t           Flag = 0;           /* return value / control flag */
+  uint8_t           Run = 0;            /* loop control */
+  uint8_t           n;                  /* counter */
+  uint8_t           ScratchPad[9];      /* scratchpad */
+  uint8_t           Sign;               /* sign flag */
+  int16_t           Temp;               /* temperature */
+
+  wdt_reset();                /* reset watchdog */
+
+  /* transaction: initialization */
+  /* reset bus and check for presence pulse */
+  Flag = OneWire_ResetBus();
+
+  if (Flag)                   /* detected client */
+  {
+    /* transaction: ROM command */
+    OneWire_SendByte(CMD_SKIP_ROM);     /* select all clients */
+
+    /* transaction: function command */
+    /* start conversion */
+    OneWire_SendByte(CMD_DS18S20_CONVERT_T);
+
+    /* maximum conversion time 750ms (t_conv) */
+    #if 0
+    /* fixed delay for conversion (required when parasitic-powered) */
+    MilliSleep(750);          /* 750ms */
+    Run = 3;                  /* three read attempts */
+    #endif
+
+    /*
+     *  check the conversion status to minimize delay
+     *  - requires external power
+     */
+
+    Flag = 0;                           /* reset flag */
+    n = 50;                             /* 750ms / 15ms = 50 */
+    while (n > 0)
+    {
+      MilliSleep(15);                   /* wait 15ms */
+
+      /* check conversion state */
+      Sign = OneWire_ReadBit();         /* single read slot */
+      if (Sign == FLAG_CONV_DONE)       /* conversion finished */
+      {
+        Flag = 1;                       /* signal "ok" */
+        Run = 3;                        /* three read attempts */
+        n = 1;                          /* end loop */
+      }
+
+      n--;                              /* next round */
+    }
+  }
+
+
+  /*
+   *  read scratchpad
+   */
+
+  while (Run)
+  {
+    /* transaction: initialization */
+    /* reset bus and check for presence pulse */
+    Flag = OneWire_ResetBus();    
+
+    if (Flag)                 /* detected client */
+    {
+      /* transaction: ROM command */
+      OneWire_SendByte(CMD_SKIP_ROM);        /* select all clients */
+
+      /* transaction: function command */
+      /* read scratchpad to get temperature */
+      OneWire_SendByte(CMD_DS18S20_READ_SCRATCHPAD);
+      n = 0;
+      while (n < 9)           /* 9 bytes */
+      {
+        ScratchPad[n] = OneWire_ReadByte();  /* read byte */
+        n++;                                 /* next byte */
+      }
+
+      /* check CRC of scratchpad */
+      CRC8 = 0x00;            /* reset CRC to start value */
+      n = 0;
+      while (n < 8)           /* 8 data bytes */
+      {
+        OneWire_CRC8(ScratchPad[n]);    /* process byte */
+        n++;                            /* next byte */
+      }
+
+      if (ScratchPad[8] == CRC8)        /* CRC matches */
+      {
+        Run = 1;                        /* end loop */
+      }
+      else                              /* mismatch */
+      {
+        Flag = 0;                       /* signal error */
+      }
+    }
+    else                      /* no client detected */
+    {
+      Run = 1;                /* end loop */
+    }
+
+    Run--;                    /* another try */
+  }
+
+
+  /*
+   *  get temperature from scratchpad (in °C)
+   */
+
+  if (Flag)                   /* valid scratchpad */
+  {
+    /*
+     *  build signed integer from LSB and MSB
+     *  - two's complement
+     *  - t_LSB: Byte #0 = ScratchPad[0]
+     *  - t_MSB: Byte #1 = ScratchPad[1], just sign bits
+     */
+
+    Temp = ScratchPad[0];               /* take temperature bits */
+
+    #ifndef DS18S20_HIGHRES
+    /* standard resolution (1 decimal place, LSB is 0.5°C) */
+    if (ScratchPad[1])                  /* sign bit set */
+    {
+      /* make signed integer negative */
+      Temp |= 0b1000000000000000;       /* set MSB */
+    }
+
+    /* scale to 0.1°C */
+    *Scale = -1;              /* *10^-1 (1 decimal place) */
+    /* scale temperature (*10) and adjust for binary scaling (/2) */
+    Temp *= 5;                /* *10 /2 */
+    *Value = Temp;            /* save result */
+    #endif
+
+    #ifdef DS18S20_HIGHRES
+    /*
+     *  We can increase the standard resolution:
+     *  - t = t_read - 0.25 + ((count per C - count remain) / count per C)
+     *  - 'count per C' is 16
+     *  - t_read is is the t value read with the last bit (0.5°C) truncated
+     */
+
+    Temp >>= 1;                         /* shift right to truncate last bit */
+
+    if (ScratchPad[1])                  /* sign bit set */
+    {
+      /* make signed integer negative */
+      Temp |= 0b1000000000000000;       /* set MSB */
+    }
+
+    *Scale = -2;                        /* *10^-2 (2 decimal places) */
+    *Value = 100;                       /* scale to 2 decimal places */
+    *Value *= Temp;                     /* scale to 0.01 °C */
+
+    Temp = 16 - ScratchPad[6];          /* count per C - count remain */
+    Temp *= 100;                        /* scale to 0.01 */
+    Temp += 5;                          /* for rounding */
+    Temp /= 16;                         /* / count per C */
+    Temp -= 25;                         /* - 0.25°C */
+    *Value += Temp;                     /* add term */
+    #endif
+  }
+
+  return Flag;
+}
+
+
+
+/*
+ *  temperature sensor DS18S20
+ *
+ *  returns:
+ *  - 1 on success
+ *  - 0 on any error
+ */
+
+uint8_t DS18S20_Tool(void)
+{
+  uint8_t           Flag;          /* return value / control flag */
+  uint8_t           Run = 1;       /* loop control */
+  uint8_t           Test;          /* key / feedback */
+  int8_t            Scale;         /* temperature scale 10^x */
+  int32_t           Value;         /* temperature value */
+  uint8_t           Mode = MODE_MANUAL; /* operation mode */
+  uint16_t          Timeout = 0;        /* timeout for user feedback */
+
+  #ifdef ONEWIRE_IO_PIN
+  Flag = 1;                   /* set default */
+  #endif
+
+  #ifdef ONEWIRE_PROBES
+  /* inform user about pinout and check for external pull-up resistor */
+  Flag = OneWire_Probes(DS18S20_str);
+
+  if (Flag == 0)              /* bus error */
+  {
+    return Flag;              /* exit tool and signal error */
+  }
+  #endif
+
+  /* start info */
+  LCD_ClearLine2();                     /* clear line #2 */
+  Display_EEString(Start_str);          /* display: Start */
+
+  #ifdef UI_ONEWIRE
+  /* display sensor symbol */
+  Check.Symbol = SYMBOL_ONEWIRE;        /* set symbol ID */
+  Semi.A = 1;                           /* DQ/Data: probe #2 */
+  Semi.B = 2;                           /* Vcc/+: probe #3 */
+  Semi.C = 0;                           /* Gnd/-: probe #1 */
+    #ifdef ONEWIRE_READ_ROM
+      Display_FancySemiPinout(4);       /* show symbol starting in line #4 */
+    #else
+      Display_FancySemiPinout(3);       /* show symbol starting in line #3 */
+    #endif
+  #endif
+
+
+  /*
+   *  processing loop
+   */
+
+  while (Run)
+  {
+    /*
+     *  user input
+     */
+
+    /* wait for user input */
+    Test = TestKey(Timeout, CURSOR_BLINK | CHECK_KEY_TWICE | CHECK_BAT);
+
+    if (Test == KEY_LONG)          /* long key press */
+    {
+      /* display mode in line #1 */
+      LCD_ClearLine(1);            /* clear line #1 */
+      LCD_CharPos(1, 1);           /* move to line #1 */
+      #ifdef UI_COLORED_TITLES
+        Display_ColoredEEString_Space(DS18S20_str, COLOR_TITLE);
+      #else
+        Display_EEString_Space(DS18S20_str);
+      #endif
+
+      /* change mode */
+      if (Mode == MODE_MANUAL)     /* manual mode */
+      {
+        Mode = MODE_AUTO;          /* set automatic mode */
+        Timeout = 1000;            /* wait for max. 1s */
+
+        /* indicate auto mode */
+        Display_Char('*');         /* display: * */
+      }
+      else                         /* automatic mode */
+      {
+        Mode = MODE_MANUAL;        /* set manual mode again */
+        Timeout = 0;               /* wait for user */
+      }
+
+      MilliSleep(500);             /* smooth UI */
+    }
+    else if (Test == KEY_TWICE)    /* two short key presses */
+    {
+      Run = 0;                     /* end loop */
+    }
+
+
+    /* clear text lines for new output */
+    LCD_ClearLine2();                   /* clear line #2 */
+    #ifdef ONEWIRE_READ_ROM
+    LCD_ClearLine(3);                   /* clear line #3 */
+    LCD_CharPos(1, 2);                  /* move to line #2 */
+    #endif
+
+    /*
+     *  read and show temperature
+     */
+
+    if (Run)            /* ok to proceed */
+    {
+      /* get temperature from DS18S20 (in °C) */
+      Test = DS18S20_ReadTemperature(&Value, &Scale);
+
+      if (Test)                    /* got temperature */
+      {
+        /* Scale is -1: 1 decimal place */
+        Scale = -Scale;
+
+        #ifdef UI_FAHRENHEIT
+        /* convert Celsius into Fahrenheit */
+        Value = Celsius2Fahrenheit(Value, Scale);
         #endif
 
         /* todo: add degree symbol to bitmap fonts */

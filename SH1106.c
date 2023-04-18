@@ -778,6 +778,12 @@ void LCD_Init(void)
   LCD_Cmd(FLAG_DC_DC_ON);
   #endif
 
+  /* COM pin hardware configuration */
+  #ifdef LCD_COM_SEQ
+  LCD_Cmd(CMD_COM_CONFIG_SET);               /* COM pin hardware config */
+  LCD_Cmd(FLAG_COM_SEQ);                     /* sequential */
+  #endif
+
   /* segment mapping */
   #ifdef LCD_FLIP_X
   LCD_Cmd(CMD_SEGMENT_MAP | FLAG_SEG_131);   /* flip horizontally */
@@ -835,12 +841,22 @@ void LCD_Char(unsigned char Char)
   Index = pgm_read_byte(Table);         /* get index number */
   if (Index == 0xff) return;            /* no character bitmap available */
 
+
+  /*
+   *  manage addressing
+   */
+
   /* calculate start address of character bitmap */
   Table = (uint8_t *)&FontData;        /* start address of font data */
   Offset = FONT_BYTES_N * Index;       /* offset for character */
   Table += Offset;                     /* address of character data */
 
-  Page = Y_Start;                  /* get start page */
+
+  /*
+   *  send character bitmap to display
+   */
+
+  Page = Y_Start;                       /* get start page */
 
   /* read character bitmap and send it to display */
   while (y <= FONT_BYTES_Y)
@@ -852,8 +868,8 @@ void LCD_Char(unsigned char Char)
     LCD_StartTransfer(CTRL_MULTI | CTRL_DATA);
     #endif
 
-    /* read and send all column bytes for this row */
-    x = 1;
+    /* read and send all column bytes for this row (page) */
+    x = 1;                              /* reset counter */
     while (x <= FONT_BYTES_X)
     {
       Index = pgm_read_byte(Table);     /* read byte */
@@ -863,7 +879,7 @@ void LCD_Char(unsigned char Char)
     }
 
     #ifdef LCD_I2C
-    LCD_EndTransfer();        /* end transfer */
+    LCD_EndTransfer();                  /* end transfer */
     #endif
 
     Page++;                             /* next page */

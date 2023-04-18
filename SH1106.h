@@ -2,7 +2,7 @@
  *
  *   SH1106 OLED graphic display controller
  *
- *   (c) 2020 by Markus Reschke
+ *   (c) 2020-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -289,7 +289,7 @@
 
 
 /*
- *  set COM pins hardware configuration
+ *  set COM pins' hardware configuration
  * - 2 byte command
  */
 
@@ -298,7 +298,7 @@
 
 /* byte #2: config */
 #define FLAG_COM_SEQ          0b00000010     /* sequential */
-#define FLAG_COM_ALT          0b00010010     /* alternative (default) */
+#define FLAG_COM_ALT          0b00010010     /* alternating (default) */
 
 
 /*

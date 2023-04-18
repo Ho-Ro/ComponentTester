@@ -896,7 +896,7 @@ void LCD_Init(void)
   X_End = LCD_PIXELS_X - 1;
   Y_Start = 0;
   Y_End = LCD_PIXELS_Y - 1;
-  LCD_AddressWindow();
+  LCD_AddressWindow();             /* set address window */
 
   /* power on */
   MilliSleep(120);                 /* pause for 120ms */

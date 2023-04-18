@@ -2,8 +2,30 @@
 
              Collection of settings for various tester models
 
-  Please help other users by emailing settings for clones not listed, and
-  also by reporting bad settings.
+  Please help other users by emailing settings for clones, clone variants
+  and other models not listed, and also by reporting bad settings. 
+
+------------------------------------------------------------------------------
+
+Caveat emptor!
+
+Starting around 2022 some tester clones come with an APT32F172K8T6 or LGT8F328
+instead of an genuine ATmega, mostly due to the common scarcity of chips and
+increased prices ('chipageddon'). These two MCUs aren't supported by the OSHW
+firmwares. Also note that the firmware (a modified OSHW firmware) is poorly
+adapted to the alternative MCUs, causing some measurements to be sub-par.
+
+We have seen popular clones sold in multiple variants with genuine ATmegas and
+alternative MCUs, some even with fake ATmega markings. When buying a clone it
+can be hard to identify the MCU. Some hints:
+- MCU in DIP is usually an genuine ATmega.
+- APT32F172K8T6 has different power pins:
+  - 32-LQFP/QFN: 18=Vss, 19=Vdd (ATmega328 32-TQFP: 5=Gnd, 4=Vcc)
+- Testers with APT32F172K8T6 often lack a quartz crystal.
+- LGT8F328 has slightly different pins:
+  - QFP32L: 21=PE2/SWD (ATmega328 32-TQFP: 21=Gnd)
+- Clone variants with an genuine ATmega are usually about EUR/US$ 5 more
+  expensive than the variant with a different MCU.
 
 ------------------------------------------------------------------------------
 
@@ -449,8 +471,11 @@ T3/T4
 - LCD_RESET could be also PD0
 
 Beware:
-- Some newer T4 come with an APT32F172K8T6 (fake Atmel marking) instead of
-  an ATmega328. This MCU is not supported.
+- Some newer T4 come with an APT32F172K8T6 (fake Atmel marking) or an LGT8F328
+  instead of an ATmega328. These MCUs are not supported.
+
+Hints:
+- If the display output is the wrong way around try LCD_FLIP_Y.
 
 LCD module:
 #define LCD_ST7565R
@@ -665,6 +690,30 @@ Pinout for fixed cap for self-adjustment:
 #define ADJUST_PORT      PORTC     /* port data register */
 #define ADJUST_DDR       DDRC      /* port data direction register */
 #define ADJUST_RH        PC6       /* Rh (470k) for fixed cap */
+
+------------------------------------------------------------------------------
+
+Multifunction Tester TC-2 with ATmega324/644
+- ATmega324 or 644, 16MHz clock
+- ST7735 color display (bit-bang SPI)
+- external 2.5V voltage reference (TL431)
+- fixed IR receiver module
+- boost converter for Zener check
+  (runs all the time, non-standard voltage divider 100k/12k,
+  no constant current source, just series resistor)
+- fixed adjustment cap
+  (in case of problems replace MLCC with 220nF film cap)
+- powered by Li-Ion cell 3.7V
+
+Hints:
+- Quite similar to TC-1, just without the annoying control MCU, i.e. no
+  modfication needed to run OSHW firmwares.
+- PCB labeled 'T7 PLUS V1.2'
+
+Please use the settings for TC-1 (see above), but swap the pins for the
+test button and and power control:
+#define POWER_CTRL       PD1       /* controls power (1: on / 0: off) */
+#define TEST_BUTTON      PD2       /* test/start push button (low active) */
 
 ------------------------------------------------------------------------------
 

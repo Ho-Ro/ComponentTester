@@ -8,7 +8,7 @@
  *     - 3 line SPI (not supported)
  *     - 4 line SPI
  *
- *   (c) 2017-2022 by Markus Reschke
+ *   (c) 2017-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -76,6 +76,7 @@
 #include "symbols_32x32_alt1_hf.h"
 #include "symbols_32x32_alt2_hf.h"
 #include "symbols_32x32_old_hf.h"
+#include "symbols_32x39_hf.h"
 
 /* sanity check */
 #ifndef FONT_SET
@@ -705,8 +706,8 @@ void LCD_Symbol(uint8_t ID)
   uint8_t           Data;          /* symbol data */
   uint16_t          Offset;        /* address offset */
   uint8_t           Pixels;        /* pixels in x direction */
-  uint8_t           x;             /* bitmap x byte counter */
-  uint8_t           y = 1;         /* bitmap y byte counter */
+  uint8_t           x;             /* bitmap x counter (bytes) */
+  uint8_t           y = 1;         /* bitmap y counter (rows) */
   uint8_t           Bits;          /* number of bits to be sent */
   uint8_t           n;             /* bitmap bit counter */
   uint8_t           Factor = SYMBOL_RESIZE;  /* resize factor */
@@ -738,7 +739,7 @@ void LCD_Symbol(uint8_t ID)
   {
     Table2 = Table;           /* save current pointer */
 
-    while (Factor > 0)        /* resize symbol */
+    while (Factor > 0)        /* resize symbol (rows) */
     {
       Table = Table2;                   /* reset start pointer */
 
@@ -788,15 +789,15 @@ void LCD_Symbol(uint8_t ID)
         x++;                            /* next byte */
       }
 
-      Factor--;                    /* one y resizing step done */
+      Factor--;                    /* one y resize step done */
     }
 
     /* manage y direction */
-    if (Factor == 0)               /* all y resizing steps done */
+    if (Factor == 0)               /* all y resize steps done */
     {
       Factor = SYMBOL_RESIZE;      /* reset resize factor */
       y++;                         /* next row */
-    }              
+    }
   }
 
   /* mark text lines as used */

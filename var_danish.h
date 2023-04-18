@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Danish (ISO 8859-1)
  *
- *   (c) 2018-2021 by Markus Reschke
+ *   (c) 2018-2022 by Markus Reschke
  *   translation by glenndk@mikrocontroller.net
  *   based on code from Markus Frejek and Karl-Heinz K¸bbeler
  *
@@ -199,6 +199,18 @@
 
   #ifdef SW_CONTINUITY_CHECK
     const unsigned char ContinuityCheck_str[] MEM_TYPE = "Continuity";
+  #endif
+
+  #ifdef SW_FONT_TEST
+    const unsigned char FontTest_str[] MEM_TYPE = "Font";
+  #endif
+
+  #ifdef SW_SYMBOL_TEST
+    const unsigned char SymbolTest_str[] MEM_TYPE = "Symbols";
+  #endif
+
+  #ifdef HW_FLASHLIGHT
+    const unsigned char Flashlight_str[] MEM_TYPE = "Flashlight";
   #endif
 
 #endif

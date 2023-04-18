@@ -3,11 +3,11 @@
 
             ReadMe for the Component Tester firmware (m-firmware)
 
-        (c) 2012-2022 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2023 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit: 2022-12-13
+Last edit: 2023-04-03
 
 Content
   - About
@@ -78,9 +78,10 @@ Content
     - Opto Coupler Tool
     - Servo Check
     - OneWire Scan
-    - DS18B20 Temperature Sensor
+    - DS18B20/DS18S20 Temperature Sensors
     - DHTxx Sensors
     - MAX6675/MAX31855 Thermocouple Converters
+    - Flashlight
     - Self Test
     - Self Adjustment
     - Save/Load
@@ -185,13 +186,14 @@ k-firmware:
 - IR RC transmitter
 - opto coupler check
 - RC servo check
-- OneWire (DS18B20)
+- OneWire (DS18B20, DS18S20)
 - DHTxx Sensors
 - event counter
 - ring tester (LOPT/FBT tester)
 - logic probe
 - continuity check
 - MAX6675/MAX31855 thermocouple converters
+- flashlight / general purpose switched output
 - structured source code
 - simple frameworks for displays and data busses
 - some more I couldn't think of right now
@@ -251,6 +253,7 @@ Following hardware options are supported:
   - ring tester (LOPT/FBT tester)
   - logic probe
   - MAX6675/MAX31855 thermocouple converters
+  - flashlight / general purpose switched output
 
 
 * Building the Firmware
@@ -303,7 +306,7 @@ And of course the software options:
 - servo check (requires additional keys, display with >2 lines)
 - detection of UJTs
 - capacitor leakage check
-- DS18B20 temperature sensor
+- DS18B20/DS18S20 temperature sensors
 - color coding for probes (requires color graphics display)
 - output of components found also via TTL serial, e.g. to a PC
 - remote commands for automation via TTL serial
@@ -316,6 +319,8 @@ ressources, i.e. RAM, EEPROM and flash memory. If the firmware exceeds the
 MCU's flash size, try to disable some options you don't need.
 
 Available UI languages:
+- Brazilian Portuguese
+  - provided by wandows@EEVblog
 - Czech
   - provided by Kapa
   - font based on ISO 8859-1
@@ -403,7 +408,7 @@ config-<MCU>.h (look for I2C_PORT or SPI_PORT).
 
 If you select bit-bang SPI and enable the read mode (SPI_RW) please make sure
 to set also SPI_PIN and SPI_MISO. See the SPI section in config-<MCU>.h for
-an example. 
+an example.
 
 When connecting multiple ICs to the SPI bus, each IC needs to be controlled by
 a dediacted /CS signal. Only in the case of one single IC on the SPI bus that
@@ -670,7 +675,7 @@ Pin assignment for 4-line SPI:
   /CS         LCD_CS           PB5          optional
   D/C         LCD_DC           PB3
   SCL         LCD_SCL          PB7          SPI clock
-  SDA         LCD_SDA          PB5          SPI MOSI
+  SDA         LCD_SDA          PB1          SPI MOSI
 
 Because of the high resolution of the display and the RGB666 color schema (3
 bytes per pixel) SPI is quite slow, even for hardware SPI and a 16 MHz MCU
@@ -759,6 +764,8 @@ And for I2C:
 
 Using the x/y flip settings you can change the output orientation if
 neccessary. Many SH1106 based display modules need the x offset set to 2.
+In case the pixel lines are all mixed up you can try to enable the sequential
+COM pin layout (LCD_COM_SEQ).
 
 
 + SSD1306
@@ -790,7 +797,9 @@ And for I2C:
   SA0 (D/C)                    Gnd (0x3c) / 3.3V (0x3d)
 
 Using the x/y flip settings you can change the output orientation if
-neccessary.
+neccessary. In case the pixel lines are all mixed up you can try to enable
+the sequential COM pin layout (LCD_COM_SEQ) and/or the reversed COM mapping (
+LCD_COM_REMAP).
 
 
 + ST7036 (untested)
@@ -1048,6 +1057,7 @@ For graphic displays:
 - display Zener diode symbol in any Zener check (UI_ZENER_DIODE) 
 - display quartz crystal symbol for LF/HF modes in extended frequency
   counter (UI_QUARTZ_CRYSTAL)
+- display OneWire device symbol in DS18B20, DS18S20 and DHTXX tool
 
 For color graphic displays:
 - all options listed before
@@ -1061,9 +1071,11 @@ For color graphic displays:
 + Buzzer (hardware option)
 
 If you like to have an audible indicator you can add an active buzzer (with
-integrated oscillator). The buzzer is controlled via a fixed pin (see
-BUZZER_CTRL in config_<MCU>.h) and can be driven directly (< 20mA) or by a
-transistor (NPN or n-channel MOSFET).
+integrated oscillator) or a passive buzzer. The buzzer is controlled via a
+fixed pin (see BUZZER_CTRL in config_<MCU>.h) and can be driven directly (
+< 20mA) or by a transistor (NPN or n-channel MOSFET).
+
+The passive buzzer generates short beeps with 2.5 and 5 kHz.
 
 At the moment the buzzer is used for
 - continuity check (SW_CONTINUITY_CHECK)
@@ -1351,6 +1363,30 @@ adjust the thresholds. The standard Vcc/Vdd values are:
 
 And as usual, two short button presses will exit the logic probe.
 
+Voltage divider frontend:
+
+  Signal +
+         |
+         |
+         -
+        | | R1
+        | | 10k
+        | |
+         -
+         |
+         |
+         x----- TP_LOGIC 
+         |      (ADC pin)
+         |
+         -
+        | | R2
+        | | 3k3
+        | |
+         -
+         |
+         |
+     Gnd -
+
 
 + Continuity Check (hardware option)
 
@@ -1358,8 +1394,10 @@ This tool checks for continuity of a circuit and gives you an audible feedback
 by a buzzer while also displaying the voltage across the probes. The test
 current is limited by Rl (680 Ohms) to about 7 mA. The thresholds for the
 audible feedback are:
-  - < 100 mV     continuous beep
-  - 100-700 mV   repeating short beep
+  - < 100 mV     active buzzer: continuous beep
+                 passive buzzer: repeating high frequency beep
+  - 100-700 mV   active buzzer: repeating short beep
+                 passive buzzer: repeating low frequency beep
   - > 700 mV     no beep
 
 The short beep is meant to indicate a possible semiconductor junction.
@@ -1605,7 +1643,7 @@ testing.
 You can adjust the contrast for some graphic LCD modules. A short key press
 increases the value and and a long key press decreases it. Two short key
 presses will exit the tool. With a rotary encoder installed the value
-can also be adjusted by turning the encoder. 
+can also be adjusted by turning the encoder.
 
 
 + IR RC Detector/Decoder
@@ -1614,8 +1652,8 @@ This function detects and decodes signals from IR remote controls, and
 requires an IR receiver module, for example the TSOP series. When compiling
 the firmware you can choose between two variants how the IR receiver module is
 connected to the tester. The first one is to connect the IR module to the
-standard testpins. The second one is a fixed IR module connected to a
-dedicated MCU pin.
+standard testpins (SW_IR_RECEIVER). The second one is a fixed IR module
+connected to a dedicated MCU pin (HW_IR_RECEIVER).
 
 If a known protocol is detected the tester displays the protocol, address
 (when available), command, and in some cases optional data in hexadecimal.
@@ -1706,15 +1744,26 @@ valid data frames/packets (SW_IR_RX_BEEP).
 
 Please connect the IR receiver module after entering the IR detector function.
 
-How to connect the TSOP module:
+How to connect the TSOP module (default pinout SW_IR_RX_PINOUT_G_V_D):
   Probe #1:  Gnd
   Probe #2:  Vs (current limited by 680 ohms resistor)
   Probe #3:  Data/Out
 
+The firmware can be configured to use an alternative pinout if necessary,
+expecially useful for testers with a ZIF socket:
+  - alternative pinout SW_IR_RX_PINOUT_D_G_V
+    Probe #1:  Data/Out
+    Probe #2:  Gnd
+    Probe #3:  Vs (current limited by 680 ohms resistor)
+  - alternative pinout SW_IR_RX_PINOUT_D_V_G
+    Probe #1:  Data/Out
+    Probe #2:  Vs (current limited by 680 ohms resistor)
+    Probe #3:  Gnd
+
 Hint:
   The current limiting resistor for Vs implies an IR receiver module with a
-  supply voltage range of about 2.5 to 5V. If you have a 5V only module you can
-  disable the resistor in the config.h file on your own risk. Any short
+  supply voltage range of about 2.5 to 5V. If you have a 5V only module you
+  can disable the resistor in the config.h file on your own risk. Any short
   circuit may destroy the MCU.
 
 
@@ -1932,25 +1981,31 @@ you can start a completely new scan process by pressing the test button.
 And as usual, two short button presses will exit the tool.
 
 
-+ DS18B20 Temperature Sensor 
++ DS18B20/DS18S20 Temperature Sensors
 
-This tool reads the OneWire temperature sensor DS18B20 and displays the
-temperature. Please see section "Busses & Interfaces" for the setup of the
+This tool reads the OneWire temperature sensor DS18B20/DS18S20 and displays
+the temperature. Please see section "Busses & Interfaces" for the setup of the
 OneWire bus. When using the probes the tester will inform you about the pin
 assignment and then waits until it detects the external pull-up resistor. You
 can skip this by a key press.
 
-After connecting the DS18B20 as the only client on the OneWire bus push the
-test button for reading the sensor (this may take nearly a second). To exit
-the tool press the test button twice quickly. And with a long button press
-you can select the auto mode (automatic updating) which is indicated by
-an "*" after the tool name.
+After connecting the DS18B20/DS18S20 as the only client on the OneWire bus
+push the test button for reading the sensor (this may take nearly a second).
+To exit the tool press the test button twice quickly. With a long button press
+you can select the auto mode (automatic updating) which is indicated by an "*"
+after the tool name. Another long button press switches back to the manual
+mode.
 
 Pin assignment for probes:
   Probe #1:  Gnd
   Probe #2:  DQ (data)
   Probe #3:  Vcc (current limited by 680 ohms resistor)
   An external pull-up resistor of 4.7kOhms between DQ and Vcc is required!
+
+Hints:
+- Option for DS18B20: round to 0.1 °C/F (UI_ROUND_DS18B20)
+- Option for DS18S20: high resolution (DS18S20_HIGHRES)
+- The DS18B20 tool can also read the sensor DS1822.
 
 
 + DHTxx Sensors
@@ -1999,6 +2054,14 @@ a "-" is shown instead. For automatic reading every second you can enable
 the auto-mode by a long press of the test button, indicated by an "*" in after
 the MAX's name. A second long key press disables the auto-mode. Two short key
 presses will end the tool.
+
+
++ Flashlight
+
+This is a general purpose switched output for controlling some additional
+circuitry, such like an LED flashlight. The tester simply toggles the
+output pin between low and high each time this function is run. Loads lower
+than 20mA can be driven directly.
 
 
 + Self Test
@@ -2137,8 +2200,8 @@ a higher resolution is performed. In some rare cases the tester might not be
 able to detect a very low resistance. If that happens simply re-run the test.
 
 For checking potentiometers or trimpots you can enable the additional output
-of the total resistance (Rt) and the ratio of the first resistor to the total
-resistance (R1) in % (SW_R_TRIMMER).
+of the total resistance (Rt) and the ratio of both resistors to the total
+resistance (R1 and R2) in % (SW_R_TRIMMER).
 
 When the optional check for E series norm values (SW_R_E*) is enabled the
 tester takes the next lower and next higher norm value and compares them with
@@ -2331,6 +2394,10 @@ is found the tester shows a '+' behind the BJT type.
 For a Schottky transistor (Schottky-clamped BJT) the clamping diode between
 base and collector and it's V_f are displayed if the detection is enabled (
 SW_SCHOTTKY_BJT). Note that a Schottky transistor has an increased I_CEO.
+
+Hint:
+- The high hFE of a Darlington transistor in conjunction with EMI can cause
+  I_CEO being all over the place.
 
 
 TRIACs

@@ -2,7 +2,7 @@
  *
  *   ATmega 328 specific global configuration, setup and settings
  *
- *   (c) 2012-2022 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -310,6 +310,7 @@
 #define LCD_OFFSET_X     2              /* enable x offset of 2 or 4 dots */
 #define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
+//#define LCD_COM_SEQ                     /* COM pin layout: sequential */
 #define LCD_CONTRAST     127            /* default contrast (0-255) */
 /* font and symbols: vertically aligned & flipped, bank-wise grouping */
 //#define FONT_6X8_VF                      /* 6x8 font */
@@ -360,6 +361,7 @@
 #define LCD_OFFSET_X     2              /* enable x offset of 2 or 4 dots */
 #define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
+//#define LCD_COM_SEQ                     /* COM pin layout: sequential */
 #define LCD_CONTRAST     127            /* default contrast (0-255) */
 /* font and symbols: vertically aligned & flipped, bank-wise grouping */
 #define FONT_8X8_VF                     /* 8x8 font */
@@ -397,6 +399,7 @@
 #define LCD_OFFSET_X     2              /* enable x offset of 2 or 4 dots */
 #define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
+//#define LCD_COM_SEQ                     /* COM pin layout: sequential */
 #define LCD_CONTRAST     127            /* default contrast (0-255) */
 /* font and symbols: vertically aligned & flipped, bank-wise grouping */
 #define FONT_8X8_VF                     /* 8x8 font */
@@ -437,6 +440,8 @@
 #define LCD_DOTS_Y       64             /* number of vertical dots */
 #define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
+//#define LCD_COM_SEQ                     /* COM pin layout: sequential */
+//#define LCD_COM_REMAP                   /* COM pin mapping: reversed */
 #define LCD_CONTRAST     127            /* default contrast (0-255) */
 /* font and symbols: vertically aligned & flipped, bank-wise grouping */
 //#define FONT_6X8_VF                      /* 6x8 font */
@@ -485,6 +490,8 @@
 #define LCD_DOTS_Y       64             /* number of vertical dots */
 #define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
+//#define LCD_COM_SEQ                     /* COM pin layout: sequential */
+//#define LCD_COM_REMAP                   /* COM pin mapping: reversed */
 #define LCD_CONTRAST     127            /* default contrast (0-255) */
 /* font and symbols: vertically aligned & flipped, bank-wise grouping */
 #define FONT_8X8_VF                     /* 8x8 font */
@@ -521,6 +528,8 @@
 #define LCD_DOTS_Y       64             /* number of vertical dots */
 #define LCD_FLIP_X                      /* enable horizontal flip */
 #define LCD_FLIP_Y                      /* enable vertical flip */
+//#define LCD_COM_SEQ                     /* COM pin layout: sequential */
+//#define LCD_COM_REMAP                   /* COM pin mapping: reversed */
 #define LCD_CONTRAST     127            /* default contrast (0-255) */
 /* font and symbols: vertically aligned & flipped, bank-wise grouping */
 #define FONT_8X8_VF                     /* 8x8 font */
@@ -992,16 +1001,20 @@
  *  - /SS is set to output mode for hardware SPI but not used
  */
 
-/* for bit-bang and hardware SPI */
+/* SPI not set yet (for bit-bang or hardware SPI) */
 #ifndef SPI_PORT
-#define SPI_PORT         PORTB     /* port data register */
-#define SPI_DDR          DDRB      /* port data direction register */
-#define SPI_PIN          PINB      /* port input pins register */
-#define SPI_SCK          PB5       /* pin for SCK */
-#define SPI_MOSI         PB3       /* pin for MOSI */
-#define SPI_MISO         PB4       /* pin for MISO */
-#define SPI_SS           PB2       /* pin for /SS */
+  #define SPI_PORT       PORTB     /* port data register */
+  #define SPI_DDR        DDRB      /* port data direction register */
+  #define SPI_PIN        PINB      /* port input pins register */
+  #define SPI_SCK        PB5       /* pin for SCK */
+  #define SPI_MOSI       PB3       /* pin for MOSI */
+  #define SPI_MISO       PB4       /* pin for MISO */
+  #define SPI_SS         PB2       /* pin for /SS */
 #endif
+
+/* SPI_PIN/SPI_MISO not set yet (for bit-bang SPI with read support) */
+//#define SPI_PIN          PINB      /* port input pins register */
+//#define SPI_MISO         PB4       /* pin for MISO */
 
 
 /*
@@ -1011,13 +1024,13 @@
  *  - could be already set in display section
  */
 
-/* for bit-bang I2C */
+/* I2C not set yet (for bit-bang I2C) */
 #ifndef I2C_PORT
-#define I2C_PORT         PORTC     /* port data register */
-#define I2C_DDR          DDRC      /* port data direction register */
-#define I2C_PIN          PINC      /* port input pins register */
-#define I2C_SDA          PC4       /* pin for SDA */
-#define I2C_SCL          PC5       /* pin for SCL */
+  #define I2C_PORT       PORTC     /* port data register */
+  #define I2C_DDR        DDRC      /* port data direction register */
+  #define I2C_PIN        PINC      /* port input pins register */
+  #define I2C_SDA        PC4       /* pin for SDA */
+  #define I2C_SCL        PC5       /* pin for SCL */
 #endif
 
 
@@ -1085,6 +1098,15 @@
 #define BOOST_CTRL       PD5       /* control pin */
 
 
+/*
+ *  flashlight / general purpose switched output
+ */
+
+#define FLASHLIGHT_PORT  PORTD     /* port data register */
+#define FLASHLIGHT_DDR   DDRD      /* port data direction register */
+#define FLASHLIGHT_CTRL  PD5       /* control pin */
+
+
 
 /* ************************************************************************
  *   internal stuff
@@ -1117,7 +1139,7 @@
  *  ATmega 328/328P
  */
 
-#if defined(__AVR_ATmega328__)
+#if defined (__AVR_ATmega328__)
 
   /* estimated internal resistance of port to GND (in 0.1 Ohms) */
   #define R_MCU_LOW           200

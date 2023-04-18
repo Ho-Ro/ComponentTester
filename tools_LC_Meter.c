@@ -2,7 +2,7 @@
  *
  *   L/C meter (hardware option)
  *
- *   (c) 2020-2021 by Markus Reschke
+ *   (c) 2020-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -59,7 +59,7 @@
 
 #ifdef HW_LC_METER
 
-  /* pulse counter (from tools_signal.c) */
+  /* pulse counter (from tools_counter.c) */
   extern volatile uint32_t    Pulses;        /* number of pulses */
 
   /* frequencies */

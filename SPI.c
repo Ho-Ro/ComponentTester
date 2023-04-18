@@ -2,7 +2,7 @@
  *
  *   SPI (bit-bang & hardware)
  *
- *   (c) 2017-2020 by Markus Reschke
+ *   (c) 2017-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -73,7 +73,7 @@ void SPI_Setup(void)
    *  - master mode
    */
 
-  #ifdef SPI_MISO
+  #ifdef SPI_RW
   /* set MISO line to input mode */
   SPI_DDR &= ~(1 << SPI_MISO);
   #endif
@@ -201,6 +201,7 @@ void SPI_Write_Byte(uint8_t Byte)
 
 /*
  *  write and read a single byte
+ *  - SPI_PIN needs be set in config_<MCU>.h
  *
  *  requires:
  *  - Byte: byte to write

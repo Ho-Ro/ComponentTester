@@ -11,7 +11,7 @@
  *     so we have to use BGR color codes instead of RGB
  *   - added changes based on info by b0hoon4@gmail.com
  *
- *   (c) 2016-2022 by Markus Reschke
+ *   (c) 2016-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -78,6 +78,7 @@
 #include "symbols_32x32_alt1_hf.h"
 #include "symbols_32x32_alt2_hf.h"
 #include "symbols_32x32_old_hf.h"
+#include "symbols_32x39_hf.h"
 
 
 /* sanity check */

@@ -2,7 +2,7 @@
  *
  *   misc tools (hardware and software options)
  *
- *   (c) 2012-2022 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -540,6 +540,7 @@ void ESR_Tool(void)
 
       LCD_ClearLine2();                 /* update line #2 */
       Display_EEString(Probing_str);    /* display: probing... */
+      Check.Found = COMP_NONE;          /* no component */
       MeasureCap(PROBE_1, PROBE_3, 0);  /* probe-1 = Vcc, probe-3 = Gnd */
       LCD_ClearLine2();                 /* update line #2 */
       
@@ -2299,23 +2300,37 @@ void ContinuityCheck(void)
     {
       /* short: continuous beep */
 
+      #ifdef BUZZER_ACTIVE
       /* enable buzzer */
-      BUZZER_PORT |= (1 << BUZZER_CTRL);     /* set pin high */      
+      BUZZER_PORT |= (1 << BUZZER_CTRL);     /* set pin high */
+      #endif
+
+      #ifdef BUZZER_PASSIVE
+      PassiveBuzzer(BUZZER_FREQ_HIGH);       /* high frequency beep */
+      #endif
     }
     else if (U1 <= 700)                 /* 100-700mV */
     {
       /* pn junction: short beep */
 
+      #ifdef BUZZER_ACTIVE
       /* enable buzzer */
       BUZZER_PORT |= (1 << BUZZER_CTRL);     /* set pin high */
       Flag |= BEEP_SHORT;                    /* set flag */
+      #endif
+
+      #ifdef BUZZER_PASSIVE
+      PassiveBuzzer(BUZZER_FREQ_LOW);        /* low frequency beep */
+      #endif
     }
     else                                /* > 700mV */
     {
       /* something else or open circuit: no beep */
 
+      #ifdef BUZZER_ACTIVE
       /* disable buzzer */
       BUZZER_PORT &= ~(1 << BUZZER_CTRL);    /* set pin low */
+      #endif
     }
 
     /* display voltage */
@@ -2324,12 +2339,14 @@ void ContinuityCheck(void)
     /* this is also used as delay for the short beep */
     /* todo: do we need an additional delay for fast displays? */
 
+    #ifdef BUZZER_ACTIVE
     if (Flag & BEEP_SHORT)              /* short beep */
     {
       /* disable buzzer */
       BUZZER_PORT &= ~(1 << BUZZER_CTRL);    /* set pin low */
       Flag &= ~BEEP_SHORT;                   /* clear flag */
     }
+    #endif
 
 
     /*
@@ -2356,6 +2373,48 @@ void ContinuityCheck(void)
   /* local constants for Flag */
   #undef RUN_FLAG
   #undef BEEP_SHORT
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   flashlight / general purpose switched output
+ * ************************************************************************ */
+
+
+#ifdef HW_FLASHLIGHT
+
+/*
+ *  flashlight / general purpose switched output
+ *  - toggles output pin between high and low
+ */
+
+void Flashlight(void)
+{
+  uint8_t           Flag;          /* status flag */
+
+
+  /*
+   *  toggle output
+   */
+
+  /* get current state */
+  Flag = FLASHLIGHT_PORT;          /* read port register */
+  Flag &= (1 << FLASHLIGHT_CTRL);  /* filter pin */
+
+  /* set output based on current state */
+  if (Flag)                   /* pin high */
+  {
+    /* toggle off */
+    FLASHLIGHT_PORT &= ~(1 << FLASHLIGHT_CTRL);   /* set pin low */
+  }
+  else                        /* pin low */
+  {
+    /* toggle on */
+    FLASHLIGHT_PORT |= (1 << FLASHLIGHT_CTRL);    /* set pin high */
+  }
 }
 
 #endif

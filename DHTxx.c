@@ -18,7 +18,7 @@
  *    (datasheet says 5.1k)
  *  - pin assignment for probes
  *    probe #1:  Gnd
- *    probe #2:  Data
+ *    probe #2:  Data (requires 4.7kOhms pull-up resistor to Vdd)
  *    probe #3:  Vdd (current not limited)
  */
 
@@ -594,6 +594,15 @@ uint8_t DHTxx_Tool(void)
   LCD_ClearLine2();                     /* clear line #2 */
   MilliSleep(1000);                     /* power-up delay for sensor */
   Display_EEString(Start_str);          /* display: Start */
+
+  #ifdef UI_ONEWIRE
+  /* display sensor symbol */
+  Check.Symbol = SYMBOL_ONEWIRE;        /* set symbol ID */
+  Semi.A = 1;                           /* Data: probe #2 */
+  Semi.B = 2;                           /* Vdd/+: probe #3 */
+  Semi.C = 0;                           /* Gnd/-: probe #1 */
+  Display_FancySemiPinout(3);           /* show symbol starting in line #3 */
+  #endif
 
   /*
    *  processing loop

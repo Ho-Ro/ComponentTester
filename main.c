@@ -711,10 +711,16 @@ void Show_Resistor(void)
       Display_NL_EEString_Space(R_t_str);         /* display: R_t */
       Display_Value(Rt_Value, Scale, LCD_CHAR_OMEGA);  /* display sum */
 
-      /* show ratio (in %): R1 / (R1 + R2) */
-      Display_NL_EEString_Space(r_R1_str);        /* display: R1 */
+      /* show R1 ratio (in %): R1 / (R1 + R2) */
+      Display_NL_EEString_Space(R1_str);          /* display: R1 */
       R_Value *= 100;                             /* for % */
       R_Value /= Rt_Value;                        /* R1 / (R1 + R2) */
+      Display_Value(R_Value, 0, '%');             /* display ratio in % */
+
+      /* show R2 ratio (in %): R2 / (R1 + R2) or 100% - ratio_R1 */
+      Display_Space();                            /* display space */
+      Display_EEString_Space(R2_str);             /* display: R2 */
+      R_Value = 100 - R_Value;                    /* 100% - ratio_R1 */
       Display_Value(R_Value, 0, '%');             /* display ratio in % */
     }
     #endif
@@ -2533,6 +2539,12 @@ int main(void)
   BOOST_DDR |= (1 << BOOST_CTRL);          /* enable output */
   #endif
 
+  #ifdef HW_FLASHLIGHT
+  /* set up port pin for flashlight control: off by default */
+  FLASHLIGHT_PORT &= ~(1 << FLASHLIGHT_CTRL);   /* set pin low */
+  FLASHLIGHT_DDR |= (1 << FLASHLIGHT_CTRL);     /* enable output */
+  #endif
+
 
   /*
    *  load saved adjustment offsets and values
@@ -2826,10 +2838,16 @@ show_component:
   #endif
 
   #ifdef UI_PROBING_DONE_BEEP
-  /* buzzer: short beep for probing result (probing done) */
-  BUZZER_PORT |= (1 << BUZZER_CTRL);    /* enable: set pin high */
-  MilliSleep(20);                       /* wait for 20 ms */
-  BUZZER_PORT &= ~(1 << BUZZER_CTRL);   /* disable: set pin low */
+    /* buzzer: short beep for probing result (probing done) */
+    #ifdef BUZZER_ACTIVE
+    BUZZER_PORT |= (1 << BUZZER_CTRL);    /* enable: set pin high */
+    MilliSleep(20);                       /* wait for 20 ms */
+    BUZZER_PORT &= ~(1 << BUZZER_CTRL);   /* disable: set pin low */
+    #endif
+
+    #ifdef BUZZER_PASSIVE
+    PassiveBuzzer(BUZZER_FREQ_LOW);       /* low frequency beep */
+    #endif
   #endif
 
   /* call output function based on component type */

@@ -2,7 +2,7 @@
  *
  *   OneWire bus
  *
- *   (c) 2018-2020 by Markus Reschke
+ *   (c) 2018-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -23,6 +23,8 @@
 
 /* ROM family codes */
 #define FAMILY_CODE_DS18B20   0x28
+#define FAMILY_CODE_DS18S20   0x10
+#define FAMILY_CODE_DS1822    0x22
 
 
 /*
@@ -211,6 +213,117 @@
 /* response */
 #define FLAG_PWR_PARASITIC         0    /* parsitic-powered */
 #define FLAG_PWR_EXTERNAL          1    /* powered externally */
+
+
+
+/* ************************************************************************
+ *   DS18S20 function commands
+ * ************************************************************************ */
+
+
+/*
+ *  scatchpad memory map
+ *  - byte #0: temperature LSB
+ *  - byte #1: temperature MSB
+ *  - byte #2: T_H register or user byte #1
+ *  - byte #3: T_L register or user byte #2
+ *  - byte #4: reserved (0xFF)
+ *  - byte #5: reserved (0xFF)
+ *  - byte #6: count remain (<=0x0C)
+ *  - byte #7: cound per °C (0x10)
+ *  - byte #8: CRC (of the first 8 bytes)
+ */
+
+
+/*
+ *  temperature register
+ *  - bit      7    6    5    4    3    2    1     0
+ *    t LSB  2^6  2^5  2^4  2^3  2^2  2^1  2^0  2^-1
+ *    t MSB    S    S    S    S    S    S    S     S
+ *  - format
+ *    - two's complement
+ *    - sign bit S
+ */
+
+
+/*
+ *  alarm trigger registers T_H and T_L
+ *  - T_H: alarm when T >= T_H
+ *  - T_L: alarm when T <= T_L
+ *  - bit   7    6    5    4    3    2    1    0
+ *          S   #6   #5   #4   #3   #2   #1   #0
+ *  - sign bits S
+ *    - positive temperature: S = 0
+ *    - negative temperature: S = 1
+ */
+
+
+/*
+ *  convert T
+ *  - start conversion of temperature
+ *  - DS18S20 sends conversion status to master
+ *    (not available when parasitic-power mode is used)
+ */
+
+#define CMD_DS18S20_CONVERT_T           0x44
+
+/* response (see CMD_DS18B20_CONVERT_T) */
+/* FLAG_CONV_IN_PROGRESS      0    conversion (still) in progress */
+/* FLAG_CONV_DONE             1    conversion finished */
+
+
+/*
+ *  read scratchpad
+ *  - read entire scratchpad including CRC
+ *  - DS18S20 sends up to 9 bytes to master (byte 0 first)
+ */
+
+#define CMD_DS18S20_READ_SCRATCHPAD     0xBE
+
+
+/*
+ *  write scratchpad
+ *  - write data from master to scratchpad
+ *    (T_H and T_L)
+ *  - master sends 2 bytes
+ *  - no feedback from DS18S20 to master
+ */
+
+#define CMD_DS18S20_WRITE_SCRATCHPAD    0x4E
+
+
+/*
+ *  copy scratchpad
+ *  - copy T_H and T_L from scatchpad to EEPROM
+ *  - no feedback from DS18S20 to master
+ */
+
+#define CMD_DS18S20_COPY_SCRATCHPAD     0x48
+
+
+/*
+ *  recall E² (EEPROM)
+ *  - copy T_H and T_L from EEPROM to scatchpad
+ *  - DS18S20 sends recall status to master
+ */
+
+#define CMD_DS18S20_RECALL_E2           0xB8
+
+/* response (see CMD_DS18B20_RECALL_E2) */
+/* FLAG_RECALL_IN_PROGRESS    0    recall (still) in progress */
+/* FLAG_RECALL_DONE           1    recall finished */
+
+
+/*
+ *  read power supply
+ *  -  DS18S20 sends supply status to master
+ */
+
+#define CMD_DS18S20_READ_POWER_SUPPLY   0xB4
+
+/* response (see CMD_DS18B20_READ_POWER_SUPPLY) */
+/* FLAG_PWR_PARASITIC         0    parsitic-powered */
+/* FLAG_PWR_EXTERNAL          1    powered externally */
 
 
 

@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2022 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -160,8 +160,13 @@
   #endif
 
   #ifdef SW_DS18B20
-  extern uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale, uint8_t *Bits);
+  extern uint8_t DS18B20_ReadTemperature(int32_t *Value, int8_t *Scale);
   extern uint8_t DS18B20_Tool(void);
+  #endif
+
+  #ifdef SW_DS18S20
+  extern uint8_t DS18S20_ReadTemperature(int32_t *Value, int8_t *Scale);
+  extern uint8_t DS18S20_Tool(void);
   #endif
 
 #endif
@@ -405,12 +410,16 @@
   extern int8_t NormalizeValue(uint32_t Value1, int8_t Scale1, uint32_t Value2, int8_t Scale2);
   #endif
 
-  #ifdef UI_ROUND_DS18B20
+  #ifdef FUNC_ROUNDSIGNEDVALUE
   extern int32_t RoundSignedValue(int32_t Value, uint8_t Scale, uint8_t RoundScale);
   #endif
 
   #ifdef FUNC_CELSIUS2FAHRENHEIT
   extern int32_t Celsius2Fahrenheit(int32_t Value, uint8_t Scale);
+  #endif
+
+  #if defined (HW_BUZZER) && defined (BUZZER_PASSIVE)
+  extern void PassiveBuzzer(uint8_t Mode);
   #endif
 
   extern uint8_t TestKey(uint16_t Timeout, uint8_t Mode);
@@ -517,6 +526,10 @@
   extern void ContinuityCheck(void);
   #endif
 
+  #ifdef HW_FLASHLIGHT
+  extern void Flashlight(void);
+  #endif
+
 #endif
 
 
@@ -541,6 +554,15 @@
   #ifdef SW_SQUAREWAVE
   extern void SquareWave_SignalGenerator(void);
   #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from tools_counter.c
+ * ************************************************************************ */
+
+#ifndef TOOLS_SIGNAL_C
 
   #ifdef HW_FREQ_COUNTER
   extern void FrequencyCounter(void);

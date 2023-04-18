@@ -2,9 +2,45 @@
 
              Änderungen der Component-Tester-Firmware (m-firmware)
 
-                       (c) 2012-2022 by Markus Reschke
+                       (c) 2012-2023 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.49m 2023-04
+- Alternative Beschaltungen für IR-Empfängermodul (SW_IR_RX_PINOUT_G_V_D,
+  SW_IR_RX_PINOUT_D_G_V, SW_IR_RX_PINOUT_D_V_G, Vorschlag von
+  boleslaw_43@mikrocontroller.net).
+- Erkennungsproblem von Kondensatoren in ESR-Tool behoben. Passierte, wenn
+  vorher ein Halbleiter von der normalen Bauteilesuche erkannt wurde (gemeldet
+  von indman@EEVblog).
+- Fehler in Konfigurationsverwaltung für Touchscreens behoben.
+- Test für Frequenzzähler-Funktionen in config_support.h ergänzt.
+- Code für Zähler-Funktionen von tools_signal.c in neue tools_counter.c
+  verschoben. 
+- Test auf SPI_PIN und SPI_MISO in config_support.h, sofern Bit-Bang-SPI mit
+  Lesefunktion aktviert ist. Und SPI-Abschnitt in allen config_<MCU>.h
+  ergänzt, um Handhabung zu vereinfachen.
+- SW_R_TRIMMER zeigt nun auch das Verhältnis des zweiten Widerstands zum
+  Gesamtwiderstand (Vorschlag von wandows@EEVblog).
+- Anzeige eines OneWire-Symbols in DS18B20, DS18S20 und DHTXX-Funktion (
+  UI_ONEWIRE, Vorschlag von indman@EEVblog).
+- Symbol für OneWire-Bauteile in allen Symbol-Dateien ergänzt (Dank an
+  indman@EEVblog).
+- Unterstützung vom Temperatursensor DS18S20 (SW_DS18S20, DS18S20_HIGHRES,
+  Vorschlag von indman@EEVblog). 
+- Test auf Darlington-Transistoren in CheckProbes() & CheckDepletionModeFET()
+  zur Vermeidung der Falscherkennung als JFET eingebaut, falls EMV-Probleme zu
+  einem überhöhten Leckstrom führen (gemeldet von wandows@EEVblog).
+- Fehler in der Erkennung von Germanium-PNP-Transistoren in
+  CheckDepletionModeFET() behoben.
+- Konfigurationsschalter für sequenzielles COM-Pin-Layout bei OLEDs mit
+  SH1106 and SSD1306 (LCD_COM_SEQ), und Schalter für umgedrehte COM-Pin-
+  Zuordnung (LCD_COM_REMAP, Vorschlag von boneDragon@EEVblog).
+- Unterstützung von passivem Summer/Pieper (BUZZER_ACTIVE oder BUZZER_PASSIVE,
+  Vorschlag von boneDragon@EEVblog).
+- Texte in brasilianischem Portugiesisch (Dank an wandows@EEVblog).
+- Allgemeiner Schaltausgang, z.B. für ein LED-Licht (HW_FLASHLIGHT,
+  Vorschlag von boneDragon@EEVblog).
 
 v1.48m 2022-12
 - Fernsteuerkommando V_F_clamp für V_f der Klemmdiode von Schottky-

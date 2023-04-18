@@ -2,7 +2,7 @@
  *
  *   common header file
  *
- *   (c) 2012-2022 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -391,10 +391,11 @@
 #define SYMBOL_QUESTIONMARK  14    /* question mark */
 #define SYMBOL_DIODE_ZENER   15    /* Zener diode */
 #define SYMBOL_CRYSTAL       16    /* quartz crystal */
+#define SYMBOL_ONEWIRE       17    /* OneWire device */
 
 /* number of component symbols */
 #ifdef SYMBOLS_EXTRA
-  #define NUM_SYMBOLS        17    /* basic plus additional symbols */
+  #define NUM_SYMBOLS        18    /* basic plus additional symbols */
 #else
   #define NUM_SYMBOLS        14    /* basic symbols */
 #endif
@@ -414,6 +415,11 @@
 /* ************************************************************************
  *   constants for additional hardware
  * ************************************************************************ */
+
+
+/* passive buzzer */
+#define BUZZER_FREQ_LOW       0              /* 2.5 kHz */
+#define BUZZER_FREQ_HIGH      1              /* 5 kHz */
 
 
 /* port pins of PCF8574 I2C IO chip */

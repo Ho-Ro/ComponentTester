@@ -241,7 +241,7 @@ int8_t NormalizeValue(uint32_t Value1, int8_t Scale1, uint32_t Value2, int8_t Sc
 
 
 
-#ifdef UI_ROUND_DS18B20
+#ifdef FUNC_ROUNDSIGNEDVALUE
 
 /*
  *  round value while also scaling
@@ -357,6 +357,70 @@ uint8_t EEStringLength(const unsigned char *String)
   }
 
   return Length;
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   audible feedback: passive buzzer
+ * ************************************************************************ */
+
+
+#if defined (HW_BUZZER) && defined (BUZZER_PASSIVE)
+
+/*
+ *  drive passive buzzer
+ *  - use different tones instead of short/constant beep of the active buzzer
+ *  - beep duration 20ms
+ *  - dedicated I/O pin BUZZER_CTRL
+ *
+ *  requires:
+ *  - Mode
+ *    BUZZER_FREQ_LOW (0):  low frequency (2.5 kHz)
+ *    BUZZER_FREQ_HIGH (1): high frequency (5 kHz)
+ */
+
+void PassiveBuzzer(uint8_t Mode)
+{
+  uint8_t           n = 200;       /* counter for half cycles */
+                                   /* 200 * 100µs = 20ms */
+
+  /* compensate tone duration */
+  if (Mode == BUZZER_FREQ_LOW)     /* low frequency */
+  {
+    /* 100 * 200µs = 20ms */
+    n >>= 1;                       /* halve half cycles */
+  }
+  
+
+  /*
+   *  generate short beep (20ms)
+   */
+
+  while (n > 0)                    /* half cycles */
+  {
+    /* switch output on each half cycle */
+    if (n & 0b00000001)            /* odd half cycle */
+    {
+      BUZZER_PORT &= ~(1 << BUZZER_CTRL);    /* set pin low */
+    }
+    else                           /* even half cycle */
+    {
+      BUZZER_PORT |= (1 << BUZZER_CTRL);     /* set pin high */
+    }
+
+    /* delay for half cycle */
+    wait100us();                   /* delay for high frequency */
+
+    if (Mode == BUZZER_FREQ_LOW)   /* low frequency */
+    {
+      wait100us();                 /* double delay */
+    }
+
+    n--;                           /* next half cycle */
+  }
 }
 
 #endif
@@ -1736,6 +1800,8 @@ void AdjustmentMenu(uint8_t Mode)
 #define MENUITEM_MAX6675          34
 #define MENUITEM_MAX31855         35
 #define MENUITEM_SYMBOL_TEST      36
+#define MENUITEM_FLASHLIGHT       37
+#define MENUITEM_DS18S20          38
 
 
 /*
@@ -1939,11 +2005,23 @@ uint8_t PresentMainMenu(void)
     #define ITEM_31      0
   #endif
 
+  #ifdef HW_FLASHLIGHT
+    #define ITEM_32      1
+  #else
+    #define ITEM_32      0
+  #endif
+
+  #ifdef SW_DS18S20
+    #define ITEM_33      1
+  #else
+    #define ITEM_33      0
+  #endif
+
 
   #define ITEMS_PACK_0   (ITEM_01 + ITEM_02 + ITEM_03 + ITEM_04 + ITEM_05 + ITEM_06 + ITEM_07 + ITEM_08 + ITEM_09 + ITEM_10)
   #define ITEMS_PACK_1   (ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20)
   #define ITEMS_PACK_2   (ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24 + ITEM_25 + ITEM_26 + ITEM_27 + ITEM_28 + ITEM_29 + ITEM_30)
-  #define ITEMS_PACK_3   (ITEM_31)
+  #define ITEMS_PACK_3   (ITEM_31 + ITEM_32 + ITEM_33)
 
   /* number of menu items */
   #define MENU_ITEMS     (ITEMS_BASIC + ITEMS_PACK_0 + ITEMS_PACK_1 + ITEMS_PACK_2 + ITEMS_PACK_3)
@@ -2129,6 +2207,13 @@ uint8_t PresentMainMenu(void)
   n++;
   #endif
 
+  #ifdef SW_DS18S20
+  /* DS18S20 sensor */
+  Item_Str[n] = (void *)DS18S20_str;
+  Item_ID[n] = MENUITEM_DS18S20;
+  n++;
+  #endif
+
   #ifdef SW_DHTXX
   /* DHT11/DHT22 sensor */
   Item_Str[n] = (void *)DHTxx_str;
@@ -2148,6 +2233,13 @@ uint8_t PresentMainMenu(void)
   Item_Str[n] = (void *)MAX31855_str;
   Item_ID[n] = MENUITEM_MAX31855;
   n++;
+  #endif
+
+  #ifdef HW_FLASHLIGHT
+  /* flashlight / general purpose switched output */
+  Item_Str[n] = (void *)Flashlight_str;
+  Item_ID[n] = MENUITEM_FLASHLIGHT;
+  n++;  
   #endif
 
 
@@ -2275,6 +2367,8 @@ uint8_t PresentMainMenu(void)
   #undef ITEM_29
   #undef ITEM_30
   #undef ITEM_31
+  #undef ITEM_32
+  #undef ITEM_33
 
   return(ID);                 /* return item ID */
 }
@@ -2569,6 +2663,20 @@ uint8_t MainMenu(void)
       SymbolTest();
       break;
     #endif
+
+    #ifdef HW_FLASHLIGHT
+    /* flashlight / general purpose switched output */
+    case MENUITEM_FLASHLIGHT:
+      Flashlight();
+      break;
+    #endif
+
+    #ifdef SW_DS18S20
+    /* DS18S20 sensor */
+    case MENUITEM_DS18S20:
+      Flag = DS18S20_Tool();
+      break;
+    #endif
   }
 
 
@@ -2669,6 +2777,8 @@ uint8_t MainMenu(void)
 #undef MENUITEM_MAX6675
 #undef MENUITEM_MAX31855
 #undef MENUITEM_SYMBOL_TEST
+#undef MENUITEM_FLASHLIGHT
+#undef MENUITEM_DS18S20
 
 
 

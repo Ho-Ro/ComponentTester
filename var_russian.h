@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Russian (Windows-1251)
  *
- *   (c) 2017-2021 by Markus Reschke
+ *   (c) 2017-2022 by Markus Reschke
  *   translation by indman@EEVblog
  *   based on code from Markus Frejek and Karl-Heinz Kьbbeler
  *
@@ -201,13 +201,17 @@
   #ifdef SW_CONTINUITY_CHECK
     const unsigned char ContinuityCheck_str[] MEM_TYPE = "Звук.прозвонка";
   #endif
-  
-   #ifdef SW_FONT_TEST
+
+  #ifdef SW_FONT_TEST
     const unsigned char FontTest_str[] MEM_TYPE = "Шрифт";
   #endif
 
-#ifdef SW_SYMBOL_TEST
+  #ifdef SW_SYMBOL_TEST
     const unsigned char SymbolTest_str[] MEM_TYPE = "Символы";
+  #endif
+
+  #ifdef HW_FLASHLIGHT
+    const unsigned char Flashlight_str[] MEM_TYPE = "Flashlight";
   #endif
 
 #endif

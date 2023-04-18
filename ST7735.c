@@ -7,7 +7,7 @@
  *     - 3 line SPI (not supported)
  *     - 4 line SPI
  *
- *   (c) 2016-2022 by Markus Reschke
+ *   (c) 2016-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -77,6 +77,7 @@
 #include "symbols_32x32_alt1_hf.h"
 #include "symbols_32x32_alt2_hf.h"
 #include "symbols_32x32_old_hf.h"
+#include "symbols_32x39_hf.h"
 
 /* sanity check */
 #ifndef FONT_SET
@@ -418,7 +419,11 @@ void LCD_ClearLine(uint8_t Line)
     Pos = UI.CharPos_X;            /* get current character position */
   }
 
-  /* text line optimization */
+
+  /*
+   *  text line optimization
+   */
+
   if (Line <= 16)                  /* prevent overflow */
   {
     y = Line - 1;                  /* bitfield starts at zero */
@@ -437,7 +442,11 @@ void LCD_ClearLine(uint8_t Line)
     }
   }
 
-  /* manage address window */
+
+  /*
+   *  manage address window
+   */
+
   LCD_CharPos(Pos, Line);         /* update character position */
                                   /* also updates X_Start and Y_Start */
   /* address limit for X */
@@ -472,10 +481,14 @@ void LCD_ClearLine(uint8_t Line)
 
   LCD_AddressWindow();                  /* set window */
 
-  /* clear all pixels in window */
+
+  /*
+   *  clear all pixels in window
+   */
+
   LCD_Cmd(CMD_MEM_WRITE);          /* start writing */
 
-  while (y > 0)                    /* character height (pages) */
+  while (y > 0)                    /* rows (character height) */
   {
     x = X_Start;                   /* reset start position */
     while (x < LCD_MAX_X)          /* all columns */
@@ -486,7 +499,7 @@ void LCD_ClearLine(uint8_t Line)
       x++;                         /* next column */
     }
 
-    y--;                           /* next page */
+    y--;                           /* next row */
   }
 
   /* clean up local constants */
@@ -629,6 +642,11 @@ void LCD_Char(unsigned char Char)
   Index = pgm_read_byte(Table);         /* get index number */
   if (Index == 0xff) return;            /* no character bitmap available */
 
+
+  /*
+   *  manage addressing
+   */
+
   /* calculate start address of character bitmap */
   Table = (uint8_t *)&FontData;        /* start address of font data */
   Offset = FONT_BYTES_N * Index;       /* offset for character */
@@ -640,6 +658,11 @@ void LCD_Char(unsigned char Char)
   X_End = X_Start + FONT_SIZE_X - 1;   /* offset for end */
   Y_End = Y_Start + FONT_SIZE_Y - 1;   /* offset for end */
   LCD_AddressWindow();                 /* set address window */
+
+
+  /*
+   *  send character bitmap to display
+   */
 
   #ifdef LCD_COLOR
   /* color feature enabled */
@@ -745,8 +768,8 @@ void LCD_Symbol(uint8_t ID)
 {
   uint8_t           *Table;        /* pointer to symbol table */
   uint8_t           *Table2;       /* pointer */
-  uint8_t           Data;          /* symbol data */
   uint16_t          Offset;        /* address offset */
+  uint8_t           Data;          /* symbol data */
   uint8_t           Pixels;        /* pixels in x direction */
   uint8_t           x;             /* bitmap x byte counter */
   uint8_t           y = 1;         /* bitmap y byte counter */
@@ -774,9 +797,14 @@ void LCD_Symbol(uint8_t ID)
   Offset = COLOR_PEN;                   /* use default pen color */
   #endif
 
+
+  /*
+   *  send symbol bitmap to display
+   */
+
   LCD_Cmd(CMD_MEM_WRITE);               /* start writing */
 
-  /* read character bitmap and send it to display */
+  /* read symbol bitmap and send it to display */
   while (y <= SYMBOL_BYTES_Y)
   {
     Table2 = Table;           /* save current pointer */

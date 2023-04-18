@@ -2,7 +2,7 @@
  *
  *   semiconductor tests and measurements
  *
- *   (c) 2012-2022 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -133,7 +133,7 @@ void GetLeakageCurrent(uint8_t Mode)
    *    Diode:    probe-1 = cathode /  probe-2 = anode
    *    NPN BJT:  probe-1 = collector / probe-2 = emitter
    *    PNP BJT:  probe-1 = emitter / probe-2 = collector
-   *  - Gnd -- Rl -- probe-2 / probe-1 -- Vcc
+   *  - set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc
    */
 
   R_PORT = 0;                      /* set resistor port to Gnd */
@@ -1320,6 +1320,11 @@ void CheckDepletionModeFET(uint16_t U_Rl)
   uint16_t          Diff_2 = 0;    /* voltage difference #2 */
   uint8_t           Flag = 0;      /* control and signal flag */
 
+  /* local constants */
+  #define SIGNAL_NONE    0         /* no signal set */
+  #define SIGNAL_OTHER   1         /* some other component */
+  #define SIGNAL_FET     2         /* depletion-mode FET */
+
 
   /*
    *  required probe setup (by calling function):
@@ -1382,6 +1387,23 @@ void CheckDepletionModeFET(uint16_t U_Rl)
   if (U_2 > (U_1 + Offset))   /* exceeds required offset */
   {
     /*
+     *  n-channel depletion-mode FET
+     *  we assume: probe-1 = D / probe-2 = S / probe-3 = G
+     */
+
+    /*
+     *  Check for Darlington BJT plus EMI issues causing a high U_Rl.
+     *  - with base pulled down we should have a low leakage current
+     *  - assumes: probe-1 = C / probe-2 = E / probe-3 = B
+     */
+
+    if (U_1 <= 5)             /* emitter shunt <= 5mV (7µA) */
+    {
+      Flag = SIGNAL_OTHER;    /* most likely a Darlington BJT */
+    }
+
+
+    /*
      *  Check if we might have a Germanium BJT with a high leakage current:
      *  - the base-emitter junction of a BJT should pass a constant current with
      *    a low V_BE
@@ -1400,9 +1422,9 @@ void CheckDepletionModeFET(uint16_t U_Rl)
     U_1 = ReadU_20ms(Probes.Ch_3);           /* get voltage at base */
     ADC_DDR = 0;
 
-    if (U_1 < 700)          /* low V_BE < 550mV + 150mV */
+    if (U_1 < 700)            /* low V_BE < 550mV + 150mV */
     {
-      Flag = 1;             /* most likely a Ge BJT */
+      Flag = SIGNAL_OTHER;    /* most likely a Ge BJT */
     }
 
 
@@ -1427,7 +1449,7 @@ void CheckDepletionModeFET(uint16_t U_Rl)
 
       if (U_1 < 450)        /* low V_f < 450mV */
       {
-        Flag = 1;           /* most likely a Schottky BJT */
+        Flag = SIGNAL_OTHER;       /* most likely a Schottky BJT */
       }
     }
 
@@ -1474,7 +1496,7 @@ void CheckDepletionModeFET(uint16_t U_Rl)
       Check.Symbol = SYMBOL_MOSFET_DEP_N;    /* set symbol ID */
       #endif
 
-      Flag = 2;               /* signal match */
+      Flag = SIGNAL_FET;      /* signal match */
     }
     else                      /* JFET */
     {
@@ -1486,7 +1508,7 @@ void CheckDepletionModeFET(uint16_t U_Rl)
         Check.Symbol = SYMBOL_JFET_N;        /* set symbol ID */
         #endif
 
-        Flag = 2;             /* signal match */
+        Flag = SIGNAL_FET;    /* signal match */
       }
     }
   }
@@ -1497,11 +1519,11 @@ void CheckDepletionModeFET(uint16_t U_Rl)
    *  - JFETs are depletion-mode only
    */
 
-  if (Flag != 2)              /* no n-ch FET found */
+  if (Flag != SIGNAL_FET)     /* no n-ch dep-mode FET found */
   {
-    /* we assume: probe-1 = S / probe-2 = D / probe-3 = G */
+    Flag = SIGNAL_NONE;                 /* reset control flag */
 
-    Flag = 0;                 /* reset control flag */
+    /*  we assume: probe-1 = S / probe-2 = D / probe-3 = G */
 
     /* get source voltage when gate is pulled up */
     /* should create a slightly positive V_GS via voltage drop across Rl at source */
@@ -1528,27 +1550,46 @@ void CheckDepletionModeFET(uint16_t U_Rl)
     if (U_1 > (U_2 + Offset))      /* exceeds offset */
     {
       /*
+       *  p-channel depletion-mode FET
+       *  we assume: probe-1 = S / probe-2 = D / probe-3 = G
+       */
+
+      /*
+       *  Check for Darlington BJT plus EMI issues causing a high U_Rl.
+       *  - with base pulled up we should have a low leakage current
+       *  - assumes: probe-1 = E / probe-2 = C / probe-3 = B
+       */
+
+      U_2 = Cfg.Vcc - 12;          /* threshold: Vcc - 12mV */
+        /* meant to be -5, but more leeway because of Vref=Vcc */
+      if (U_1 >= U_2)              /* emitter shunt <= 12mV (17µA) */
+      {
+        Flag = SIGNAL_OTHER;       /* most likely a Darlington BJT */
+      }
+
+
+      /*
        *  Check if we might have a Germanium BJT with a high leakage current:
        *  - the base-emitter junction of a BJT should pass a constant current with
        *    a low V_BE
        *  - measure V_BE
        *  - voltage drop across RiH at emitter is about 150mV
-       *  - assumes: probe-1 = C / probe-2 = E / probe-3 = B
+       *  - assumes: probe-1 = E / probe-2 = C / probe-3 = B
        *  - PNP
        */
 
       /* get base voltage when base is pulled down by Rl */
-      /* set probes: Gnd -- Rl -- probe-3 / probe-2 -- Vcc / probe-1 -- HiZ */
+      /* set probes: Gnd -- Rl -- probe-3 / probe-1 -- Vcc / probe-2 -- HiZ */
       R_DDR = Probes.Rl_3;                   /* switch to Rl */
       R_PORT = 0;                            /* pull down base by Rl */
-      ADC_DDR = Probes.Pin_2;
-      ADC_PORT = Probes.Pin_2;               /* pull up emitter directly */
+      ADC_DDR = Probes.Pin_1;
+      ADC_PORT = Probes.Pin_1;               /* pull up emitter directly */
       U_1 = ReadU_20ms(Probes.Ch_3);         /* get voltage at base */
       ADC_PORT = 0;
 
       if (U_1 > 4300)       /* low V_BE < 550mV + 150mV (V_BE = Vcc - V_B) */
       {
-        Flag = 1;           /* most likely a Ge BJT */
+        Flag = SIGNAL_OTHER;       /* most likely a Ge BJT */
       }
 
 
@@ -1557,17 +1598,17 @@ void CheckDepletionModeFET(uint16_t U_Rl)
        *  Check if we might have a Schottky-clamped BJT with a Schottky diode
        *  between base and collector:
        *  - measure V_f of Schottky diode
-       *  - assumes: probe-1 = C / probe-2 = E / probe-3 = B
+       *  - assumes: probe-1 = E / probe-2 = C / probe-3 = B
        *  - PNP
        *  - this check doesn't seem to be necessary
        */
 
       /* get base voltage when base is pulled down by Rl */
-      /* set probes: Gnd -- Rl -- probe-3 / probe-1 -- Vcc / probe-2 -- HiZ */
-      ADC_DDR = Probes.Pin_1;
-      ADC_PORT = Probes.Pin_1;               /* pull up collector directly */
+      /* set probes: Gnd -- Rl -- probe-3 / probe-2 -- Vcc / probe-1 -- HiZ */
+      ADC_DDR = Probes.Pin_2;
+      ADC_PORT = Probes.Pin_2;               /* pull up collector directly */
       U_1 = ReadU_20ms(Probes.Ch_3);         /* get voltage at base */
-      U_2 = ReadU(Probes.Ch_1);              /* get voltage at collector */
+      U_2 = ReadU(Probes.Ch_2);              /* get voltage at collector */
       ADC_DDR = 0;
 
       if (U_2 > U_1)          /* valid voltages */
@@ -1576,7 +1617,7 @@ void CheckDepletionModeFET(uint16_t U_Rl)
 
         if (U_2 < 450)        /* low V_f < 450mV */
         {
-          Flag = 1;           /* most likely a Schottky BJT */
+          Flag = SIGNAL_OTHER;     /* most likely a Schottky BJT */
         }
       }
       #endif
@@ -1622,11 +1663,11 @@ void CheckDepletionModeFET(uint16_t U_Rl)
         Check.Symbol = SYMBOL_MOSFET_DEP_P;  /* set symbol ID */
         #endif
 
-        Flag = 2;             /* signal match */
+        Flag = SIGNAL_FET;         /* signal match */
       }
       else                         /* JFET */
       {
-        if (Flag == 0)        /* not a BJT */
+        if (Flag == SIGNAL_NONE)   /* not a BJT */
         {
           /* p-channel JFET (depletion-mode only) */
           Check.Type = TYPE_P_CHANNEL | TYPE_DEPLETION | TYPE_JFET;
@@ -1634,7 +1675,7 @@ void CheckDepletionModeFET(uint16_t U_Rl)
           Check.Symbol = SYMBOL_JFET_P;      /* set symbol ID */
           #endif
 
-          Flag = 2;         /* signal match */
+          Flag = SIGNAL_FET;       /* signal match */
         }
       }
     }
@@ -1763,6 +1804,11 @@ void CheckDepletionModeFET(uint16_t U_Rl)
       }
     }
   }
+
+  /* clean up local constants */
+  #undef SIGNAL_NONE
+  #undef SIGNAL_OTHER
+  #undef SIGNAL_FET
 }
 
 

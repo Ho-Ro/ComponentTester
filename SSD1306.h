@@ -2,7 +2,7 @@
  *
  *   SSD1306 OLED graphic display controller
  *
- *   (c) 2017-2020 by Markus Reschke
+ *   (c) 2017-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -335,7 +335,7 @@
 
 #define CMD_COM_SCAN_DIR      0b11000000     /* set COM scan direction */
 
-#define FLAG_COM_0            0b00000000     /* from COM0 to COM[N-1] */
+#define FLAG_COM_0            0b00000000     /* from COM0 to COM[N-1] (default) */
 #define FLAG_COM_63           0b00001000     /* from COM[N-1] to COM0 */
 
 
@@ -354,7 +354,7 @@
 
 
 /*
- *  set COM pins hardware configuration
+ *  set COM pins' hardware configuration
  * - 2 byte command
  */
 
@@ -362,10 +362,10 @@
 #define CMD_COM_CONFIG_SET    0b11011010     /* set COM pins config */
 
 /* byte #2: config */
-#define FLAG_COM_SEQ          0b00000000     /* sequential */
-#define FLAG_COM_ALT          0b00010000     /* alternative (default) */
-#define FLAG_COM_NORM         0b00000000     /* normal mapping (default) */
-#define FLAG_COM_REMAP        0b00100000     /* reversed mapping */
+#define FLAG_COM_SEQ          0b00000010     /* sequential */
+#define FLAG_COM_ALT          0b00010010     /* alternating (default) */
+#define FLAG_COM_NORM         0b00000010     /* normal mapping (default) */
+#define FLAG_COM_REMAP        0b00100010     /* reversed mapping */
 
 
 

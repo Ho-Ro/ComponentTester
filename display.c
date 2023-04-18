@@ -2,7 +2,7 @@
  *
  *   common display functions and common functions for LCD modules
  *
- *   (c) 2015-2022 by Markus Reschke
+ *   (c) 2015-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1361,6 +1361,8 @@ void Display_FancySemiPinout(uint8_t Line)
     {
       Pos = MaxLine;               /* trigger output on new screen */
     }
+
+    /* todo: check for too wide symbols? (10-12 chars for text) */
 
     /* manage position */
     if (Pos >= MaxLine)       /* doesn't fit on current screen */
