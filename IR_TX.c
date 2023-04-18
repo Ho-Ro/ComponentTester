@@ -2,7 +2,7 @@
  *
  *   IR remote control: sender
  *
- *   (c) 2015-2021 by Markus Reschke
+ *   (c) 2015-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1436,8 +1436,7 @@ void IR_RemoteControl(void)
       /* just let the protocol set the carrier frequency */ 
 
       /* display frequency */
-      LCD_ClearLine(3);                 /* line #3 */
-      LCD_CharPos(1, 3);                /* start of line #3 */
+      LCD_ClearLine3();                 /* clear line #3 */
       MarkItem(MODE_FREQ, Mode);        /* mark mode if selected */
       Display_Value(Carrier, 3, 0);     /* display frequency */
       Display_EEString(Hertz_str);      /* display: Hz */

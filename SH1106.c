@@ -82,6 +82,8 @@
 #include "font_8x12t_win1251_vfp.h"
 #include "font_8x16_win1251_vfp.h"
 #include "symbols_24x24_vfp.h"
+#include "symbols_24x24_alt1_vfp.h"
+#include "symbols_24x24_alt2_vfp.h"
 #include "symbols_24x24_old_vfp.h"
 
 /* sanity check */

@@ -2,7 +2,7 @@
  *
  *   TTL serial interface (hardware USART)
  *
- *   (c) 2019-2020 by Markus Reschke
+ *   (c) 2019-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -746,6 +746,24 @@ void Serial_Char(unsigned char Char)
     case LCD_CHAR_RESISTOR_R:      /* resistor right icon ']' */
       Serial_WriteByte(']');       /* or maybe 'V'? */
       break;
+
+    #ifdef UI_PROBE_REVERSED
+    case LCD_CHAR_1_INV:           /* 1 (reversed color) */
+      Serial_WriteByte('1');
+      break;
+
+    case LCD_CHAR_2_INV:           /* 2 (reversed color) */
+      Serial_WriteByte('2');
+      break;
+
+    case LCD_CHAR_3_INV:           /* 3 (reversed color) */
+      Serial_WriteByte('3');
+      break;
+
+    case LCD_CHAR_X_INV:           /* x (reversed color) */
+      Serial_WriteByte('x');
+      break;
+    #endif
 
     default:                       /* standard char */
       Serial_WriteByte(Char);

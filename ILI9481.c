@@ -94,9 +94,14 @@
 #include "font_16x26_iso8859-2_hf.h"
 #include "font_16x26_win1251_hf.h"
 #include "symbols_24x24_hf.h"
+#include "symbols_24x24_alt1_hf.h"
+#include "symbols_24x24_alt2_hf.h"
 #include "symbols_24x24_old_hf.h"
 #include "symbols_32x32_hf.h"
+#include "symbols_32x32_alt1_hf.h"
+#include "symbols_32x32_alt2_hf.h"
 #include "symbols_32x32_old_hf.h"
+#include "symbols_32x39_hf.h"
 
 /* sanity check */
 #ifndef FONT_SET

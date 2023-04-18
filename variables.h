@@ -2,7 +2,7 @@
  *
  *   global variables
  *
- *   (c) 2012-2021 by Markus Reschke
+ *   (c) 2012-2022 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -154,7 +154,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.46m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.47m";
 
 
   /* common terms and texts */
@@ -275,6 +275,10 @@
 
   #ifdef SW_FONT_TEST
     const unsigned char FontTest_str[] MEM_TYPE = "Font";
+  #endif
+
+  #ifdef SW_SYMBOL_TEST
+    const unsigned char SymbolTest_str[] MEM_TYPE = "Symbols";
   #endif
 
   #ifdef HW_LOGIC_PROBE
@@ -865,6 +869,10 @@
 
   #ifdef SW_FONT_TEST
     extern const unsigned char FontTest_str[];
+  #endif
+
+  #ifdef SW_SYMBOL_TEST
+    extern const unsigned char SymbolTest_str[];
   #endif
 
   #ifdef SW_CONTINUITY_CHECK

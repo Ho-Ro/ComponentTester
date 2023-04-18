@@ -463,7 +463,7 @@ LCD module:
 #define SPI_SCK          LCD_SCL        /* port pin used for SCK */
 #define SPI_MOSI         LCD_SI         /* port pin used for MOSI */
 
-Some T4 variants use a slightly different pin assignment:
+Some T4 variants use a slightly different pin assignment for the display:
 #define LCD_RESET        PD0            /* port pin used for /RES */
 #define LCD_A0           PD1            /* port pin used for A0 */
 #define LCD_SCL          PD2            /* port pin used for SCL */
@@ -472,7 +472,7 @@ Some T4 variants use a slightly different pin assignment:
 
 ------------------------------------------------------------------------------
 
-Multifunction Tester TC-1 and family (T7)
+Multifunction Tester TC-1 and family (T7) with ATmega324/644
 - ATmega324 (very poor pin assignment), 16MHz clock
   later models may have an ATmega644
 - ST7735 color display (bit-bang SPI)
@@ -492,7 +492,7 @@ Hints:
   current in total) or reprogrammed with a modified firmware (see
   https://github.com/atar-axis/tc1-u4). The designator can be also U3 (T7 Plus)
   or U5 for newer PCBs.
-  The latest PCB revision has also a footprint for an alternative MCU (details
+  A later PCB revision has also a footprint for an alternative MCU (details
   unknown). The hardware mod should still work.
 - Set extended fuse byte to 0xfd (brown-out detection).
 - If D2 (rectifier diode for Zener test voltage) gets hot replace it with a
@@ -596,5 +596,98 @@ Pinout for fixed cap for self-adjustment:
 #define ADJUST_PORT      PORTC     /* port data register */
 #define ADJUST_DDR       DDRC      /* port data direction register */
 #define ADJUST_RH        PC6       /* Rh (470k) for fixed cap */
+
+------------------------------------------------------------------------------
+
+Multifunction Tester T7 with ATmega328
+- ATmega328, 16MHz clock
+- ST7735 color display (hardware SPI)
+  /RESET line on separate MCU port
+- fixed IR receiver module
+- boost converter for Zener check
+  (runs all the time, about 26V, non-standard voltage divider 100k/12k)
+- connector for serial TTL interface (J5, 5V)
+- settings provided by lhlad@EEVblog (see https://gitlab.com/a11059/t7_328_m)
+
+Hints:
+- This model can't provide any signal output (PWM/squarewave/etc.).
+- Purpose of additional MCU (STC15L104W) is unknown.
+
+Hardware Options:
+#define HW_ZENER
+#define ZENER_DIVIDER_CUSTOM
+#define ZENER_R1         100000
+#define ZENER_R2         12000
+#define ZENER_UNSWITCHED
+#define HW_IR_RECEIVER
+
+Optionally:
+#define HW_PROBE_ZENER
+#define ZENER_VOLTAGE_MIN     500
+#define ZENER_VOLTAGE_MAX     25500
+
+Power management settings:
+#define BAT_DIRECT
+#define BAT_OFFSET       0
+#define BAT_WEAK         3600
+#define BAT_LOW          3400
+
+LCD module:
+#define LCD_ST7735                      /* display controller ST7735 */
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_COLOR                       /* color display */
+#define LCD_SPI                         /* SPI interface */
+#define LCD_PORT         PORTB          /* port data register */
+#define LCD_DDR          DDRB           /* port data direction register */
+#define LCD_RES          PC5            /* port pin used for /RESX (optional) */
+#define LCD_RES_PORT     PORTC          /* separate port for /RESX (optional) */
+#define LCD_RES_DDR      DDRC           /* separate port for /RESX (optional) */
+//#define LCD_CS           PB?            /* port pin used for /CSX (optional) */
+#define LCD_DC           PB2            /* port pin used for D/CX */
+#define LCD_SCL          PB5            /* port pin used for SCL */
+#define LCD_SDA          PB3            /* port pin used for SDA */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       160            /* number of vertical dots */
+#define LCD_OFFSET_X     2              /* enable x offset of 2 or 4 dots */
+#define LCD_OFFSET_Y     1              /* enable y offset of 1 or 2 dots */
+#define LCD_FLIP_X                      /* enable horizontal flip */
+//#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
+//#define LCD_BGR                         /* reverse red and blue color channels */
+#define LCD_LATE_ON                     /* turn on LCD after clearing it */
+#define FONT_10X16_HF                   /* 10x16 font */
+#define SYMBOLS_30X32_HF                /* 30x32 symbols */
+#define SPI_HARDWARE                    /* hardware SPI */
+
+Pinout for test probes:
+#define TP_ZENER         PC3       /* test pin with 10:1 voltage divider */
+#define TP_BAT           PC4       /* test pin with 4:1 voltage divider */
+
+Pinout for probe resistors:
+#define R_PORT           PORTD     /* port data register */
+#define R_DDR            DDRD      /* port data direction register */
+#define R_RL_1           PD2       /* Rl (680R) for test pin #1 */
+#define R_RH_1           PD3       /* Rh (470k) for test pin #1 */
+#define R_RL_2           PD4       /* Rl (680R) for test pin #2 */
+#define R_RH_2           PD5       /* Rh (470k) for test pin #2 */
+#define R_RL_3           PD6       /* Rl (680R) for test pin #3 */
+#define R_RH_3           PD7       /* Rh (470k) for test pin #3 */
+
+Pinout for power control:
+#define POWER_PORT       PORTB     /* port data register */
+#define POWER_DDR        DDRB      /* port data direction register */
+#define POWER_CTRL       PB1       /* control pin (1: on / 0: off) */
+
+Pinout for test button:
+#define BUTTON_PORT      PORTB     /* port data register */
+#define BUTTON_DDR       DDRB      /* port data direction register */
+#define BUTTON_PIN       PINB      /* port input pins register */
+#define TEST_BUTTON      PB4       /* test/start push button (low active) */
+
+Pinout for fixed IR detector/decoder:
+#define IR_PORT          PORTB     /* port data register */
+#define IR_DDR           DDRB      /* port data direction register */
+#define IR_PIN           PINB      /* port input pins register */
+#define IR_DATA          PB0       /* data signal */
 
 ------------------------------------------------------------------------------

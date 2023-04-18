@@ -3,11 +3,11 @@
 
             ReadMe für die Component-Tester-Firmware (m-Firmware)
 
-        (c) 2012-2021 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2022 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2022-04-04
+Letzte Änderung: 2022-06-13
 
 Inhaltsübersicht:
   - Über den Tester
@@ -85,6 +85,7 @@ Inhaltsübersicht:
     - Selbstabgleich
     - Speichern/Laden
     - Werte anzeigen
+    - Zeichensatz/Symbole
     - Ausschalten
     - Exit
   - Widerstände
@@ -188,7 +189,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - OneWire (DS18B20)
 - DHTxx-Sensoren
 - Ereigniszähler
-- Klingeltester
+- Klingeltester (LOPT/FBT-Tester)
 - Logiktester
 - Durchgangsprüfer
 - MAX6675/MAX31855 Thermoelement-Konverter
@@ -247,7 +248,7 @@ Folgende Hardware-Optionen werden unterstützt:
     mit Vorteiler und Quarzoszillatoren für niedrige und hohe Frequenzen 
   - fester IR-RC-Empfänger
   - LC-Meter
-  - Klingeltester
+  - Klingeltester (LOPT/FBT-Tester)
   - Logiktester
   - MAX6675/MAX31855 Thermoelement-Konverter
 
@@ -277,6 +278,7 @@ Hardware-Optionen:
 - Messung von Zenerdioden (DC-DC-Konverter)
 - Frequenzzähler (einfache und erweiterte Version)
 - Ereigniszähler
+- Klingeltester (LOPT/FBT-Tester)
 - LC-Meter
 - Test von IR-Fernbedienungen (festes IR-Empfängermodul)
 - fester Kondensator für Selbstabgleich von Spannungsoffsets
@@ -519,6 +521,10 @@ Die Symbole werden über den Schalter "SW_SYMBOLS" in config.h aktiviert.
 Wenn Dir der Stil der alten Symbole besser gefällt, kannst Du diese weiterhin
 verwenden, indem Du die Symboleinstellung auf SYMBOLS_<size>_OLD_<format>.h
 änderst. 
+
+Zu Testzwecken kannst Du eine Menüfunktion zur Ausgabe aller Zeichen im
+Zeichensatz (SW_FONT_TEST) oder aller Bauteilesymbole (SW_SYMBOL_TEST)
+aktivieren.
 
 
 + HD44780
@@ -1044,11 +1050,20 @@ Für Anzeigen mit mehr als zwei Textzeilen:
 
 Für graphische Anzeigen:
 - alle vorherigen Optionen
-- Symbole mit Pinout für dreibeinige Halbleiter (SW_SYMBOLS, nicht für
-  Anzeigen mit niedriger Auflösung)
-- keine Ausgabe von Text-Pinout für dreibeinige Halbleiter (UI_NO_TEXTPINOUT,
+- schickes Pinout mit Symbolen für dreibeinige Halbleiter (SW_SYMBOLS, nicht
+  für Anzeigen mit niedriger Auflösung)
+- rechte Testpins beim schicken Pinout unter/oberhalb vom Symbol anzeigen (
+  UI_PINOUT_ALT)
+- keine Ausgabe vom Text-Pinout für dreibeinige Halbleiter (UI_NO_TEXTPINOUT,
   wenn SW_SYMBOLS aktiviert)
+- keine Ausgabe vom Text-Pinout der Body-Diode von MOSFETs (
+  UI_NO_BODYDIODE_TEXTPINOUT)
 - Anzeige von Testpins in invertierter Darstellung (UI_PROBE_REVERSED)
+- Anzeige eines Fragezeichensymbols bei fehlgeschlagenem Suchlauf (
+  UI_QUESTION_MARK)
+- Anzeige eines Zenerdiodensymbols bei allen Zener-Tests (UI_ZENER_DIODE)
+- Anzeige eines Schwingquartzsymbols für LF/HF-Modi im erweiterten
+  Frequenzzähler (UI_QUARTZ_CRYSTAL)
 
 Für farbige Grafikanzeigen:
 - alle vorherigen Optionen
@@ -1058,7 +1073,7 @@ Für farbige Grafikanzeigen:
 - Farbcode für Widerstände (SW_R_E24_5_CC, SW_R_E24_1_CC und SW_R_E96_CC)
 
 
-+ Summer/Pieper
++ Summer/Pieper (Hardware-Option)
 
 Falls Du auch ein akustisches Signal haben möchtest, kannst Du einen aktiven
 Summer (mit integriertem Oszillator) verwenden. Der Summer wird über einen
@@ -1358,7 +1373,7 @@ werte für Vcc/Vdd sind:
 Und wie gewohnt, zwei kurze Tastendrücke beenden den Logiktester.
 
 
-+ Durchgangsprüfer
++ Durchgangsprüfer (Hardware-Option)
 
 Diese Funktion prüft Schaltungen auf Durchgang und gibt Dir ein akustisches
 Signal über einen Summer/Pieper, während auch die Spannung zwischen den
@@ -1434,6 +1449,10 @@ Verfügbare Monitore:
 - L-Monitor (Induktivität)
 - R/C/L-Monitor (R plus optional L, oder C plus optional ESR)
 - R/L-Monitor (Widerstand plus optional Induktivität)
+
+Für die C und L-Monitore gibt es Optionen zum Halten des letzten gültigen
+Messwerts (SW_MONITOR_HOLD_ESR, SW_MONITOR_HOLD_L). Der letzte Wert wird
+in der dritten Textzeile angezeigt.
 
 
 + L/C-Meter (Hardware-Option)
@@ -2104,7 +2123,7 @@ Vorgaben bzgl. Genauigkeit und anderer Parameter einhält.
 + Speichern/Laden
 
 Nach dem Selbstabgleich kannst Du mit dieser Funktion die im EEPROM
-gespeicherten Abgleichswerte aktualisieren. Beim nächsten Neustart vom Tester
+gespeicherten Abgleichwerte aktualisieren. Beim nächsten Neustart vom Tester
 werden dann diese Werte (Profil #1) automatisch geladen und benutzt.
 
 Zur Bequemlichkeit stehen zwei Profile zum Speichern bzw. Laden zu Verfügung,
@@ -2124,6 +2143,14 @@ Testers anzeigen lassen (UI_CHOOSE_PROFILE).
 
 Diese Funktion zeigt die aktuellen Abgleichwerte an. Die Nutzung einer
 externen 2.5V Spannungsreferenz wird mit einem "*" nach Vcc signalisiert.
+
+
++ Zeichensatz/Symbole
+
+Die beiden Menüpunkte geben den kompletten Zeichensatzes bzw. die Bauteile-
+symbole zu Testzwecken aus. Zeilen/Blöcke starten mit der Adresse (hexadezimal)
+des ersten Zeichens/Symbols in jener Zeile/Block. Danach folgen entweder 8
+Zeichen oder so viele Symbole wie in den Block passen.
 
 
 + Ausschalten

@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2021 by Markus Reschke
+ *   (c) 2012-2022 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -243,6 +243,7 @@
   extern void Display_NL_EEString_Space(const unsigned char *String);
 
   extern void LCD_ClearLine2(void);
+  extern void LCD_ClearLine3(void);
 
   #ifdef UI_SERIAL_COPY
   extern void Display_Serial_On(void);
@@ -297,7 +298,11 @@
   #endif
 
   #ifdef SW_SYMBOLS
-  extern void LCD_FancySemiPinout(uint8_t Line);
+  extern void Display_FancySemiPinout(uint8_t Line);
+  #endif
+
+  #ifdef UI_QUARTZ_CRYSTAL
+  extern void Clear_Symbol(uint8_t Line);
   #endif
 
   #ifdef SW_CONTRAST
@@ -306,6 +311,10 @@
 
   #ifdef SW_FONT_TEST
   extern void FontTest(void);
+  #endif
+
+  #ifdef SW_SYMBOL_TEST
+  extern void SymbolTest(void);
   #endif
 
   #ifdef FUNC_COLORCODE

@@ -3,11 +3,11 @@
 
             ReadMe for the Component Tester firmware (m-firmware)
 
-        (c) 2012-2021 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2022 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit: 2022-04-04
+Last edit: 2022-06-13
 
 Content
   - About
@@ -85,6 +85,7 @@ Content
     - Self Adjustment
     - Save/Load
     - Show Values
+    - Font/Symbols
     - Power Off
     - Exit
   - Resistors
@@ -187,7 +188,7 @@ k-firmware:
 - OneWire (DS18B20)
 - DHTxx Sensors
 - event counter
-- ring tester
+- ring tester (LOPT/FBT tester)
 - logic probe
 - continuity check
 - MAX6675/MAX31855 thermocouple converters
@@ -247,7 +248,7 @@ Following hardware options are supported:
     with prescaler and crystal oscillators for low and high frequencies
   - fixed IR RC receiver
   - LC meter
-  - ring tester
+  - ring tester (LOPT/FBT tester)
   - logic probe
   - MAX6675/MAX31855 thermocouple converters
 
@@ -275,6 +276,7 @@ Hardware options:
 - frequency counter (basic and extendend version)
 - event counter
 - LC Meter
+- ring tester (LOPT/FBT tester)
 - IR detector/decoder for remote controls
   (fixed IR receiver module)
 - fixed cap for self-adjustment of voltage offsets
@@ -512,6 +514,9 @@ most cases. The symbols are activated by the SW_SYMBOLS switch in config.h.
 
 If you prefer the old style of component symbols you can still use them by
 changing the symbols setting to SYMBOLS_<size>_OLD_<format>.h.
+
+For test purposes you can enable a menu function to show all font characters (
+SW_FONT_TEST) or all component symbols (SW_SYMBOL_TEST).
 
 
 + HD44780
@@ -1029,11 +1034,19 @@ For displays with more then two text lines:
 
 For graphic displays:
 - all options listed before
-- symbols incl. pinout for three-legged semiconductors (SW_SYMBOLS, not for
-  low resolution displays)
+- fancy pinout with symbols for three-legged semiconductors (SW_SYMBOLS, not
+  for low resolution displays)
+- show right-hand probe numbers of fancy pinout above and below symbol (
+  UI_PINOUT_ALT)
 - disable text based pinout for three-legged semiconductors (UI_NO_TEXTPINOUT,
   when SW_SYMBOLS is enabled)
+- disable text based pinout of body diode for MOSFETs (
+  UI_NO_BODYDIODE_TEXTPINOUT)
 - display probe/testpin IDs with reversed colors (UI_PROBE_REVERSED)
+- display question mark symbol in case of a failed test run (UI_QUESTION_MARK)
+- display Zener diode symbol in any Zener check (UI_ZENER_DIODE) 
+- display quartz crystal symbol for LF/HF modes in extended frequency
+  counter (UI_QUARTZ_CRYSTAL)
 
 For color graphic displays:
 - all options listed before
@@ -1043,7 +1056,7 @@ For color graphic displays:
 - color code for resistors (SW_R_E24_5_CC, SW_R_E24_1_CC and SW_R_E96_CC)
 
 
-+ Buzzer
++ Buzzer (hardware option)
 
 If you like to have an audible indicator you can add an active buzzer (with
 integrated oscillator). The buzzer is controlled via a fixed pin (see
@@ -1325,7 +1338,7 @@ adjust the thresholds. The standard Vcc/Vdd values are:
 And as usual, two short button presses will exit the logic probe.
 
 
-+ Continuity Check
++ Continuity Check (hardware option)
 
 This tool checks for continuity of a circuit and gives you an audible feedback
 by a buzzer while also displaying the voltage across the probes. The test
@@ -1399,6 +1412,10 @@ Available monitors:
 - L Monitor (inductance)
 - R/C/L Monitor (R plus optionally L, or C plus optionally ESR)
 - R/L Monitor (resistance plus optionally inductance)
+
+For the C and L monitors there are options to auto-hold the last valid
+measurement value (SW_MONITOR_HOLD_ESR, SW_MONITOR_HOLD_L). The last result
+is displayed in the third text line.
 
 
 + LC Meter (hardware option)
@@ -2072,6 +2089,14 @@ after powering on the tester.
 
 This displays the current adjustment values and offsets used. The usage of an
 external 2.5V voltage reference is indicated by an '*' behind Vcc.
+
+
++ Font/Symbols
+
+These menu items display all characters of the font or component symbols for
+test purposes. Lines/blocks start with the hexadecimal address of the first
+character/symbol in that line/block. Then followed by 8 characters or as much
+symbols as fit in that block.
 
 
 + Power Off

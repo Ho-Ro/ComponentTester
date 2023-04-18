@@ -2,7 +2,7 @@
  *
  *   ATmega 328 specific global configuration, setup and settings
  *
- *   (c) 2012-2021 by Markus Reschke
+ *   (c) 2012-2022 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -135,10 +135,17 @@
 #define FONT_8X8_HF                     /* 8x8 font */
 //#define FONT_10X16_HF                   /* 10x16 font */
 //#define FONT_8X8_ISO8859_2_HF           /* 8x8 Central European font */
+//#define FONT_8X12T_ISO8859_2_HF         /* thin 8x12 Central European font */
+//#define FONT_8X16_ISO8859_2_HF          /* 8x16 Central European font */
 //#define FONT_10X16_ISO8859_2_HF         /* 10x16 Central European font */
 //#define FONT_8X16_WIN1251_HF            /* 8x16 cyrillic font */
 //#define FONT_8X16ALT_WIN1251_HF         /* 8x16 alternative cyrillic font */
 #define SYMBOLS_30X32_HF                /* 30x32 symbols */
+//#define SYMBOLS_30X32_ALT1_HF           /* 30x32 alternative symbols #1 */
+//#define SYMBOLS_30X32_ALT2_HF           /* 30x32 alternative symbols #2 */
+//#define SYMBOLS_32X32_HF                /* 32x32 symbols */
+//#define SYMBOLS_32X32_ALT1_HF           /* 32x32 alternative symbols #1 */
+//#define SYMBOLS_32X32_ALT2_HF           /* 32x32 alternative symbols #2 */
 /* SPI bus */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -180,7 +187,10 @@
 #define FONT_16X26_HF                   /* 16x26 font */
 //#define FONT_16X26_ISO8859_2_HF         /* 16x26 Central European font */
 //#define FONT_16X26_WIN1251_HF           /* 16x26 cyrillic font */
-#define SYMBOLS_32X32_HF                /* 32x32 symbols */
+//#define SYMBOLS_32X32_HF                /* 32x32 symbols */
+//#define SYMBOLS_32X32_ALT1_HF           /* 32x32 alternative symbols #1 */
+//#define SYMBOLS_32X32_ALT2_HF           /* 32x32 alternative symbols #2 */
+#define SYMBOLS_32X39_HF                /* 32x39 symbols */
 /* SPI bus */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -218,12 +228,16 @@
 /* font and symbols: vertically aligned & flipped */
 #define FONT_6X8_VF                     /* 6x8 font */
 //#define FONT_6X8_ISO8859_2_VF         /* 6x8 Central Euopean font */
-#define SYMBOLS_24X24_VFP               /* 24x24 symbols, vertically aligned & flipped */
+#define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_VFP          /* 24x24 alternative symbols #1 */
+//#define SYMBOLS_24X24_ALT2_VFP          /* 24x24 alternative symbols #2 */
 //#define LCD_ROT180                      /* rotate output by 180° (not supported yet) */
 /* font and symbols: vertically aligned, bank-wise grouping, hor. flipped */
 //#define FONT_6X8_V_F                    /* 6x8 font */
 //#define FONT_6X8_ISO8859_2_V_F          /* 6x8 Central Euopean font */
 //#define SYMBOLS_24X24_VP_F              /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_VP_F         /* 24x24 alternative symbols #1 */
+//#define SYMBOLS_24X24_ALT2_VP_F         /* 24x24 alternative symbols #2 */
 /* SPI bus */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -259,6 +273,8 @@
 #define FONT_6X8_VF                     /* 6x8 font */
 //#define FONT_6X8_ISO8859_2_VF             /* 6x8 Central European font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_VFP          /* 24x24 alternative symbols #1 */
+//#define SYMBOLS_24X24_ALT2_VFP          /* 24x24 alternative symbols #2 */
 /* SPI bus */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_9                           /* support 9 bit frames */
@@ -309,6 +325,8 @@
 //#define FONT_8X12T_WIN1251_VFP          /* thin 8x12 cyrillic font */
 //#define FONT_8X16_WIN1251_VFP           /* 8x16 cyrillic font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_VFP          /* 24x24 alternative symbols #1 */
+//#define SYMBOLS_24X24_ALT2_VFP          /* 24x24 alternative symbols #2 */
 /* SPI bus */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -346,6 +364,8 @@
 /* font and symbols: vertically aligned & flipped, bank-wise grouping */
 #define FONT_8X8_VF                     /* 8x8 font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_VFP          /* 24x24 alternative symbols #1 */
+//#define SYMBOLS_24X24_ALT2_VFP          /* 24x24 alternative symbols #2 */
 /* SPI bus */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_9                           /* support 9 bit frames */
@@ -381,6 +401,8 @@
 /* font and symbols: vertically aligned & flipped, bank-wise grouping */
 #define FONT_8X8_VF                     /* 8x8 font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_VFP          /* 24x24 alternative symbols #1 */
+//#define SYMBOLS_24X24_ALT2_VFP          /* 24x24 alternative symbols #2 */
 /* I2C bus */
 #define I2C_BITBANG                     /* bit-bang I2C */
 #define I2C_FAST_MODE                   /* 400kHz bus speed */
@@ -430,6 +452,8 @@
 //#define FONT_8X12T_WIN1251_VFP          /* thin 8x12 cyrillic font */
 //#define FONT_8X16_WIN1251_VFP           /* 8x16 cyrillic font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_VFP          /* 24x24 alternative symbols #1 */
+//#define SYMBOLS_24X24_ALT2_VFP          /* 24x24 alternative symbols #2 */
 /* SPI bus */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -465,6 +489,8 @@
 /* font and symbols: vertically aligned & flipped, bank-wise grouping */
 #define FONT_8X8_VF                     /* 8x8 font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_VFP          /* 24x24 alternative symbols #1 */
+//#define SYMBOLS_24X24_ALT2_VFP          /* 24x24 alternative symbols #2 */
 /* SPI bus */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_9                           /* support 9 bit frames */
@@ -499,6 +525,8 @@
 /* font and symbols: vertically aligned & flipped, bank-wise grouping */
 #define FONT_8X8_VF                     /* 8x8 font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_VFP          /* 24x24 alternative symbols #1 */
+//#define SYMBOLS_24X24_ALT2_VFP          /* 24x24 alternative symbols #2 */
 /* I2C bus */
 #define I2C_BITBANG                     /* bit-bang I2C */
 #define I2C_FAST_MODE                   /* 400kHz bus speed */
@@ -621,6 +649,8 @@
 //#define FONT_8X12T_WIN1251_VFP          /* thin 8x12 cyrillic font */
 //#define FONT_8X16_WIN1251_VFP           /* 8x16 cyrillic font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_VFP          /* 24x24 alternative symbols #1 */
+//#define SYMBOLS_24X24_ALT2_VFP          /* 24x24 alternative symbols #2 */
 /* SPI bus */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -663,10 +693,17 @@
 #define FONT_10X16_HF                   /* 10x16 font */
 //#define FONT_6X8_ISO8859_2_HF           /* 6x8 Central European font */
 //#define FONT_8X8_ISO8859_2_HF           /* 8x8 Central European font */
+//#define FONT_8X12T_ISO8859_2_HF         /* thin 8x12 Central European font */
+//#define FONT_8X16_ISO8859_2_HF          /* 8x16 Central European font */
 //#define FONT_10X16_ISO8859_2_HF         /* 10x16 Central European font */
 //#define FONT_8X16_WIN1251_HF            /* 8x16 cyrillic font */
 //#define FONT_8X16ALT_WIN1251_HF         /* 8x16 alternative cyrillic font */
 #define SYMBOLS_30X32_HF                /* 30x32 symbols */
+//#define SYMBOLS_30X32_ALT1_HF           /* 30x32 alternative symbols #1 */
+//#define SYMBOLS_30X32_ALT2_HF           /* 30x32 alternative symbols #2 */
+//#define SYMBOLS_32X32_HF                /* 32x32 symbols */
+//#define SYMBOLS_32X32_ALT1_HF           /* 32x32 alternative symbols #1 */
+//#define SYMBOLS_32X32_ALT2_HF           /* 32x32 alternative symbols #2 */
 /* SPI bus */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -703,11 +740,15 @@
 #define FONT_8X8_H                      /* 8x8 font  */
 //#define FONT_8X8_ISO8859_2_H            /* 8x8 Central European font */
 #define SYMBOLS_24X24_H                 /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_H            /* alternative 24x24 symbols #1 */
+//#define SYMBOLS_24X24_ALT2_H            /* alternative 24x24 symbols #2 */
 //#define LCD_ROT180                      /* rotate output by 180° */
 /* font and symbols: horizonally aligned & flipped */
 //#define FONT_8X8_HF                     /* 8x8 font */
 //#define FONT_8X8_ISO8859_2_HF           /* 8x8 Central European font */
 //#define SYMBOLS_24X24_HF                /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_HF           /* alternative 24x24 symbols #1 */
+//#define SYMBOLS_24X24_ALT2_HF           /* alternative 24x24 symbols #2 */
 /* SPI bus */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_PORT         LCD_PORT       /* SPI port data register */
@@ -749,10 +790,14 @@
 /* font and symbols: horizonally aligned */
 #define FONT_8X8_H                      /* 8x8 font */
 #define SYMBOLS_24X24_H                 /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_H            /* alternative 24x24 symbols #1 */
+//#define SYMBOLS_24X24_ALT2_H            /* alternative 24x24 symbols #2 */
 //#define LCD_ROT180                      /* rotate output by 180° */
 /* font and symbols: horizonally aligned & flipped */
 //#define FONT_8X8_HF                     /* 8x8 font */
 //#define SYMBOLS_24X24_HF                /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_HF           /* alternative 24x24 symbols #1 */
+//#define SYMBOLS_24X24_ALT2_HF           /* alternative 24x24 symbols #2 */
 #endif
 
 
@@ -783,6 +828,8 @@
 #define FONT_6X8_VF                     /* 6x8 font */
 //#define FONT_6X8_ISO8859_2_VF             /* 6x8 Central European font */
 #define SYMBOLS_24X24_VFP               /* 24x24 symbols */
+//#define SYMBOLS_24X24_ALT1_VFP          /* 24x24 alternative symbols #1 */
+//#define SYMBOLS_24X24_ALT2_VFP          /* 24x24 alternative symbols #2 */
 /* SPI bus */
 #define SPI_BITBANG                     /* bit-bang SPI */
 #define SPI_9                           /* support 9 bit frames */

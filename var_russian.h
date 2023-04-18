@@ -27,9 +27,9 @@
 
   /* common terms and texts */
   const unsigned char Probing_str[] MEM_TYPE = "Тестирование...";
-  const unsigned char Timeout_str[] MEM_TYPE = "Время истекло";
+  const unsigned char Timeout_str[] MEM_TYPE = "Время истекло!";
   const unsigned char Failed1_str[] MEM_TYPE = "Детали нет";
-  const unsigned char Failed2_str[] MEM_TYPE = "или повреждена?";
+  const unsigned char Failed2_str[] MEM_TYPE = "или повреждена";
   const unsigned char Done_str[] MEM_TYPE = "Готово!";
   const unsigned char Select_str[] MEM_TYPE = "Режим";
   const unsigned char Selftest_str[] MEM_TYPE = "Самотест";
@@ -37,9 +37,9 @@
   const unsigned char Save_str[] MEM_TYPE = "Сохранить";
   const unsigned char Load_str[] MEM_TYPE = "Загрузить";
   const unsigned char Show_str[] MEM_TYPE = "Данные";
-  const unsigned char Remove_str[] MEM_TYPE = "Раскоротите!";
+  const unsigned char Remove_str[] MEM_TYPE = "Раскоротите";
   const unsigned char Create_str[] MEM_TYPE = "Закоротите";
-  const unsigned char ShortCircuit_str[] MEM_TYPE = "все т.контакты!";
+  const unsigned char ShortCircuit_str[] MEM_TYPE = "контакты 1-2-3!";
   const unsigned char DischargeFailed_str[] MEM_TYPE = "Батарея?";
   const unsigned char Error_str[] MEM_TYPE = "Ошибка!";
   const unsigned char Exit_str[] MEM_TYPE = "Выход";
@@ -49,6 +49,7 @@
   const unsigned char Triac_str[] MEM_TYPE = "Симистор";
   const unsigned char PUT_str[] MEM_TYPE = "PUT";
   const unsigned char Bye_str[] MEM_TYPE = "До свидания!";
+  
 
 
   /* units */
@@ -92,14 +93,14 @@
   #endif
 
   #ifdef HW_FREQ_COUNTER_EXT
-    const unsigned char CounterChannel_str[] MEM_TYPE = "Ch";
+    const unsigned char CounterChannel_str[] MEM_TYPE = "Вх.канал:";
     const unsigned char FreqInput_str[] MEM_TYPE = "BNC";
-    const unsigned char LF_Crystal_str[] MEM_TYPE = "LF кварц";
-    const unsigned char HF_Crystal_str[] MEM_TYPE = "HF кварц";
+    const unsigned char LF_Crystal_str[] MEM_TYPE = "НЧ кварц";
+    const unsigned char HF_Crystal_str[] MEM_TYPE = "ВЧ кварц";
   #endif
 
   #ifdef HW_RING_TESTER
-    const unsigned char RingTester_str[] MEM_TYPE = "Тестер LOPT/FBT";
+    const unsigned char RingTester_str[] MEM_TYPE = "Тест LOPT/FBT";
   #endif
 
   #ifdef HW_EVENT_COUNTER
@@ -111,7 +112,7 @@
   #endif
 
   #ifdef HW_LC_METER
-    const unsigned char LC_Meter_str[] MEM_TYPE = "LC измерит.";
+    const unsigned char LC_Meter_str[] MEM_TYPE = "LC-метр";
     const unsigned char Adjusting_str[] MEM_TYPE = "настройка...";
   #endif
 
@@ -133,7 +134,7 @@
   #endif
 
   #ifdef SW_IR_TRANSMITTER
-    const unsigned char IR_Transmitter_str[] MEM_TYPE = "IR RC";
+    const unsigned char IR_Transmitter_str[] MEM_TYPE = "ИК передатчик";
     const unsigned char IR_Send_str[] MEM_TYPE = "Код.посылка...";
   #endif
 
@@ -199,6 +200,14 @@
 
   #ifdef SW_CONTINUITY_CHECK
     const unsigned char ContinuityCheck_str[] MEM_TYPE = "Звук.прозвонка";
+  #endif
+  
+   #ifdef SW_FONT_TEST
+    const unsigned char FontTest_str[] MEM_TYPE = "Шрифт";
+  #endif
+
+#ifdef SW_SYMBOL_TEST
+    const unsigned char SymbolTest_str[] MEM_TYPE = "Символы";
   #endif
 
 #endif

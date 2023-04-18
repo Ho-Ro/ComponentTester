@@ -19,6 +19,9 @@
  *    D/CX     LCD_DC
  *    SCL      LCD_SCL / SPI_SCK
  *    SDA      LCD_SDA / SPI_MOSI
+ *    in case of a separate port for /RESX
+ *    - LCD_RES_PORT   port data register for /RESX
+ *    - LCD_RES_DDR    port data direction register for /RESX
  *    For hardware SPI LCD_SCL and LCD_SDA have to be the MCU's SCK and
  *    MOSI pins.
  *  - max. SPI clock: 15.1MHz write, 6.6MHz read 
@@ -57,13 +60,23 @@
 #include "font_10x16_hf.h"
 #include "font_6x8_iso8859-2_hf.h"
 #include "font_8x8_iso8859-2_hf.h"
+#include "font_8x12t_iso8859-2_hf.h"
+#include "font_8x16_iso8859-2_hf.h"
 #include "font_10x16_iso8859-2_hf.h"
 #include "font_8x16_win1251_hf.h"
 #include "font_8x16alt_win1251_hf.h"
 #include "symbols_24x24_hf.h"
+#include "symbols_24x24_alt1_hf.h"
+#include "symbols_24x24_alt2_hf.h"
 #include "symbols_24x24_old_hf.h"
 #include "symbols_30x32_hf.h"
+#include "symbols_30x32_alt1_hf.h"
+#include "symbols_30x32_alt2_hf.h"
 #include "symbols_30x32_old_hf.h"
+#include "symbols_32x32_hf.h"
+#include "symbols_32x32_alt1_hf.h"
+#include "symbols_32x32_alt2_hf.h"
+#include "symbols_32x32_old_hf.h"
 
 /* sanity check */
 #ifndef FONT_SET
@@ -168,7 +181,7 @@ void LCD_BusSetup(void)
   Bits |= (1 << LCD_DC);           /* D/C */
 
   /* optional output pins */
-  #ifdef LCD_RES
+  #if defined (LCD_RES) && ! defined (LCD_RES_PORT)
     Bits |= (1 << LCD_RES);        /* /RESX */
   #endif 
   #ifdef LCD_CS
@@ -177,15 +190,24 @@ void LCD_BusSetup(void)
 
   LCD_DDR = Bits;                  /* set new directions */
 
+  #if defined (LCD_RES) && defined (LCD_RES_PORT)
+  /* /RESX on separate port */
+  LCD_RES_DDR |= (1 << LCD_RES);   /* /RESX */
+  #endif
 
   /* set default levels */
   #ifdef LCD_CS
     /* disable chip */
     LCD_PORT |= (1 << LCD_CS);          /* set /CSX high */
   #endif
-  #ifdef LCD_RES
+  #if defined (LCD_RES) && ! defined (LCD_RES_PORT)
     /* disable reset */
     LCD_PORT |= (1 << LCD_RES);         /* set /RESX high */
+  #endif
+
+  #if defined (LCD_RES) && defined (LCD_RES_PORT)
+  /* /RESX on separate port: disable reset */
+  LCD_RES_PORT |= (1 << LCD_RES);       /* set /RESX high */
   #endif
 
 
@@ -506,21 +528,30 @@ void LCD_Init(void)
 
   /* hardware reset */
   #ifdef LCD_RES
-  LCD_PORT = LCD_PORT & ~(1 << LCD_RES);     /* set /RESX low */
-  wait10us();                                /* wait 10µs */
-  LCD_PORT = LCD_PORT | (1 << LCD_RES);      /* set /RESX high */
-  /* blanking sequence needs up to 120ms */
-  /* but we may send command after 5ms */
-  MilliSleep(5);                             /* wait 5ms */
+    #ifdef LCD_RES_PORT
+      /* /RESX on separate port */
+      LCD_RES_PORT &= ~(1 << LCD_RES);       /* set /RESX low */
+      wait10us();                            /* wait 10µs */
+      LCD_RES_PORT |= (1 << LCD_RES);        /* set /RESX high */
+    #else
+      /* /RESX on LCD port */
+      LCD_PORT &= ~(1 << LCD_RES);           /* set /RESX low */
+      wait10us();                            /* wait 10µs */
+      LCD_PORT |= (1 << LCD_RES);            /* set /RESX high */
+    #endif
+
+    /* blanking sequence needs up to 120ms */
+    /* but we may send command after 5ms */
+    MilliSleep(5);                             /* wait 5ms */
   #endif
 
   /* memory access control */
   LCD_Cmd(CMD_MEM_CTRL);
   #ifdef LCD_BGR
-  /* reverse red and blue color channels */
-  Bits = FLAG_COLOR_BGR;           /* color bit order: BGR */
+    /* reverse red and blue color channels */
+    Bits = FLAG_COLOR_BGR;         /* color bit order: BGR */
   #else
-  Bits = FLAG_COLOR_RGB;           /* color bit order: RGB */
+    Bits = FLAG_COLOR_RGB;         /* color bit order: RGB */
   #endif
   #ifdef LCD_ROTATE
     Bits |= FLAG_XY_REV;           /* swap x and y */

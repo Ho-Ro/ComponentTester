@@ -3,8 +3,8 @@
  *   monospaced 8x8 font based on ISO 8859-1
  *   horizontally aligned, horizontal bit order flipped
  *
- *   (c) 2015-2021 by Markus Reschke
- *                 Mod by Feliciano
+ *   (c) 2015-2022 by Markus Reschke
+ *   Inverted digits 1-3 by Feliciano
  *
  * ************************************************************************ */
 

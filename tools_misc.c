@@ -144,8 +144,13 @@ void Zener_Tool(void)
   #else
     Display_EEString(Zener_str);   /* display: Zener */
   #endif
-  Display_NextLine();
+  Display_NextLine();              /* line #2 */
   Display_Minus();                 /* display "no value" */
+  #ifdef UI_ZENER_DIODE
+  /* display Zener diode symbol */
+  Check.Symbol = SYMBOL_DIODE_ZENER;    /* set symbol ID */
+  Display_FancySemiPinout(3);           /* show symbol starting in line #3 */
+  #endif
 
 
   /*
@@ -313,6 +318,11 @@ void Zener_Tool(void)
     Display_ColoredEEString(Zener_str, COLOR_TITLE);
   #else
     Display_EEString(Zener_str);   /* display: Zener */
+  #endif
+  #ifdef UI_ZENER_DIODE
+  /* display Zener diode symbol */
+  Check.Symbol = SYMBOL_DIODE_ZENER;    /* set symbol ID */
+  Display_FancySemiPinout(3);           /* show symbol starting in line #3 */
   #endif
 
 
@@ -1245,8 +1255,7 @@ void Cap_Leakage(void)
 
     if (Mode != MODE_NONE)
     {
-      LCD_ClearLine(3);            /* clear line #3 */
-      LCD_CharPos(1, 3);           /* move to line #3 */
+      LCD_ClearLine3();            /* clear line #3 */
 
       switch (Mode)                /* based on mode */
       {
@@ -1485,6 +1494,20 @@ void Monitor_C(void)
 
   while (Flag)
   {
+    #ifdef SW_MONITOR_HOLD_ESR
+    if (Flag == 2)                      /* display former measurement */
+    {
+      LCD_ClearLine3();                 /* clear line #3 */
+
+      Display_Colon();                            /* display: ':' */
+      Display_Value(Cap->Value, Cap->Scale, 'F'); /* display capacitance */
+      Display_Space();                            /* display: ' ' */
+      Display_Value(ESR, -2, LCD_CHAR_OMEGA);     /* display ESR */
+
+      Flag = 1;                        /* reset flag */
+    }
+    #endif
+
     /* measure and display C */
     Check.Found = COMP_NONE;                 /* no component */
     MeasureCap(PROBE_1, PROBE_3, 0);         /* measure capacitance */
@@ -1492,15 +1515,20 @@ void Monitor_C(void)
 
     if (Check.Found == COMP_CAPACITOR)       /* found cap */
     {
+      /* display capacitance */
       Display_Value(Cap->Value, Cap->Scale, 'F');
 
       #if defined (SW_ESR) || defined (SW_OLD_ESR)
-      /* show ESR */
+      /* measure and show ESR */
       ESR = MeasureESR(Cap);                 /* measure ESR */
       if (ESR < UINT16_MAX)                  /* if successfull */
       {
         Display_Space();
         Display_Value(ESR, -2, LCD_CHAR_OMEGA);   /* display ESR */
+
+        #ifdef SW_MONITOR_HOLD_ESR
+        Flag = 2;                            /* signal valid ESR */
+        #endif
       }
       #endif
     }
@@ -1555,6 +1583,18 @@ void Monitor_L(void)
 
   while (Flag)
   {
+    #ifdef SW_MONITOR_HOLD_L
+    if (Flag == 2)                      /* display former measurement */
+    {
+      LCD_ClearLine3();                 /* clear line #3 */
+
+      Display_Colon();                  /* display: ':' */
+      Display_Value(Inductor.Value, Inductor.Scale, 'H');   /* display L */
+
+      Flag = 1;                         /* reset flag */
+    }
+    #endif
+
     /* measure R */
     UpdateProbes(PROBE_1, PROBE_3, 0);  /* set probes */
     Check.Resistors = 0;                /* reset resistor counter */
@@ -1566,7 +1606,12 @@ void Monitor_L(void)
       /* get inductance and display if relevant */
       if (MeasureInductor(R1) == 1)
       {
+        /* display inductance */
         Display_Value(Inductor.Value, Inductor.Scale, 'H');
+
+        #ifdef SW_MONITOR_HOLD_L
+        Flag = 2;                       /* signal valid L */
+        #endif
       }
       else                              /* no inductor */
       {
@@ -1934,8 +1979,7 @@ void LogicProbe(void)
 
     if (Flag & CHANGE_LOW)
     {
-      LCD_ClearLine(3);                 /* line #3 */
-      LCD_CharPos(1, 3);
+      LCD_ClearLine3();                 /* clear line #3 */
       MarkItem(ITEM_LOW, Item);         /* mark item if selected */
       LCD_Char('L');                    /* display: L */
       Display_Space();

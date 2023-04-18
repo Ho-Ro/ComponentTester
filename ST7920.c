@@ -78,6 +78,8 @@
   #include "font_8x8_h.h"
   #include "font_8x8_iso8859-2_h.h"
   #include "symbols_24x24_h.h"
+  #include "symbols_24x24_alt1_h.h"
+  #include "symbols_24x24_alt2_h.h"
   #include "symbols_24x24_old_h.h"
 #endif
 
@@ -86,7 +88,13 @@
   #include "font_8x8_hf.h"
   #include "font_8x8_iso8859-2_hf.h"
   #include "symbols_24x24_hf.h"
+  #include "symbols_24x24_alt1_hf.h"
+  #include "symbols_24x24_alt2_hf.h"
   #include "symbols_24x24_old_hf.h"
+  #include "symbols_32x32_hf.h"
+  #include "symbols_32x32_alt1_hf.h"
+  #include "symbols_32x32_alt2_hf.h"
+  #include "symbols_32x32_old_hf.h"
 #endif
 
 /* sanity check */

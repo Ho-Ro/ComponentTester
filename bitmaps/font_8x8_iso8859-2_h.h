@@ -3,7 +3,7 @@
  *   monospaced 8x8 font based on ISO 8859-2
  *   horizontally aligned
  *
- *   (c) 2015-2021 by Markus Reschke
+ *   (c) 2015-2022 by Markus Reschke
  *   Central European characters added by Bohu
  *   Inverted digits 1-3 by Feliciano
  *
@@ -353,7 +353,7 @@ const uint8_t FontTable[] PROGMEM = {
   0x49,        /* 0x59 -> Y */
   0x4a,        /* 0x5a -> Z */
   0x4b,        /* 0x5b -> [ */
-  0x4b,        /* 0x5c -> \ */
+  0x4c,        /* 0x5c -> \ */
   0x4d,        /* 0x5d -> ] */
   0x4e,        /* 0x5e -> ^ */
   0x4f,        /* 0x5f -> _ */

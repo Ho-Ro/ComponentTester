@@ -540,8 +540,7 @@ void PWM_Tool(void)
 
     if (Flag & DISPLAY_RATIO)      /* display ratio in line #3 */
     {
-      LCD_ClearLine(3);
-      LCD_CharPos(1, 3);
+      LCD_ClearLine3();                 /* clear line #3 */
       MarkItem(MODE_RATIO, Mode);       /* mark mode if selected */
 
       Display_Value(Ratio, 0, '%');     /* show ratio in % */
@@ -977,8 +976,7 @@ void Servo_Check(void)
     /* display PWM frequency/period */
     if (Flag & DISPLAY_FREQ)
     {
-      LCD_ClearLine(3);                 /* line #3 */
-      LCD_CharPos(1, 3);
+      LCD_ClearLine3();                 /* clear line #3 */
       MarkItem(MODE_FREQ, Mode);        /* mark mode if selected */
 
       Test = Period[Index];             /* get period */
@@ -1964,6 +1962,9 @@ void FrequencyCounter(void)
   Channel = 0;                     /* source channel: ext. frequency */
   Range = 2;                       /* start with highest range */
   Flag = RUN_FLAG | UPDATE_CHANNEL | UPDATE_RANGE;     /* set control flags */
+  #ifdef UI_QUARTZ_CRYSTAL
+  Check.Symbol = SYMBOL_CRYSTAL;   /* set symbol ID */
+  #endif
 
 
   /*
@@ -2003,11 +2004,21 @@ void FrequencyCounter(void)
       COUNTER_CTRL_PORT = InDir;        /* update port */
 
       /* display source channel (in line #3) */ 
-      LCD_ClearLine(3);
-      LCD_CharPos(1, 3);
+      LCD_ClearLine3();                      /* clear line #3 */
       Display_EEString(CounterChannel_str);  /* display: "Ch" */
       Display_Space();
       Display_EEString(String);              /* display channel name */
+
+      #ifdef UI_QUARTZ_CRYSTAL
+      if (Channel == 0)                 /* buffered frequency input */
+      {
+        Clear_Symbol(4);                /* clear symbol in line #4 */
+      }
+      else                              /* HF or LF crystal oscillator */
+      {
+        Display_FancySemiPinout(4);     /* display crystal symbol in line #4 */
+      }
+      #endif
 
       /* restart scan in top range */
       Range = 2;                             /* select top range */
@@ -2029,9 +2040,9 @@ void FrequencyCounter(void)
         case 0:     /* <100kHz */
           Div = 1;                 /* frequency prescaler 1:1 */
           #if CPU_FREQ <= 16000000
-          Index = 3;               /* table index 3: 256:1 */
+            Index = 3;             /* table index 3: 256:1 */
           #else
-          Index = 4;               /* table index 4: 1024:1 */
+            Index = 4;             /* table index 4: 1024:1 */
           #endif
           GateTime = 1000;         /* gate time: 1000ms */
           MinPulses = 0;           /* lower limit: none */
@@ -2051,9 +2062,9 @@ void FrequencyCounter(void)
           Index = 2;               /* table index 2: 64:1 */
           GateTime = 100;          /* gate time: 100ms */
           #if FREQ_COUNTER_PRESCALER == 16
-          MinPulses = 6250;        /* lower limit: 6250 */
+            MinPulses = 6250;      /* lower limit: 6250 */
           #elif FREQ_COUNTER_PRESCALER == 32
-          MinPulses = 3125;        /* lower limit: 3125 */
+            MinPulses = 3125;      /* lower limit: 3125 */
           #endif
 //          MaxPulses = 0;           /* upper limit: none */
           break;
@@ -2868,10 +2879,9 @@ void EventCounter(void)
 
     if (Show & SHOW_EVENTS)        /* display events */
     {
-      LCD_ClearLine(3);                      /* clear line #3 */
-      LCD_CharPos(1, 3);                     /* go to start of line #3 */
-      MarkItem(UI_EVENTS, Item);             /* mark item if selected */
-      Display_Char('n');                     /* display: n */
+      LCD_ClearLine3();                 /* clear line #3 */
+      MarkItem(UI_EVENTS, Item);        /* mark item if selected */
+      Display_Char('n');                /* display: n */
       Display_Space();
 
       if (Flag & IDLE_FLAG)        /* not counting */

@@ -2,7 +2,7 @@
  *
  *   user interface functions
  *
- *   (c) 2012-2021 by Markus Reschke
+ *   (c) 2012-2022 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1650,6 +1650,7 @@ void AdjustmentMenu(uint8_t Mode)
 #define MENUITEM_CONTINUITY       33
 #define MENUITEM_MAX6675          34
 #define MENUITEM_MAX31855         35
+#define MENUITEM_SYMBOL_TEST      36
 
 
 /*
@@ -1665,7 +1666,7 @@ uint8_t PresentMainMenu(void)
    *  local constants for calculating the number of menu items
    */
 
-  #define ITEMS_0        6         /* basic items */
+  #define ITEMS_BASIC    6         /* basic items */
 
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
     #define ITEM_01      1
@@ -1847,13 +1848,20 @@ uint8_t PresentMainMenu(void)
     #define ITEM_30      0
   #endif
 
+  #ifdef SW_SYMBOL_TEST
+    #define ITEM_31      1
+  #else
+    #define ITEM_31      0
+  #endif
 
-  #define ITEMS_1        (ITEM_01 + ITEM_02 + ITEM_03 + ITEM_04 + ITEM_05 + ITEM_06 + ITEM_07 + ITEM_08 + ITEM_09 + ITEM_10)
-  #define ITEMS_2        (ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20)
-  #define ITEMS_3        (ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24 + ITEM_25 + ITEM_26 + ITEM_27 + ITEM_28 + ITEM_29 + ITEM_30)
+
+  #define ITEMS_PACK_0   (ITEM_01 + ITEM_02 + ITEM_03 + ITEM_04 + ITEM_05 + ITEM_06 + ITEM_07 + ITEM_08 + ITEM_09 + ITEM_10)
+  #define ITEMS_PACK_1   (ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20)
+  #define ITEMS_PACK_2   (ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24 + ITEM_25 + ITEM_26 + ITEM_27 + ITEM_28 + ITEM_29 + ITEM_30)
+  #define ITEMS_PACK_3   (ITEM_31)
 
   /* number of menu items */
-  #define MENU_ITEMS     (ITEMS_0 + ITEMS_1 + ITEMS_2 + ITEMS_3)
+  #define MENU_ITEMS     (ITEMS_BASIC + ITEMS_PACK_0 + ITEMS_PACK_1 + ITEMS_PACK_2 + ITEMS_PACK_3)
 
 
   /*
@@ -2108,6 +2116,13 @@ uint8_t PresentMainMenu(void)
   n++;
   #endif
 
+  #ifdef SW_SYMBOL_TEST
+  /* component symbol test */
+  Item_Str[n] = (void *)SymbolTest_str;
+  Item_ID[n] = MENUITEM_SYMBOL_TEST;
+  n++;
+  #endif
+
   #ifdef SW_POWER_OFF
   /* power off tester */
   Item_Str[n] = (void *)PowerOff_str;
@@ -2138,10 +2153,11 @@ uint8_t PresentMainMenu(void)
 
   /* clean up */
   #undef MENU_ITEMS
-  #undef ITEMS_0
-  #undef ITEMS_1
-  #undef ITEMS_2
-  #undef ITEMS_3
+  #undef ITEMS_BASIC
+  #undef ITEMS_PACK_0
+  #undef ITEMS_PACK_1
+  #undef ITEMS_PACK_2
+  #undef ITEMS_PACK_3
 
   #undef ITEM_01
   #undef ITEM_02
@@ -2173,6 +2189,7 @@ uint8_t PresentMainMenu(void)
   #undef ITEM_28
   #undef ITEM_29
   #undef ITEM_30
+  #undef ITEM_31
 
   return(ID);                 /* return item ID */
 }
@@ -2460,6 +2477,13 @@ uint8_t MainMenu(void)
       MAX31855_Tool();
       break;
     #endif
+
+    #ifdef SW_SYMBOL_TEST
+    /* component symbol test */
+    case MENUITEM_SYMBOL_TEST:
+      SymbolTest();
+      break;
+    #endif
   }
 
 
@@ -2538,6 +2562,7 @@ uint8_t MainMenu(void)
 #undef MENUITEM_CONTINUITY
 #undef MENUITEM_MAX6675
 #undef MENUITEM_MAX31855
+#undef MENUITEM_SYMBOL_TEST
 
 
 

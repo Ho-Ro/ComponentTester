@@ -6,6 +6,54 @@
 
 ------------------------------------------------------------------------------
 
+v1.47m 2022-07
+- Fixed swapped resistor symbols in font_8x12t_iso8859-2_vfp.h and
+  font_8x12t_iso8859-2_hf.h (reported by b0hoon@EEVblog).
+- Added option to display quartz crystal symbol for LF/HF modes in extended
+  frequency counter (UI_QUARTZ_CRYSTAL, suggested by indman@EEVblog).
+- Added fonts font_8x12t_iso8859-2_hf.h (FONT_8X12T_ISO8859_2_HF) and
+  font_8x16_iso8859-2_hf.h (FONT_8X16_ISO8859_2_HF, thanks to b0hoon@EEVblog).
+- Fixed wrong reference of '\' in font_8x8_iso8859-2_h.h, broken diode symbol
+  A-C and 'W' in font_6x8_iso8859-2_hf.h (Thanks to b0hoon@EEVblog).
+- Added option to display a Zener diode symbol in any Zener check
+  (UI_ZENER_DIODE, suggested by indman@EEVblog).
+- New 32x39 symbol set to match 26 pixel high fonts (SYMBOLS_32X39_HF,
+  thanks to indman@EEVblog).
+- Added options to auto-hold ESR and inductance for C and L monitor (
+  SW_MONITOR_HOLD_ESR, SW_MONITOR_HOLD_L, suggested by theHWcav@EEVblog).
+- Added character translations for inversed pin numbers to Serial_Char().
+- Added option for /RESX line on separate MCU port to ST7735 driver (
+  LCD_RES_PORT, LCD_RES_DDR, based on idea from lhlad@EEVblog).
+- Added option to display a question mark symbol in case of a failed test
+  run (UI_QUESTION_MARK, suggested by indman@EEVblog).
+- Added symbols for question mark, Zener diode and quartz crystal to all
+  symbol sets (thanks to indman@EEVblog).
+- Added additional positioning flags for fancy pinout (PIN_CENTER,
+  PIN_ALT_CENTER, suggested by indman@EEVblog).
+- Display small diode symbol before Vf for MOSFETs and IGBTs (suggested by
+  indman@EEVblog).
+- Added numbers 1-3 and character x with reversed color plus degree character
+  to font_8x16alt_win1251_hf.h. Also updated 1-3 and x with reversed color in
+  font_8x8alt_win1251_vf.h, Same for font_16x26_win1251_hf.h (thanks to
+  indman@EEVblog).
+- Added option to disable display of text based pinout of the body diode for
+  MOSTFETs (UI_NO_BODYDIODE_TEXTPINOUT, suggested by indman@EEVblog).
+- Added symbol set 32x39 (SYMBOLS_32X39_HF, thanks to indman@EEVblog).
+- Added alternative symbols sets 24x24 (SYMBOLS_24X24_ALT1_H,
+  SYMBOLS_24X24_ALT2_H, SYMBOLS_24X24_ALT1_HF, SYMBOLS_24X24_ALT2_HF,
+  SYMBOLS_24X24_ALT1_VFP, SYMBOLS_24X24_ALT2_VFP, SYMBOLS_24X24_ALT1_VP_F and
+  SYMBOLS_24X24_ALT12_VP_F), 30x32 (SYMBOLS_30X32_ALT1_HF and
+  SYMBOLS_30X32_ALT2_HF) and 32x32 (SYMBOLS_32X32_ALT1_HF and
+  SYMBOLS_32X32_ALT2_HF, thanks to indman@EEVblog).
+- Added option to fancy pinout to show right-hand probe numbers above/below
+  the symbol (UI_PINOUT_ALT, suggested by indman@EEVblog).
+- Fixed issue in FontTest() with missing spaces for some display drivers.
+- Added test output of component symbols (SW_SYMBOL_TEST, suggested by
+  indman@EEVblog).
+- Updated Russian texts (thanks to indman@EEVblog).
+- Fixed missing ')' character and broken '*' in font_10x16_hf.h (reported by
+  pepe10000@EEVblog).
+
 v1.46m 2022-04
 - Added option to disable text based pinout for 3-pin semiconductors when
   component symbols are enabled (UI_NO_TEXTPINOUT, suggested by

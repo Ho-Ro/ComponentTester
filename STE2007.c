@@ -57,6 +57,8 @@
 #include "font_6x8_vf.h"
 #include "font_6x8_iso8859-2_vf.h"
 #include "symbols_24x24_vfp.h"
+#include "symbols_24x24_alt1_vfp.h"
+#include "symbols_24x24_alt2_vfp.h"
 #include "symbols_24x24_old_vfp.h"
 
 /* sanity check */

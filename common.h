@@ -366,8 +366,10 @@
 #define LCD_CHAR_1_INV        8    /* 1 (reversed color) */
 #define LCD_CHAR_2_INV        9    /* 2 (reversed color) */
 #define LCD_CHAR_3_INV       10    /* 3 (reversed color) */
+#define LCD_CHAR_X_INV       11    /* x (reversed color) */
 
-/* component symbols */
+
+/* basic component symbols */
 #define SYMBOL_BJT_NPN        0    /* BJT npn */
 #define SYMBOL_BJT_PNP        1    /* BJT pnp */
 #define SYMBOL_MOSFET_ENH_N   2    /* MOSFET enhancement mode, n-channel */
@@ -381,15 +383,29 @@
 #define SYMBOL_SCR           10    /* SCR / thyristor */
 #define SYMBOL_TRIAC         11    /* TRIAC */
 #define SYMBOL_PUT           12    /* PUT */
+
+/* additional component symbols */
 #define SYMBOL_UJT           13    /* UJT */
+#define SYMBOL_QUESTIONMARK  14    /* question mark */
+#define SYMBOL_DIODE_ZENER   15    /* Zener diode */
+#define SYMBOL_CRYSTAL       16    /* quartz crystal */
+
+/* number of component symbols */
+#ifdef SYMBOLS_EXTRA
+  #define NUM_SYMBOLS        17    /* basic plus additional symbols */
+#else
+  #define NUM_SYMBOLS        13    /* basic symbols */
+#endif
 
 
 /* pinout positions (bitfield) */
 #define PIN_NONE              0b00000000     /* no output */
-#define PIN_LEFT              0b00000001     /* left of symbol */
-#define PIN_RIGHT             0b00000010     /* right of symbol */
+#define PIN_LEFT              0b00000001     /* left */
+#define PIN_RIGHT             0b00000010     /* right */
 #define PIN_BOTTOM            0b00000100     /* bottom */
 #define PIN_TOP               0b00001000     /* top */
+#define PIN_CENTER            0b00010000     /* center (vertical) */
+#define PIN_ALT_CENTER        0b00100000     /* UI_PINOUT_ALT: center (horizontal) */
 
 
 
@@ -407,6 +423,28 @@
 #define PCF8574_P5            0b00000101     /* pin #5 */
 #define PCF8574_P6            0b00000110     /* pin #6 */
 #define PCF8574_P7            0b00000111     /* pin #7 */
+
+
+/* port pins of 74HC164 serial to parallel shift register */
+#define LOGIC_74HC164_Q0      0b00000000     /* pin #0 */
+#define LOGIC_74HC164_Q1      0b00000001     /* pin #1 */
+#define LOGIC_74HC164_Q2      0b00000010     /* pin #2 */
+#define LOGIC_74HC164_Q3      0b00000011     /* pin #3 */
+#define LOGIC_74HC164_Q4      0b00000100     /* pin #4 */
+#define LOGIC_74HC164_Q5      0b00000101     /* pin #5 */
+#define LOGIC_74HC164_Q6      0b00000110     /* pin #6 */
+#define LOGIC_74HC164_Q7      0b00000111     /* pin #7 */
+
+
+/* port pins of 74HC595 serial to parallel shift register */
+#define LOGIC_74HC595_Q0      0b00000000     /* pin #0 */
+#define LOGIC_74HC595_Q1      0b00000001     /* pin #1 */
+#define LOGIC_74HC595_Q2      0b00000010     /* pin #2 */
+#define LOGIC_74HC595_Q3      0b00000011     /* pin #3 */
+#define LOGIC_74HC595_Q4      0b00000100     /* pin #4 */
+#define LOGIC_74HC595_Q5      0b00000101     /* pin #5 */
+#define LOGIC_74HC595_Q6      0b00000110     /* pin #6 */
+#define LOGIC_74HC595_Q7      0b00000111     /* pin #7 */
 
 
 

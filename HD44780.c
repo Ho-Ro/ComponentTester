@@ -4,9 +4,9 @@
  *   - 1 to 4 lines, 16 to 20 characters
  *   - 4 bit parallel interface
  *   - 8 bit parallel interface (not supported)
- *   - I2C via PCF8574 based backpack
+ *   - I2C via PCF8574 based backpack (driving 4 bit parallel interface)
  *
- *   (c) 2015-2021 by Markus Reschke
+ *   (c) 2015-2022 by Markus Reschke
  *
  * ************************************************************************ */
 

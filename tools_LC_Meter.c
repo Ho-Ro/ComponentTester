@@ -728,8 +728,7 @@ uint8_t LC_Meter(void)
 
         #ifdef LC_METER_SHOW_FREQ
         /* display frequency of LC oscillator in line #3 */
-        LCD_ClearLine(3);
-        LCD_CharPos(1, 3);
+        LCD_ClearLine3();                     /* clear line #3 */
         Display_Char('f');                    /* display: f */
         Display_Colon();                      /* display: : */
         Display_Space();

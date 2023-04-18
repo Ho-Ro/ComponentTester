@@ -4,6 +4,7 @@
  *   - 128 x 160 (132 x 162) pixels
  *   - interfaces
  *     - 4 line SPI
+ *     - todo: 2 line SPI via 74HC164 serial shift register (driving 4 line SPI?)
  *   - color order is BGR
  *   - addressing is set to 160x128 (rotated and x-flipped)
  *   - MADCTL command (CMD_MEM_CTRL) is ignored
@@ -60,13 +61,24 @@
 #include "font_10x16_hf.h"
 #include "font_6x8_iso8859-2_hf.h"
 #include "font_8x8_iso8859-2_hf.h"
+#include "font_8x12t_iso8859-2_hf.h"
+#include "font_8x16_iso8859-2_hf.h"
 #include "font_10x16_iso8859-2_hf.h"
 #include "font_8x16_win1251_hf.h"
 #include "font_8x16alt_win1251_hf.h"
 #include "symbols_24x24_hf.h"
+#include "symbols_24x24_alt1_hf.h"
+#include "symbols_24x24_alt2_hf.h"
 #include "symbols_24x24_old_hf.h"
 #include "symbols_30x32_hf.h"
+#include "symbols_30x32_alt1_hf.h"
+#include "symbols_30x32_alt2_hf.h"
 #include "symbols_30x32_old_hf.h"
+#include "symbols_32x32_hf.h"
+#include "symbols_32x32_alt1_hf.h"
+#include "symbols_32x32_alt2_hf.h"
+#include "symbols_32x32_old_hf.h"
+
 
 /* sanity check */
 #ifndef FONT_SET

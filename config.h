@@ -577,19 +577,21 @@
 
 
 /*
+ *  C/L monitors: auto hold
+ *  - requires display with more than two text lines
+ *  - uncomment to enable (one or more)
+ */
+
+//#define SW_MONITOR_HOLD_ESR   /* auto-hold ESR (C monitor) */
+//#define SW_MONITOR_HOLD_L     /* auto-hold L (L monitor) */
+
+
+/*
  *  DHT11, DHT22 and compatible humidity & temperature sensors
  *  - uncomment to enable
  */
 
 //#define SW_DHTXX
-
-
-/*
- *  display font for test purposes
- *  - uncomment to enable
- */
-
-//#define SW_FONT_TEST
 
 
 /*
@@ -831,8 +833,8 @@
 
 
 /*
- *  component symbols for fancy pinout
- *  - just for 3-pin semiconductors
+ *  fancy pinout with component symbols for 3-pin semiconductors
+ *  - probe numbers left and right of symbol
  *  - requires graphics display and symbol bitmaps (config_<MCU>.h)
  *  - uncomment to enable
  */
@@ -841,8 +843,43 @@
 
 
 /*
- *  disable text based pinout
- *  - just for 3-pin semiconductors
+ *  fancy pinout: show right-hand probe numbers above/below symbol
+ *  - requires component symbols (SW_SYMBOLS) to be enabled
+ *  - uncomment to enable
+ */
+
+//#define UI_PINOUT_ALT
+
+
+/*
+ *  failed test run: display question mark symbol 
+ *  - requires component symbols (SW_SYMBOLS) to be enabled
+ *  - uncomment to enable
+ */
+
+//#define UI_QUESTION_MARK
+
+
+/*
+ *  any Zener check: display Zener diode symbol
+ *  - requires component symbols (SW_SYMBOLS) to be enabled
+ *  - uncomment to enable
+ */
+
+//#define UI_ZENER_DIODE
+
+
+/*
+ *  extended frequency counter: display quartz crystal symbol for LF/HF modes
+ *  - requires component symbols (SW_SYMBOLS) to be enabled
+ *  - uncomment to enable
+ */
+
+//#define UI_QUARTZ_CRYSTAL
+
+
+/*
+ *  disable text based pinout for 3-pin semiconductors
  *  - requires component symbols (SW_SYMBOLS) to be enabled
  *  - uncomment to enable
  */
@@ -851,12 +888,24 @@
 
 
 /*
+ *  disable text based pinout of body/intrinsic diode for MOSFETs
+ *  - uncomment to enable
+ */
+
+//#define UI_NO_BODYDIODE_TEXTPINOUT
+
+
+/*
  *  display probe IDs using reversed colors
- *  - requires font with extra characters
+ *  - requires font with additional characters
+ *  - temporary option UI_PROBE_REVERSED_X for reversed 'x' as long
+ *    as not all fonts include this character (check font!)
  *  - uncomment to enable
  */
 
 //#define UI_PROBE_REVERSED
+//#define UI_PROBE_REVERSED_X
+
 
 
 /*
@@ -895,7 +944,7 @@
  *  - uncomment to enable
  */
 
-#define UI_MAINMENU_AUTOEXIT
+//#define UI_MAINMENU_AUTOEXIT
 
 
 /*
@@ -904,6 +953,23 @@
  */
 
 //#define SW_POWER_OFF
+
+
+/*
+ *  main menu: display font for test purposes
+ *  - uncomment to enable
+ */
+
+//#define SW_FONT_TEST
+
+
+/*
+ *  main menu: display component symbols for test purposes
+ *  - requires component symbols be enabled (SW_SYMBOLS)
+ *  - uncomment to enable
+ */
+
+//#define SW_SYMBOL_TEST
 
 
 /*
@@ -1693,37 +1759,37 @@
 #endif
 
 
-/* additional font characters */
-#if defined (UI_PROBE_REVERSED)
+/* additional font characters with reversed colors */
+#if defined (UI_PROBE_REVERSED) || defined (UI_PROBE_REVERSED_X)
   #ifndef FONT_EXTRA
     #define FONT_EXTRA
+  #endif
+  #ifndef FONT_INVERSE
+    #define FONT_INVERSE
   #endif
 #endif
 
 
 /* component symbols for fancy pinout */
-#if defined (SYMBOLS_24X24_H)
+#if defined (SYMBOLS_24X24_H) || defined (SYMBOLS_24X24_OLD_H) || defined (SYMBOLS_24X24_ALT1_H) || defined (SYMBOLS_24X24_ALT2_H)
   #define SYMBOLS_SELECTED
 #endif
-#if defined (SYMBOLS_24X24_OLD_H)
+#if defined (SYMBOLS_24X24_HF) || defined (SYMBOLS_24X24_OLD_HF) || defined (SYMBOLS_24X24_ALT1_HF) || defined (SYMBOLS_24X24_ALT2_HF)
   #define SYMBOLS_SELECTED
 #endif
-#if defined (SYMBOLS_24X24_HF) || defined (SYMBOLS_30X32_HF) || defined (SYMBOLS_32X32_HF)
+#if defined (SYMBOLS_24X24_VFP) || defined (SYMBOLS_24X24_OLD_VFP) || defined (SYMBOLS_24X24_ALT1_VFP) || defined (SYMBOLS_24X24_ALT2_VFP)
   #define SYMBOLS_SELECTED
 #endif
-#if defined (SYMBOLS_24X24_OLD_HF) || defined (SYMBOLS_30X32_OLD_HF) || defined (SYMBOLS_32X32_OLD_HF)
+#if defined (SYMBOLS_24X24_VP_F) || defined (SYMBOLS_24X24_OLD_VP_F) || defined (SYMBOLS_24X24_ALT1_VP_F) || defined (SYMBOLS_24X24_ALT2_VP_F)
   #define SYMBOLS_SELECTED
 #endif
-#if defined (SYMBOLS_24X24_VFP)
+#if defined (SYMBOLS_30X32_HF) || defined (SYMBOLS_30X32_OLD_HF) || defined (SYMBOLS_30X32_ALT1_HF) || defined (SYMBOLS_30X32_ALT2_HF)
   #define SYMBOLS_SELECTED
 #endif
-#if defined (SYMBOLS_24X24_OLD_VFP)
+#if defined (SYMBOLS_32X32_HF) || defined (SYMBOLS_32X32_OLD_HF) || defined (SYMBOLS_32X32_ALT1_HF) || defined (SYMBOLS_32X32_ALT2_HF)
   #define SYMBOLS_SELECTED
 #endif
-#if defined (SYMBOLS_24X24_VP_F)
-  #define SYMBOLS_SELECTED
-#endif
-#if defined (SYMBOLS_24X24_OLD_VP_F)
+#if defined (SYMBOLS_32X39_HF)
   #define SYMBOLS_SELECTED
 #endif
 
@@ -1745,18 +1811,41 @@
 
 
 /* additional component symbols */
-#if defined (SW_UJT)
+#if defined (SW_UJT) || defined (UI_QUESTION_MARK) || defined (UI_ZENER_DIODE) || defined (UI_QUARTZ_CRYSTAL)
   #ifndef SYMBOLS_EXTRA
     #define SYMBOLS_EXTRA
   #endif
 #endif
 
 
-/* disabling text pinout requires fancy pinout */
-#if defined (UI_NO_TEXTPINOUT)
-  #ifndef SW_SYMBOLS
+/* options which require component symbols / fancy pinout */
+#ifndef SW_SYMBOLS
+
+  /* question mark symbol */
+  #ifdef UI_QUESTION_MARK
+    #undef UI_QUESTION_MARK
+  #endif
+
+  /* Zener diode symbol */
+  #ifdef UI_ZENER_DIODE
+    #undef UI_ZENER_DIODE
+  #endif
+
+  /* quartz crystal symbol */
+  #ifdef UI_QUARTZ_CRYSTAL
+    #undef UI_QUARTZ_CRYSTAL
+  #endif
+
+  /* disabling text pinout */
+  #ifdef UI_NO_TEXTPINOUT
     #undef UI_NO_TEXTPINOUT
   #endif
+
+  /* test-output of component symbols */
+  #ifdef SW_SYMBOL_TEST
+    #undef SW_SYMBOL_TEST
+  #endif
+
 #endif
 
 
@@ -1960,11 +2049,18 @@
 
 
 /* Display_HexByte() */
-#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (ONEWIRE_READ_ROM) || defined (SW_ONEWIRE_SCAN) || defined (SW_FONT_TEST) || defined (SW_DISPLAY_REG)
+#if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (ONEWIRE_READ_ROM) || defined (SW_ONEWIRE_SCAN)
   #ifndef FUNC_DISPLAY_HEXBYTE
     #define FUNC_DISPLAY_HEXBYTE
   #endif
 #endif
+
+#if defined (SW_FONT_TEST) || defined (SW_SYMBOL_TEST) || defined (SW_DISPLAY_REG)
+  #ifndef FUNC_DISPLAY_HEXBYTE
+    #define FUNC_DISPLAY_HEXBYTE
+  #endif
+#endif
+
 
 /* Display_HexValue() */
 #if defined (SW_IR_TRANSMITTER) || defined (SW_DISPLAY_ID)
@@ -1985,7 +2081,13 @@
 
 
 /* variable Start_str */
-#if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20) || defined (SW_ONEWIRE_SCAN) || defined (HW_EVENT_COUNTER) || defined (HW_MAX6675) || defined (HW_MAX31855)
+#if defined (SW_OPTO_COUPLER) || defined (SW_DS18B20) || defined (SW_ONEWIRE_SCAN) || defined (HW_EVENT_COUNTER)
+  #ifndef VAR_START_STR
+    #define VAR_START_STR
+  #endif
+#endif
+
+#if defined (HW_MAX6675) || defined (HW_MAX31855)
   #ifndef VAR_START_STR
     #define VAR_START_STR
   #endif

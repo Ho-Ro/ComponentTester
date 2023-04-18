@@ -360,13 +360,26 @@ void Display_NL_EEString_Space(const unsigned char *String)
 
 /*
  *  clear line #2 of display
- *  - cursor is set to first char of line
+ *  - and move cursor to start of line
  */
 
 void LCD_ClearLine2(void)
 {
   LCD_ClearLine(2);           /* clear line #2 */
-  LCD_CharPos(1, 2);          /* move to beginning of line #2 */
+  LCD_CharPos(1, 2);          /* move to start of line #2 */
+}
+
+
+
+/*
+ *  clear line #3 of display
+ *  - and move cursor to start of line
+ */
+
+void LCD_ClearLine3(void)
+{
+  LCD_ClearLine(3);           /* clear line #3 */
+  LCD_CharPos(1, 3);          /* move to start of line #3 */
 }
 
 
@@ -991,7 +1004,7 @@ extern const uint8_t PinTable[];
  *  - Index: pin index (0-2)
  */
 
-void LCD_FancyProbeNumber(uint8_t Probe, uint8_t Index)
+void Display_FancyProbeNumber(uint8_t Probe, uint8_t Index)
 {
   uint8_t           *Table;        /* pointer to pin table */
   uint8_t           Data;          /* pinout data */
@@ -1012,13 +1025,46 @@ void LCD_FancyProbeNumber(uint8_t Probe, uint8_t Index)
     /* set default position (top left) */
     x = UI.SymbolPos_X - 1;        /* left of symbol */
     y = UI.SymbolPos_Y;            /* top line of symbol */
+
+    if (Data & PIN_CENTER)         /* center (vertical) */
+    {
+      y += (UI.SymbolSize_Y / 2);       /* exact center or one line down */
+    }
+
     if (Data & PIN_RIGHT)          /* right */
     {
+      #ifndef UI_PINOUT_ALT
       x += UI.SymbolSize_X + 1;    /* right of symbol */
+      #endif
+
+      #ifdef UI_PINOUT_ALT
+      if (Data & PIN_ALT_CENTER)   /* center (horizontal) */
+      {
+        x++;                            /* left side of symbol */
+        x += (UI.SymbolSize_X / 2);     /* exact center or one char right */
+      }
+      else                         /* normal */
+      {
+        x += UI.SymbolSize_X;      /* at right side */
+      }
+
+      if (Data & PIN_TOP)          /* top (right) */
+      {
+        y -= 1;                    /* above symbol */
+      }
+      #endif
     }
+
     if (Data & PIN_BOTTOM)         /* bottom */
     {
       y += UI.SymbolSize_Y - 1;    /* bottom line of symbol */
+
+      #ifdef UI_PINOUT_ALT
+      if (Data & PIN_RIGHT)        /* (bottom) right */
+      {
+        y += 1;                    /* below symbol */
+      }
+      #endif
     }
 
     /* show probe number */
@@ -1026,11 +1072,28 @@ void LCD_FancyProbeNumber(uint8_t Probe, uint8_t Index)
     Data = Get_SemiPinDesignator(Probe);     /* get pin designator */
     if (Data == 'x')                    /* special case: x */
     {
-      Display_SemiPinDesignator(Probe); /* display pin designator (x) */
+      #ifdef UI_PROBE_REVERSED_X
+        /* reversed output */
+        #ifdef UI_PROBE_COLORS
+        uint16_t          Color;             /* color value */
+
+        Color = UI.PenColor;                 /* save current color */
+        UI.PenColor = ProbeColors[Probe];    /* set probe color */
+        #endif
+
+        Display_Char(LCD_CHAR_X_INV);        /* display reversed x */
+
+        #ifdef UI_PROBE_COLORS
+        UI.PenColor = Color;                 /* restore old color */
+        #endif
+      #else
+        /* normal output */
+        Display_SemiPinDesignator(Probe);    /* display pin designator (x) */
+      #endif
     }
     else                                /* normal case */
     { 
-      Display_ProbeNumber(Probe);       /* display probe number */
+      Display_ProbeNumber(Probe);            /* display probe number */
     }
   }
 }
@@ -1043,50 +1106,77 @@ void LCD_FancyProbeNumber(uint8_t Probe, uint8_t Index)
  *    standard case: aligned to right side
  *  - display pin numbers left and right of symbol
  *  - symbol ID (0-) in Check.Symbol
+ *  - with UI_PINOUT_ALT
+ *    - display right-hand pin numbers above/below symbol
+ *    - symbol must be in line >= #2 (not #1)
  *
  *  requires:
  *  - Line: starting line of symbol (top, 1-)
  */
 
-void LCD_FancySemiPinout(uint8_t Line)
+void Display_FancySemiPinout(uint8_t Line)
 {
   uint8_t           Pos;           /* position of symbol */
   uint8_t           MaxLine;       /* maximum line number */
+  uint8_t           Temp;          /* temp. value */
   #ifdef LCD_COLOR
   uint16_t          Color;         /* pen color */ 
   #endif
 
+  /* get height values */
   Pos = UI.SymbolSize_Y;           /* get symbol height */
+  #ifdef UI_PINOUT_ALT
+  Pos += 1;                        /* for probe number below symbol */
+  #endif
   MaxLine = UI.CharMax_Y;          /* get screen heigth */
 
-  /* check for sufficient screen size */
-  if (MaxLine > Pos)               /* sanity check for size */
+  /* check for screen size (height) */
+  #ifdef UI_PINOUT_ALT
+    Temp = Pos + 2;                /* +2 for new-screen line #3 */
+  #else
+    Temp = Pos + 1;                /* +1 for new-screen line #2 */
+  #endif
+
+  if (MaxLine >= Temp)             /* sanity check for screen size (height) */
   {
     /*
      *  check if we got enough lines left on the screen
-     *  - standard case: last line is reserved for cursor
+     *  - standard case:
+     *    - last line is reserved for cursor
+     *    - symbol aligned to right side
+     *  - output on new screen:
+     *    - symbol aligned to left side
+     *    - start in line #2 (UI_PINOUT_ALT: line #3)
      */
 
-    Pos += Line;                   /* line below symbol */
+    Pos += Line;                   /* line below symbol (and probe IDs) */
 
-    /* check for narrow displays */
+    /* check for narrow displays (width) */
     if (UI.CharMax_X < 16)         /* less than 16 chars per line */
     {
       Pos = MaxLine;               /* trigger output on new screen */
     }
 
+    /* manage position */
     if (Pos >= MaxLine)       /* doesn't fit on current screen */
     {
       /* output on a new screen */
       UI.CharPos_Y = MaxLine;      /* simulate last line */
       Display_NextLine();          /* trigger test key & clear screen */
-      Line = 2;                    /* simply line #2 */
-      Pos = 3;                     /* align to left side with tiny offset */
+      #ifdef UI_PINOUT_ALT
+        Line = 3;                  /* in line #3 (probe ID above symbol) */
+      #else
+        Line = 2;                  /* in line #2 */
+      #endif
+      Pos = 3;                     /* align to left side with small offset */
     }
     else                      /* fits on current screen */
     {
       /* default x position */
       Pos = UI.CharMax_X - UI.SymbolSize_X;  /* align to right side */
+      #ifdef UI_PINOUT_ALT
+      Pos += 1;               /* no space for right-hand probe numbers needed */
+      #endif
     }
 
     /*
@@ -1098,9 +1188,9 @@ void LCD_FancySemiPinout(uint8_t Line)
     UI.SymbolPos_Y = Line;              /* y position */
 
     /* display probe numbers */
-    LCD_FancyProbeNumber(Semi.A, 0);    /* A pin */
-    LCD_FancyProbeNumber(Semi.B, 1);    /* B pin */
-    LCD_FancyProbeNumber(Semi.C, 2);    /* C pin */
+    Display_FancyProbeNumber(Semi.A, 0);     /* A pin */
+    Display_FancyProbeNumber(Semi.B, 1);     /* B pin */
+    Display_FancyProbeNumber(Semi.C, 2);     /* C pin */
 
     /* display symbol */
     #ifdef LCD_COLOR
@@ -1117,6 +1207,74 @@ void LCD_FancySemiPinout(uint8_t Line)
 
     /* hint: we don't restore the old char position */
   }
+}
+
+#endif
+
+
+
+#ifdef UI_QUARTZ_CRYSTAL
+
+/*
+ *  clear symbol used for fancy pinout
+ *  - aligned to right side
+ *  - only for first screen (not for triggered second screen)
+ *  - doesn't clear pin numbers
+ *
+ *  requires:
+ *  - Line: starting line of symbol (top, 1-)
+ */
+
+void Clear_Symbol(uint8_t Line)
+{
+  uint8_t           PosX;          /* x position of pinout area */
+  uint8_t           SizeX;         /* x size of pinout area */
+  uint8_t           SizeY;         /* y size of pinout area */
+  uint8_t           n;             /* counter */
+
+  /* get size */
+  SizeX = UI.SymbolSize_X;         /* get symbol width */
+  SizeY = UI.SymbolSize_Y;         /* get symbol height */
+
+  /* check for screen size (height) */
+  #ifdef UI_PINOUT_ALT
+    /* right-hand pin numbers above/below symbol */
+    n = 1;                         /* +1 for pin number below symbol */
+  #else
+    /* pin numbers left and right of symbol */
+    n = 0;
+  #endif
+  n += SizeY + Line;               /* line below symbol (and probe IDs) */
+  if (n <= UI.CharMax_Y)           /* does fit on current screen */
+  {
+    /* check for narrow displays (width) */
+    if (UI.CharMax_X >= 16)        /* at least 16 chars per line */
+    {
+      /* calculate start position */
+      PosX = UI.CharMax_X - SizeX;      /* align to right side */
+      #ifdef UI_PINOUT_ALT
+      PosX += 1;              /* no space for right-hand probe numbers needed */
+      #endif
+
+      /* clear area */
+      while (SizeY)                /* loop for lines */
+      {
+        LCD_CharPos(PosX, Line);   /* set start position */
+        n = SizeX;                 /* reset character counter */
+
+        while (n)                  /* loop for characters */
+        {
+          Display_Space();         /* display space */
+          n--;                     /* another character done */
+        }
+
+        SizeY--;                   /* another line done */
+        Line++;                    /* next line */
+      }
+    }
+  }
+
+  /* hint: we don't restore the old char position */
 }
 
 #endif
@@ -1208,18 +1366,24 @@ void FontTest(void)
   uint8_t           Pos;           /* char X position */
   uint8_t           Max;           /* max char lines */
 
-  /* show info */
+  /* show info in line #1 */
   LCD_Clear();
   #ifdef UI_COLORED_TITLES
-    /* display: Rotary Encoder */
+    /* display: Font */
     Display_ColoredEEString(FontTest_str, COLOR_TITLE);
   #else
-    Display_EEString(FontTest_str);     /* display: Rotary Encoder */
+    Display_EEString(FontTest_str);     /* display: Font */
   #endif
   UI.LineMode = LINE_STD | LINE_KEEP;   /* next-line mode: keep first line */
 
+  /* manage display size */
   Max = UI.CharMax_Y;         /* get maximum number of lines */
   Max--;                      /* - first line */
+
+  /*
+   *  processing loop
+   *  - show start address and next 8 characters in each line
+   */
 
   while (Run)
   {
@@ -1239,13 +1403,16 @@ void FontTest(void)
       if (UI.CharPos_X == Pos)     /* no char available */
       {
         UI.CharPos_X++;            /* move right by one char */
+        /* update character position (required by some display drivers) */
+        LCD_CharPos(UI.CharPos_X, UI.CharPos_Y);
       }
 
       i++;                         /* next char */
       n++;
     }
 
-    /* loop management */
+
+    /* line/loop management */
     Pos = 0;
     if (n == 0)               /* overflow to zero */
     {
@@ -1266,7 +1433,8 @@ void FontTest(void)
       }
     }
 
-    if (Pos)                  /* requested user feedback */
+    /* user feedback */
+    if (Pos)                  /* feedback requested */
     {
       /* wait for user input */
       i = TestKey(0, CURSOR_BLINK | CHECK_KEY_TWICE | CHECK_BAT);
@@ -1274,6 +1442,138 @@ void FontTest(void)
       if (i == KEY_TWICE)     /* two short key presses */
       {
         Run = 0;              /* end loop */
+      }
+    }
+  }
+}
+
+#endif
+
+
+
+#ifdef SW_SYMBOL_TEST
+
+/*
+ *  display component symbols for test purposes
+ */
+
+void SymbolTest(void)
+{
+  uint8_t           Run = 1;       /* loop control */
+  uint8_t           n = 0;         /* symbol counter */
+  uint8_t           Test;          /* user feedback */
+  uint8_t           Max_X;         /* max chars per line */
+  uint8_t           Max_Y;         /* max char lines */
+  uint8_t           Size_X;        /* symbol size: X/chars */
+  uint8_t           Size_Y;        /* symbol size: Y/lines */
+  uint8_t           Pos_X;         /* char X position */
+  uint8_t           Pos_Y;         /* char Y position */
+  #ifdef LCD_COLOR
+  uint16_t          Color;         /* pen color */ 
+  #endif
+
+  /* show info in line #1 */
+  LCD_Clear();
+  #ifdef UI_COLORED_TITLES
+    /* display: Symbols */
+    Display_ColoredEEString(SymbolTest_str, COLOR_TITLE);
+  #else
+    Display_EEString(SymbolTest_str);   /* display: Symbols */
+  #endif
+  UI.LineMode = LINE_STD | LINE_KEEP;   /* next-line mode: keep first line */
+
+  /* manage display size */
+  Max_X = UI.CharMax_X;            /* get maximum number of chars per line */
+  Max_Y = UI.CharMax_Y;            /* get maximum number of lines */
+  Size_X = UI.SymbolSize_X;        /* get symbol width */
+  Size_Y = UI.SymbolSize_Y;        /* get symbol height */
+
+
+  /*
+   *  processing loop
+   *  - show start address and next few symbols in each line pack
+   */
+
+  while (Run)
+  {
+    Test = 0;                           /* reset variable */
+    Display_NextLine();                 /* move to next line */
+
+    /* manage symbol row */
+    Pos_Y = UI.CharPos_Y;               /* get current Y position */
+    if ((Pos_Y + Size_Y - 1) <= Max_Y)  /* got free lines for symbol row */
+    {
+      /* display start value in hexadecimal */
+      Display_HexByte(n);
+      Display_Space();
+
+      /* display next few symbols */
+      #ifdef LCD_COLOR
+      Color = UI.PenColor;              /* save color */
+      UI.PenColor = COLOR_SYMBOL;       /* set pen color */
+      #endif
+
+      Pos_X = UI.CharPos_X;             /* get current X position */
+      Run = 2;
+      while (Run >= 2)                  /* a few symbols */
+      {
+        /* as long as we have free space for another symbol */
+        if ((Pos_X + Size_X - 1) <= Max_X)
+        {
+          LCD_CharPos(Pos_X, Pos_Y);    /* update character position */
+          LCD_Symbol(n);                /* display symbol */
+          n++;                          /* next symbol */
+          Pos_X += Size_X;              /* next X position */
+        }
+        else                            /* no space left */
+        {
+          Run = 1;                      /* end symbol loop */
+        }
+
+        if (n >= NUM_SYMBOLS)           /* all symbols done */
+        {
+          Run = 0;                      /* end loops */
+          Test = 1;                     /* request user feedback */
+        }
+      }
+
+      #ifdef LCD_COLOR
+      UI.PenColor = Color;              /* restore pen color */
+      #endif
+
+      /* update char Y position to last line of symbol */
+      Pos_Y += Size_Y - 1;              /* last line of symbol */
+      UI.CharPos_Y = Pos_Y;             /* update char Y position */
+
+      /* check for free space for next row */
+      if ((Pos_Y + Size_Y) > Max_Y)     /* no free lines */
+      {
+        Test = 1;                       /* request user feedback */
+        UI.CharPos_Y = Max_Y;           /* trigger screen clear */
+      }
+    }
+    else                                /* no free lines */
+    {
+      Test = 1;                         /* request user feedback */
+      UI.CharPos_Y = Max_Y;             /* trigger screen clear */
+    }
+
+    /* special case: no space for symbols at all */
+    if (n == 0)                    /* symbol number still zero */
+    {
+      Run = 0;                     /* end loop */
+      Test = 1;                    /* request user feedback */
+    }
+
+    /* user feedback */
+    if (Test == 1)                 /* feedback requested */
+    {
+      /* wait for user input */
+      Test = TestKey(0, CURSOR_BLINK | CHECK_KEY_TWICE | CHECK_BAT);
+
+      if (Test == KEY_TWICE)       /* two short key presses */
+      {
+        Run = 0;                   /* end loop */
       }
     }
   }

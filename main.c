@@ -442,6 +442,12 @@ void Show_Fail(void)
   Display_EEString(Failed1_str);        /* display: No component */
   Display_NL_EEString(Failed2_str);     /* display: found! */
 
+  #ifdef UI_QUESTION_MARK
+  /* display question mark symbol */
+  Check.Symbol = SYMBOL_QUESTIONMARK;   /* set symbol ID */
+  Display_FancySemiPinout(3);           /* show symbol starting in line #3 */
+  #endif
+
   #if CYCLE_MAX < 255
   MissedParts++;              /* increase counter */
   #endif
@@ -1575,16 +1581,26 @@ void Show_FET_Extras(void)
   Diode = SearchDiode(Anode, Cathode);
   if (Diode != NULL)          /* got it */
   {
-    #ifndef UI_NO_TEXTPINOUT
-      /* follows pinout */
-      Display_Space();                  /* space */
-    #else
-      /* no classic pinout */
-      Display_NextLine();               /* next line (#2) */
+    #ifdef UI_NO_BODYDIODE_TEXTPINOUT
+    if (! (Check.Type & TYPE_MOSFET))   /* no MOSFET */
+    {
+      /* show diode for anything but MOSFETs */
     #endif
 
-    /* show diode and pin designators */
-    Show_SemiFlybackDiode(Anode, Cathode);
+      #ifndef UI_NO_TEXTPINOUT
+        /* follows pinout */
+        Display_Space();                /* space */
+      #else
+        /* no classic pinout */
+        Display_NextLine();             /* next line (#2) */
+      #endif
+
+      /* show diode and pin designators */
+      Show_SemiFlybackDiode(Anode, Cathode);
+
+    #ifdef UI_NO_BODYDIODE_TEXTPINOUT
+    }
+    #endif
 
     #ifdef UI_SERIAL_COMMANDS
     /* set data for remote commands */
@@ -1633,7 +1649,10 @@ void Show_FET_Extras(void)
   /* display V_f of diode, if available */
   if (Diode != NULL)
   {
-    Display_NL_EEString_Space(Vf_str);       /* display: Vf */
+    Display_NextLine();                      /* new line */
+    Display_Char(LCD_CHAR_DIODE_AC);         /* diode symbol |>| */
+    Display_Space();                         /* space */
+    Display_EEString_Space(Vf_str);          /* display: Vf */
     Display_Value(Diode->V_f, -3, 'V');      /* display value */
   }
 }
@@ -1971,6 +1990,12 @@ void Show_Zener(void)
   /* display voltage in line #2 */  
   Display_NextLine();                   /* next line (#2) */
   Display_Value(Semi.U_1, -3, 'V');     /* display voltage */
+
+  #ifdef UI_ZENER_DIODE
+  /* display Zener diode symbol */
+  Check.Symbol = SYMBOL_DIODE_ZENER;    /* set symbol ID */
+  Display_FancySemiPinout(3);           /* show symbol starting in line #3 */
+  #endif
 }
 
 #endif
@@ -2764,7 +2789,7 @@ show_component:
   {
     if (UI.SymbolLine)             /* not zero */
     {
-      LCD_FancySemiPinout(UI.SymbolLine);    /* display pinout */
+      Display_FancySemiPinout(UI.SymbolLine);     /* display pinout */
     }
   }
   #endif
