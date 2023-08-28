@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit: 2023-04-03
+Last edit: 2023-08-01
 
 Content
   - About
@@ -76,6 +76,7 @@ Content
     - IR RC Detector/Decoder
     - IR RC Transmitter
     - Opto Coupler Tool
+    - Photodiode Check
     - Servo Check
     - OneWire Scan
     - DS18B20/DS18S20 Temperature Sensors
@@ -672,10 +673,10 @@ Pin assignment for 4-line SPI:
                                ATmega 644
   ---------------------------------------------------------------
   /RES        LCD_RES          PB2          optional
-  /CS         LCD_CS           PB5          optional
+  /CS         LCD_CS           PB4          optional
   D/C         LCD_DC           PB3
   SCL         LCD_SCL          PB7          SPI clock
-  SDA         LCD_SDA          PB1          SPI MOSI
+  DIN/SDA     LCD_SDA          PB5          SPI MOSI
 
 Because of the high resolution of the display and the RGB666 color schema (3
 bytes per pixel) SPI is quite slow, even for hardware SPI and a 16 MHz MCU
@@ -847,7 +848,8 @@ The ST7565R is driven by 4-line SPI. The pin assignment is:
   SI (DB7)    LCD_SI           PD3          SPI MOSI
 
 You might need to play with the x/y flip and x-offset settings to get
-the correct orientation for your display. 
+the correct orientation for your display. The almost compatible NT7538
+requires a long reset pulse (LCD_LONG_RESET).
 
 
 + ST7735
@@ -1041,6 +1043,8 @@ to read.
 For displays with more then two text lines:
 - show key hints instead of cursor if available (UI_KEY_HINTS)
 - center-align infos and some other texts (UI_CENTER_ALIGN)
+- display battery status in the last line after showing the probing result (
+  UI_BATTERY_LASTLINE)
 
 For graphic displays:
 - all options listed before
@@ -1058,6 +1062,9 @@ For graphic displays:
 - display quartz crystal symbol for LF/HF modes in extended frequency
   counter (UI_QUARTZ_CRYSTAL)
 - display OneWire device symbol in DS18B20, DS18S20 and DHTXX tool
+- scroll menues page-wise instead of item-wise to speed up menu operation
+  (UI_MENU_PAGEMODE)
+- display small battery symbol to indicate battery status (UI_BATTERY)
 
 For color graphic displays:
 - all options listed before
@@ -1157,7 +1164,7 @@ display a checksum error. That error indicates a corrupted EEPROM, and the
 tester will use firmware defaults instead.
 
 For a tester with a manual power switch instead of the soft-latching one used
-by the reference design please enable POWER_SWITCH_MANUAL in config.c. In that
+by the reference design please enable POWER_SWITCH_MANUAL in config.h. In that
 case the tester won't be able to power itself off.
 
 
@@ -1200,9 +1207,14 @@ this case enable BAT_EXT_UNMONITORED to prevent problems with the automatic
 power-off by a low battery. This will also set the "ext" battery status when
 powered by the external power source.
 
-The tresholds for a weak and a low battery are set by BAT_WEAK and BAT_LOW
+The thresholds for a weak and a low battery are set by BAT_WEAK and BAT_LOW
 while BAT_OFFSET specifies any voltage drop caused by the circuit, e.g. a
 reverse polarity protection diode and a PNP power control transistor.
+
+You can enable the display of a small battery symbol to indicate the battery
+status instead of the text based version (UI_BATTERY). There's also an option
+to display the battery status in the last line after showing the probing result
+(UI_BATTERY_LASTLINE).
 
 
 * Power Off
@@ -1922,6 +1934,31 @@ detected. A blinking cursor indicates that you have to press the test key
 tool as usual.
 
 
++ Photodiode Check
+
+This check allows you to monitor the current of a photodiode. At first the
+tester displays the probe pinout for a few seconds (can be ended by a short
+button press). Then it switches to monitoring the current I_P with the diode
+in reverse-bias (photoconductive) mode, noted by 'rev'. A short button press
+changes the bias to no-bias (photovoltaic) mode, noted by 'no'. Another button
+press changes the mode back again. And as you already guessed, two short
+button presses end the check function.
+
+For checking the photodiode you could cover it with your hand or use an
+appropriate light source at different distances. Less light results in less
+current, and vice versa. The tester might pick up some EMI causing a low
+current, especially in reverse-bias mode. You can see that when no photodiode
+is connected. Also remember that photodiodes in reverse-bias mode have a dark
+current.
+
+Warning:
+  Don't check solar cells!
+
+Pinout for probes:
+  Probe #1:    Anode 
+  Probe #3:    Cathode
+
+
 + Servo Check
 
 This function outputs a PWM signal for RC servos which are driven by a 1-2ms
@@ -2233,7 +2270,7 @@ due to internal leakage during the same time. Also the ADC conversion itself
 needs some charge to operate. So it takes longer to charge the cap, and the cap
 seems to have a larger capacitance. A discharge measurement later on tries to
 compensate this, but is able to do it just partially. The correction factors (
-CAP_FACTOR_SMALL, CAP_FACTOR_MID and CAP_FACTOR_LARGE in config.c) are choosen
+CAP_FACTOR_SMALL, CAP_FACTOR_MID and CAP_FACTOR_LARGE in config.h) are choosen
 to work with most tester models. In some cases you might have to change them.
 
 A logic for preventing large caps to be detected as resistors was added.

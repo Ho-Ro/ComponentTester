@@ -132,7 +132,8 @@
 #define PROBES_PWM            0         /* PWM output */
 #define PROBES_ESR            1         /* ESR measurement */
 #define PROBES_RCL            2         /* monitoring RCL */
-#define PROBES_RINGS          3         /* ring tester */
+#define PROBES_RINGTESTER     3         /* ring tester */
+#define PROBES_DIODE          4         /* diode */
 
 
 /* E series */
@@ -361,14 +362,18 @@
 #define LCD_CHAR_CAP          3    /* capacitor icon '||' */
 #define LCD_CHAR_OMEGA        4    /* omega */
 #define LCD_CHAR_MICRO        5    /* µ (micro) */
-#define LCD_CHAR_RESISTOR_L   6    /* resistor left icon '[' */
-#define LCD_CHAR_RESISTOR_R   7    /* resistor right icon ']' */
+#define LCD_CHAR_RESISTOR_L   6    /* resistor icon left part '[' */
+#define LCD_CHAR_RESISTOR_R   7    /* resistor icon right part ']' */
 
 /* optional custom chars */
 #define LCD_CHAR_1_INV        8    /* 1 (reversed color) */
 #define LCD_CHAR_2_INV        9    /* 2 (reversed color) */
 #define LCD_CHAR_3_INV       10    /* 3 (reversed color) */
 #define LCD_CHAR_X_INV       11    /* x (reversed color) */
+#define LCD_CHAR_BAT_LL      12    /* battery icon left part: low */
+#define LCD_CHAR_BAT_LH      13    /* battery icon left part: high */
+#define LCD_CHAR_BAT_RL      14    /* battery icon right part: low */
+#define LCD_CHAR_BAT_RH      15    /* battery icon right part: high */
 
 
 /* basic component symbols */
@@ -491,15 +496,15 @@ typedef struct
   uint16_t          RiH;           /* internal pin resistance of MCU in high mode (0.1 Ohms) */
 
   #ifdef R_MULTIOFFSET
-  uint16_t          RZero[3];      /* resistance of probe leads (2 in series) (0.01 Ohms) */
+    uint16_t        RZero[3];      /* resistance of probe leads (2 in series) (0.01 Ohms) */
   #else
-  uint16_t          RZero;         /* resistance of probe leads (2 in series) (0.01 Ohms) */
+    uint16_t        RZero;         /* resistance of probe leads (2 in series) (0.01 Ohms) */
   #endif
 
   #ifdef CAP_MULTIOFFSET
-  uint8_t           CapZero[3];    /* capacitance zero offsets (PCB+leads) (pF) */
+    uint8_t         CapZero[3];    /* capacitance zero offsets (PCB+leads) (pF) */
   #else
-  uint8_t           CapZero;       /* capacitance zero offset (PCP+leads) (pF) */
+    uint8_t         CapZero;       /* capacitance zero offset (PCP+leads) (pF) */
   #endif
 
   int8_t            RefOffset;     /* voltage offset of bandgap reference (mV) */

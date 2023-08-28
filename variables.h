@@ -155,7 +155,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.49m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.50m";
 
 
   /* common terms and texts */
@@ -910,6 +910,12 @@
 
   #ifdef HW_FLASHLIGHT
     extern const unsigned char Flashlight_str[];
+  #endif
+
+  #ifdef SW_PHOTODIODE
+    extern const unsigned char Photodiode_str[];
+    extern const unsigned char NoBias_str[];
+    extern const unsigned char ReverseBias_str[];
   #endif
 
 

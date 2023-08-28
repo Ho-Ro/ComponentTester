@@ -550,7 +550,11 @@
   #endif
   #ifdef UI_SERIAL_COMMANDS
     #undef UI_SERIAL_COMMANDS
-  #endif  
+  #endif
+  /* and also fancy battery status */
+  #ifdef UI_BATTERY
+    #undef UI_BATTERY
+  #endif
 #endif
 
 /* options which require TTL serial */
@@ -654,13 +658,17 @@
 #endif
 
 
-/* additional font characters with reversed colors */
-#if defined (UI_PROBE_REVERSED) || defined (UI_PROBE_REVERSED_X)
+/* additional font characters: probe numbers with reversed colors */
+#ifdef UI_PROBE_REVERSED
   #ifndef FONT_EXTRA
     #define FONT_EXTRA
   #endif
-  #ifndef FONT_INVERSE
-    #define FONT_INVERSE
+#endif
+
+/* additional font characters: battery symbol */
+#ifdef UI_BATTERY
+  #ifndef FONT_EXTRA
+    #define FONT_EXTRA
   #endif
 #endif
 
@@ -887,6 +895,12 @@
 #endif
 
 #if defined (HW_RING_TESTER) && defined (RING_TESTER_PROBES)
+  #ifndef FUNC_PROBE_PINOUT
+    #define FUNC_PROBE_PINOUT
+  #endif
+#endif
+
+#if defined (SW_PHOTODIODE)
   #ifndef FUNC_PROBE_PINOUT
     #define FUNC_PROBE_PINOUT
   #endif

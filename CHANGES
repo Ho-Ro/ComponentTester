@@ -6,6 +6,27 @@
 
 ------------------------------------------------------------------------------
 
+v1.50m 2023-8
+- Removed temporary option UI_PROBE_REVERSED_X as it's not needed anymore.
+- Option to display battery status in the last line after showing the probing
+  result (UI_BATTERY_LASTLINE).
+- Option to display a small battery symbol to indicate the battery status (
+  UI_BATTERY).
+- Added battery symbols to most fonts. Also supplemented some fonts with
+  probe numbers with reversed foreground/background.
+- Added option for a long reset pulse for an NT7538 LCD controller to the
+  ST7565R driver (LCD_LONG_RESET).
+- Added test function for photodiodes (SW_PHOTODIODE).
+- Option to scroll menues page-wise instead of item-wise (UI_MENU_PAGEMODE,
+  suggested by indman@EEVblog). Speeds up menu operation with graphics
+  displays.
+- Added two new colors to colors.h (COLOR_PALE_GREEN, COLOR_PALE_RED,
+  suggested by .RC.@EEVblog).
+- Updated Brazilian Portuguese texts (thanks to wandows@EEVblog).
+- Updated Russian texts (thanks to indman@EEVblog).
+- Updated Polish texts #2 (thanks to Jacon@EEVblog).
+- Updated Spanish texts (thanks to pepe10000@EEVblog).
+
 v1.49m 2023-04
 - Alternative pinouts for IR receiver module (SW_IR_RX_PINOUT_G_V_D,
   SW_IR_RX_PINOUT_D_G_V, SW_IR_RX_PINOUT_D_V_G, suggested by

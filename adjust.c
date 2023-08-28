@@ -2,7 +2,7 @@
  *
  *   self-adjustment functions
  *
- *   (c) 2012-2022 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -81,28 +81,31 @@ void SetAdjustmentDefaults(void)
    *  set defaults for basic offsets/values
    */
 
-  NV.RiL = R_MCU_LOW;
-  NV.RiH = R_MCU_HIGH;
+  /* MCU I/O pin's internal resistance */
+  NV.RiL = R_MCU_LOW;              /* low side */
+  NV.RiH = R_MCU_HIGH;             /* high side */
 
+  /* resistance zero offset (PCB, probe leads) */
   #ifdef R_MULTIOFFSET
-  NV.RZero[0] = R_ZERO;
-  NV.RZero[1] = R_ZERO;
-  NV.RZero[2] = R_ZERO;
+    NV.RZero[0] = R_ZERO;
+    NV.RZero[1] = R_ZERO;
+    NV.RZero[2] = R_ZERO;
   #else
-  NV.RZero = R_ZERO;
+    NV.RZero = R_ZERO;
   #endif
 
+  /* capacitance zero offset (PCB, probe leads) */
   #ifdef CAP_MULTIOFFSET
-  NV.CapZero[0] = C_ZERO;
-  NV.CapZero[1] = C_ZERO;
-  NV.CapZero[2] = C_ZERO;
+    NV.CapZero[0] = C_ZERO;
+    NV.CapZero[1] = C_ZERO;
+    NV.CapZero[2] = C_ZERO;
   #else
-  NV.CapZero = C_ZERO;
+    NV.CapZero = C_ZERO;
   #endif
 
-  NV.RefOffset = UREF_OFFSET;
-  NV.CompOffset = COMPARATOR_OFFSET;
-  NV.Contrast = LCD_CONTRAST;
+  NV.RefOffset = UREF_OFFSET;           /* offset of internal band-gap reference */
+  NV.CompOffset = COMPARATOR_OFFSET;    /* offset of analog comparator */
+  NV.Contrast = LCD_CONTRAST;           /* display contrast */
 
   #ifdef HW_TOUCH
   /* set defaults for touch screen */

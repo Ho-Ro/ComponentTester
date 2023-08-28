@@ -2,7 +2,7 @@
  *
  *   user interface functions
  *
- *   (c) 2012-2022 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -708,23 +708,23 @@ uint8_t ReadTouchScreen(uint8_t Mode)
       /* derive "button" */
       if (X <= 3)                  /* left touch bar (3 columns) */
       {
-        Key = KEY_LEFT;
+        Key = KEY_LEFT;                 /* left */
       }
       else if (X >= (X_Max - 2))   /* right touch bar (3 columns) */
       {
-        Key = KEY_RIGHT;
+        Key = KEY_RIGHT;                /* right */
       }
       else if (Y <= 2)             /* top touch bar (2 rows) */
       {
-        Key = KEY_LEFT;
+        Key = KEY_LEFT;                 /* same as left */
       }
       else if (Y >= (Y_Max - 1))   /* bottom touch bar (2 rows) */
       {
-        Key = KEY_RIGHT;
+        Key = KEY_RIGHT;                /* same as right */
       }
       else                         /* center area */
       {
-        Key = KEY_SHORT;
+        Key = KEY_SHORT;                /* short key press */
       }
 
       /* control logic */
@@ -1414,7 +1414,7 @@ uint8_t ShortCircuit(uint8_t Mode)
 
 
 /*
- *  mark selected item
+ *  mark selected item / unmark unselected item
  *
  *  requires:
  *  - item: current item number (0-255)
@@ -1425,6 +1425,7 @@ void MarkItem(uint8_t Item, uint8_t Selected)
 {
   if (Selected == Item)       /* current item selected */
   {
+    /* mark with asterisk */
     #ifdef LCD_COLOR
     UI.PenColor = COLOR_MARKER;    /* change color */
     #endif
@@ -1435,6 +1436,7 @@ void MarkItem(uint8_t Item, uint8_t Selected)
   }
   else                        /* current item not selected */
   {
+    /* unmark with space */
     Display_Space();               /* display space */
   }
 }
@@ -1455,12 +1457,12 @@ void MarkItem(uint8_t Item, uint8_t Selected)
  *  - Unit: optional fixed string stored in EEPROM
  *
  *  returns:
- *  - ID of selected item
+ *  - array ID/position of selected item
  */
 
 uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 {
-  uint8_t           Selected = 0;       /* return value / ID of selected item */
+  uint8_t           Selected = 0;       /* return value / selected item */
   uint8_t           First = 0;          /* first item listed */
   uint8_t           Run = 2;            /* loop control flag */
   uint8_t           Lines;              /* line number */
@@ -1573,7 +1575,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
     n = TestKey(0, CHECK_BAT);     /* wait for key */
 
     #ifdef HW_KEYS
-    /* processing for rotary encoder etc. */
+    /* processing for rotary encoder, etc. */
     if (n == KEY_SHORT)            /* short key press: select item */
     {
       n = KEY_LONG;                     /* trigger item selection */
@@ -1590,6 +1592,7 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
 
         if (Items >= Lines)             /* large list */
         {
+          /* end new output with last item */
           First = Items - Lines + 1;    /* update first item listed */
           Run++;                        /* set flag for changed list */
         }
@@ -1602,8 +1605,28 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
         {
           if (Selected > 0)             /* more items in list */
           {
+            #ifndef UI_MENU_PAGEMODE
+            /* scrolling mode */
             First--;                    /* scroll one item down */
             Run++;                      /* set flag for changed list */
+            #endif
+
+            #ifdef UI_MENU_PAGEMODE
+            /* page mode */
+            n = Selected;               /* number of items before */
+            n += 1;                     /* add one for selected item itself */
+            if (n >= Lines)             /* a page or more */
+            {
+              /* end new output with item after selected one */
+              First = Selected + 2;     /* add first to prevent negative value */
+              First -= Lines;           /* update first item */
+            }
+            else                        /* less than a page */
+            {
+              First = 0;                /* start new output with first item */
+            }
+            Run++;                      /* set flag for changed list */
+            #endif
           }
         }
       }
@@ -1613,34 +1636,54 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
     /* processing for test key */
     if (n == KEY_SHORT)            /* short key press: move to next item */
     {
-      if (Selected == Items)       /* last item */
+      if (Selected == Items)            /* last item */
       {
-        Selected = 0;              /* roll over to first one */
-        First = 0;                 /* also reset first item listed */
+        Selected = 0;                   /* roll over to first one */
+        First = 0;                      /* also reset first item listed */
 
-        if (Items >= Lines)        /* large list */
+        if (Items >= Lines)             /* large list */
         {
-          Run++;                   /* set flag for changed list */
+          Run++;                        /* set flag for changed list */
         }
       }
-      else                         /* more items follow */
+      else                              /* more items follow */
       {
-        Selected++;                /* move to next item */        
+        Selected++;                     /* move to next item */        
 
-        n = First + Lines - 1;     /* last item on screen */
-        if (Selected == n)         /* item would be the last one listed */
+        n = First + Lines - 1;          /* last item on screen */
+        if (Selected == n)              /* item would be the last one listed */
         {
-          if (Items > Selected)    /* more items follow in list */
+          if (Items > Selected)         /* more items follow in list */
           {
-            First++;               /* scroll one item up */
-            Run++;                 /* set flag for changed list */
+            #ifndef UI_MENU_PAGEMODE
+            /* scrolling mode */
+            First++;                    /* scroll one item up */
+            Run++;                      /* set flag for changed list */
+            #endif
+
+            #ifdef UI_MENU_PAGEMODE
+            /* page mode */
+            n = Items - Selected;       /* number of items to follow */
+            n++;                        /* add one for selected item itself */
+            if (n >= Lines)             /* one page or more */
+            {
+              /* start new output with item before selected one */
+              First = Selected - 1;     /* update first item */
+            }
+            else                        /* less than a page */
+            {
+              /* end new output with last item */
+              First = Items - Lines + 1;     /* update first item */
+            }
+            Run++;                      /* set flag for changed list */
+            #endif
           }
         }
       }
     }
     else if (n == KEY_LONG)        /* long key press: select current item */
     {
-      Run = 0;                     /* end loop */
+      Run = 0;                          /* end loop */
     }
   }
 
@@ -1802,6 +1845,7 @@ void AdjustmentMenu(uint8_t Mode)
 #define MENUITEM_SYMBOL_TEST      36
 #define MENUITEM_FLASHLIGHT       37
 #define MENUITEM_DS18S20          38
+#define MENUITEM_PHOTODIODE       39
 
 
 /*
@@ -2017,11 +2061,17 @@ uint8_t PresentMainMenu(void)
     #define ITEM_33      0
   #endif
 
+  #ifdef SW_PHOTODIODE
+    #define ITEM_34      1
+  #else
+    #define ITEM_34      0
+  #endif
+
 
   #define ITEMS_PACK_0   (ITEM_01 + ITEM_02 + ITEM_03 + ITEM_04 + ITEM_05 + ITEM_06 + ITEM_07 + ITEM_08 + ITEM_09 + ITEM_10)
   #define ITEMS_PACK_1   (ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20)
   #define ITEMS_PACK_2   (ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24 + ITEM_25 + ITEM_26 + ITEM_27 + ITEM_28 + ITEM_29 + ITEM_30)
-  #define ITEMS_PACK_3   (ITEM_31 + ITEM_32 + ITEM_33)
+  #define ITEMS_PACK_3   (ITEM_31 + ITEM_32 + ITEM_33 + ITEM_34)
 
   /* number of menu items */
   #define MENU_ITEMS     (ITEMS_BASIC + ITEMS_PACK_0 + ITEMS_PACK_1 + ITEMS_PACK_2 + ITEMS_PACK_3)
@@ -2183,6 +2233,13 @@ uint8_t PresentMainMenu(void)
   /* opto coupler tool */
   Item_Str[n] = (void *)OptoCoupler_str;
   Item_ID[n] = MENUITEM_OPTO_COUPLER;
+  n++;
+  #endif
+
+  #ifdef SW_PHOTODIODE
+  /* photodiode check */
+  Item_Str[n] = (void *)Photodiode_str;
+  Item_ID[n] = MENUITEM_PHOTODIODE;
   n++;
   #endif
 
@@ -2369,6 +2426,7 @@ uint8_t PresentMainMenu(void)
   #undef ITEM_31
   #undef ITEM_32
   #undef ITEM_33
+  #undef ITEM_34
 
   return(ID);                 /* return item ID */
 }
@@ -2677,6 +2735,13 @@ uint8_t MainMenu(void)
       Flag = DS18S20_Tool();
       break;
     #endif
+
+    #ifdef SW_PHOTODIODE
+    /* photodiode check */
+    case MENUITEM_PHOTODIODE:
+      PhotodiodeCheck();
+      break;
+    #endif
   }
 
 
@@ -2779,6 +2844,7 @@ uint8_t MainMenu(void)
 #undef MENUITEM_SYMBOL_TEST
 #undef MENUITEM_FLASHLIGHT
 #undef MENUITEM_DS18S20
+#undef MENUITEM_PHOTODIODE
 
 
 

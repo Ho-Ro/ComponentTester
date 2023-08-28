@@ -22,7 +22,8 @@
  *  display module / controller
  *
  *  Please uncomment the package matching your LCD/OLED module and adjust
- *  settings. And comment out the default package if not used.
+ *  settings. And comment out the default package (ILI9342, hardware SPI)
+ *  if not used.
  *
  *  To uncomment, remove the enclosing "#if 0" and "#endif" or put
  *  a "//" in front of both. To comment out, remove the "//" in front
@@ -260,9 +261,9 @@
 #define LCD_RES          PB2            /* port pin used for /RES (optional) */
 #define LCD_CS           PB4            /* port pin used for /CS (optional) */
 #define LCD_DC           PB3            /* port pin used for D/C */
-#define LCD_SCK          PB7            /* port pin used for SCK */
-#define LCD_SDI          PB5            /* port pin used for SDI (data input) */
-//#define LCD_SDO          PB6            /* port pin used for SDO (data output) */
+#define LCD_SCL          PB7            /* port pin used for SCL */
+#define LCD_SDA          PB5            /* port pin used for DIN/SDA (data input) */
+//#define LCD_SDO          PB6            /* port pin used for DOUT/SDO (data output) */
 /* display settings */
 #define LCD_DOTS_X       320            /* number of horizontal dots */
 #define LCD_DOTS_Y       480            /* number of vertical dots */
@@ -704,6 +705,7 @@
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_START_Y      0              /* start line (0-63) */
 #define LCD_CONTRAST     22             /* default contrast (0-63) */
+//#define LCD_LONG_RESET                   /* long reset for NT7538 */
 /* font and symbols: vertically aligned & flipped, bank-wise grouping */
 //#define FONT_6X8_VF                      /* 6x8 font */
 #define FONT_8X8_VF                     /* 8x8 font */

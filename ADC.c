@@ -2,7 +2,7 @@
  *
  *   ADC functions
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -170,6 +170,8 @@ sample:
   /* de-sample to get average voltage */
   Value /= Cfg.Samples;
   U = (uint16_t)Value;
+
+// todo: do we need a sanity check for U <= Vcc?
 
   return U; 
 }

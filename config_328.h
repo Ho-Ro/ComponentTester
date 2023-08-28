@@ -22,7 +22,8 @@
  *  display module / controller
  *
  *  Please uncomment the package matching your LCD/OLED module and adjust
- *  settings. And comment out the default package if not used.
+ *  settings. And comment out the default package (ST7565R, bit-bang SPI)
+ *  if not used.
  *
  *  To uncomment, remove the enclosing "#if 0" and "#endif" or put
  *  a "//" in front of both. To comment out, remove the "//" in front
@@ -644,6 +645,7 @@
 #define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_START_Y      0              /* start line (0-63) */
 #define LCD_CONTRAST     22             /* default contrast (0-63) */
+//#define LCD_LONG_RESET                   /* long reset for NT7538 */
 /* font and symbols: vertically aligned & flipped, bank-wise grouping */
 //#define FONT_6X8_VF                      /* 6x8 font */
 #define FONT_8X8_VF                     /* 8x8 font */

@@ -2,7 +2,7 @@
  *
  *   color definitions for display modules
  *
- *   (c) 2015-2021 by Markus Reschke
+ *   (c) 2015-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -36,6 +36,8 @@
   #define COLOR_BROWN         0x6920    /* RGB 682400 */
   #define COLOR_VIOLET        0x780f    /* RGB 780078 */
   #define COLOR_PALE_YELLOW   0xe70c    /* RGB E2E164 */
+  #define COLOR_PALE_GREEN    0x9fec    /* RGB 99FF66 */
+  #define COLOR_PALE_RED      0xfb6d    /* RGB FF6F6F */
   #define COLOR_STEEL_BLUE    0x64df    /* RGB 6098F8 */
   #define COLOR_SKY_BLUE      0x06ff    /* RGB 06DCF9 */
 
@@ -77,6 +79,8 @@
   #define COLOR_BROWN         0x6920    /* RGB 682400 */
   #define COLOR_VIOLET        0x780f    /* RGB 780078 */
   #define COLOR_PALE_YELLOW   0xe70c    /* RGB E2E164 */
+  #define COLOR_PALE_GREEN    0x9fec    /* RGB 99FF66 */
+  #define COLOR_PALE_RED      0xfb6d    /* RGB FF6F6F */
   #define COLOR_STEEL_BLUE    0x64df    /* RGB 6098F8 */
   #define COLOR_SKY_BLUE      0x06ff    /* RGB 06DCF9 */
 
@@ -118,6 +122,8 @@
   #define COLOR_BROWN         0x6920    /* RGB 682400 */
   #define COLOR_VIOLET        0x780f    /* RGB 780078 */
   #define COLOR_PALE_YELLOW   0xe70c    /* RGB E2E164 */
+  #define COLOR_PALE_GREEN    0x9fec    /* RGB 99FF66 */
+  #define COLOR_PALE_RED      0xfb6d    /* RGB FF6F6F */
   #define COLOR_STEEL_BLUE    0x64df    /* RGB 6098F8 */
   #define COLOR_SKY_BLUE      0x06ff    /* RGB 06DCF9 */
 
@@ -159,6 +165,8 @@
   #define COLOR_BROWN         0x6920    /* RGB 682400 */
   #define COLOR_VIOLET        0x780f    /* RGB 780078 */
   #define COLOR_PALE_YELLOW   0xe70c    /* RGB E2E164 */
+  #define COLOR_PALE_GREEN    0x9fec    /* RGB 99FF66 */
+  #define COLOR_PALE_RED      0xfb6d    /* RGB FF6F6F */
   #define COLOR_STEEL_BLUE    0x64df    /* RGB 6098F8 */
   #define COLOR_SKY_BLUE      0x06ff    /* RGB 06DCF9 */
 
@@ -200,6 +208,8 @@
   #define COLOR_BROWN         0x6920    /* RGB 682400 */
   #define COLOR_VIOLET        0x780f    /* RGB 780078 */
   #define COLOR_PALE_YELLOW   0xe70c    /* RGB E2E164 */
+  #define COLOR_PALE_GREEN    0x9fec    /* RGB 99FF66 */
+  #define COLOR_PALE_RED      0xfb6d    /* RGB FF6F6F */
   #define COLOR_STEEL_BLUE    0x64df    /* RGB 6098F8 */
   #define COLOR_SKY_BLUE      0x06ff    /* RGB 06DCF9 */
 
@@ -241,6 +251,8 @@
   #define COLOR_BROWN         0x6920    /* RGB 682400 */
   #define COLOR_VIOLET        0x780f    /* RGB 780078 */
   #define COLOR_PALE_YELLOW   0xe70c    /* RGB E2E164 */
+  #define COLOR_PALE_GREEN    0x9fec    /* RGB 99FF66 */
+  #define COLOR_PALE_RED      0xfb6d    /* RGB FF6F6F */
   #define COLOR_STEEL_BLUE    0x64df    /* RGB 6098F8 */
   #define COLOR_SKY_BLUE      0x06ff    /* RGB 06DCF9 */
 
@@ -283,6 +295,8 @@
   #define COLOR_BROWN         0x012d    /* RGB 682400 */
   #define COLOR_VIOLET        0x780f    /* RGB 780078 */
   #define COLOR_PALE_YELLOW   0x671c    /* RGB E2E164 */
+  #define COLOR_PALE_GREEN    0x9fec    /* RGB 99FF66 */
+  #define COLOR_PALE_RED      0xfb6d    /* RGB FF6F6F */
   #define COLOR_STEEL_BLUE    0xfccc    /* RGB 6098F8 */
   #define COLOR_SKY_BLUE      0xfee0    /* RGB 06DCF9 */
 
@@ -346,6 +360,8 @@
   #define COLOR_BROWN         0x6920    /* RGB 682400 */
   #define COLOR_VIOLET        0x780f    /* RGB 780078 */
   #define COLOR_PALE_YELLOW   0xe70c    /* RGB E2E164 */
+  #define COLOR_PALE_GREEN    0x9fec    /* RGB 99FF66 */
+  #define COLOR_PALE_RED      0xfb6d    /* RGB FF6F6F */
   #define COLOR_STEEL_BLUE    0x64df    /* RGB 6098F8 */
   #define COLOR_SKY_BLUE      0x06ff    /* RGB 06DCF9 */
 

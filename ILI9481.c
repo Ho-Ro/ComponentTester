@@ -10,7 +10,7 @@
  *     - 3 line SPI (not supported, would be insanely slow)
  *     - 4 line SPI (untested, hardware SPI strongly recommended)
  *
- *   (c) 2020-2022 by Markus Reschke
+ *   (c) 2020-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -49,9 +49,9 @@
  *    /CSX        Gnd or LCD_CS (optional)
  *    D/CX        LCD_DC
  *    SCL (WRX)   LCD_SCL / SPI_SCK
- *    DIN/SDA     LCD_DIN / SPI_MOSI
- *    DOUT        LCD_DOUT / SPI_MISO (not used yet)
- *    For hardware SPI LCD_SCL and LCD_DIN have to be the MCU's SCK and
+ *    DIN/SDA     LCD_SDA / SPI_MOSI
+ *    DOUT        LCD_SDO / SPI_MISO (not used yet)
+ *    For hardware SPI LCD_SCL and LCD_SDA have to be the MCU's SCK and
  *    MOSI pins.
  *  - max. SPI clock: 10MHz write and 3.3MHz read
  */

@@ -111,7 +111,7 @@ void Display_NextLine(void)
 
 
 
-#ifdef UI_KEY_HINTS
+#if defined (UI_KEY_HINTS) || defined (UI_BATTERY_LASTLINE)
 
 /*
  *  last line automation for key hint
@@ -133,7 +133,7 @@ void Display_LastLine(void)
     Line = UI.CharPos_Y;           /* get current line number */
 
     /* check if we reached the last line */
-    if (Line == UI.CharMax_Y)         
+    if (Line == UI.CharMax_Y)      /* last line */
     {
       WaitKey();                   /* wait for key press */
       LCD_ClearLine(Line);         /* clear last line */
@@ -1277,7 +1277,7 @@ void Display_FancyProbeNumber(uint8_t Probe, uint8_t Index)
     Data = Get_SemiPinDesignator(Probe);     /* get pin designator */
     if (Data == 'x')                    /* special case: x */
     {
-      #ifdef UI_PROBE_REVERSED_X
+      #ifdef UI_PROBE_REVERSED
         /* reversed output */
         #ifdef UI_PROBE_COLORS
         uint16_t          Color;             /* color value */
@@ -1394,6 +1394,11 @@ void Display_FancySemiPinout(uint8_t Line)
     UI.SymbolPos_X = Pos;               /* x position */
     UI.SymbolPos_Y = Line;              /* y position */
 
+    #if defined (UI_KEY_HINTS) || defined (UI_BATTERY_LASTLINE)
+    /* keep track of text line */
+    Temp = UI.CharPos_Y;                /* get current text line */
+    #endif
+
     /* display probe numbers */
     Display_FancyProbeNumber(Semi.A, 0);     /* A pin */
     Display_FancyProbeNumber(Semi.B, 1);     /* B pin */
@@ -1413,6 +1418,11 @@ void Display_FancySemiPinout(uint8_t Line)
     #endif
 
     /* hint: we don't restore the old char position */
+
+    #if defined (UI_KEY_HINTS) || defined (UI_BATTERY_LASTLINE)
+    /* keep track of text line */
+    UI.CharPos_Y = Temp;                /* restore old text line */
+    #endif
   }
 }
 

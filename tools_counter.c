@@ -856,7 +856,7 @@ void RingTester(void)
   #endif
 
   #ifdef RING_TESTER_PROBES
-  ProbePinout(PROBES_RINGS);            /* show probes used */
+  ProbePinout(PROBES_RINGTESTER);       /* show probes used */
   #endif
 
   /*

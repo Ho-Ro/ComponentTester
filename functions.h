@@ -230,7 +230,7 @@
 #ifndef DISPLAY_C
 
   extern void Display_NextLine(void);
-  #ifdef UI_KEY_HINTS
+  #if defined (UI_KEY_HINTS) || defined (UI_BATTERY_LASTLINE)
   extern void Display_LastLine(void);
   #endif
   #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
@@ -528,6 +528,10 @@
 
   #ifdef HW_FLASHLIGHT
   extern void Flashlight(void);
+  #endif
+
+  #ifdef SW_PHOTODIODE
+  extern void PhotodiodeCheck(void);
   #endif
 
 #endif

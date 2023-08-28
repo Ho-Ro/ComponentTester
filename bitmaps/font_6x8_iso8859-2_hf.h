@@ -3,7 +3,7 @@
  *   monospaced 6x8 font based on ISO 8859-2
  *   horizontally aligned, horizontal bit order flipped
  *
- *   (c) 2015-2022 by Markus Reschke
+ *   (c) 2015-2023 by Markus Reschke
  *   Central European characters added by Bohu
  *
  * ************************************************************************ */
@@ -18,10 +18,6 @@
 
 /* source management */
 #define FONT_SET                   /* font set included */
-
-#ifdef FONT_EXTRA
-  #error <<< Font does not support extra characters! >>>
-#endif
 
 /* font size */
 #define FONT_SIZE_X          6     /* width:  8 dots */
@@ -241,7 +237,12 @@ const uint8_t FontData[] PROGMEM = {
   /* extra characters */
   0x37,0x33,0x37,0x37,0x37,0x37,0x23,0x3F,   /* 0xae 1 (reversed color) */
   0x23,0x1D,0x1F,0x27,0x3B,0x3D,0x01,0x3F,   /* 0xaf 2 (reversed color) */
-  0x23,0x1D,0x1F,0x23,0x1F,0x1D,0x23,0x3F    /* 0xb0 3 (reversed color) */
+  0x23,0x1D,0x1F,0x23,0x1F,0x1D,0x23,0x3F,   /* 0xb0 3 (reversed color) */
+  0x3F,0x3F,0x3F,0x35,0x3B,0x35,0x3F,0x3F,   /* 0xb1 x (reversed color) */
+  0x00,0x3F,0x01,0x01,0x01,0x01,0x3F,0x00,   /* 0xb2 symbol: battery left side, low */
+  0x00,0x3F,0x01,0x1D,0x1D,0x01,0x3F,0x00,   /* 0xb3 symbol: battery left side, high */
+  0x00,0x1F,0x10,0x30,0x30,0x10,0x1F,0x00,   /* 0xb4 symbol: battery right side, low */
+  0x00,0x1F,0x10,0x37,0x37,0x10,0x1F,0x00    /* 0xb5 symbol: battery right side, high */
   #endif
 };
 
@@ -264,17 +265,22 @@ const uint8_t FontTable[] PROGMEM = {
   #ifdef FONT_EXTRA
   0xae,        /* 0x08 -> 1 (reversed color) */
   0xaf,        /* 0x09 -> 2 (reversed color) */
-  0xb0,        /* 0x0a -> 3 (reversed color)*/
+  0xb0,        /* 0x0a -> 3 (reversed color) */
+  0xb1,        /* 0x0b -> x (reversed color) */
+  0xb2,        /* 0x0c -> symbol: battery left side, low */
+  0xb3,        /* 0x0d -> symbol: battery left side, high */
+  0xb4,        /* 0x0e -> symbol: battery right side, low */
+  0xb5,        /* 0x0f -> symbol: battery right side, high */
   #else
   0xff,        /* 0x08 -> n/a */
   0xff,        /* 0x09 -> n/a */
   0xff,        /* 0x0a -> n/a */
-  #endif
   0xff,        /* 0x0b -> n/a */
   0xff,        /* 0x0c -> n/a */
   0xff,        /* 0x0d -> n/a */
   0xff,        /* 0x0e -> n/a */
   0xff,        /* 0x0f -> n/a */
+  #endif
 
   0xff,        /* 0x10 -> n/a */
   0xff,        /* 0x11 -> n/a */

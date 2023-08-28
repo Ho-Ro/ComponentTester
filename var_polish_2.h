@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Polish (ISO 8859-2)
  *
- *   (c) 2012-2022 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *   translation by Jacon (zarnow@safe-mail.net)
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
@@ -56,7 +56,7 @@
 
 
   /* options */
-  #ifndef BAT_NONE
+  #if ! defined (BAT_NONE) && ! defined (UI_BATTERY)
     const unsigned char Battery_str[] MEM_TYPE = "Bat";
     const unsigned char OK_str[] MEM_TYPE = "ok";
     const unsigned char Weak_str[] MEM_TYPE = "s³aba!";
@@ -206,11 +206,17 @@
   #endif
 
   #ifdef SW_SYMBOL_TEST
-    const unsigned char SymbolTest_str[] MEM_TYPE = "Symbols";
+    const unsigned char SymbolTest_str[] MEM_TYPE = "Symbole";
   #endif
 
   #ifdef HW_FLASHLIGHT
-    const unsigned char Flashlight_str[] MEM_TYPE = "Flashlight";
+    const unsigned char Flashlight_str[] MEM_TYPE = "Latarka";
+  #endif
+
+  #ifdef SW_PHOTODIODE
+    const unsigned char Photodiode_str[] MEM_TYPE = "Photodiode";
+    const unsigned char NoBias_str[] MEM_TYPE = "no";
+    const unsigned char ReverseBias_str[] MEM_TYPE = "rev";
   #endif
 
 #endif

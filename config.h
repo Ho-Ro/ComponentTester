@@ -721,6 +721,14 @@
 //#define SW_C_VLOSS
 
 
+/*
+ *  photodiode check
+ *  - uncomment to enable
+ */
+
+//#define SW_PHOTODIODE
+
+
 
 /* ************************************************************************
  *   workarounds for some testers
@@ -977,7 +985,7 @@
 /*
  *  DS18B20/DS18S20/DHTXX: display sensor symbol
  *  - requires component symbols (SW_SYMBOLS) to be enabled
- *  - uncomment to enable (not supported yet)
+ *  - uncomment to enable
  */
 
 //#define UI_ONEWIRE
@@ -1001,15 +1009,32 @@
 
 
 /*
+ *  battery status: display icon
+ *  - requires font with additional characters (check font!)
+ *  - not available for HD44780 and ST7036 based displays
+ *  - can't be used with LCD_VT100
+ *  - uncomment to enable
+ */
+
+//#define UI_BATTERY
+
+
+/*
+ *  battery status: display in last line after showing probing result
+ *  - uncomment to enable
+ */
+
+//#define UI_BATTERY_LASTLINE
+
+
+/*
  *  display probe IDs using reversed colors
- *  - requires font with additional characters
- *  - temporary option UI_PROBE_REVERSED_X for reversed 'x' as long
- *    as not all fonts include this character (check font!)
+ *  - requires font with additional characters (check font!)
+ *  - not available for HD44780 and ST7036 based displays
  *  - uncomment to enable
  */
 
 //#define UI_PROBE_REVERSED
-//#define UI_PROBE_REVERSED_X
 
 
 /*
@@ -1052,6 +1077,16 @@
  */
 
 //#define UI_COLORED_VALUES
+
+
+/*
+ *  menues: scroll menu page-wise instead of item-wise
+ *  - speeds up menu operation with graphics displays,
+ *    especially high resolution color displays 
+ *  - uncomment to enable
+ */
+
+//#define UI_MENU_PAGEMODE
 
 
 /*

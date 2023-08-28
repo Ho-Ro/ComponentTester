@@ -1,14 +1,14 @@
 /* ************************************************************************
  *
  *   driver functions for ST7565R compatible grafic displays
- *   - compatibles: UC1701
+ *   - compatibles: UC1701, NT7538 (needs long reset pulse)
  *   - 128 x 64 (132 x 64) pixels
  *   - interfaces
  *     - 8 bit parallel in 6800 mode (not supported)
  *     - 8 bit parallel in 8080 mode (not supported)
  *     - 4 line SPI
  *
- *   (c) 2015-2022 by Markus Reschke
+ *   (c) 2015-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -418,11 +418,24 @@ void LCD_Contrast(uint8_t Contrast)
 void LCD_Init(void)
 {
   #ifdef LCD_RESET
-  /* reset display */
-  LCD_PORT &= ~(1 << LCD_RESET);        /* set /RES low */
-  wait1us();                            /* wait 1탎 */
-  LCD_PORT |= (1 << LCD_RESET);         /* set /RES high */
-  wait1us();                            /* wait 1탎 */
+    /* reset display */
+    #ifdef LCD_LONG_RESET
+      /* long reset for NT7538 (10탎/1탎) */
+      /* trigger reset */
+      LCD_PORT &= ~(1 << LCD_RESET);         /* set /RES low */
+      wait20us();                            /* wait 20탎 */
+      LCD_PORT |= (1 << LCD_RESET);          /* set /RES high */
+      /* wait for controller to perform reset */
+      wait2us();                             /* wait 2탎 */
+    #else
+      /* standard reset for ST7565 */
+      /* trigger reset */
+      LCD_PORT &= ~(1 << LCD_RESET);         /* set /RES low */
+      wait1us();                             /* wait 1탎 */
+      LCD_PORT |= (1 << LCD_RESET);          /* set /RES high */
+      /* wait for controller to perform reset */
+      wait1us();                             /* wait 1탎 */
+    #endif
   #endif
 
   /* set start line: user defined value (default 0) */

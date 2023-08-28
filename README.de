@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2023-04-03
+Letzte Änderung: 2023-08-01
 
 Inhaltsübersicht:
   - Über den Tester
@@ -76,6 +76,7 @@ Inhaltsübersicht:
     - Detektor/Decoder für IR-Fernbedienungen
     - IR-Fernbedienung
     - Opto-Koppler-Test
+    - Fotodioden-Test
     - Modellbau-Servo-Test
     - OneWire-Scan
     - DS18B20/DS18S20-Temperatursensoren
@@ -333,7 +334,7 @@ Verfügbare Sprachen:
   - von Gino_09@EEVblog
 - Polnisch
   - von Szpila
-- Romänisch
+- Rumänisch
   - von Dumidan@EEVblog
 - Russisch
   - von indman@EEVblog
@@ -680,10 +681,10 @@ Pinout für 4-Line-SPI:
                                ATmega 644
   ---------------------------------------------------------------
   /RES        LCD_RES          PB2          optional
-  /CS         LCD_CS           PB5          optional
+  /CS         LCD_CS           PB4          optional
   D/C         LCD_DC           PB3
   SCL         LCD_SCL          PB7          SPI Clock
-  SDA         LCD_SDA          PB1          SPI MOSI
+  DIN/SDA     LCD_SDA          PB5          SPI MOSI
 
 Wegen der hohen Auflösung der Anzeige und dem RGB666-Farbschema (3 Bytes pro
 Pixel) ist SPI recht langsam, selbst für Hardware-SPI und einem MCU-Takt von
@@ -858,7 +859,8 @@ Der ST7565R wird mittels 4-Line-SPI gesteuert. Die Pins sind:
   SI (DB7)    LCD_SI           PD3          SPI MOSI
 
 Für eine korrekte Anzeige mußt Du evtl. mit den Einstellungen X/Y-Flip und
-X-Offset experimentieren.
+X-Offset experimentieren. Der nahezu kompatible NT7538 benötigt einen langen
+Reset-Puls (LCD_LONG_RESET).
 
 
 + ST7735
@@ -1056,6 +1058,8 @@ verständlicher zu gestalten.
 Für Anzeigen mit mehr als zwei Textzeilen:
 - Anzeige von Tastenhinweisen statt Cursor, sofern verfügbar (UI_KEY_HINTS)
 - Infos und ein paar andere Text zentriert ausgeben (UI_CENTER_ALIGN)
+- Ausgabe vom Batteriestatus in der letzten Zeile nach der Ergebnisanzeige (
+  UI_BATTERY_LASTLINE)
 
 Für graphische Anzeigen:
 - alle vorherigen Optionen
@@ -1075,6 +1079,9 @@ Für graphische Anzeigen:
   Frequenzzähler (UI_QUARTZ_CRYSTAL)
 - Anzeige eines Symbols für OneWire-Bauteile in DS18B20, DS18S20 und
   DHTXX-Funktion
+- Menüs seitenweise blättern (statt punktweise) zum Beschleunigen der
+  Menübedienung (UI_MENU_PAGEMODE)
+- Anzeige von kleinem Batteriesymbol für den Batteriestatus (UI_BATTERY)
 
 Für farbige Grafikanzeigen:
 - alle vorherigen Optionen
@@ -1179,7 +1186,7 @@ Problem mit dem EEPROM), zeigt er einen Prüfsummenfehler an und benutzt
 stattdessen die Firmware-Standardwerte.
 
 Bei einem Tester mit einem manuellen Ein/Aus-Schalter statt dem Soft-Latch-
-Schalter der Referenzschaltung bitte POWER_SWITCH_MANUAL in config.c
+Schalter der Referenzschaltung bitte POWER_SWITCH_MANUAL in config.h
 aktivieren. In diesem Fall kann sich der Tester leider nicht selbst
 abschalten.
 
@@ -1228,6 +1235,11 @@ Die Schwellwerte für eine schwache und leere Batterie werden über BAT_WEAK
 und BAT_LOW gesetzt, während BAT_OFFSET den Spannungsverlust durch die
 Schaltung definiert, z.B. Verpolungsschutzdiode und PNP-Transistor zum
 Schalten der Stromversorgung.
+
+Du kannst die Anzeige eines kleinen Batteriesymbols für den Batteriestatus
+anstatt der textbasierten Variante aktivieren (UI_BATTERY). Auch gibt es die
+Möglichkeit, den Batteriestatus in der letzten Zeile nach der Ergebnisausgabe
+anzuzeigen (UI_BATTERY_LASTLINE).
 
 
 * Ausschalten
@@ -1894,8 +1906,8 @@ Die Datenfelder sind durch Leerzeichen getrennt und ihre Syntax ist:
   <Feldname>:<Anzahl Bits>
 
 Beschaltung bei Signalsusgabe über die Testpins:
-  Pin #2:          Signalausgang (680 Ohm Widerstand zur Strombegrenzung)
-  Pin #1 und #3:   Masse
+  Pin #2:           Signalausgang (680 Ohm Widerstand zur Strombegrenzung)
+  Pin #1 und #3:    Masse
 
 Der Signalausgang (Test-Pin #2) hat einen Widerstand zur Strombegrenzung und
 kann eine IR-LED mit nur etwa 5mA direkt schalten, was für eine typische IR-LED
@@ -1972,6 +1984,33 @@ der Tester den Typen und verschiedene Infos an. Wurde keiner erkannt, erfolgt
 die Anzeige von "keiner". Ein blinkender Cursor weist darauf hin, daß ein
 Tastendruck für die nächste Prüfung erwartet wird. Zwei kurze Testendrücke
 beenden, wie üblich, den Test.
+
+
++ Fotodioden-Test
+
+Mit dieser Testfunktion kannst Du den Strom einer Fotodiode beobachten. Als
+erstes wird für ein paar Sekunden die Testpinbelegung angezeigt, welche mit
+einem Tastendruck vorzeitig beendet werden kann. Dann springt der Tester zum
+Beobachten des Stroms I_P mit der Diode im Sperrrichtungsbetrieb, gekenn-
+zeichnet durch "rev". Ein kurzer Tastendruck schaltet den Betriebsmodus auf 
+Vorwärtsrichtung (Photoelement) um, gekennzeichnet durch "no". Ein weiterer
+Tastendruck schaltet den Modus wieder zurück. Und wie Du bereits ahnst, zwei
+kurze Tastendrücke beenden die Testfunktion.
+
+Zum Testen der Fotodiode diese z.B. temporär mit der Hand abdunkeln oder mit
+einer geeigneten Lichtquelle aus unterschiedlichen Entfernungen bestrahlen. 
+Weniger Licht resultiert in weniger Strom, und umgekehrt. Evtl. fängt der
+Tester etwas EM-Störungen auf, die zu einem kleinen Strom führen können,
+speziell im Sperrrichtungsbetrieb. Das sieht man sehr gut, wenn gar keine
+Fotodiode angeklemmt ist. Es sei auch darauf hingewiesen, dass Photodioden
+im Sperrrichtungsbetrieb einen Dunkelstrom haben.
+
+Warnung:
+  Keine Solarzellen testen!
+
+Beschaltung der Testpins:
+  Pin #1:    Anode
+  Pin #3:    Kathode
 
 
 + Modellbau-Servo-Test
@@ -2292,7 +2331,7 @@ verliert und natürlich auch durch die Analog-Digital-Wandlung selber. So dauert
 es dann länger bis der Kondensator geladen ist, und die Kapazität erscheint
 höher. Eine spätere Selbstentlademessung versucht dies zu kompensieren, kann es
 aber nur teilweise. Die Korrekturfaktoren (CAP_FACTOR_SMALL, CAP_FACTOR_MID
-und CAP_FACTOR_LARGE in config.c) sind so gewählt, daß sie für die meisten
+und CAP_FACTOR_LARGE in config.h) sind so gewählt, daß sie für die meisten
 Testermodelle passen. In manchen Fällen kann aber eine Änderung notwendig sein. 
 
 Eine Logik zum Verhindern, daß große Kondensatoren als Widerstände erkannt

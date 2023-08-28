@@ -1,0 +1,13 @@
+ComponentTester
+CT_horo*
+dep
+*.o
+*.eep
+*.hex
+*.lss
+*.map
+*~
+*.bak
+*.new
+*.old
+*.orig

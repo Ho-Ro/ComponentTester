@@ -78,8 +78,8 @@ uint8_t             IR_Data_1;               /* data field #1 */
  *  check if pulse/pause duration matches reference value
  *
  *  requires:
- *  - time units of pause/pulse
- *  - time units of reference period
+ *  - time units of pause/pulse (in 50탎)
+ *  - time units of reference period (in 50탎)
  *  - timing control
  *    IR_STD_TOLER   - use standard tolerance
  *    IR_RELAX_SHORT - increase tolerance for short pulses/pauses
@@ -153,7 +153,7 @@ uint8_t PulseCheck(uint8_t PulseWidth, uint8_t Ref, uint8_t Control)
  *    IR_IEEE      - decoding based on IEEE 802.3
  *    IR_THOMAS    - decoding based on G.E. Thomas
  *    IR_PRE_PAUSE - heading pause (not logged)
- *  - time units of clock half cycle
+ *  - time units of clock half cycle (in 50탎)
  *  - timing control
  *    IR_STD_TOLER   - use standard tolerance
  *    IR_RELAX_SHORT - increase tolerance for short pulses/pauses
@@ -168,7 +168,7 @@ uint8_t BiPhase_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t Mode, uint8_t 
 {
   uint8_t           Counter = 0;   /* return value: number of bits */
   uint8_t           Pulse = 1;     /* pulse counter */
-  uint8_t           Time;          /* pulse duration */
+  uint8_t           Time;          /* pulse duration (in 50탎) */
   uint8_t           Width;         /* 1x / 2x pulse width */
   uint8_t           Dir;           /* direction of pulse change */
   uint8_t           PrePulse = 0;  /* pulse for half-bit */
@@ -353,7 +353,7 @@ uint8_t BiPhase_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t Mode, uint8_t 
  *  - pointer to pulse/pause duration data
  *    (first one has to be a pulse)
  *  - number of pulses/pauses
- *  - time units of pulse/pause
+ *  - time units of pulse/pause (in 50탎)
  *    should be lower end of valid range
  *  - number of time slots (= bits) expected
  *  - timing control
@@ -370,7 +370,7 @@ uint8_t PPM_Demod(uint8_t *PulseData, uint8_t Pulses, int8_t tP, uint8_t Slots, 
 {
   uint8_t           Counter = 0;   /* return value */
   uint8_t           Pulse = 1;     /* pulse counter */
-  uint8_t           Time;          /* pulse duration */
+  uint8_t           Time;          /* pulse duration (in 50탎) */
   uint8_t           Data = 0;      /* code byte */
   uint8_t           *Code;         /* pointer to code data */
   uint8_t           Bits = 0;      /* counter for bits */
@@ -479,9 +479,9 @@ uint8_t PPM_Demod(uint8_t *PulseData, uint8_t Pulses, int8_t tP, uint8_t Slots, 
  *  - pointer to pulse/pause duration data
  *    first item has to be a pulse for PDM or a pause for PWM
  *  - number of pulses/pauses
- *  - time units of spacer
- *  - time units of 0
- *  - time units of 1
+ *  - time units of spacer (in 50탎)
+ *  - time units of 0 (in 50탎)
+ *  - time units of 1 (in 50탎)
  *  - timing control
  *    IR_STD_TOLER   - use standard tolerance
  *    IR_RELAX_SHORT - increase tolerance for short pulses/pauses
@@ -496,7 +496,7 @@ uint8_t PxM_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t tS, uint8_t t0, ui
 {
   uint8_t           Counter = 0;   /* return value: number of bits */
   uint8_t           Pulse = 1;     /* pulse counter */
-  uint8_t           Time;          /* pulse duration */
+  uint8_t           Time;          /* pulse duration (in 50탎) */
   uint8_t           Data = 0;      /* code byte */
   uint8_t           *Code;         /* pointer to code data */
   uint8_t           Bits = 0;      /* counter for bits */
@@ -605,8 +605,8 @@ uint8_t PxM_Demod(uint8_t *PulseData, uint8_t Pulses, uint8_t tS, uint8_t t0, ui
  *    first item has to be a pulse
  *  - number of pulses
  *  - offset to special pulse-pause pair (half cycles)
- *  - time units of normal pulse/pause
- *  - time units of special pulse/pause
+ *  - time units of normal pulse/pause (in 50탎)
+ *  - time units of special pulse/pause (in 50탎)
  *
  *  returns:
  *  - number of special pulses
@@ -616,7 +616,7 @@ uint8_t SpecialBiPhasePulse(uint8_t *PulseData, uint8_t Pulses, uint8_t Offset, 
 {
   uint8_t           Counter = 0;   /* return value: number of pulses */
   uint8_t           Mixed;         /* duration of mixed pulse */
-  uint8_t           Time;          /* pulse duration */
+  uint8_t           Time;          /* pulse duration (in 50탎) */
   uint8_t           Cycles = 0;    /* half cycles */
   uint8_t           n = 0;         /* counter */
 
@@ -775,8 +775,8 @@ void IR_Decode(uint8_t *PulseData, uint8_t Pulses)
   uint8_t           Flag = 0;      /* control flag */
   uint8_t           *Pulse;        /* pointer to pause/pulse data */
   uint8_t           PulsesLeft;    /* remaining pulses/pauses */
-  uint8_t           Time1;         /* time units #1 */
-  uint8_t           Time2;         /* time units #2 */
+  uint8_t           Time1;         /* time units #1 (in 50탎) */
+  uint8_t           Time2;         /* time units #2 (in 50탎) */
   uint8_t           Bits = 0;      /* number of bits received */
   uint8_t           Address;       /* RC address */
   uint8_t           Command;       /* RC command */

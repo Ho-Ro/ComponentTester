@@ -2,7 +2,7 @@
  *
  *   capacitor measurements
  *
- *   (c) 2012-2022 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -399,11 +399,11 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
     /* consider probe resistance */
     #ifdef R_MULTIOFFSET
-    /* get index number for probe pair */
-    n = GetOffsetIndex(Probes.ID_1, Probes.ID_2);
-    U_2 = NV.RZero[n];
+      /* get index number for probe pair */
+      n = GetOffsetIndex(Probes.ID_1, Probes.ID_2);
+      U_2 = NV.RZero[n];
     #else
-    U_2 = NV.RZero;
+      U_2 = NV.RZero;
     #endif
 
     if (U_1 > U_2)            /* larger than offset */
@@ -787,11 +787,11 @@ uint16_t MeasureESR(Capacitor_Type *Cap)
 
   /* consider probe resistance */
   #ifdef R_MULTIOFFSET
-  /* get index number for probe pair */
-  n = GetOffsetIndex(Probes.ID_1, Probes.ID_2);
-  U_2 = NV.RZero[n];
+    /* get index number for probe pair */
+    n = GetOffsetIndex(Probes.ID_1, Probes.ID_2);
+    U_2 = NV.RZero[n];
   #else
-  U_2 = NV.RZero;
+    U_2 = NV.RZero;
   #endif
 
   if (U_1 > U_2)              /* larger than offset */

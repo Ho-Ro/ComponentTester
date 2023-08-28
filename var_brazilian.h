@@ -57,7 +57,7 @@
 
 
   /* options */
-  #ifndef BAT_NONE
+  #if ! defined (BAT_NONE) && ! defined (UI_BATTERY)
     const unsigned char Battery_str[] MEM_TYPE = "Bat";
     const unsigned char OK_str[] MEM_TYPE = "OK";
     const unsigned char Weak_str[] MEM_TYPE = "fraca";
@@ -203,15 +203,21 @@
   #endif
 
   #ifdef SW_FONT_TEST
-    const unsigned char FontTest_str[] MEM_TYPE = "Font";
+    const unsigned char FontTest_str[] MEM_TYPE = "Fonte";
   #endif
 
   #ifdef SW_SYMBOL_TEST
-    const unsigned char SymbolTest_str[] MEM_TYPE = "Symbols";
+    const unsigned char SymbolTest_str[] MEM_TYPE = "Simbolos";
   #endif
 
   #ifdef HW_FLASHLIGHT
-    const unsigned char Flashlight_str[] MEM_TYPE = "Flashlight";
+    const unsigned char Flashlight_str[] MEM_TYPE = "Lanterna";
+  #endif
+
+  #ifdef SW_PHOTODIODE
+    const unsigned char Photodiode_str[] MEM_TYPE = "Photodiode";
+    const unsigned char NoBias_str[] MEM_TYPE = "no";
+    const unsigned char ReverseBias_str[] MEM_TYPE = "rev";
   #endif
 
 #endif

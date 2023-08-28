@@ -2164,60 +2164,142 @@ void PowerOff(void)
 
 void ShowBattery(void)
 {
-  /* display battery voltage */
-  Display_EEString_Space(Battery_str);     /* display: Bat. */
-
-  #ifdef BAT_EXT_UNMONITORED
-  /* check for unmonitored external power supply */
-  if (Cfg.Vbat < 900)              /* < 0.9V */
-  {
-    /* powered by unmonitored external PSU */
-    /* low voltage caused by diode's leakage current */
-
-    /* display status */
-    #ifdef LCD_COLOR
-    UI.PenColor = COLOR_BAT_OK;         /* use OK color */
-    #endif
-    Display_EEString(External_str);     /* display: ext */
-  }
-  else                             /* battery operation */
-  {
-     /* powered by battery */
+  #ifdef UI_BATTERY
+  uint8_t           Char1;         /* battery icon left part */
+  uint8_t           Char2;         /* battery icon right part */
   #endif
 
-    /* display battery voltage */
-    Display_Value(Cfg.Vbat / 10, -2, 'V');
-    Display_Space();
+  #ifndef UI_BATTERY
+  /* display battery info (text) */
+  Display_EEString_Space(Battery_str);     /* display: Bat. */
 
-    /* display status */
-    if (Cfg.Vbat < BAT_LOW)        /* low level reached */
+    #ifdef BAT_EXT_UNMONITORED
+    /* check for unmonitored external power supply */
+    if (Cfg.Vbat < 900)            /* < 0.9V */
+    {
+      /* powered by unmonitored external PSU */
+      /* low voltage caused by diode's leakage current */
+
+      /* display status */
+      #ifdef LCD_COLOR
+      UI.PenColor = COLOR_BAT_OK;       /* use OK color */
+      #endif
+      Display_EEString(External_str);   /* display: ext */
+    }
+    else                           /* battery operation */
+    {
+      /* powered by battery */
+    #endif
+
+      /* display battery voltage */
+      Display_Value(Cfg.Vbat / 10, -2, 'V');
+      Display_Space();
+
+      /* display status (ok, weak, low) */
+      if (Cfg.Vbat < BAT_LOW)           /* low level reached */
+      {
+        #ifdef LCD_COLOR
+        UI.PenColor = COLOR_BAT_LOW;    /* set LOW color */
+        #endif
+        Display_EEString(Low_str);      /* display: low */
+      }
+      else if (Cfg.Vbat < BAT_WEAK)     /* warning level reached */
+      {
+        #ifdef LCD_COLOR
+        UI.PenColor = COLOR_BAT_WEAK;   /* set WEAK color */
+        #endif
+        Display_EEString(Weak_str);     /* display: weak */
+      }
+      else                              /* ok */
+      {
+        #ifdef LCD_COLOR
+        UI.PenColor = COLOR_BAT_OK;     /* set OK color */
+        #endif
+        Display_EEString(OK_str);       /* display: ok */
+      }
+
+    #ifdef BAT_EXT_UNMONITORED
+    }
+    #endif
+
+    #ifdef LCD_COLOR
+    UI.PenColor = COLOR_PEN;       /* set color back to default */
+    #endif
+
+  #endif
+
+
+  #ifdef UI_BATTERY
+  /* display battery info (small symbol) */
+
+  /* get battery status */
+    #ifdef BAT_EXT_UNMONITORED
+    /* check for unmonitored external power supply */
+    if (Cfg.Vbat < 900)                 /* < 0.9V */
+    {
+      /* powered by unmonitored external PSU */
+      /* low voltage caused by diode's leakage current */
+      #ifdef LCD_COLOR
+      UI.PenColor = COLOR_BAT_OK;       /* set OK color */
+      #endif
+      Char1 = LCD_CHAR_BAT_LH;          /* left: high */
+      Char2 = LCD_CHAR_BAT_RH;          /* right: high */
+    }
+    else
+    #endif
+    if (Cfg.Vbat < BAT_LOW)             /* low level reached */
     {
       #ifdef LCD_COLOR
       UI.PenColor = COLOR_BAT_LOW;      /* set LOW color */
       #endif
-      Display_EEString(Low_str);        /* display: low */
+      Char1 = LCD_CHAR_BAT_LL;          /* left: low */
+      Char2 = LCD_CHAR_BAT_RL;          /* right: low */
     }
-    else if (Cfg.Vbat < BAT_WEAK)  /* warning level reached */
+    else if (Cfg.Vbat < BAT_WEAK)       /* warning level reached */
     {
       #ifdef LCD_COLOR
       UI.PenColor = COLOR_BAT_WEAK;     /* set WEAK color */
       #endif
-      Display_EEString(Weak_str);       /* display: weak */
+      Char1 = LCD_CHAR_BAT_LH;          /* left: high */
+      Char2 = LCD_CHAR_BAT_RL;          /* right: low */
     }
-    else                           /* ok */
+    else                                /* ok */
     {
       #ifdef LCD_COLOR
       UI.PenColor = COLOR_BAT_OK;       /* set OK color */
       #endif
-      Display_EEString(OK_str);         /* display: ok */
+      Char1 = LCD_CHAR_BAT_LH;          /* left: high */
+      Char2 = LCD_CHAR_BAT_RH;          /* right: high */
     }
 
-  #ifdef BAT_EXT_UNMONITORED
-  }
-  #endif
+  /* display small battery symbol */
+  Display_Char(Char1);             /* display left part of symbol */
+  Display_Char(Char2);             /* display right part of symbol */
+  Display_Space();                 /* display space */
 
-  #ifdef LCD_COLOR
-  UI.PenColor = COLOR_PEN;         /* set color back to default */
+    #ifdef LCD_COLOR
+    UI.PenColor = COLOR_PEN;       /* set color back to default */
+    #endif
+
+  /* display battery voltage */
+    #ifdef BAT_EXT_UNMONITORED
+    /* check for unmonitored external power supply */
+    if (Cfg.Vbat < 900)            /* < 0.9V */
+    {
+      Display_EEString(External_str);   /* display: ext */
+    }
+    else                           /* battery operation */
+    {
+      /* powered by battery */
+    #endif
+
+      /* display battery voltage */
+      Display_Value(Cfg.Vbat / 10, -2, 'V');
+
+    #ifdef BAT_EXT_UNMONITORED
+    }
+    #endif
+
   #endif
 }
 
@@ -2718,10 +2800,10 @@ cycle_start:
 
 
   /*
-   *  battery check
+   *  battery check (default display)
    */
 
-  #ifdef BAT_NONE
+  #if defined (BAT_NONE) || defined (UI_BATTERY_LASTLINE)
     /* no battery monitoring */
     Display_EEString(Tester_str);       /* display (line #1): Component Tester */
   #else
@@ -2925,7 +3007,17 @@ show_component:
   }
   #endif
 
+  #ifdef UI_BATTERY_LASTLINE
+  /* alternative display of battery status in last line */
+  CheckBattery();                  /* check battery voltage */
+                                   /* will power off on low battery */
+  Display_LastLine();              /* manage last line */
+  LCD_CharPos(1, UI.CharMax_Y);    /* move to start of last line */
+  ShowBattery();                   /* display battery status */
+  #endif
+
   #ifdef UI_SERIAL_COMMANDS
+  /* feedback for remote command 'PROBE' */
   if (Key == KEY_PROBE)       /* probing by command */
   {
     Display_Serial_Only();              /* switch output to serial */
@@ -2933,7 +3025,7 @@ show_component:
     Display_LCD_Only();                 /* switch output back to display */
 
     /* We don't have to restore the next-line mode since it will be 
-       changed a few line below anyway. */
+       changed a few lines down anyway. */
   }
   #endif
 

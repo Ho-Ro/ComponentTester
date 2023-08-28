@@ -11,7 +11,7 @@
  *     - 3 line SPI (not supported, would be insanely slow)
  *     - 4 line SPI (hardware SPI strongly recommended)
  *
- *   (c) 2020-2022 by Markus Reschke
+ *   (c) 2020-2023 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -55,7 +55,7 @@
  *    SCL (WRX)   LCD_SCL / SPI_SCK
  *    SDA         LCD_SDA / SPI_MOSI
  *    SDO         LCD_SDO / SPI_MISO (not used yet)
- *    For hardware SPI LCD_SCL and LCD_DIN have to be the MCU's SCK and
+ *    For hardware SPI LCD_SCL and LCD_DA have to be the MCU's SCK and
  *    MOSI pins.
  *  - max. SPI clock: 20MHz write and 6.6MHz read
  *  - ILI9486 has a PWM output (CAPC_PWM) for controlling backlight LEDs,
