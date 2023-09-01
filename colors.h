@@ -239,6 +239,7 @@
 #ifdef LCD_ST7735
   /* common colors */
   #define COLOR_BLACK         0x0000    /* RGB 000000 */
+  #define COLOR_NAVY          0x000f    /* RGB 000078 */
   #define COLOR_BLUE          0x001f    /* RGB 0000F8 */
   #define COLOR_GREEN         0x07e0    /* RGB 00FC00 */
   #define COLOR_CYAN          0x07ff    /* RGB 00FCF8 */
@@ -383,6 +384,7 @@
 #endif
 
 
+#if 0
 
 /* ************************************************************************
  *   default colors
@@ -429,7 +431,50 @@
 #define COLOR_BAT_WEAK        COLOR_YELLOW
 #define COLOR_BAT_LOW         COLOR_RED
 
+#else
 
+/* ************************************************************************
+ *   horo colors
+ * ************************************************************************ */
+
+/* background color */
+#define COLOR_BACKGROUND      COLOR_NAVY
+
+/* standard pen color */
+#define COLOR_PEN             COLOR_WHITE
+
+/* titles */
+#define COLOR_TITLE           COLOR_YELLOW
+
+/* cursor */
+#define COLOR_CURSOR          COLOR_YELLOW
+
+/* infos (hello/bye) */
+#define COLOR_INFO            COLOR_CYAN
+
+/* warnings */
+#define COLOR_WARN            COLOR_WHITE
+
+/* errors */
+#define COLOR_ERROR           COLOR_RED
+
+/* marker (selected item) */
+#define COLOR_MARKER          COLOR_WHITE
+
+/* symbols */
+#define COLOR_SYMBOL          COLOR_YELLOW
+
+/* color codes for probe pins */
+#define COLOR_PROBE_1         COLOR_YELLOW
+#define COLOR_PROBE_2         COLOR_GREEN
+#define COLOR_PROBE_3         COLOR_RED
+
+/* battery status */
+#define COLOR_BAT_OK          COLOR_GREEN
+#define COLOR_BAT_WEAK        COLOR_YELLOW
+#define COLOR_BAT_LOW         COLOR_RED
+
+#endif
 
 /* ************************************************************************
  *   EOF

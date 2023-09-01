@@ -36,7 +36,7 @@
  *    to match your rotary encoder
  */
 
-//#define HW_ENCODER
+#define HW_ENCODER
 
 
 /*
@@ -137,7 +137,7 @@
  *  - uncomment to enable
  */
 
-//#define ZENER_UNSWITCHED
+#define ZENER_UNSWITCHED
 
 
 /*
@@ -188,7 +188,7 @@
  *  - uncomment to enable
  */
 
-//#define HW_FREQ_COUNTER_BASIC
+#define HW_FREQ_COUNTER_BASIC
 
 
 /*
@@ -421,7 +421,7 @@
  *  - uncomment to enable
  */
 
-//#define SW_ESR_TOOL
+#define SW_ESR_TOOL
 
 
 /*
@@ -449,7 +449,7 @@
  *  - uncomment to enable
  */
 
-#define SW_IR_RECEIVER
+//#define SW_IR_RECEIVER
 
 
 /*
@@ -527,7 +527,7 @@
  *  - uncomment to enable
  */
 
-#define SW_OPTO_COUPLER
+//#define SW_OPTO_COUPLER
 
 
 /*
@@ -604,7 +604,7 @@
  *  - uncomment to enable
  */
 
-//#define SW_CAP_LEAKAGE
+#define SW_CAP_LEAKAGE
 
 
 /*
@@ -613,7 +613,7 @@
  *  - uncomment to enable
  */
 
-//#define SW_REVERSE_HFE
+#define SW_REVERSE_HFE
 
 
 /*
@@ -623,7 +623,7 @@
  *  - uncomment to enable
  */
 
-//#define SW_HFE_CURRENT
+#define SW_HFE_CURRENT
 
 
 /*
@@ -847,7 +847,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_AUTOHOLD
+#define UI_AUTOHOLD
 
 
 /*
@@ -867,7 +867,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_KEY_HINTS
+#define UI_KEY_HINTS
 
 
 /*
@@ -933,7 +933,7 @@
  *  - uncomment to enable, also adjust timeout (in s)
  */
 
-//#define POWER_OFF_TIMEOUT     60
+#define POWER_OFF_TIMEOUT     60
 
 
 /*
@@ -970,7 +970,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_ZENER_DIODE
+#define UI_ZENER_DIODE
 
 
 /*
@@ -1016,7 +1016,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_BATTERY
+#define UI_BATTERY
 
 
 /*
@@ -1055,7 +1055,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_COLORED_TITLES
+#define UI_COLORED_TITLES
 
 
 /*
@@ -1065,7 +1065,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_COLORED_CURSOR
+#define UI_COLORED_CURSOR
 
 
 /*
@@ -1094,7 +1094,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_MAINMENU_AUTOEXIT
+#define UI_MAINMENU_AUTOEXIT
 
 
 /*
@@ -1102,7 +1102,7 @@
  *  - uncomment to enable
  */
 
-//#define SW_POWER_OFF
+#define SW_POWER_OFF
 
 
 /*
@@ -1157,8 +1157,8 @@
  *  - uncomment one
  */ 
 
-#define DATA_EEPROM           /* store data in EEPROM */
-//#define DATA_FLASH            /* store data in Flash */
+//#define DATA_EEPROM           /* store data in EEPROM */
+#define DATA_FLASH            /* store data in Flash */
 
 
 
