@@ -5,7 +5,8 @@
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
-PROJECT = ComponentTester
+# project name
+NAME = CT_AY-AT_20MHZ
 
 
 #
@@ -122,9 +123,6 @@ OPTIONS = -b 115200
 #
 #  global settings
 #
-
-# project name
-NAME = CT_AY-AT_150HR
 
 # name and version based on directory name
 DIST = $(notdir ${CURDIR})
@@ -276,7 +274,7 @@ dist: clean
 
 # clean up
 clean:
-	-rm -rf ${OBJECTS} ${NAME} dep/* *.tgz
+	-rm -rf ${OBJECTS} ${NAME} dep/* *.tgz *~
 	-rm -rf ${NAME}.hex ${NAME}.eep ${NAME}.lss ${NAME}.map
 
 

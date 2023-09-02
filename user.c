@@ -1425,11 +1425,11 @@ void MarkItem(uint8_t Item, uint8_t Selected)
 {
   if (Selected == Item)       /* current item selected */
   {
-    /* mark with asterisk */
+    /* mark with right arrow */
     #ifdef LCD_COLOR
     UI.PenColor = COLOR_MARKER;    /* change color */
     #endif
-    Display_Char('*');             /* display asterisk */
+    Display_Char('>');             /* display marker */
     #ifdef LCD_COLOR
     UI.PenColor = COLOR_PEN;       /* reset color */
     #endif
@@ -2092,6 +2092,18 @@ uint8_t PresentMainMenu(void)
    *  - items are added in display order
    */
 
+  /* exit menu */
+  Item_Str[n] = (void *)Exit_str;
+  Item_ID[n] = MENUITEM_EXIT;
+  n++;
+
+  #ifdef SW_POWER_OFF
+  /* power off tester */
+  Item_Str[n] = (void *)PowerOff_str;
+  Item_ID[n] = MENUITEM_POWER_OFF;
+  n++;
+  #endif
+
   /*
    *  test/check/signal features
    */
@@ -2356,18 +2368,6 @@ uint8_t PresentMainMenu(void)
   Item_ID[n] = MENUITEM_SYMBOL_TEST;
   n++;
   #endif
-
-  #ifdef SW_POWER_OFF
-  /* power off tester */
-  Item_Str[n] = (void *)PowerOff_str;
-  Item_ID[n] = MENUITEM_POWER_OFF;
-  n++;
-  #endif
-
-  /* exit menu */
-  Item_Str[n] = (void *)Exit_str;
-  Item_ID[n] = MENUITEM_EXIT;
-  n++;
 
 
   /*
