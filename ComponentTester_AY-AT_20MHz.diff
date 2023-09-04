@@ -1,0 +1,733 @@
+diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
+--- ComponentTester-1.50m/Makefile	2023-02-02 17:21:36.000000000 +0100
++++ CT_AY-AT_20MHz_1.50m/Makefile	2023-09-04 19:33:42.050126733 +0200
+@@ -5,7 +5,8 @@
+ #  based on code from Markus Frejek and Karl-Heinz Kübbeler
+ #
+ 
+-PROJECT = ComponentTester
++# project name
++NAME = CT_AY-AT_20MHz
+ 
+ 
+ #
+@@ -29,7 +30,7 @@
+ # - 8MHz  : 8
+ # - 16MHz : 16
+ # - 20MHz : 20
+-FREQ = 8
++FREQ = 20
+ 
+ # oscillator type
+ # - internal RC oscillator      : RC
+@@ -78,15 +79,20 @@
+ #PORT = /dev/ttyACM0
+ #OPTIONS = -b 19200
+ 
++# Arduino nano as ISP
++PROGRAMMER = nanoISP
++PORT = /dev/ttyUSB0
++OPTIONS = -b 115200
++
+ # Bus Pirate
+ #PROGRAMMER = buspirate
+ #PORT = /dev/bus_pirate
+ #OPTIONS = -B 10.0
+ 
+ # Diamex ALL-AVR/AVR-Prog
+-PROGRAMMER = avrispmkII
+-PORT = usb
+-OPTIONS = -B 1.0
++#PROGRAMMER = avrispmkII
++#PORT = usb
++#OPTIONS = -B 1.0
+ 
+ # Pololu USB AVR Programmer
+ #PROGRAMMER = stk500v2
+@@ -118,15 +124,14 @@
+ #  global settings
+ #
+ 
+-# project name
+-NAME = ComponentTester
+-
+ # name and version based on directory name
+ DIST = $(notdir ${CURDIR})
+ 
+ # compiler flags
+ CC = avr-gcc
+-CPP = avr-g++
++#CPP = avr-g++
++OBJCOPY = avr-objcopy
++OBJDUMP = avr-objdump
+ CFLAGS = -mmcu=${MCU} -Wall -I. -Ibitmaps
+ CFLAGS += -DF_CPU=${FREQ}000000UL
+ CFLAGS += -DOSC_STARTUP=${OSC_STARTUP}
+@@ -184,15 +189,15 @@
+ 
+ # create hex file of firmware
+ %.hex: ${NAME}
+-	avr-objcopy -O ihex ${HEX_FLASH_FLAGS} $< $@
++	${OBJCOPY} -O ihex ${HEX_FLASH_FLAGS} $< $@
+ 
+ # create hex file of EEPROM data
+ %.eep: ${NAME}
+-	-avr-objcopy ${HEX_EEPROM_FLAGS} -O ihex $< $@ || exit 0
++	-${OBJCOPY} ${HEX_EEPROM_FLAGS} -O ihex $< $@ || exit 0
+ 
+ # create dump of firmware
+ %.lss: ${NAME}
+-	avr-objdump -h -S $< > $@
++	${OBJDUMP} -h -S $< > $@
+ 
+ # output firmware size and other info
+ size: ${NAME}
+@@ -224,20 +229,37 @@
+ .PHONY: upload
+ upload: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
+ 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
+-	  -U flash:w:./${NAME}.hex:a -U eeprom:w:./${NAME}.eep:a
++	  -U flash:w:${NAME}.hex:i -U eeprom:w:${NAME}.eep:i
+ 
+ # program firmware only
+ .PHONY: prog_fw
+ prog_fw: ${NAME} ${NAME}.hex ${NAME}.lss size
+ 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
+-	  -U flash:w:./${NAME}.hex:a
++	  -U flash:w:${NAME}.hex:i
++
++# program firmware only w/o verify
++.PHONY: fast_fw
++fast_fw: ${NAME} ${NAME}.hex ${NAME}.lss size
++	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} -V\
++	  -U flash:w:${NAME}.hex:i
+ 
+ # program EEPROM data only
+ .PHONY: prog_ee
+ prog_ee: ${NAME} ${NAME}.eep ${NAME}.lss size
+ 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
+-	  -U eeprom:w:./${NAME}.eep:a
++	  -U eeprom:w:${NAME}.eep:i
+ 
++# read back EEPROM calibration data
++.PHONY: get_cal
++get_cal:
++	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
++	  -U eeprom:r:${NAME}_cal.eep:i
++
++# restore EEPROM calibration data
++.PHONY: set_cal
++set_cal:
++	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
++	  -U eeprom:w:${NAME}_cal.eep:i
+ 
+ #
+ #  misc
+@@ -254,8 +276,7 @@
+ 
+ # clean up
+ clean:
+-	-rm -rf ${OBJECTS} ${NAME} dep/* *.tgz
+-	-rm -rf ${NAME}.hex ${NAME}.eep ${NAME}.lss ${NAME}.map
++	-rm -rf ${OBJECTS} ${NAME} ${NAME}* dep/* *.tgz *~
+ 
+ 
+ #
+Common subdirectories: ComponentTester-1.50m/bitmaps and CT_AY-AT_20MHz_1.50m/bitmaps
+diff -uw ComponentTester-1.50m/colors.h CT_AY-AT_20MHz_1.50m/colors.h
+--- ComponentTester-1.50m/colors.h	2023-04-25 09:30:02.000000000 +0200
++++ CT_AY-AT_20MHz_1.50m/colors.h	2023-09-04 19:43:57.942467538 +0200
+@@ -239,6 +239,7 @@
+ #ifdef LCD_ST7735
+   /* common colors */
+   #define COLOR_BLACK         0x0000    /* RGB 000000 */
++  #define COLOR_NAVY          0x000f    /* RGB 000078 */
+   #define COLOR_BLUE          0x001f    /* RGB 0000F8 */
+   #define COLOR_GREEN         0x07e0    /* RGB 00FC00 */
+   #define COLOR_CYAN          0x07ff    /* RGB 00FCF8 */
+@@ -383,6 +384,7 @@
+ #endif
+ 
+ 
++#if 0
+ 
+ /* ************************************************************************
+  *   default colors
+@@ -429,7 +431,50 @@
+ #define COLOR_BAT_WEAK        COLOR_YELLOW
+ #define COLOR_BAT_LOW         COLOR_RED
+ 
++#else
+ 
++/* ************************************************************************
++ *   horo colors
++ * ************************************************************************ */
++
++/* background color */
++#define COLOR_BACKGROUND      COLOR_NAVY
++
++/* standard pen color */
++#define COLOR_PEN             COLOR_WHITE
++
++/* titles */
++#define COLOR_TITLE           COLOR_YELLOW
++
++/* cursor */
++#define COLOR_CURSOR          COLOR_YELLOW
++
++/* infos (hello/bye) */
++#define COLOR_INFO            COLOR_CYAN
++
++/* warnings */
++#define COLOR_WARN            COLOR_WHITE
++
++/* errors */
++#define COLOR_ERROR           COLOR_RED
++
++/* marker (selected item) */
++#define COLOR_MARKER          COLOR_WHITE
++
++/* symbols */
++#define COLOR_SYMBOL          COLOR_YELLOW
++
++/* color codes for probe pins */
++#define COLOR_PROBE_1         COLOR_YELLOW
++#define COLOR_PROBE_2         COLOR_GREEN
++#define COLOR_PROBE_3         COLOR_RED
++
++/* battery status */
++#define COLOR_BAT_OK          COLOR_GREEN
++#define COLOR_BAT_WEAK        COLOR_YELLOW
++#define COLOR_BAT_LOW         COLOR_RED
++
++#endif
+ 
+ /* ************************************************************************
+  *   EOF
+diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
+--- ComponentTester-1.50m/config.h	2023-08-01 14:23:55.000000000 +0200
++++ CT_AY-AT_20MHz_1.50m/config.h	2023-09-04 19:33:42.050126733 +0200
+@@ -36,7 +36,7 @@
+  *    to match your rotary encoder
+  */
+ 
+-//#define HW_ENCODER
++#define HW_ENCODER
+ 
+ 
+ /*
+@@ -80,7 +80,7 @@
+  *    reference
+  */
+ 
+-//#define HW_REF25
++#define HW_REF25
+ 
+ 
+ /*
+@@ -89,7 +89,7 @@
+  *  - or use >= 5.5 digit DMM to measure the voltage
+  */
+ 
+-#define UREF_25           2495
++#define UREF_25           2499
+ 
+ 
+ /*
+@@ -114,7 +114,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define HW_ZENER
++#define HW_ZENER
+ 
+ 
+ /*
+@@ -137,7 +137,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define ZENER_UNSWITCHED
++#define ZENER_UNSWITCHED
+ 
+ 
+ /*
+@@ -188,7 +188,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define HW_FREQ_COUNTER_BASIC
++#define HW_FREQ_COUNTER_BASIC
+ 
+ 
+ /*
+@@ -421,7 +421,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define SW_ESR_TOOL
++#define SW_ESR_TOOL
+ 
+ 
+ /*
+@@ -449,7 +449,7 @@
+  *  - uncomment to enable
+  */
+ 
+-#define SW_IR_RECEIVER
++//#define SW_IR_RECEIVER
+ 
+ 
+ /*
+@@ -527,7 +527,7 @@
+  *  - uncomment to enable
+  */
+ 
+-#define SW_OPTO_COUPLER
++//#define SW_OPTO_COUPLER
+ 
+ 
+ /*
+@@ -604,7 +604,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define SW_CAP_LEAKAGE
++#define SW_CAP_LEAKAGE
+ 
+ 
+ /*
+@@ -613,7 +613,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define SW_REVERSE_HFE
++#define SW_REVERSE_HFE
+ 
+ 
+ /*
+@@ -623,7 +623,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define SW_HFE_CURRENT
++#define SW_HFE_CURRENT
+ 
+ 
+ /*
+@@ -847,7 +847,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_AUTOHOLD
++#define UI_AUTOHOLD
+ 
+ 
+ /*
+@@ -867,7 +867,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_KEY_HINTS
++#define UI_KEY_HINTS
+ 
+ 
+ /*
+@@ -933,7 +933,7 @@
+  *  - uncomment to enable, also adjust timeout (in s)
+  */
+ 
+-//#define POWER_OFF_TIMEOUT     60
++#define POWER_OFF_TIMEOUT     60
+ 
+ 
+ /*
+@@ -970,7 +970,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_ZENER_DIODE
++#define UI_ZENER_DIODE
+ 
+ 
+ /*
+@@ -1016,7 +1016,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_BATTERY
++#define UI_BATTERY
+ 
+ 
+ /*
+@@ -1045,7 +1045,7 @@
+  *    (COLOR_PROBE_1, COLOR_PROBE_2 and COLOR_PROBE_3)
+  */
+ 
+-#define UI_PROBE_COLORS
++//#define UI_PROBE_COLORS
+ 
+ 
+ /*
+@@ -1055,7 +1055,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_COLORED_TITLES
++#define UI_COLORED_TITLES
+ 
+ 
+ /*
+@@ -1065,7 +1065,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_COLORED_CURSOR
++#define UI_COLORED_CURSOR
+ 
+ 
+ /*
+@@ -1094,7 +1094,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_MAINMENU_AUTOEXIT
++#define UI_MAINMENU_AUTOEXIT
+ 
+ 
+ /*
+@@ -1102,7 +1102,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define SW_POWER_OFF
++#define SW_POWER_OFF
+ 
+ 
+ /*
+@@ -1157,8 +1157,8 @@
+  *  - uncomment one
+  */ 
+ 
+-#define DATA_EEPROM           /* store data in EEPROM */
+-//#define DATA_FLASH            /* store data in Flash */
++//#define DATA_EEPROM           /* store data in EEPROM */
++#define DATA_FLASH            /* store data in Flash */
+ 
+ 
+ 
+@@ -1223,10 +1223,10 @@
+  *  transistor (in mV):
+  *  - or any other circuitry in the power section
+  *  - Get your DMM and measure the voltage drop!
+- *  - Schottky diode about 200mV / PNP BJT about 100mV.
++ *  - Schottky diode about 350mV / PNP BJT about 150mV.
+  */  
+ 
+-#define BAT_OFFSET       290
++#define BAT_OFFSET       500
+ 
+ 
+ /*
+@@ -1235,7 +1235,7 @@
+  *  - Voltage drop BAT_OFFSET is considered in calculation.
+  */
+ 
+-#define BAT_WEAK         7400
++#define BAT_WEAK         7000
+ 
+ 
+ /*
+@@ -1244,7 +1244,7 @@
+  *  - Voltage drop BAT_OFFSET is considered in calculation.
+  */
+ 
+-#define BAT_LOW          6400 
++#define BAT_LOW          6000
+ 
+ 
+ /*
+diff -uw ComponentTester-1.50m/config_328.h CT_AY-AT_20MHz_1.50m/config_328.h
+--- ComponentTester-1.50m/config_328.h	2023-07-01 09:16:13.000000000 +0200
++++ CT_AY-AT_20MHz_1.50m/config_328.h	2023-09-04 19:33:42.050126733 +0200
+@@ -625,7 +625,7 @@
+  *  - uses LCD_CS to support rotary encoder in parallel at PD2/3
+  */
+ 
+-//#if 0
++#if 0
+ #define LCD_ST7565R                     /* display controller ST7565R */
+ #define LCD_GRAPHIC                     /* graphic display */
+ #define LCD_SPI                         /* SPI interface */
+@@ -668,7 +668,7 @@
+ #define SPI_DDR          LCD_DDR        /* SPI port data direction register */
+ #define SPI_SCK          LCD_SCL        /* port pin used for SCK */
+ #define SPI_MOSI         LCD_SI         /* port pin used for MOSI */
+-//#endif
++#endif
+ 
+ 
+ 
+@@ -726,6 +726,59 @@
+ 
+ 
+ /*
++ *  ST7735 AY-AT
++ *  - 4 wire SPI interface using bit-bang SPI
++ */
++
++#if 1
++#define LCD_ST7735                      /* display controller ST7735 */
++#define LCD_GRAPHIC                     /* graphic display */
++#define LCD_COLOR                       /* color display */
++#define LCD_SPI                         /* SPI interface */
++/* control and data lines */
++#define LCD_PORT         PORTD          /* port data register */
++#define LCD_DDR          DDRD           /* port data direction register */
++#define LCD_RES          PD0            /* port pin used for /RESX (optional) */
++#define LCD_CS           PD5            /* port pin used for /CSX (optional) */
++#define LCD_DC           PD1            /* port pin used for D/CX */
++#define LCD_SCL          PD2            /* port pin used for SCL */
++#define LCD_SDA          PD3            /* port pin used for SDA */
++/* display settings */
++#define LCD_DOTS_X       128            /* number of horizontal dots */
++#define LCD_DOTS_Y       160            /* number of vertical dots */
++//#define LCD_OFFSET_X     4               /* enable x offset of 2 or 4 dots */
++//#define LCD_OFFSET_Y     2               /* enable y offset of 1 or 2 dots */
++#define LCD_FLIP_X                      /* enable horizontal flip */
++//#define LCD_FLIP_Y                      /* enable vertical flip */
++#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
++//#define LCD_BGR                         /* reverse red and blue color channels */
++#define LCD_LATE_ON                     /* turn on LCD after clearing it */
++/* font and symbols: horizontally aligned & flipped */
++#define FONT_10X16_HF                   /* 10x16 font */
++//#define FONT_6X8_ISO8859_2_HF           /* 6x8 Central European font */
++//#define FONT_8X8_ISO8859_2_HF           /* 8x8 Central European font */
++//#define FONT_8X12T_ISO8859_2_HF         /* thin 8x12 Central European font */
++//#define FONT_8X16_ISO8859_2_HF          /* 8x16 Central European font */
++//#define FONT_10X16_ISO8859_2_HF         /* 10x16 Central European font */
++//#define FONT_8X16_WIN1251_HF            /* 8x16 cyrillic font */
++//#define FONT_8X16ALT_WIN1251_HF         /* 8x16 alternative cyrillic font */
++#define SYMBOLS_30X32_HF                /* 30x32 symbols */
++//#define SYMBOLS_30X32_ALT1_HF           /* 30x32 alternative symbols #1 */
++//#define SYMBOLS_30X32_ALT2_HF           /* 30x32 alternative symbols #2 */
++//#define SYMBOLS_32X32_HF                /* 32x32 symbols */
++//#define SYMBOLS_32X32_ALT1_HF           /* 32x32 alternative symbols #1 */
++//#define SYMBOLS_32X32_ALT2_HF           /* 32x32 alternative symbols #2 */
++/* SPI bus */
++#define SPI_BITBANG                     /* bit-bang SPI */
++#define SPI_PORT         LCD_PORT       /* SPI port data register */
++#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
++#define SPI_SCK          LCD_SCL        /* port pin used for SCK */
++#define SPI_MOSI         LCD_SDA        /* port pin used for MOSI */
++#endif
++
++
++
++/*
+  *  ST7920
+  *  - SPI interface using bit-bang SPI
+  *  - for a 180° rotated display (LCD_ROT180)
+@@ -940,16 +993,29 @@
+ #define TEST_BUTTON      PD7       /* test/start push button (low active) */
+ 
+ 
++#if 0
+ /*
+  *  rotary encoder
+  */
+-
+ #define ENCODER_PORT     PORTD     /* port data register */
+ #define ENCODER_DDR      DDRD      /* port data direction register */
+ #define ENCODER_PIN      PIND      /* port input pins register */
+ #define ENCODER_A        PD3       /* rotary encoder A signal */
+ #define ENCODER_B        PD2       /* rotary encoder B signal */
+ 
++#else
++
++/*
++ *  rotary encoder AY-AT
++ */
++
++#define ENCODER_PORT     PORTD     /* port data register */
++#define ENCODER_DDR      DDRD      /* port data direction register */
++#define ENCODER_PIN      PIND      /* port input pins register */
++#define ENCODER_A        PD3       /* rotary encoder A signal */
++#define ENCODER_B        PD1       /* rotary encoder B signal */
++#endif
++
+ 
+ /*
+  *  increase/decrease push buttons
+Common subdirectories: ComponentTester-1.50m/dep and CT_AY-AT_20MHz_1.50m/dep
+diff -uw ComponentTester-1.50m/inductor.c CT_AY-AT_20MHz_1.50m/inductor.c
+--- ComponentTester-1.50m/inductor.c	2020-07-08 19:40:54.000000000 +0200
++++ CT_AY-AT_20MHz_1.50m/inductor.c	2023-09-04 19:51:19.279941994 +0200
+@@ -580,18 +580,18 @@
+       #endif
+ 
+       #if CPU_FREQ == 20000000
+-      /* 20 MHz */
++      /* 20 MHz - modifications provided by indman@EEVBlog */
+       if (Temp < 1500)        /* < 1.5µs / < 100µH */
+       {
+-        Offset = 10;
++        Offset = -10;
+       }
+       else if (Temp < 5000)   /* 1.5-5µs / 100-330µH */
+       {
+-        Offset = -20; 
++        Offset = -10;
+       }
+       else                    /* > 5µs / > 330µH */
+       {
+-        Offset = -70;
++        Offset = -30;
+       }
+       #endif
+     }
+Only in CT_AY-AT_20MHz_1.50m: inductor.c~
+diff -uw ComponentTester-1.50m/user.c CT_AY-AT_20MHz_1.50m/user.c
+--- ComponentTester-1.50m/user.c	2023-05-20 21:20:26.000000000 +0200
++++ CT_AY-AT_20MHz_1.50m/user.c	2023-09-04 19:33:42.054126757 +0200
+@@ -1425,11 +1425,11 @@
+ {
+   if (Selected == Item)       /* current item selected */
+   {
+-    /* mark with asterisk */
++    /* mark with right arrow */
+     #ifdef LCD_COLOR
+     UI.PenColor = COLOR_MARKER;    /* change color */
+     #endif
+-    Display_Char('*');             /* display asterisk */
++    Display_Char('>');             /* display marker */
+     #ifdef LCD_COLOR
+     UI.PenColor = COLOR_PEN;       /* reset color */
+     #endif
+@@ -2092,21 +2092,33 @@
+    *  - items are added in display order
+    */
+ 
++  /* exit menu */
++  Item_Str[n] = (void *)Exit_str;
++  Item_ID[n] = MENUITEM_EXIT;
++  n++;
++
++  #ifdef SW_POWER_OFF
++  /* power off tester */
++  Item_Str[n] = (void *)PowerOff_str;
++  Item_ID[n] = MENUITEM_POWER_OFF;
++  n++;
++  #endif
++
+   /*
+    *  test/check/signal features
+    */
+ 
+-  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
+-  /* PWM tool */
+-  Item_Str[n] = (void *)PWM_str;
+-  Item_ID[n] = MENUITEM_PWM_TOOL;
++  #ifdef SW_ESR_TOOL
++  /* in-circuit ESR */
++  Item_Str[n] = (void *)ESR_str;
++  Item_ID[n] = MENUITEM_ESR;
+   n++;
+   #endif
+ 
+-  #ifdef SW_SQUAREWAVE
+-  /* Square Wave Signal Generator */
+-  Item_Str[n] = (void *)SquareWave_str;
+-  Item_ID[n] = MENUITEM_SQUAREWAVE;
++  #ifdef SW_CAP_LEAKAGE
++  /* cap leakage */
++  Item_Str[n] = (void *)CapLeak_str;
++  Item_ID[n] = MENUITEM_CAP_LEAKAGE;
+   n++;
+   #endif
+ 
+@@ -2117,6 +2129,20 @@
+   n++;
+   #endif
+ 
++  #ifdef SW_SQUAREWAVE
++  /* Square Wave Signal Generator */
++  Item_Str[n] = (void *)SquareWave_str;
++  Item_ID[n] = MENUITEM_SQUAREWAVE;
++  n++;
++  #endif
++
++  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
++  /* PWM tool */
++  Item_Str[n] = (void *)PWM_str;
++  Item_ID[n] = MENUITEM_PWM_TOOL;
++  n++;
++  #endif
++
+   #ifdef HW_LOGIC_PROBE
+   /* logic probe */
+   Item_Str[n] = (void *)LogicProbe_str;
+@@ -2131,20 +2157,6 @@
+   n++;
+   #endif
+ 
+-  #ifdef SW_ESR_TOOL
+-  /* in-circuit ESR */
+-  Item_Str[n] = (void *)ESR_str;
+-  Item_ID[n] = MENUITEM_ESR;
+-  n++;
+-  #endif
+-
+-  #ifdef SW_CAP_LEAKAGE
+-  /* cap leakage */
+-  Item_Str[n] = (void *)CapLeak_str;
+-  Item_ID[n] = MENUITEM_CAP_LEAKAGE;
+-  n++;
+-  #endif
+-
+   #ifdef SW_MONITOR_R
+   /* monitor R */
+   Item_Str[n] = (void *)Monitor_R_str;
+@@ -2357,18 +2369,6 @@
+   n++;
+   #endif
+ 
+-  #ifdef SW_POWER_OFF
+-  /* power off tester */
+-  Item_Str[n] = (void *)PowerOff_str;
+-  Item_ID[n] = MENUITEM_POWER_OFF;
+-  n++;
+-  #endif
+-
+-  /* exit menu */
+-  Item_Str[n] = (void *)Exit_str;
+-  Item_ID[n] = MENUITEM_EXIT;
+-  n++;
+-
+ 
+   /*
+    *  run menu
+diff -uw ComponentTester-1.50m/var_english.h CT_AY-AT_20MHz_1.50m/var_english.h
+--- ComponentTester-1.50m/var_english.h	2023-06-09 00:29:13.000000000 +0200
++++ CT_AY-AT_20MHz_1.50m/var_english.h	2023-09-04 19:33:42.054126757 +0200
+@@ -31,7 +31,7 @@
+   const unsigned char Failed2_str[] MEM_TYPE = "found!";
+   const unsigned char Done_str[] MEM_TYPE = "done!";
+   const unsigned char Select_str[] MEM_TYPE = "Select";
+-  const unsigned char Selftest_str[] MEM_TYPE = "Test";
++  const unsigned char Selftest_str[] MEM_TYPE = "Self Test";
+   const unsigned char Adjustment_str[] MEM_TYPE = "Adjustment";
+   const unsigned char Save_str[] MEM_TYPE = "Save";
+   const unsigned char Load_str[] MEM_TYPE = "Load";
+diff -uw ComponentTester-1.50m/variables.h CT_AY-AT_20MHz_1.50m/variables.h
+--- ComponentTester-1.50m/variables.h	2023-05-21 19:32:40.000000000 +0200
++++ CT_AY-AT_20MHz_1.50m/variables.h	2023-09-04 19:44:14.954536900 +0200
+@@ -155,7 +155,7 @@
+ 
+ 
+   /* firmware */
+-  const unsigned char Version_str[] MEM_TYPE = "v1.50m";
++  const unsigned char Version_str[] MEM_TYPE = "1.50HR";
+ 
+ 
+   /* common terms and texts */

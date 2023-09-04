@@ -31,7 +31,7 @@
   const unsigned char Failed2_str[] MEM_TYPE = "found!";
   const unsigned char Done_str[] MEM_TYPE = "done!";
   const unsigned char Select_str[] MEM_TYPE = "Select";
-  const unsigned char Selftest_str[] MEM_TYPE = "Test";
+  const unsigned char Selftest_str[] MEM_TYPE = "Self Test";
   const unsigned char Adjustment_str[] MEM_TYPE = "Adjustment";
   const unsigned char Save_str[] MEM_TYPE = "Save";
   const unsigned char Load_str[] MEM_TYPE = "Load";

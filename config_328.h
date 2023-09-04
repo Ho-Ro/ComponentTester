@@ -673,6 +673,59 @@
 
 
 /*
+ *  ST7735
+ *  - 4 wire SPI interface using bit-bang SPI
+ */
+
+#if 0
+#define LCD_ST7735                      /* display controller ST7735 */
+#define LCD_GRAPHIC                     /* graphic display */
+#define LCD_COLOR                       /* color display */
+#define LCD_SPI                         /* SPI interface */
+/* control and data lines */
+#define LCD_PORT         PORTD          /* port data register */
+#define LCD_DDR          DDRD           /* port data direction register */
+#define LCD_RES          PD4            /* port pin used for /RESX (optional) */
+#define LCD_CS           PD5            /* port pin used for /CSX (optional) */
+#define LCD_DC           PD3            /* port pin used for D/CX */
+#define LCD_SCL          PD2            /* port pin used for SCL */
+#define LCD_SDA          PD1            /* port pin used for SDA */
+/* display settings */
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       160            /* number of vertical dots */
+//#define LCD_OFFSET_X     4               /* enable x offset of 2 or 4 dots */
+//#define LCD_OFFSET_Y     2               /* enable y offset of 1 or 2 dots */
+//#define LCD_FLIP_X                      /* enable horizontal flip */
+#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
+//#define LCD_BGR                         /* reverse red and blue color channels */
+//#define LCD_LATE_ON                     /* turn on LCD after clearing it */
+/* font and symbols: horizontally aligned & flipped */
+#define FONT_10X16_HF                   /* 10x16 font */
+//#define FONT_6X8_ISO8859_2_HF           /* 6x8 Central European font */
+//#define FONT_8X8_ISO8859_2_HF           /* 8x8 Central European font */
+//#define FONT_8X12T_ISO8859_2_HF         /* thin 8x12 Central European font */
+//#define FONT_8X16_ISO8859_2_HF          /* 8x16 Central European font */
+//#define FONT_10X16_ISO8859_2_HF         /* 10x16 Central European font */
+//#define FONT_8X16_WIN1251_HF            /* 8x16 cyrillic font */
+//#define FONT_8X16ALT_WIN1251_HF         /* 8x16 alternative cyrillic font */
+#define SYMBOLS_30X32_HF                /* 30x32 symbols */
+//#define SYMBOLS_30X32_ALT1_HF           /* 30x32 alternative symbols #1 */
+//#define SYMBOLS_30X32_ALT2_HF           /* 30x32 alternative symbols #2 */
+//#define SYMBOLS_32X32_HF                /* 32x32 symbols */
+//#define SYMBOLS_32X32_ALT1_HF           /* 32x32 alternative symbols #1 */
+//#define SYMBOLS_32X32_ALT2_HF           /* 32x32 alternative symbols #2 */
+/* SPI bus */
+#define SPI_BITBANG                     /* bit-bang SPI */
+#define SPI_PORT         LCD_PORT       /* SPI port data register */
+#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
+#define SPI_SCK          LCD_SCL        /* port pin used for SCK */
+#define SPI_MOSI         LCD_SDA        /* port pin used for MOSI */
+#endif
+
+
+
+/*
  *  ST7735 AY-AT
  *  - 4 wire SPI interface using bit-bang SPI
  */
@@ -940,6 +993,18 @@
 #define TEST_BUTTON      PD7       /* test/start push button (low active) */
 
 
+#if 0
+/*
+ *  rotary encoder
+ */
+#define ENCODER_PORT     PORTD     /* port data register */
+#define ENCODER_DDR      DDRD      /* port data direction register */
+#define ENCODER_PIN      PIND      /* port input pins register */
+#define ENCODER_A        PD3       /* rotary encoder A signal */
+#define ENCODER_B        PD2       /* rotary encoder B signal */
+
+#else
+
 /*
  *  rotary encoder AY-AT
  */
@@ -949,6 +1014,7 @@
 #define ENCODER_PIN      PIND      /* port input pins register */
 #define ENCODER_A        PD3       /* rotary encoder A signal */
 #define ENCODER_B        PD1       /* rotary encoder B signal */
+#endif
 
 
 /*

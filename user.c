@@ -2108,10 +2108,24 @@ uint8_t PresentMainMenu(void)
    *  test/check/signal features
    */
 
-  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
-  /* PWM tool */
-  Item_Str[n] = (void *)PWM_str;
-  Item_ID[n] = MENUITEM_PWM_TOOL;
+  #ifdef SW_ESR_TOOL
+  /* in-circuit ESR */
+  Item_Str[n] = (void *)ESR_str;
+  Item_ID[n] = MENUITEM_ESR;
+  n++;
+  #endif
+
+  #ifdef SW_CAP_LEAKAGE
+  /* cap leakage */
+  Item_Str[n] = (void *)CapLeak_str;
+  Item_ID[n] = MENUITEM_CAP_LEAKAGE;
+  n++;
+  #endif
+
+  #ifdef HW_ZENER
+  /* Zener tool */
+  Item_Str[n] = (void *)Zener_str;
+  Item_ID[n] = MENUITEM_ZENER;
   n++;
   #endif
 
@@ -2122,10 +2136,10 @@ uint8_t PresentMainMenu(void)
   n++;
   #endif
 
-  #ifdef HW_ZENER
-  /* Zener tool */
-  Item_Str[n] = (void *)Zener_str;
-  Item_ID[n] = MENUITEM_ZENER;  
+  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
+  /* PWM tool */
+  Item_Str[n] = (void *)PWM_str;
+  Item_ID[n] = MENUITEM_PWM_TOOL;
   n++;
   #endif
 
@@ -2140,20 +2154,6 @@ uint8_t PresentMainMenu(void)
   /* continuity check */
   Item_Str[n] = (void *)ContinuityCheck_str;
   Item_ID[n] = MENUITEM_CONTINUITY;  
-  n++;
-  #endif
-
-  #ifdef SW_ESR_TOOL
-  /* in-circuit ESR */
-  Item_Str[n] = (void *)ESR_str;
-  Item_ID[n] = MENUITEM_ESR;
-  n++;
-  #endif
-
-  #ifdef SW_CAP_LEAKAGE
-  /* cap leakage */
-  Item_Str[n] = (void *)CapLeak_str;
-  Item_ID[n] = MENUITEM_CAP_LEAKAGE;
   n++;
   #endif
 

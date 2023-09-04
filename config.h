@@ -80,7 +80,7 @@
  *    reference
  */
 
-//#define HW_REF25
+#define HW_REF25
 
 
 /*
@@ -89,7 +89,7 @@
  *  - or use >= 5.5 digit DMM to measure the voltage
  */
 
-#define UREF_25           2495
+#define UREF_25           2499
 
 
 /*
@@ -114,7 +114,7 @@
  *  - uncomment to enable
  */
 
-//#define HW_ZENER
+#define HW_ZENER
 
 
 /*
@@ -1045,7 +1045,7 @@
  *    (COLOR_PROBE_1, COLOR_PROBE_2 and COLOR_PROBE_3)
  */
 
-#define UI_PROBE_COLORS
+//#define UI_PROBE_COLORS
 
 
 /*
@@ -1223,10 +1223,10 @@
  *  transistor (in mV):
  *  - or any other circuitry in the power section
  *  - Get your DMM and measure the voltage drop!
- *  - Schottky diode about 200mV / PNP BJT about 100mV.
+ *  - Schottky diode about 350mV / PNP BJT about 150mV.
  */  
 
-#define BAT_OFFSET       290
+#define BAT_OFFSET       500
 
 
 /*
@@ -1235,7 +1235,7 @@
  *  - Voltage drop BAT_OFFSET is considered in calculation.
  */
 
-#define BAT_WEAK         7400
+#define BAT_WEAK         7000
 
 
 /*
@@ -1244,7 +1244,7 @@
  *  - Voltage drop BAT_OFFSET is considered in calculation.
  */
 
-#define BAT_LOW          6400 
+#define BAT_LOW          6000
 
 
 /*

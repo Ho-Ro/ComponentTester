@@ -6,7 +6,7 @@
 #
 
 # project name
-NAME = CT_AY-AT_20MHZ
+NAME = CT_AY-AT_20MHz
 
 
 #
@@ -129,7 +129,9 @@ DIST = $(notdir ${CURDIR})
 
 # compiler flags
 CC = avr-gcc
-CPP = avr-g++
+#CPP = avr-g++
+OBJCOPY = avr-objcopy
+OBJDUMP = avr-objdump
 CFLAGS = -mmcu=${MCU} -Wall -I. -Ibitmaps
 CFLAGS += -DF_CPU=${FREQ}000000UL
 CFLAGS += -DOSC_STARTUP=${OSC_STARTUP}
@@ -187,15 +189,15 @@ $(NAME): ${OBJECTS}
 
 # create hex file of firmware
 %.hex: ${NAME}
-	avr-objcopy -O ihex ${HEX_FLASH_FLAGS} $< $@
+	${OBJCOPY} -O ihex ${HEX_FLASH_FLAGS} $< $@
 
 # create hex file of EEPROM data
 %.eep: ${NAME}
-	-avr-objcopy ${HEX_EEPROM_FLAGS} -O ihex $< $@ || exit 0
+	-${OBJCOPY} ${HEX_EEPROM_FLAGS} -O ihex $< $@ || exit 0
 
 # create dump of firmware
 %.lss: ${NAME}
-	avr-objdump -h -S $< > $@
+	${OBJDUMP} -h -S $< > $@
 
 # output firmware size and other info
 size: ${NAME}
@@ -251,13 +253,13 @@ prog_ee: ${NAME} ${NAME}.eep ${NAME}.lss size
 .PHONY: get_cal
 get_cal:
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
-	  -U eeprom:r:${calibration}.eep:i
+	  -U eeprom:r:${NAME}_cal.eep:i
 
 # restore EEPROM calibration data
 .PHONY: set_cal
 set_cal:
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
-	  -U eeprom:w:${calibration}.eep:i
+	  -U eeprom:w:${NAME}_cal.eep:i
 
 #
 #  misc
@@ -274,8 +276,7 @@ dist: clean
 
 # clean up
 clean:
-	-rm -rf ${OBJECTS} ${NAME} dep/* *.tgz *~
-	-rm -rf ${NAME}.hex ${NAME}.eep ${NAME}.lss ${NAME}.map
+	-rm -rf ${OBJECTS} ${NAME} ${NAME}* dep/* *.tgz *~
 
 
 #
