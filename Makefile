@@ -137,7 +137,7 @@ CFLAGS += -DF_CPU=${FREQ}000000UL
 CFLAGS += -DOSC_STARTUP=${OSC_STARTUP}
 CFLAGS += -gdwarf-2 -std=gnu99 -Os -mcall-prologues
 CFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
-#CFLAGS += -flto
+CFLAGS += -flto
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d
 
 # linker flags

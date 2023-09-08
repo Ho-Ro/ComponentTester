@@ -58,7 +58,7 @@
  *  - adjust value to match your rotary encoder
  */
 
-#define ENCODER_STEPS    24
+#define ENCODER_STEPS    20
 
 
 /*
@@ -637,7 +637,7 @@
 //#define SW_MONITOR_R          /* just R */
 //#define SW_MONITOR_C          /* just C plus ESR */
 //#define SW_MONITOR_L          /* just L */
-//#define SW_MONITOR_RCL        /* R plus L, or C plus ESR */
+#define SW_MONITOR_RCL        /* R plus L, or C plus ESR */
 //#define SW_MONITOR_RL         /* R plus L */
 
 
@@ -718,7 +718,7 @@
  *  - uncomment to enable
  */ 
 
-//#define SW_C_VLOSS
+#define SW_C_VLOSS
 
 
 /*
@@ -1286,10 +1286,10 @@
  */
 
 /* Rl in Ohms */
-#define R_LOW            680
+#define R_LOW            679
 
 /* Rh in Ohms */
-#define R_HIGH           470000
+#define R_HIGH           470413
 
 
 /*
