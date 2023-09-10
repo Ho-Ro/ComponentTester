@@ -142,6 +142,7 @@ CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d
 
 # linker flags
 LDFLAGS = -mmcu=${MCU} -Wl,-Map=${NAME}.map
+LDFLAGS += -Wl,--relax
 
 # hex file flags
 HEX_FLASH_FLAGS = -R .eeprom -R .fuse -R .lock -R .signature

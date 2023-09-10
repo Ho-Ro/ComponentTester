@@ -1,6 +1,6 @@
 diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
 --- ComponentTester-1.50m/Makefile	2023-02-02 17:21:36.000000000 +0100
-+++ CT_AY-AT_20MHz_1.50m/Makefile	2023-09-04 19:51:19.279941994 +0200
++++ CT_AY-AT_20MHz_1.50m/Makefile	2023-09-10 19:27:35.349477853 +0200
 @@ -5,7 +5,8 @@
  #  based on code from Markus Frejek and Karl-Heinz Kübbeler
  #
@@ -44,7 +44,7 @@ diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
  
  # Pololu USB AVR Programmer
  #PROGRAMMER = stk500v2
-@@ -118,21 +124,20 @@
+@@ -118,25 +124,25 @@
  #  global settings
  #
  
@@ -70,7 +70,12 @@ diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
  CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d
  
  # linker flags
-@@ -184,15 +189,15 @@
+ LDFLAGS = -mmcu=${MCU} -Wl,-Map=${NAME}.map
++LDFLAGS += -Wl,--relax
+ 
+ # hex file flags
+ HEX_FLASH_FLAGS = -R .eeprom -R .fuse -R .lock -R .signature
+@@ -184,15 +190,15 @@
  
  # create hex file of firmware
  %.hex: ${NAME}
@@ -89,7 +94,7 @@ diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
  
  # output firmware size and other info
  size: ${NAME}
-@@ -224,20 +229,37 @@
+@@ -224,20 +230,37 @@
  .PHONY: upload
  upload: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
  	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
@@ -130,7 +135,7 @@ diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
  
  #
  #  misc
-@@ -254,8 +276,7 @@
+@@ -254,8 +277,7 @@
  
  # clean up
  clean:
@@ -762,7 +767,6 @@ diff -uw ComponentTester-1.50m/user.c CT_AY-AT_20MHz_1.50m/user.c
  
    /*
     *  run menu
-Only in CT_AY-AT_20MHz_1.50m: user.c~
 diff -uw ComponentTester-1.50m/var_english.h CT_AY-AT_20MHz_1.50m/var_english.h
 --- ComponentTester-1.50m/var_english.h	2023-06-09 00:29:13.000000000 +0200
 +++ CT_AY-AT_20MHz_1.50m/var_english.h	2023-09-04 19:33:42.050126733 +0200
