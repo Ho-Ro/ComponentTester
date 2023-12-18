@@ -121,9 +121,9 @@ void SetAdjustmentDefaults(void)
 
 #ifdef HW_TOUCH
 
-/*
- *  functions optimized for generic usage
- */
+  /*
+   *  functions optimized for generic usage
+   */
 
 
 /*
@@ -186,24 +186,18 @@ uint8_t DataStorage(uint8_t *Data_RAM, uint8_t *Data_EE, uint8_t Size, uint8_t M
 
 
   /*
-   *  read/write EEPROM byte-wise to/from data structure in RAM
+   *  read/write EEPROM block-wise to/from data structure in RAM
    */
 
-  n = 0;
-  while (n < Size)
+  if (Mode == STORAGE_SAVE)             /* write */
   {
-    if (Mode == STORAGE_SAVE)           /* write */
-    {
-      eeprom_write_byte(Data_EE, *Data_RAM);    /* write a byte */
-    }
-    else                                /* read */
-    {
-      *Data_RAM = eeprom_read_byte(Data_EE);    /* read a byte */
-    }
-
-    Data_RAM++;               /* next byte */
-    Data_EE++;                /* next byte */
-    n++;                      /* next byte */
+    /* write data block from RAM to EEPROM */
+    eeprom_write_block(Data_RAM, Data_EE, Size);
+  }
+  else                                  /* read */
+  {
+    /* read data block from EEPROM to RAM */
+    eeprom_read_block(Data_RAM, Data_EE, Size);
   }
 
 
@@ -216,7 +210,7 @@ uint8_t DataStorage(uint8_t *Data_RAM, uint8_t *Data_EE, uint8_t Size, uint8_t M
     n = CheckSum(Help, Size);      /* checksum of data in RAM */
 
     /* data structure's last byte is checksum */
-    Data_RAM--;                    /* one byte back */
+    Data_RAM += Size - 1;          /* point to last byte */
     if (*Data_RAM != 0)            /* EEPROM updated */
     {
       if (*Data_RAM != n)          /* mismatch */
@@ -301,12 +295,15 @@ void ManageAdjustmentStorage(uint8_t Mode, uint8_t ID)
 }
 
 
+  /*
+   *  end of functions optimized for generic usage
+   */
+
 #else
 
-
-/*
- *  functions optimized for basic adjustment offsets and values
- */
+  /*
+   *  functions optimized for basic adjustment offsets and values
+   */
 
 
 /*
@@ -371,22 +368,18 @@ void ManageAdjustmentStorage(uint8_t Mode, uint8_t ID)
 
 
   /*
-   *  read/write EEPROM byte-wise to/from data structure 
+   *  read/write EEPROM block-wise to/from data structure 
    */
 
-  for (n = 0; n < sizeof(Adjust_Type); n++)
+  if (Mode == STORAGE_SAVE)           /* write */
   {
-    if (Mode == STORAGE_SAVE)           /* write */
-    {
-      eeprom_write_byte(Addr_EE, *Addr_RAM);    /* write a byte */
-    }
-    else                                /* read */
-    {
-      *Addr_RAM = eeprom_read_byte(Addr_EE);    /* read a byte */
-    }
-
-    Addr_RAM++;               /* next byte */
-    Addr_EE++;                /* next byte */
+    /* write data block from RAM to EEPROM */
+    eeprom_write_block(Addr_RAM, Addr_EE, sizeof(Adjust_Type));
+  }
+  else                                /* read */
+  {
+    /* read data block from EEPROM to RAM */
+    eeprom_read_block(Addr_RAM, Addr_EE, sizeof(Adjust_Type));
   }
 
 
@@ -419,6 +412,11 @@ void ManageAdjustmentStorage(uint8_t Mode, uint8_t ID)
     }
   }
 }
+
+
+  /*
+   *  end of functions optimized for basic adjustment offsets and values
+   */
 
 #endif
 
@@ -615,7 +613,7 @@ uint8_t SelfAdjustment(void)
            */
 
           /* probe pair 1-2 */
-          UpdateProbes(PROBE_2, PROBE_1, 0); /* probes #2 and #1 */
+          UpdateProbes2(PROBE_2, PROBE_1);   /* probes #2 and #1 */
           Val1 = SmallResistor(0);           /* get R in 0.01 Ohm */
           if (Val1 < 150)                    /* within limit (< 1.5 Ohm) */
           {
@@ -629,7 +627,7 @@ uint8_t SelfAdjustment(void)
           }
 
           /* probe pair 1-3 */
-          UpdateProbes(PROBE_3, PROBE_1, 0); /* probes #3 and #1 */
+          UpdateProbes2(PROBE_3, PROBE_1);   /* probes #3 and #1 */
           Val2 = SmallResistor(0);           /* get R in 0.01 Ohm */
           if (Val2 < 150)                    /* within limit (< 1.5 Ohm) */
           {
@@ -643,7 +641,7 @@ uint8_t SelfAdjustment(void)
           }
 
           /* probe pair 2-3 */
-          UpdateProbes(PROBE_3, PROBE_2, 0); /* probes #3 and #2 */
+          UpdateProbes2(PROBE_3, PROBE_2);   /* probes #3 and #2 */
           Val3 = SmallResistor(0);           /* get R in 0.01 Ohm */
           if (Val3 < 150)                    /* within limit (< 1.5 Ohm) */
           {
@@ -898,11 +896,11 @@ uint8_t SelfAdjustment(void)
   }
   #endif
 
-  /* show basic values and offsets */
-  ShowAdjustmentValues();
-
   if (Flag == 4)         /* all adjustments done */
   {
+    /* show basic values and offsets */
+    ShowAdjustmentValues();
+
     Flag = 1;            /* signal success */
   }
   else                   /* missing adjustments */

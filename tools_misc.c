@@ -837,12 +837,10 @@ void Encoder_Tool(void)
 
 void Check_LED(uint8_t Probe1, uint8_t Probe2)
 {
-  uint8_t           Probe3;             /* ID of probe #3 */
   uint16_t          U1;                 /* voltage */
 
-  /* update all three probes */
-  Probe3 = GetThirdProbe(Probe1, Probe2);    /* get third one */
-  UpdateProbes(Probe1, Probe2, Probe3);      /* update probes */
+  /* update all three probes (3rd probe is done automatically) */
+  UpdateProbes2(Probe1, Probe2);        /* update probes */
 
   /* we assume: probe-1 = A / probe2 = C */
   /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
@@ -950,8 +948,8 @@ void OptoCoupler_Tool(void)
       if (Check.Diodes == 1)       /* got one */
       {
         /* update all three probes for remaining checks */
-        Test = GetThirdProbe(Diodes[0].A, Diodes[0].C);  /* get third probe */
-        UpdateProbes(Diodes[0].A, Diodes[0].C, Test);    /* update probes */
+        /* (3rd probe is done automatically) */
+        UpdateProbes2(Diodes[0].A, Diodes[0].C);
 
         Test = DETECTED_LED;            /* proceed with other checks */
       }
@@ -1474,7 +1472,7 @@ void Monitor_R(void)
   ProbePinout(PROBES_RCL);              /* show probes used */
 
   /* init */
-  UpdateProbes(PROBE_1, PROBE_3, 0);    /* set probes */
+  UpdateProbes2(PROBE_1, PROBE_3);      /* set probes */
   R1 = &Resistors[0];                   /* pointer to first resistor */
   /* increase number of samples to lower spread of measurement values */
   Cfg.Samples = 100;                    /* perform 100 ADC samples */
@@ -1548,6 +1546,7 @@ void Monitor_C(void)
   Check.Diodes = 0;                     /* reset diode counter */
   Cap = &Caps[0];                       /* pointer to first cap */
 
+
   /*
    *  processing loop
    */
@@ -1570,7 +1569,8 @@ void Monitor_C(void)
 
     /* measure and display C */
     Check.Found = COMP_NONE;                 /* no component */
-    MeasureCap(PROBE_1, PROBE_3, 0);         /* measure capacitance */
+    /* keep probe order of normal probing cycle */
+    MeasureCap(PROBE_3, PROBE_1, 0);         /* measure capacitance */
     LCD_ClearLine2();                        /* clear line #2 */
 
     if (Check.Found == COMP_CAPACITOR)       /* found cap */
@@ -1656,7 +1656,7 @@ void Monitor_L(void)
     #endif
 
     /* measure R */
-    UpdateProbes(PROBE_1, PROBE_3, 0);  /* set probes */
+    UpdateProbes2(PROBE_1, PROBE_3);    /* set probes */
     Check.Resistors = 0;                /* reset resistor counter */
     CheckResistor();                    /* check for resistor */
     LCD_ClearLine2();                   /* clear line #2 */
@@ -1747,7 +1747,7 @@ void Monitor_RCL(void)
       Cfg.Samples = 100;                /* perform 100 ADC samples */
 
       /* measure R */
-      UpdateProbes(PROBE_1, PROBE_3, 0);     /* set probes */
+      UpdateProbes2(PROBE_1, PROBE_3);       /* set probes */
       Check.Resistors = 0;                   /* reset resistor counter */
       CheckResistor();                       /* check for resistor */
 
@@ -1776,7 +1776,9 @@ void Monitor_RCL(void)
     if (Run != COMP_INDUCTOR)           /* none, C or R */
     {
       /* measure capacitance */
-      MeasureCap(PROBE_1, PROBE_3, 0);       /* measure capacitance */
+
+      /* keep probe order of normal probing cycle */
+      MeasureCap(PROBE_3, PROBE_1, 0);       /* measure capacitance */
 
       if (Check.Found == COMP_CAPACITOR)     /* found cap */
       {
@@ -1877,7 +1879,7 @@ void Monitor_RL(void)
   while (Flag)
   {
     /* measure R and display value */
-    UpdateProbes(PROBE_1, PROBE_3, 0);  /* set probes */
+    UpdateProbes2(PROBE_1, PROBE_3);    /* set probes */
     Check.Resistors = 0;                /* reset resistor counter */
     CheckResistor();                    /* check for resistor */
     LCD_ClearLine2();                   /* clear line #2 */

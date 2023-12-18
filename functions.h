@@ -676,9 +676,9 @@
 #ifndef PROBES_C
 
   extern void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3);
+  extern void UpdateProbes2(uint8_t Probe1, uint8_t Probe2);
   extern void RestoreProbes(void);
   extern void BackupProbes(void);
-  extern uint8_t GetThirdProbe(uint8_t Probe1, uint8_t Probe2);
   extern uint8_t ShortedProbes(void);
   #if defined (SW_ESR) || defined (SW_OLD_ESR)
   extern void DischargeCap(uint8_t Probe1, uint8_t Probe2);

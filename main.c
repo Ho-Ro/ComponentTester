@@ -2,7 +2,7 @@
  *
  *   main part
  *
- *   (c) 2012-2022 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -1230,7 +1230,7 @@ void Show_Diode(void)
     }
 
     /* reverse leakage current */
-    UpdateProbes(D1->C, D1->A, 0);      /* reverse diode */
+    UpdateProbes2(D1->C, D1->A);        /* reverse diode */
     GetLeakageCurrent(1);               /* get current */
     Show_SemiCurrent(I_R_str);          /* display I_R */
 
@@ -3007,7 +3007,7 @@ show_component:
   }
   #endif
 
-  #ifdef UI_BATTERY_LASTLINE
+  #if ! defined (BAT_NONE) && defined (UI_BATTERY_LASTLINE)
   /* alternative display of battery status in last line */
   CheckBattery();                  /* check battery voltage */
                                    /* will power off on low battery */
@@ -3135,14 +3135,6 @@ cycle_action:
     /* todo: move this to MainMenu()? (after selecting item) */
     #endif
 
-    #ifdef POWER_OFF_TIMEOUT
-    /* automatic power-off for auto-hold mode */
-    if (Cfg.OP_Mode & OP_AUTOHOLD)        /* in auto-hold mode */
-    {
-      Cfg.OP_Control &= ~OP_PWR_TIMEOUT;  /* disable power-off timeout */
-    }
-    #endif
-
     #ifdef UI_MAINMENU_AUTOEXIT
       /* run main menu once and return to probe cycle */
       MainMenu();                  /* enter main menu */
@@ -3152,14 +3144,6 @@ cycle_action:
       {
         /* keep running main menu */
       }
-    #endif
-
-    #ifdef POWER_OFF_TIMEOUT
-    /* automatic power-off for auto-hold mode */
-    if (Cfg.OP_Mode & OP_AUTOHOLD)        /* in auto-hold mode */
-    {
-      Cfg.OP_Control |= OP_PWR_TIMEOUT;   /* enable power-off timeout */
-    }
     #endif
 
     #ifdef SAVE_POWER

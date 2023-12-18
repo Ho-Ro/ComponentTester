@@ -1448,7 +1448,7 @@ void SquareWave_SignalGenerator(void)
      */
 
     Value = CPU_FREQ * 100;        /* scale to 0.01Hz */
-    Value /= Prescaler;
+    Value /= Prescaler;            /* / prescaler */
     Test = 2;                      /* 2 decimal places */
 
     /*
@@ -1465,7 +1465,7 @@ void SquareWave_SignalGenerator(void)
       Temp /= 8;              /* next lower prescaler */
     }
 
-    Value /= Top + 1;
+    Value /= Top + 1;                   /* / (1 + top) */
     LCD_ClearLine2();
     Display_FullValue(Value, Test, 0);  /* display frequency */
     Display_EEString(Hertz_str);        /* display: Hz */

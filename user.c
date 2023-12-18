@@ -1685,6 +1685,13 @@ uint8_t MenuTool(uint8_t Items, uint8_t Type, void *Menu[], unsigned char *Unit)
     {
       Run = 0;                          /* end loop */
     }
+    #ifdef POWER_OFF_TIMEOUT
+    /* automatic power-off for auto-hold mode */
+    else if (n == KEY_POWER_OFF)   /* power off */
+    {
+      PowerOff();                       /* power off */
+    }
+    #endif
   }
 
   LCD_Clear();                /* feedback for user */
@@ -2452,6 +2459,16 @@ uint8_t MainMenu(void)
 
   ID = PresentMainMenu();     /* create menu and get user feedback */
 
+  #ifdef POWER_OFF_TIMEOUT
+  /* automatic power-off for auto-hold mode */
+  if (Cfg.OP_Mode & OP_AUTOHOLD)        /* in auto-hold mode */
+  {
+    /* keep functions/tools running without inactivity timeout */
+    Cfg.OP_Control &= ~OP_PWR_TIMEOUT;  /* disable power-off timeout */
+  }
+  #endif
+
+
   /*
    *  run selected item
    */
@@ -2743,6 +2760,14 @@ uint8_t MainMenu(void)
       break;
     #endif
   }
+
+  #ifdef POWER_OFF_TIMEOUT
+  /* automatic power-off for auto-hold mode */
+  if (Cfg.OP_Mode & OP_AUTOHOLD)        /* in auto-hold mode */
+  {
+    Cfg.OP_Control |= OP_PWR_TIMEOUT;   /* enable power-off timeout again */
+  }
+  #endif
 
 
   /*
