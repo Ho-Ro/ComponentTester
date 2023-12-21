@@ -892,6 +892,7 @@ uint8_t LargeCap(Capacitor_Type *Cap)
   uint16_t          U_leak = 0;    /* voltage drop (leakage current) */
   uint32_t          Raw;           /* raw capacitance value */
   uint32_t          Value;         /* corrected capacitance value */
+  int16_t           U_temp;        /* temporary voltage */
 
   /* set up mode */
   Mode = PULL_10MS | PULL_UP;      /* start with large cap (>47uF) */
@@ -953,10 +954,12 @@ large_cap:
     U_Cap = ReadU(Probes.Ch_1);         /* get voltage */
 
     /* consider zero offset */
-    if (U_Cap > U_Zero)            /* voltage higher than zero offset */
-      U_Cap -= U_Zero;                  /* subtract zero offset */
+    U_temp = (int16_t)U_Cap;       /* explicit type conversion */
+    if (U_temp > U_Zero)           /* voltage higher than zero offset */
+      U_temp -= U_Zero;                 /* subtract zero offset */
     else                           /* shouldn't happen but you never know */
-      U_Cap = 0;                        /* assume 0V */
+      U_temp = 0;                       /* assume 0V */
+    U_Cap = (uint16_t)U_temp;      /* take result */
 
     /* end loop if charging is too slow */
     if ((Pulses == 126) && (U_Cap < 75)) TempByte = 0;
