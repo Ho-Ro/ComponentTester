@@ -1425,11 +1425,11 @@ void MarkItem(uint8_t Item, uint8_t Selected)
 {
   if (Selected == Item)       /* current item selected */
   {
-    /* mark with asterisk */
+    /* mark with right arrow */
     #ifdef LCD_COLOR
     UI.PenColor = COLOR_MARKER;    /* change color */
     #endif
-    Display_Char('*');             /* display asterisk */
+    Display_Char('>');             /* display marker */
     #ifdef LCD_COLOR
     UI.PenColor = COLOR_PEN;       /* reset color */
     #endif
@@ -2099,44 +2099,21 @@ uint8_t PresentMainMenu(void)
    *  - items are added in display order
    */
 
+  /* exit menu */
+  Item_Str[n] = (void *)Exit_str;
+  Item_ID[n] = MENUITEM_EXIT;
+  n++;
+
+  #ifdef SW_POWER_OFF
+  /* power off tester */
+  Item_Str[n] = (void *)PowerOff_str;
+  Item_ID[n] = MENUITEM_POWER_OFF;
+  n++;
+  #endif
+
   /*
    *  test/check/signal features
    */
-
-  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
-  /* PWM tool */
-  Item_Str[n] = (void *)PWM_str;
-  Item_ID[n] = MENUITEM_PWM_TOOL;
-  n++;
-  #endif
-
-  #ifdef SW_SQUAREWAVE
-  /* Square Wave Signal Generator */
-  Item_Str[n] = (void *)SquareWave_str;
-  Item_ID[n] = MENUITEM_SQUAREWAVE;
-  n++;
-  #endif
-
-  #ifdef HW_ZENER
-  /* Zener tool */
-  Item_Str[n] = (void *)Zener_str;
-  Item_ID[n] = MENUITEM_ZENER;  
-  n++;
-  #endif
-
-  #ifdef HW_LOGIC_PROBE
-  /* logic probe */
-  Item_Str[n] = (void *)LogicProbe_str;
-  Item_ID[n] = MENUITEM_LOGIC_PROBE;  
-  n++;
-  #endif
-
-  #ifdef SW_CONTINUITY_CHECK
-  /* continuity check */
-  Item_Str[n] = (void *)ContinuityCheck_str;
-  Item_ID[n] = MENUITEM_CONTINUITY;  
-  n++;
-  #endif
 
   #ifdef SW_ESR_TOOL
   /* in-circuit ESR */
@@ -2184,6 +2161,41 @@ uint8_t PresentMainMenu(void)
   /* monitor R/L */
   Item_Str[n] = (void *)Monitor_RL_str;
   Item_ID[n] = MENUITEM_MONITOR_RL;
+  n++;
+  #endif
+
+  #ifdef HW_ZENER
+  /* Zener tool */
+  Item_Str[n] = (void *)Zener_str;
+  Item_ID[n] = MENUITEM_ZENER;
+  n++;
+  #endif
+
+  #ifdef SW_SQUAREWAVE
+  /* Square Wave Signal Generator */
+  Item_Str[n] = (void *)SquareWave_str;
+  Item_ID[n] = MENUITEM_SQUAREWAVE;
+  n++;
+  #endif
+
+  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
+  /* PWM tool */
+  Item_Str[n] = (void *)PWM_str;
+  Item_ID[n] = MENUITEM_PWM_TOOL;
+  n++;
+  #endif
+
+  #ifdef HW_LOGIC_PROBE
+  /* logic probe */
+  Item_Str[n] = (void *)LogicProbe_str;
+  Item_ID[n] = MENUITEM_LOGIC_PROBE;
+  n++;
+  #endif
+
+  #ifdef SW_CONTINUITY_CHECK
+  /* continuity check */
+  Item_Str[n] = (void *)ContinuityCheck_str;
+  Item_ID[n] = MENUITEM_CONTINUITY;
   n++;
   #endif
 
@@ -2363,18 +2375,6 @@ uint8_t PresentMainMenu(void)
   Item_ID[n] = MENUITEM_SYMBOL_TEST;
   n++;
   #endif
-
-  #ifdef SW_POWER_OFF
-  /* power off tester */
-  Item_Str[n] = (void *)PowerOff_str;
-  Item_ID[n] = MENUITEM_POWER_OFF;
-  n++;
-  #endif
-
-  /* exit menu */
-  Item_Str[n] = (void *)Exit_str;
-  Item_ID[n] = MENUITEM_EXIT;
-  n++;
 
 
   /*

@@ -156,7 +156,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.51m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.51m_AY-AT_20M";
 
 
   /* common terms and texts */

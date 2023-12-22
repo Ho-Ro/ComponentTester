@@ -5,7 +5,8 @@
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
-PROJECT = ComponentTester
+# project name
+NAME = CT_AY-AT_20MHz
 
 
 #
@@ -29,7 +30,7 @@ MCU = atmega328
 # - 8MHz  : 8
 # - 16MHz : 16
 # - 20MHz : 20
-FREQ = 8
+FREQ = 20
 
 # oscillator type
 # - internal RC oscillator      : RC
@@ -78,15 +79,20 @@ PARTNO = m328p
 #PORT = /dev/ttyACM0
 #OPTIONS = -b 19200
 
+# Arduino nano as ISP
+PROGRAMMER = nanoSTK
+PORT = /dev/ttyUSB0
+#OPTIONS = -b 115200
+
 # Bus Pirate
 #PROGRAMMER = buspirate
 #PORT = /dev/bus_pirate
 #OPTIONS = -B 10.0
 
 # Diamex ALL-AVR/AVR-Prog
-PROGRAMMER = avrispmkII
-PORT = usb
-OPTIONS = -B 1.0
+#PROGRAMMER = avrispmkII
+#PORT = usb
+#OPTIONS = -B 1.0
 
 # Pololu USB AVR Programmer
 #PROGRAMMER = stk500v2
@@ -118,26 +124,25 @@ OPTIONS = -B 1.0
 #  global settings
 #
 
-# project name
-NAME = ComponentTester
-
 # name and version based on directory name
 DIST = $(notdir ${CURDIR})
 
 # compiler flags
 CC = avr-gcc
-CPP = avr-g++
+#CPP = avr-g++
+OBJCOPY = avr-objcopy
+OBJDUMP = avr-objdump
 CFLAGS = -mmcu=${MCU} -Wall -I. -Ibitmaps
 CFLAGS += -DF_CPU=${FREQ}000000UL
 CFLAGS += -DOSC_STARTUP=${OSC_STARTUP}
 CFLAGS += -gdwarf-2 -std=gnu99 -Os -mcall-prologues
 CFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
-#CFLAGS += -flto
+CFLAGS += -flto
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d
 
 # linker flags
 LDFLAGS = -mmcu=${MCU} -Wl,-Map=${NAME}.map
-#LDFLAGS += -Wl,-relax
+LDFLAGS += -Wl,-relax
 
 # hex file flags
 HEX_FLASH_FLAGS = -R .eeprom -R .fuse -R .lock -R .signature
@@ -185,15 +190,15 @@ $(NAME): ${OBJECTS}
 
 # create hex file of firmware
 %.hex: ${NAME}
-	avr-objcopy -O ihex ${HEX_FLASH_FLAGS} $< $@
+	${OBJCOPY} -O ihex ${HEX_FLASH_FLAGS} $< $@
 
 # create hex file of EEPROM data
 %.eep: ${NAME}
-	-avr-objcopy ${HEX_EEPROM_FLAGS} -O ihex $< $@ || exit 0
+	-${OBJCOPY} ${HEX_EEPROM_FLAGS} -O ihex $< $@ || exit 0
 
 # create dump of firmware
 %.lss: ${NAME}
-	avr-objdump -h -S $< > $@
+	${OBJDUMP} -h -S $< > $@
 
 # output firmware size and other info
 size: ${NAME}
@@ -225,20 +230,37 @@ ${OBJECTS_S}: %.o: %.S ${HEADERS} ${MAKEFILE_LIST}
 .PHONY: upload
 upload: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
-	  -U flash:w:./${NAME}.hex:a -U eeprom:w:./${NAME}.eep:a
+	  -U flash:w:${NAME}.hex:i -U eeprom:w:${NAME}.eep:i
 
 # program firmware only
 .PHONY: prog_fw
 prog_fw: ${NAME} ${NAME}.hex ${NAME}.lss size
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
-	  -U flash:w:./${NAME}.hex:a
+	  -U flash:w:${NAME}.hex:i
+
+# program firmware only w/o verify
+.PHONY: fast_fw
+fast_fw: ${NAME} ${NAME}.hex ${NAME}.lss size
+	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} -V\
+	  -U flash:w:${NAME}.hex:i
 
 # program EEPROM data only
 .PHONY: prog_ee
 prog_ee: ${NAME} ${NAME}.eep ${NAME}.lss size
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
-	  -U eeprom:w:./${NAME}.eep:a
+	  -U eeprom:w:${NAME}.eep:i
 
+# read back EEPROM calibration data
+.PHONY: get_cal
+get_cal:
+	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
+	  -U eeprom:r:${NAME}_cal.eep:i
+
+# restore EEPROM calibration data
+.PHONY: set_cal
+set_cal:
+	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
+	  -U eeprom:w:${NAME}_cal.eep:i
 
 #
 #  misc
@@ -255,8 +277,7 @@ dist: clean
 
 # clean up
 clean:
-	-rm -rf ${OBJECTS} ${NAME} dep/* *.tgz
-	-rm -rf ${NAME}.hex ${NAME}.eep ${NAME}.lss ${NAME}.map
+	-rm -rf ${OBJECTS} ${NAME} ${NAME}* dep/* *.tgz *~
 
 
 #
