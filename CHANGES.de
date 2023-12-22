@@ -6,7 +6,31 @@
 
 ------------------------------------------------------------------------------
 
-v1.50m 2023-8
+v1.51m 2023-12
+- Funktion GetThirdProbe() zu Vereinfachungsfunktion UpdateProbes2() geändert
+  zum Reduzieren der Firmwaregröße incl. Anpassungen der Aufrufe (Vorschlag
+  von Viktor Klimkovich).
+- Optimierung von DataStorage() und ManageAdjustmentStorage(), um Firmware-
+  größe zu verringern (Dank an Viktor Klimkovich).
+- Option zum Verlangsamen von Bit-Bang-SPI im Falle einer hohen MCU-Takt-
+  frequenz (SPI_SLOWDOWN, Vorschlag von Viktor Klimkovich).
+- Berechnung der Verzögerungsschleife in IR_Detector() geändert, um auch über-
+  taktete MCUs zu unterstützen (Dank an Viktor Klimkovich).
+- Algorithmus für Spannungsabfall in der Funktion LargeCap() verbessert.
+- Funktion LargeCap() berücksichtigt nun auch einen negativen Null-Offset.
+- Selbstabgleich gibt nun die Liste der Abgleichwerte nur bei erfolgreichem
+  Abgleich aus, um Missverständnisse zu vermeiden. 
+- Fehlerhaften Wert in E24-Tabelle korrigiert (gemeldet von siealex@EEVblog).
+- POWER_OFF_TIMEOUT ist nun auch im Hauptmenü wirksam (Vorschlag von
+  indman@EEVblog).
+- Französische Texte (Dank an moimem@EEVblog).
+- Brasilianisch-portugiesische Texte aktualisiert (Dank an wandows@EEVblog).
+- Polnische Texte #2 aktualisiert (Dank an Jacon@EEVblog).
+- Zeichen 'q' in font_8x8_iso8859-2_hf.h korrigiert (Dank an siealex@EEVblog).
+- Russische Texte aktualisiert (Dank an indman@EEVblog).
+- Spanische Texte aktualisiert (Dank an pepe10000@EEVblog).
+
+v1.50m 2023-08
 - Temporäre Option UI_PROBE_REVERSED_X entfernt, da nicht länger benötigt.
 - Option zur Ausgabe vom Batteriestatus in der letzten Zeile nach der
   Ergebnisanzeige (UI_BATTERY_LASTLINE).

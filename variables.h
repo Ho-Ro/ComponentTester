@@ -144,6 +144,7 @@
   #include "var_czech_2.h"
   #include "var_danish.h"
   #include "var_english.h"
+  #include "var_french.h"
   #include "var_german.h"
   #include "var_italian.h"
   #include "var_polish.h"
@@ -155,7 +156,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "1.50HR";
+  const unsigned char Version_str[] MEM_TYPE = "v1.51m_AY-AT_20M";
 
 
   /* common terms and texts */
@@ -485,7 +486,7 @@
 
   #ifdef SW_E24
     /* E24 (in 0.01) */
-    const uint16_t E24_table[NUM_E24] MEM_TYPE = {100, 110, 120, 130, 150, 160, 180, 200, 220, 240, 270, 300, 330, 360, 390, 420, 470, 510, 560, 620, 680, 750, 820, 910};
+    const uint16_t E24_table[NUM_E24] MEM_TYPE = {100, 110, 120, 130, 150, 160, 180, 200, 220, 240, 270, 300, 330, 360, 390, 430, 470, 510, 560, 620, 680, 750, 820, 910};
   #endif
 
   #ifdef SW_E96

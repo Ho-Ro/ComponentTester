@@ -1944,12 +1944,13 @@ void IR_Detector(void)
   /*
    *  adaptive sampling delay for 10탎 considering processing loop
    *  - processing loop needs about 24 MCU cycles (3탎@8MHz)
+   *  - cycles = MCU_CYCLES_PER_US      MCU cycles per 탎
+   *           *= 10                    cycles for 10탎
+   *           -= 24                    consider processing loop
+   *           /= 4;                    delay loop is 4 cycles
    */
 
-  Cycles = MCU_CYCLES_PER_US;           /* MCU cycles per 탎 */
-  Cycles *= 10;                         /* cycles for 10탎 */
-  Cycles -= 24;                         /* consider loop */
-  Cycles /= 4;                          /* delay loop is 4 cycles */
+  Cycles = (uint8_t)(((MCU_CYCLES_PER_US * 10UL) - 24) / 4);
 
 
   /*

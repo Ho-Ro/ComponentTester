@@ -793,6 +793,7 @@
  *  - Czech (based on ISO 8859-1)
  *  - Czech 2 (with Czech characters based on ISO 8859-2)
  *  - Danish
+ *  - French (based on ISO 8859-1)
  *  - German
  *  - Polish (based on ISO 8859-1)
  *  - Polish 2 (with Polish characters based on ISO 8859-2)
@@ -807,6 +808,7 @@
 //#define UI_CZECH
 //#define UI_CZECH_2
 //#define UI_DANISH
+//#define UI_FRENCH
 //#define UI_GERMAN
 //#define UI_ITALIAN
 //#define UI_POLISH
@@ -1153,7 +1155,7 @@
 /*
  *  storage of firmware data (texts, tables etc)
  *  - self-adjustment data is always stored in EEPROM
- *  - fonts and symbols are always stored in Flash
+ *  - fonts and symbols are always stored in Flash memory
  *  - uncomment one
  */ 
 
@@ -1502,6 +1504,7 @@
 //#define SPI_BITBANG                /* bit-bang SPI */
 //#define SPI_HARDWARE               /* hardware SPI */
 //#define SPI_RW                     /* enable SPI read support */
+//#define SPI_SLOWDOWN               /* slow down bit-bang SPI */
 
 
 /*

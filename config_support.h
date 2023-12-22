@@ -319,14 +319,14 @@
  */
 
 #if defined (DATA_EEPROM)
-  /* memory type */
+  /* memory type EEPROM */
   #define MEM_TYPE            EEMEM
 
   /* read functions */
   #define DATA_read_byte(addr)     eeprom_read_byte(addr)
   #define DATA_read_word(addr)     eeprom_read_word(addr)
 #elif defined (DATA_FLASH)
-  /* memory type */
+  /* memory type Flash */
   #define MEM_TYPE            PROGMEM
 
   /* read functions */
@@ -469,6 +469,22 @@
   /* old ESR measurement */
   #ifdef SW_OLD_ESR
     #undef SW_OLD_ESR
+  #endif
+
+#endif
+
+
+/* battery monitoring: if disabled */
+#ifdef BAT_NONE
+
+  /* no need for fancy battery status */
+  #ifdef UI_BATTERY
+    #undef UI_BATTERY
+  #endif
+
+  /* no need for battery status in last line */
+  #ifdef UI_BATTERY_LASTLINE
+    #undef UI_BATTERY_LASTLINE
   #endif
 
 #endif

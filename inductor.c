@@ -2,7 +2,7 @@
  *
  *   inductor measurements
  *
- *   (c) 2012-2020 by Markus Reschke
+ *   (c) 2012-2023 by Markus Reschke
  *   based on code from Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -109,7 +109,7 @@ For a small inductance we have to use a higher test current, i.e. using Ri_L as
 current shunt (Rl = 0).
 
 Estimates for minimal and maximal values (R_L max. 40 Ohm):
-- min: 1.0V * 40 Ohm / 5V * 20 Ohm = 0,4
+- min: 1.0V * 40 Ohm / 5V * 20 Ohm = 0.4
 - max: 1.2V * 80 Ohm / 5V * 20 Ohm = 0.960
   999 is maximum due to ln(1-a/1000)
   Hence the maximum R_L supported is 40 Ohms.
@@ -417,7 +417,7 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
    *    current mode failed and DUT's resistance is low
    */
 
-  UpdateProbes(Resistor->A, Resistor->B, 0);      /* update probes */
+  UpdateProbes2(Resistor->A, Resistor->B);   /* update probes */
 
   /*
    *  low current & delayed start

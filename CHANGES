@@ -6,7 +6,32 @@
 
 ------------------------------------------------------------------------------
 
-v1.50m 2023-8
+v1.51m 2023-12
+- Changed GetThirdProbe() into convenience function UpdateProbes2() to reduce
+  firmware size and adapted calls in various other functions (suggested by
+  Viktor Klimkovich).
+- Optimized DataStorage() and ManageAdjustmentStorage() to reduce firmware
+  size (thanks to Viktor Klimkovich).
+- Added option to slow down bit-bang SPI in case of a high MCU clock rate (
+  SPI_SLOWDOWN, suggested by Viktor Klimkovich).
+- Changed calculation of delay loop in IR_Detector() to support MCU 
+  overclocking (thanks to Viktor Klimkovich).
+- Improved voltage drop algorithm in function LargeCap().
+- Function LargeCap() takes now also negative zero offset into account.
+- Changed self-adjustment to show the list of adjustment values only on
+  success to prevent any misunderstanding.
+- Corrected wrong value in E24 table (reported by siealex@EEVblog).
+- POWER_OFF_TIMEOUT applies also to the main menu now (suggested by
+  indman@EEVblog).
+- Added French texts (thanks to moimem@EEVblog).
+- Updated Brazilian Portuguese texts (thanks to wandows@EEVblog).
+- Updated Polish texts #2 (thanks to Jacon@EEVblog).
+- Corrected character 'q' in font_8x8_iso8859-2_hf.h (thanks to
+  siealex@EEVblog).
+- Updated Russian texts (thanks to indman@EEVblog).
+- Updated Spanish texts (thanks to pepe10000@EEVblog).
+
+v1.50m 2023-08
 - Removed temporary option UI_PROBE_REVERSED_X as it's not needed anymore.
 - Option to display battery status in the last line after showing the probing
   result (UI_BATTERY_LASTLINE).

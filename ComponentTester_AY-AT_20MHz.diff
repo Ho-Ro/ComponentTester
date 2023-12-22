@@ -1,6 +1,18 @@
-diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
---- ComponentTester-1.50m/Makefile	2023-02-02 17:21:36.000000000 +0100
-+++ CT_AY-AT_20MHz_1.50m/Makefile	2023-09-10 19:27:35.349477853 +0200
+diff --git a/.gitignore b/.gitignore
+index d05fd04..42da9bd 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,5 +1,5 @@
+ ComponentTester
+-CT_horo*
++CT_AY-AT*
+ dep
+ *.o
+ *.eep
+diff --git a/Makefile b/Makefile
+index 5f4344b..e5d5a93 100644
+--- a/Makefile
++++ b/Makefile
 @@ -5,7 +5,8 @@
  #  based on code from Markus Frejek and Karl-Heinz Kübbeler
  #
@@ -11,7 +23,7 @@ diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
  
  
  #
-@@ -29,7 +30,7 @@
+@@ -29,7 +30,7 @@ MCU = atmega328
  # - 8MHz  : 8
  # - 16MHz : 16
  # - 20MHz : 20
@@ -20,14 +32,14 @@ diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
  
  # oscillator type
  # - internal RC oscillator      : RC
-@@ -78,15 +79,20 @@
+@@ -78,15 +79,20 @@ PARTNO = m328p
  #PORT = /dev/ttyACM0
  #OPTIONS = -b 19200
  
 +# Arduino nano as ISP
-+PROGRAMMER = nanoISP
++PROGRAMMER = nanoSTK
 +PORT = /dev/ttyUSB0
-+OPTIONS = -b 115200
++#OPTIONS = -b 115200
 +
  # Bus Pirate
  #PROGRAMMER = buspirate
@@ -44,7 +56,7 @@ diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
  
  # Pololu USB AVR Programmer
  #PROGRAMMER = stk500v2
-@@ -118,25 +124,25 @@
+@@ -118,26 +124,25 @@ OPTIONS = -B 1.0
  #  global settings
  #
  
@@ -71,11 +83,12 @@ diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
  
  # linker flags
  LDFLAGS = -mmcu=${MCU} -Wl,-Map=${NAME}.map
-+LDFLAGS += -Wl,--relax
+-#LDFLAGS += -Wl,-relax
++LDFLAGS += -Wl,-relax
  
  # hex file flags
  HEX_FLASH_FLAGS = -R .eeprom -R .fuse -R .lock -R .signature
-@@ -184,15 +190,15 @@
+@@ -185,15 +190,15 @@ $(NAME): ${OBJECTS}
  
  # create hex file of firmware
  %.hex: ${NAME}
@@ -94,7 +107,7 @@ diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
  
  # output firmware size and other info
  size: ${NAME}
-@@ -224,20 +230,37 @@
+@@ -225,20 +230,37 @@ ${OBJECTS_S}: %.o: %.S ${HEADERS} ${MAKEFILE_LIST}
  .PHONY: upload
  upload: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
  	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
@@ -135,7 +148,7 @@ diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
  
  #
  #  misc
-@@ -254,8 +277,7 @@
+@@ -255,8 +277,7 @@ dist: clean
  
  # clean up
  clean:
@@ -145,10 +158,10 @@ diff -uw ComponentTester-1.50m/Makefile CT_AY-AT_20MHz_1.50m/Makefile
  
  
  #
-Common subdirectories: ComponentTester-1.50m/bitmaps and CT_AY-AT_20MHz_1.50m/bitmaps
-diff -uw ComponentTester-1.50m/colors.h CT_AY-AT_20MHz_1.50m/colors.h
---- ComponentTester-1.50m/colors.h	2023-04-25 09:30:02.000000000 +0200
-+++ CT_AY-AT_20MHz_1.50m/colors.h	2023-09-04 19:43:57.942467538 +0200
+diff --git a/colors.h b/colors.h
+index 97f768f..c8de93f 100644
+--- a/colors.h
++++ b/colors.h
 @@ -239,6 +239,7 @@
  #ifdef LCD_ST7735
    /* common colors */
@@ -216,9 +229,10 @@ diff -uw ComponentTester-1.50m/colors.h CT_AY-AT_20MHz_1.50m/colors.h
  
  /* ************************************************************************
   *   EOF
-diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
---- ComponentTester-1.50m/config.h	2023-08-01 14:23:55.000000000 +0200
-+++ CT_AY-AT_20MHz_1.50m/config.h	2023-09-04 19:33:42.050126733 +0200
+diff --git a/config.h b/config.h
+index ed667e0..4e85fdb 100644
+--- a/config.h
++++ b/config.h
 @@ -36,7 +36,7 @@
   *    to match your rotary encoder
   */
@@ -354,7 +368,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -847,7 +847,7 @@
+@@ -849,7 +849,7 @@
   *  - uncomment to enable
   */
  
@@ -363,7 +377,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -867,7 +867,7 @@
+@@ -869,7 +869,7 @@
   *  - uncomment to enable
   */
  
@@ -372,7 +386,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -933,7 +933,7 @@
+@@ -935,7 +935,7 @@
   *  - uncomment to enable, also adjust timeout (in s)
   */
  
@@ -381,7 +395,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -970,7 +970,7 @@
+@@ -972,7 +972,7 @@
   *  - uncomment to enable
   */
  
@@ -390,7 +404,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -1016,7 +1016,7 @@
+@@ -1018,7 +1018,7 @@
   *  - uncomment to enable
   */
  
@@ -399,7 +413,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -1045,7 +1045,7 @@
+@@ -1047,7 +1047,7 @@
   *    (COLOR_PROBE_1, COLOR_PROBE_2 and COLOR_PROBE_3)
   */
  
@@ -408,7 +422,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -1055,7 +1055,7 @@
+@@ -1057,7 +1057,7 @@
   *  - uncomment to enable
   */
  
@@ -417,7 +431,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -1065,7 +1065,7 @@
+@@ -1067,7 +1067,7 @@
   *  - uncomment to enable
   */
  
@@ -426,7 +440,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -1094,7 +1094,7 @@
+@@ -1096,7 +1096,7 @@
   *  - uncomment to enable
   */
  
@@ -435,7 +449,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -1102,7 +1102,7 @@
+@@ -1104,7 +1104,7 @@
   *  - uncomment to enable
   */
  
@@ -444,7 +458,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -1157,8 +1157,8 @@
+@@ -1159,8 +1159,8 @@
   *  - uncomment one
   */ 
  
@@ -455,7 +469,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  
-@@ -1223,10 +1223,10 @@
+@@ -1225,10 +1225,10 @@
   *  transistor (in mV):
   *  - or any other circuitry in the power section
   *  - Get your DMM and measure the voltage drop!
@@ -468,7 +482,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -1235,7 +1235,7 @@
+@@ -1237,7 +1237,7 @@
   *  - Voltage drop BAT_OFFSET is considered in calculation.
   */
  
@@ -477,7 +491,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -1244,7 +1244,7 @@
+@@ -1246,7 +1246,7 @@
   *  - Voltage drop BAT_OFFSET is considered in calculation.
   */
  
@@ -486,7 +500,7 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-@@ -1286,10 +1286,10 @@
+@@ -1288,10 +1288,10 @@
   */
  
  /* Rl in Ohms */
@@ -499,9 +513,10 @@ diff -uw ComponentTester-1.50m/config.h CT_AY-AT_20MHz_1.50m/config.h
  
  
  /*
-diff -uw ComponentTester-1.50m/config_328.h CT_AY-AT_20MHz_1.50m/config_328.h
---- ComponentTester-1.50m/config_328.h	2023-07-01 09:16:13.000000000 +0200
-+++ CT_AY-AT_20MHz_1.50m/config_328.h	2023-09-04 19:33:42.050126733 +0200
+diff --git a/config_328.h b/config_328.h
+index 2acb52f..77fc4a9 100644
+--- a/config_328.h
++++ b/config_328.h
 @@ -625,7 +625,7 @@
   *  - uses LCD_CS to support rotary encoder in parallel at PD2/3
   */
@@ -520,10 +535,11 @@ diff -uw ComponentTester-1.50m/config_328.h CT_AY-AT_20MHz_1.50m/config_328.h
  
  
  
-@@ -726,6 +726,59 @@
+@@ -725,6 +725,59 @@
  
  
- /*
+ 
++/*
 + *  ST7735 AY-AT
 + *  - 4 wire SPI interface using bit-bang SPI
 + */
@@ -576,10 +592,9 @@ diff -uw ComponentTester-1.50m/config_328.h CT_AY-AT_20MHz_1.50m/config_328.h
 +
 +
 +
-+/*
+ /*
   *  ST7920
   *  - SPI interface using bit-bang SPI
-  *  - for a 180° rotated display (LCD_ROT180)
 @@ -944,11 +997,26 @@
   *  rotary encoder
   */
@@ -607,11 +622,11 @@ diff -uw ComponentTester-1.50m/config_328.h CT_AY-AT_20MHz_1.50m/config_328.h
  
  
  /*
-Common subdirectories: ComponentTester-1.50m/dep and CT_AY-AT_20MHz_1.50m/dep
-diff -uw ComponentTester-1.50m/inductor.c CT_AY-AT_20MHz_1.50m/inductor.c
---- ComponentTester-1.50m/inductor.c	2020-07-08 19:40:54.000000000 +0200
-+++ CT_AY-AT_20MHz_1.50m/inductor.c	2023-09-04 19:33:42.050126733 +0200
-@@ -580,18 +580,18 @@
+diff --git a/inductor.c b/inductor.c
+index 57182f3..72b6780 100644
+--- a/inductor.c
++++ b/inductor.c
+@@ -580,18 +580,18 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
        #endif
  
        #if CPU_FREQ == 20000000
@@ -634,10 +649,11 @@ diff -uw ComponentTester-1.50m/inductor.c CT_AY-AT_20MHz_1.50m/inductor.c
        }
        #endif
      }
-diff -uw ComponentTester-1.50m/user.c CT_AY-AT_20MHz_1.50m/user.c
---- ComponentTester-1.50m/user.c	2023-05-20 21:20:26.000000000 +0200
-+++ CT_AY-AT_20MHz_1.50m/user.c	2023-09-04 19:33:42.050126733 +0200
-@@ -1425,11 +1425,11 @@
+diff --git a/user.c b/user.c
+index 1e15fb4..f5f3496 100644
+--- a/user.c
++++ b/user.c
+@@ -1425,11 +1425,11 @@ void MarkItem(uint8_t Item, uint8_t Selected)
  {
    if (Selected == Item)       /* current item selected */
    {
@@ -651,7 +667,7 @@ diff -uw ComponentTester-1.50m/user.c CT_AY-AT_20MHz_1.50m/user.c
      #ifdef LCD_COLOR
      UI.PenColor = COLOR_PEN;       /* reset color */
      #endif
-@@ -2092,44 +2092,21 @@
+@@ -2099,44 +2099,21 @@ uint8_t PresentMainMenu(void)
     *  - items are added in display order
     */
  
@@ -706,7 +722,7 @@ diff -uw ComponentTester-1.50m/user.c CT_AY-AT_20MHz_1.50m/user.c
  
    #ifdef SW_ESR_TOOL
    /* in-circuit ESR */
-@@ -2180,6 +2157,41 @@
+@@ -2187,6 +2164,41 @@ uint8_t PresentMainMenu(void)
    n++;
    #endif
  
@@ -748,7 +764,7 @@ diff -uw ComponentTester-1.50m/user.c CT_AY-AT_20MHz_1.50m/user.c
    #ifdef HW_LC_METER
    /* LC meter */
    Item_Str[n] = (void *)LC_Meter_str;
-@@ -2357,18 +2369,6 @@
+@@ -2364,18 +2376,6 @@ uint8_t PresentMainMenu(void)
    n++;
    #endif
  
@@ -767,9 +783,10 @@ diff -uw ComponentTester-1.50m/user.c CT_AY-AT_20MHz_1.50m/user.c
  
    /*
     *  run menu
-diff -uw ComponentTester-1.50m/var_english.h CT_AY-AT_20MHz_1.50m/var_english.h
---- ComponentTester-1.50m/var_english.h	2023-06-09 00:29:13.000000000 +0200
-+++ CT_AY-AT_20MHz_1.50m/var_english.h	2023-09-04 19:33:42.050126733 +0200
+diff --git a/var_english.h b/var_english.h
+index a5da46a..96e2053 100644
+--- a/var_english.h
++++ b/var_english.h
 @@ -29,9 +29,9 @@
    const unsigned char Timeout_str[] MEM_TYPE = "Timeout";
    const unsigned char Failed1_str[] MEM_TYPE = "No component";
@@ -782,15 +799,16 @@ diff -uw ComponentTester-1.50m/var_english.h CT_AY-AT_20MHz_1.50m/var_english.h
    const unsigned char Adjustment_str[] MEM_TYPE = "Adjustment";
    const unsigned char Save_str[] MEM_TYPE = "Save";
    const unsigned char Load_str[] MEM_TYPE = "Load";
-diff -uw ComponentTester-1.50m/variables.h CT_AY-AT_20MHz_1.50m/variables.h
---- ComponentTester-1.50m/variables.h	2023-05-21 19:32:40.000000000 +0200
-+++ CT_AY-AT_20MHz_1.50m/variables.h	2023-09-04 19:44:14.954536900 +0200
-@@ -155,7 +155,7 @@
+diff --git a/variables.h b/variables.h
+index 5282024..1019f6e 100644
+--- a/variables.h
++++ b/variables.h
+@@ -156,7 +156,7 @@
  
  
    /* firmware */
--  const unsigned char Version_str[] MEM_TYPE = "v1.50m";
-+  const unsigned char Version_str[] MEM_TYPE = "1.50HR";
+-  const unsigned char Version_str[] MEM_TYPE = "v1.51m";
++  const unsigned char Version_str[] MEM_TYPE = "v1.51m_AY-AT_20M";
  
  
    /* common terms and texts */

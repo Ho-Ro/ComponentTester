@@ -215,9 +215,9 @@
   #endif
 
   #ifdef SW_PHOTODIODE
-    const unsigned char Photodiode_str[] MEM_TYPE = "Photodiode";
-    const unsigned char NoBias_str[] MEM_TYPE = "no";
-    const unsigned char ReverseBias_str[] MEM_TYPE = "rev";
+    const unsigned char Photodiode_str[] MEM_TYPE = "Fotodiodo";
+    const unsigned char NoBias_str[] MEM_TYPE = "nao";
+    const unsigned char ReverseBias_str[] MEM_TYPE = "inv";
   #endif
 
 #endif

@@ -7,14 +7,14 @@
 
 ------------------------------------------------------------------------------
 
-Last edit: 2023-08-01
+Last edit: 2023-12-18
 
 Content
   - About
   - Safety Advice
   - License
     - Additional Disclaimer
-  - Whats different?
+  - What's different?
   - Source Code
   - Supported Hardware
   - Building the Firmware
@@ -332,6 +332,8 @@ Available UI languages:
   - provided by glenndk@mikrocontroller.net
   - needs minor changes in the font
 - English (default)
+- French
+  - provided by moimem@EEVblog
 - German
 - Italian
   - provided by Gino_09@EEVblog
@@ -382,6 +384,12 @@ The Makefile provides following additional targets:
 - prog_fw   to program only the firmware (via avrdude)
 - prog_ee   to program only the EEPROM data (via avrdude)
 
+Hints on compiler/linker optimizations:
+There are multiple lines of CFLAGS and LDFLAGS with compiler/linker options
+in the Makefile. You'll find a few lines commented out which contain
+additional optimization options to reduce the firmware size. Those are not
+supported by all compilers. So please feel free to experiment. ;)
+
 
 * Busses & Interfaces
 
@@ -402,10 +410,10 @@ the circuit. The ATmega 324/644/1284 has more I/O pins and the different pin
 assignment for the circuit allows to use the dedicated bus pins for the
 hardware mode.
 
-Since SPI or I2C are primarily used by the LCD module, they can be configured
-in the display section of config-<MCU>.h. Alternatively you can also enable I2C
-and SPI in config.h, and set ports and pins in dedicated sections in
-config-<MCU>.h (look for I2C_PORT or SPI_PORT).
+Since SPI or I2C are primarily used by the display module, they can be
+configured in the display section of config-<MCU>.h. Alternatively you can
+also enable I2C and SPI in config.h, and set ports and pins in dedicated
+sections in config-<MCU>.h (look for I2C_PORT or SPI_PORT).
 
 If you select bit-bang SPI and enable the read mode (SPI_RW) please make sure
 to set also SPI_PIN and SPI_MISO. See the SPI section in config-<MCU>.h for
@@ -414,6 +422,11 @@ an example.
 When connecting multiple ICs to the SPI bus, each IC needs to be controlled by
 a dediacted /CS signal. Only in the case of one single IC on the SPI bus that
 IC's /CS can be tied to ground.
+
+Hint for bit-bang SPI:
+- If, in the case of a high MCU clock rate, the SPI bus becomes too fast for
+  the display please add the option 'SPI_SLOWDOWN' to the display setup in
+  config-<MCU>.h, or enable it in config.h.
 
 
 + TTL Serial
@@ -1180,7 +1193,7 @@ proceed with the next cycle.
 The cycle delay and automatic power-off for the continuous mode can be adjusted
 by changing CYCLE_DELAY and CYCLE_MAX in config.h. There's an optional
 automatic power-off for the auto-hold mode (POWER_OFF_TIMEOUT) which is only
-active during probing cycles.
+active during probing cycles and in the main menu.
 
 In both modes you can enter a menu with additional functions or power off
 the tester. For details please see below.
@@ -1480,6 +1493,10 @@ Available monitors:
 For the C and L monitors there are options to auto-hold the last valid
 measurement value (SW_MONITOR_HOLD_ESR, SW_MONITOR_HOLD_L). The last result
 is displayed in the third text line.
+
+Hint:
+- The capacitance values for electrolytic caps can be a bit lower than in
+  the normal probing cycle (reason still unknown).
 
 
 + LC Meter (hardware option)
@@ -2432,9 +2449,11 @@ For a Schottky transistor (Schottky-clamped BJT) the clamping diode between
 base and collector and it's V_f are displayed if the detection is enabled (
 SW_SCHOTTKY_BJT). Note that a Schottky transistor has an increased I_CEO.
 
-Hint:
+Hints:
 - The high hFE of a Darlington transistor in conjunction with EMI can cause
   I_CEO being all over the place.
+- If you suspect a temperature related problem with a BJT check it in its cold
+  state, heat it up (soldering iron, hot air), and check it again while warm.
 
 
 TRIACs

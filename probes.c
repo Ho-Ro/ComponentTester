@@ -71,6 +71,39 @@ void UpdateProbes(uint8_t Probe1, uint8_t Probe2, uint8_t Probe3)
 
 
 /*
+ *  convenience function for UpdateProbes()
+ *  - called with just two probe IDs
+ *  - third probe ID is derived from the other two
+ *
+ *  requires:
+ *  - Probe1: ID of first probe (0-2)
+ *  - Probe2: ID of second probe (0-2)
+ */
+
+void UpdateProbes2(uint8_t Probe1, uint8_t Probe2)
+{
+  uint8_t           Probe3;             /* ID of third probe */
+
+  /*
+   *  derive ID of third probe
+   *  - use sum of probe IDs (order doesn't matter)
+   *    probes #1 & #2: 0 + 1 = 1  -> probe #3: 2
+   *    probes #1 & #3: 0 + 2 = 2  -> probe #2: 1
+   *    probes #2 & #3: 1 + 2 = 3  -> probe #1: 0
+   *  - third probe = 3 - (probe ID #1 + probe ID #2)
+   */
+
+  Probe3 = 3;                 /* = 3 */
+  Probe3 -= Probe1;           /* - ID #1 */
+  Probe3 -= Probe2;           /* - ID #2 */
+
+  /* and now update probes */
+  UpdateProbes(Probe1, Probe2, Probe3);
+}
+
+
+
+/*
  *  restore original probe IDs
  */
 
@@ -88,42 +121,10 @@ void RestoreProbes(void)
 
 void BackupProbes(void)
 {
-  /* copy probe IDs */
+  /* copy current probe IDs to backup set */
   Probes.ID2_1 = Probes.ID_1;
   Probes.ID2_2 = Probes.ID_2;
   Probes.ID2_3 = Probes.ID_3;
-}
-
-
-
-/*
- *  get ID of third probe
- *
- *  requires:
- *  - Probe1: ID of first probe (0-2)
- *  - Probe2: ID of second probe (0-2)
- *
- *  returns:
- *  - ID of third probe (0-2)
- */
-
-uint8_t GetThirdProbe(uint8_t Probe1, uint8_t Probe2)
-{
-  uint8_t           Probe3;             /* ID of third probe */
-
-  /*
-   *  - use sum of probe IDs (order doesn't matter)
-   *    probes #1 & #2: 0 + 1 = 1  -> probe #3: 2
-   *    probes #1 & #3: 0 + 2 = 2  -> probe #2: 1
-   *    probes #2 & #3: 1 + 2 = 3  -> probe #1: 0
-   *  - third probe = 3 - (probe ID #1 + probe ID #2)
-   */
-
-  Probe3 = 3;
-  Probe3 -= Probe1;
-  Probe3 -= Probe2;
-
-  return Probe3;
 }
 
 
@@ -149,7 +150,7 @@ uint8_t ShortedPair(uint8_t Probe1, uint8_t Probe2)
   uint16_t          Min;           /* lower threshold */
   uint16_t          Max;           /* upper threshold */
 
-  UpdateProbes(Probe1, Probe2, 0);      /* update probes */
+  UpdateProbes2(Probe1, Probe2);        /* update probes */
 
   /*
    *  Set up a voltage divider between the two probes:
@@ -237,7 +238,7 @@ void DischargeCap(uint8_t Probe1, uint8_t Probe2)
    *  figure out the positive charged pin
    */
 
-  UpdateProbes(Probe1, Probe2, 0);      /* update probes */
+  UpdateProbes2(Probe1, Probe2);        /* update probes */
 
   /* try probe-1 */ 
   ADC_DDR = Probes.Pin_1;          /* pull down probe-1 directly */
@@ -250,7 +251,7 @@ void DischargeCap(uint8_t Probe1, uint8_t Probe2)
   if (U_2 > U_1)                   /* probe-1 is positive */
   {
     /* reverse probes */
-    UpdateProbes(Probe2, Probe1, 0);    /* update probes */
+    UpdateProbes2(Probe2, Probe1);      /* update probes */
   } 
 
 
