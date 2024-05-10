@@ -887,12 +887,12 @@ uint8_t LargeCap(Capacitor_Type *Cap)
   uint16_t          TempInt;       /* temp. value */
   uint16_t          Pulses;        /* number of charging pulses */
   int16_t           U_Zero;        /* voltage before charging (zero offset) */
+  int16_t           U_temp;        /* temporary voltage */
   uint16_t          U_Cap;         /* voltage of DUT */
   uint16_t          U_Drop = 0;    /* voltage drop (self-discharge) */
   uint16_t          U_leak = 0;    /* voltage drop (leakage current) */
   uint32_t          Raw;           /* raw capacitance value */
   uint32_t          Value;         /* corrected capacitance value */
-  int16_t           U_temp;        /* temporary voltage */
 
   /* set up mode */
   Mode = PULL_10MS | PULL_UP;      /* start with large cap (>47uF) */
@@ -964,7 +964,7 @@ large_cap:
     /* end loop if charging is too slow */
     if ((Pulses == 126) && (U_Cap < 75)) TempByte = 0;
     
-    /* end loop if 300mV are reached */
+    /* end loop if 300mV are reached (cap charged) */
     if (U_Cap >= 300) TempByte = 0;
 
     /* end loop if maximum number of pulses is reached (timeout) */
@@ -1173,7 +1173,6 @@ large_cap:
  *
  *  returns:
  *  - 3 on success
- *  - 2 if capacitance is too low
  *  - 1 if capacitance is too high
  *  - 0 on any problem
  */
@@ -1639,7 +1638,7 @@ void MeasureCap(uint8_t Probe1, uint8_t Probe2, uint8_t ID)
    *  run measurements
    */
 
-  UpdateProbes2(Probe1, Probe2);        /* update register bits and probes */
+  UpdateProbes2(Probe1, Probe2);        /* update probes */
 
   /* first run measurement for large caps */ 
   TempByte = LargeCap(Cap);

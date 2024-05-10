@@ -646,7 +646,7 @@ uint8_t CheckSingleResistor(uint8_t HighPin, uint8_t LowPin, uint8_t Max)
 
   /* check for a specific resistor */
   Check.Resistors = 0;                  /* reset counter */
-  UpdateProbes2(HighPin, LowPin);       /* set probes */
+  UpdateProbes2(HighPin, LowPin);       /* update probes */
   CheckResistor();                      /* check for resistor */
 
   if (Check.Resistors == 1)             /* found resistor */

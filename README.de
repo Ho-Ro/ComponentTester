@@ -3,11 +3,11 @@
 
             ReadMe für die Component-Tester-Firmware (m-Firmware)
 
-        (c) 2012-2023 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2024 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2023-12-18
+Letzte Änderung: 2024-03-29
 
 Inhaltsübersicht:
   - Über den Tester
@@ -77,11 +77,13 @@ Inhaltsübersicht:
     - IR-Fernbedienung
     - Opto-Koppler-Test
     - Fotodioden-Test
+    - Dioden/LED-Schnelltest
     - Modellbau-Servo-Test
     - OneWire-Scan
-    - DS18B20/DS18S20-Temperatursensoren
-    - DHTxx-Sensoren
+    - DS18B20/DS18S20 Temperatursensoren
+    - DHTxx Temperatur & Luftfeuchte-Sensoren
     - MAX6675/MAX31855 Thermoelement-Konverter
+    - BH1750 Umgebungslichtsensor
     - Licht
     - Selbsttest
     - Selbstabgleich
@@ -188,13 +190,14 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - IR-Fernbedienung
 - Test von Opto-Kopplern
 - Test von Modellbau-Servos
-- OneWire (DS18B20, DS18S20)
+- OneWire (plus Sensoren DS18B20 und DS18S20)
 - DHTxx-Sensoren
 - Ereigniszähler
 - Klingeltester (LOPT/FBT-Tester)
 - Logiktester
 - Durchgangsprüfer
 - MAX6675/MAX31855 Thermoelement-Konverter
+- BH1750 Umgebungslichtsensor
 - Licht / allgemeiner Schaltausgang
 - Strukturierter Quellcode
 - einfache Rahmenwerke für Anzeigen und Datenbusse
@@ -386,11 +389,16 @@ Das Makefile bietet folgende zusätzliche Targets:
 - prog_ee   nur EEPROM-Daten brennen (via avrdude)
 
 Hinweise zu Compiler/Linker-Optimierungen:
-Im Makefile gibt es mehrere Zeilen von CFLAGS und LDFLAGS mit Compiler und
-Linker-Optionen. Daneben gibt es auskommentierte Zeilen mit zusätzlichen
-Optimierungsoptionen, welche die Größe der Firmware reduzieren können, aber
-nicht von allen Compilern unterstützt werden. Hier ist Experimentieren
-angesagt. ;)
+- Im Makefile gibt es mehrere Zeilen von CFLAGS und LDFLAGS mit Compiler und
+  Linker-Optionen. Daneben gibt es auskommentierte Zeilen mit zusätzlichen
+  Optimierungsoptionen, welche die Größe der Firmware reduzieren können, aber
+  nicht von allen Compilern unterstützt werden. Hier ist Experimentieren
+  angesagt. ;)
+
+Hinweise zu speziellen Einstellungen im Makefile:
+- In einer Linux/Unix-Umgebung kann OPTIMIZE_VECTORS aktiviert werden, um die
+  Interruptvektortabelle zu optimieren und damit die Firmwaregröße zu
+  reduzieren.
 
 
 * Busse & Schnittstellen
@@ -545,6 +553,11 @@ verwenden, indem Du die Symboleinstellung auf SYMBOLS_<size>_OLD_<format>.h
 Zu Testzwecken kannst Du eine Menüfunktion zur Ausgabe aller Zeichen im
 Zeichensatz (SW_FONT_TEST) oder aller Bauteilesymbole (SW_SYMBOL_TEST)
 aktivieren.
+
+Hinweis:
+- Wenn auf einer Farbanzeige die Zeichen je nach Farbe leicht nach oben oder
+  unten verschoben erscheinen, liegt das an der Konstruktion der Anzeige,
+  d.h. die Postionierung der RGB-Unterpunkte.
 
 
 + HD44780
@@ -898,7 +911,8 @@ Ansonsten sind beim Anschalten kurz zufällige Pixel zu sehen.
 Es ist inzwischen auch ein teil-kompatibles LCD-Modul aufgetaucht, welches
 nicht mit dem normalen Treiber funktioniert. Als Lösung gibt es einen
 modifizierten Treiber (LCD_SEMI_ST7735 anstatt LCD_ST7735) mit den gleichen
-Einstellmöglichkeiten.
+Einstellmöglichkeiten. Das teil-kompatible LCD-Modul unterstützt keine
+höheren SPI-Taktraten.
 
 
 + ST7920
@@ -1038,8 +1052,8 @@ und der zweite unten links. Je nach Ergebnis wiederholt der Tester den Abgleich
 bis zu dreimal. Den Abgleich kannst Du aber jeder Zeit mit der Test-Taste
 abbrechen.
 
-Wenn Du Probleme mit dem Abgleich, wie z.B. falsche x/y-Positionen oder einen
-Fehler nach der ersten Abgleichsrunde, hast, überprüfe bitte die Orientierung
+Wenn Du Probleme mit dem Abgleich hast, wie z.B. falsche x/y-Positionen oder
+einen Fehler nach der ersten Abgleichsrunde, überprüfe bitte die Orientierung
 des Touch-Screen zum LCD-Modul. Der Treiber hat Schalter zum Verdrehen und
 Vertauschen der Orientierung. Oben links wird als Nullpunkt angenommen.
 Hinweise zu den benötigten Einstellungen je nach x/y-Werten:
@@ -1223,7 +1237,10 @@ ist.
 In beiden Modi kannst Du das Hauptmenü aufrufen (siehe weiter unten).
 
 Ist die Summer/Pieper-Option vorhanden, kannst Du einen kurzen Bestätigungston
-für das Ende der Bauteilesuche aktivieren (UI_PROBING_DONE_BEEP).
+für das Ende der Bauteilesuche aktivieren (UI_PROBING_DONE_BEEP). Daneben gibt
+es auch eine Option zum temporären Umschalten in den Auto-Hold-Modus nachdem
+ein Bauteil erkannt wurde (im kontinuierlichen Modus, UI_AUTOHOLD_FOUND).
+Dies hilft beim Lesen der Ergebnisausgabe.
 
 
 * Batterieüberwachung
@@ -1535,7 +1552,8 @@ in der dritten Textzeile angezeigt.
 
 Hinweis:
 - Die Kapazitätswerte für Elkos können etwas niedriger sein als in der
-  normalen Bauteilesuche (Ursache bisher unbekannt).
+  normalen Bauteilesuche (verursacht durch die wiederholten Messungen mit
+  einem Gleichstromsignal).
 
 
 + L/C-Meter (Hardware-Option)
@@ -2032,6 +2050,20 @@ Beschaltung der Testpins:
   Pin #3:    Kathode
 
 
++ Dioden/LED-Schnelltest
+
+Der Schnelltest schaut ständig nach einer Diode oder LED an den Testpins #1
+und #3. Er ist dazu gedacht, Dioden/LEDs schnell zu prüfen und deren Polarität
+festzustellen. LEDs blinken während dem Testen. 
+
+Nach dem Starten zeigt der Tester die Beschaltung der Testpins für ein paar
+Sekunden an, was durch die Testtaste übersprungen werden kann. Wenn eine Diode
+oder LED gefunden wurde, wird deren Pinbelegung und Vf angezeigt. Die Anode
+ist immer auf der linken Seite, und die Kathode auf der rechten. Im Falle von
+zwei anti-parallelen Dioden/LEDs wird auch die zweite gezeigt. Du kennst schon
+die Übung: zum Beenden zweimal kurz die Testtaste drücken. 
+
+
 + Modellbau-Servo-Test
 
 Diese Funktion erzeugt ein PWM-Signal für Modellbau-Servos, welche mit einem
@@ -2091,7 +2123,7 @@ Busfehlers kannst Du per Tastendruck einen komplett neuen Scandurchlauf
 starten. Wie üblich beenden zwei kurze Tastendrücke die Funktion. 
 
 
-+ DS18B20/DS18S20-Temperatursensoren
++ DS18B20/DS18S20 Temperatursensoren
 
 Hiermit wird der OneWire-Temperatursensor DS18B20/DS18S20 ausgelesen. Zum Ein-
 richten des OneWire-Busses siehe bitte den Abschnitt "Busse & Schnittstellen".
@@ -2119,7 +2151,7 @@ Hints:
 - Die DS18B20-Funktion kann auch den Sensor DS1822 lesen.
 
 
-+ DHTxx-Sensoren
++ DHTxx Temperatur & Luftfeuchte-Sensoren
 
 Zum Lesen von DHT11, DHT22 und kompatiblen Temperatur & Luftfeuchte-Sensoren.
 Zuerst zeigt der Tester die Beschaltung der Test-Pins und wartet auf den
@@ -2168,6 +2200,31 @@ lange drücken (wird durch ein "*" nach dem MAX-Namen signalisiert). Ein
 zweiter langer Tastendruck beendet wieder den automatischen Lesemodus. Und
 zwei kurze Tastendrücke beenden die Funktion.
 
+Hinweise:
+- Passe MAX31855_CS in config_<MCU>.h an!
+- Auch benötigst Du die SPI-Lesefunktion (SPI_RW).
+
+
++ BH1750 Umgebungslichtsensor
+
+Der BH1750 ist ein günstiger Umgebungslichtsensor mit I2C-Bus und 3,3V
+Betriebsspannung. Mit einem 3,3V Spannungsregler und Pull-Up-Widerständen für
+SCL und SDA (auf 3,3V) kann er meistens direkt an einem 5V ATmega betrieben
+werden, sofern keine anderen I2C-ICs am Bus Probleme machen. Ansonsten sind
+Pegelwandler nötig.
+
+Zum Messen einmal kurz die Testtaste drücken. Alternativ kann mit einem langen
+Tastendruck in den automatischen Modus gewechselt werden (ein "*" erscheint
+in der Titelzeile); und auch wieder zurück. Im automatischen Modus wird jede
+Sekunde gemessen. Bei einem Fehler zeigt der Tester ein "-" statt der Licht-
+stärke. Und wie üblich, zwei kurze Tastendrücke beenden die Funktion.
+
+Hinweise:
+- BH1750-Module haben meistens einen 3,3V LDO und 4,7kOhm Pull-Up-Widerstände (
+  auf 3,3V) für SCL und SDA.
+- Ein "Error" direkt nach dem Funktionsaufruf deutet auf ein Sensorproblem hin,
+  z.B. keine I2C-Kommunikation.
+
 
 + Licht
 
@@ -2191,12 +2248,26 @@ In Test #4 ist der Kurzschluß wieder zu entfernen. Der Tester wartet dann
 so lange.
 
 Die Testschritte sind:
-- T1 interne Spannungsreferenz (in mV)
-- T2 Vergleich der Rl-Widerstände (Offset in mV)
-- T3 Vergleich der Rh-Widerstände (Offset in mV)
-- T4 Entfernen des Kurzschlusses der Testpins/kabel
-- T5 Leckstromtest für Testpins mit Gnd-Pegel (Spannung in mV)
-- T6 Leckstromtest für Testpins mit Vcc-Pegel (Spannung in mV)
+- T1: interne Spannungsreferenz (in mV)
+      sollte 1000 - 1200 mV sein
+- T2: Vergleich der Rl-Widerstände (Offset in mV)
+      sollte nahe 0 mV sein (typisch innerhalb +/- 10 mV)
+- T3: Vergleich der Rh-Widerstände (Offset in mV)
+      sollte nahe 0 mV sein (typisch innerhalb +/- 10 mV)
+- T4: Entfernen des Kurzschlusses der Testpins/kabel
+- T5: Leckstromtest für Testpins mit Gnd-Pegel (Spannung in mV)
+      sollte nahe 0 mV sein (typisch innerhalb 3 mV)
+- T6: Leckstromtest für Testpins mit Vcc-Pegel (Spannung in mV)
+      sollte nahe Vcc sein (typisch innerhalb 10 mV)
+
+Hinweise:
+- Wenn die T2-Werte sich zwischen den Testpin-Paaren mehr als 5 mV unter-
+  scheiden, könnte das an zu ungleichen Rl-Testwiderständen liegen.
+- Das gleiche gilt für die T3-Werte und Rh-Testwiderstände.
+- Lange Testkabel haben einen negativen Einfluss und verschlechtern die Werte
+  in T2, T3, T5 und T6.
+- Seltsame Werte sind meistens ein Zeichen für defekte MCU-Pins, Kurzschlüsse,
+  Schmutz oder größere Kontaktprobleme.
 
 
 + Selbstabgleich
@@ -2218,7 +2289,7 @@ Bevor der Selbstabgleich ausgeführt wird, solltest Du einen Folienkondensator
 mit einer Kapazität zwischen 100nF und 3,3µF min. 3-mal messen, damit die oben
 erwähnten Offsets bestimmt werden können. Typischerweise liefert die erste
 Messung einen zu niedrigen Wert, die zweite einen zu hohen und erst die dritte
-eine korrekten Wert. Das wird durch die sich selbst abgleichenden Offsets
+einen korrekten Wert. Das wird durch die sich selbst abgleichenden Offsets
 verursacht.
 
 Mit einem festen Kondensator zum Selbstabgleich wird der automatische Abgleich
@@ -2229,19 +2300,19 @@ einen Folienkondensator zu messen.
 Falls der Kapazitätsoffset zwischen den Test-Pin-Paaren zu sehr variiert,
 kannst Du in config.h auf spezifische Offsets je Test-Pin-Paar umschalten (
 CAP_MULTIOFFSET). Das Gleiche ist für den Widerstandsoffset möglich (
-R_MULTIOFFSET). 
+R_MULTIOFFSET).
 
 Der Selbstabgleich ist dem Selbsttest vom Ablauf und der Bedienung her sehr
 ähnlich.
 
 Die Schritte des Selbstabgleichs sind:
-- A1 Offsets für interne Spannungsreferenz und Analogkomparator
-     (nur bei festem Abgleichkondensator)
-- A2 Widerstand der Testpins/kabel (in 10mOhm)
-- A3 Entfernen des Kurzschlusses der Testpins/kabel
-- A4 interner Widerstand der Portspins für Gnd (Spannung über RiL)
-- A5 interner Widerstand der Portspins für Vcc (Spannung über RiH)
-- A6 Kapazität der Testpins/kabel (in pF)
+- A1: Offsets für interne Spannungsreferenz und Analogkomparator
+      (nur bei festem Abgleichkondensator)
+- A2: Widerstand der Testpins/kabel (in 10mOhm)
+- A3: Entfernen des Kurzschlusses der Testpins/kabel
+- A4: interner Widerstand der Portspins für Gnd (Spannung über RiL)
+- A5: interner Widerstand der Portspins für Vcc (Spannung über RiH)
+- A6: Kapazität der Testpins/kabel (in pF)
 
 Erlaubte Maximalwerte:
 - Widerstand Testpin/Kabel  < 1,50 Ohm (zwei in Reihe)
@@ -2249,8 +2320,11 @@ Erlaubte Maximalwerte:
 - Interner Widerstand vom IO-Pin im Low-Modus (RiL)   < 25 Ohm
 - Interner Widerstand vom IO-Pin im High-Modus (RiH)  < 29 Ohm
 
-Hinweis: Wenn der Widerstandswerte der Testpins zu sehr variieren, könnte ein
-Kontaktproblem vorliegen.
+Hinweise:
+- Wenn der Widerstandswerte der Testpins zu sehr variieren, könnte ein
+  Kontaktproblem vorliegen.
+- Falls der Kapazitätsoffset (A6) Null ist, dürfte es an einem Entladeproblem
+  liegen (CAP_DISCHARGED erhöhen).
 
 Merke: Abgleich ist nicht Kalibrierung! Kalibrierung ist die Prozedur, 
 Messergebnisse mit verfolgbaren Standards zu vergleichen und die Abweichungen
@@ -2359,12 +2433,13 @@ auf Kapazität geprüft.
 
 Der Tester versucht den ESR bei Kondensatoren größer als 18nF zu messen.
 Alternativ kannst Du auch die alte Messmethode aktivieren, welche ab 180nF
-mißt. Da aber die Messung nicht per Wechselstrom mit einer bestimmten Frequenz
-durchgefüghrt wird, bitte keine supergenauen Ergebnisse erwarten. Die benutzte
-Methode entspricht vielleicht der Messung mit 1kHz. Für die Prüfung von Elkos
-ist die Messung mehr als ausreichend. Bei Filmkondensatoren mit kleinen Werten,
-können je nach MCU-Taktrate unterschiedliche Werte zustande kommen. Ich denke,
-Herr Fourier könnte dies erklären.
+mißt. Da aber die Messung nicht per Wechselstromsignal mit einer bestimmten
+Frequenz durchgefüghrt wird, bitte keine supergenauen Ergebnisse erwarten. Die
+benutzte Methode entspricht vielleicht der Messung mit 1 oder 10 kHz. Für die
+Prüfung von Elkos ist die Messung mehr als ausreichend. Bei Filmkondensatoren
+mit kleinen Werten, können je nach MCU-Taktrate unterschiedliche Werte zustande
+kommen (vergleichbar mit einem Testsignal grob um die 600 Hz). Ich denke, Herr
+Fourier könnte dies erklären.
 
 Ein gemessener Kapazitätswert von mehr als 5pF (incl. Nulloffset) wird
 als gültig angesehen. Niedrigere Werte sind zu ungenau und könnten durch

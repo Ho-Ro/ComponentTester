@@ -63,7 +63,7 @@ void ProbePinout(uint8_t Mode)
 
   switch (Mode)
   {
-    #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (SW_SERVO) || defined (SW_SQUAREWAVE)
+    #ifdef SW_PROBEPINOUT_PWM
     case PROBES_PWM:
       /* probe #1: Gnd / probe #2: signal / probe #3: Gnd */
       Char1 = '-';
@@ -72,7 +72,7 @@ void ProbePinout(uint8_t Mode)
       break;
     #endif
 
-    #if defined (SW_ESR_TOOL) || defined (SW_CONTINUITY_CHECK)
+    #ifdef SW_PROBEPINOUT_ESR
     case PROBES_ESR:
       /* probe #1: + / probe #3: - */
       Char1 = '+';
@@ -81,7 +81,7 @@ void ProbePinout(uint8_t Mode)
       break;
     #endif
 
-    #if defined (SW_MONITOR_R) || defined (SW_MONITOR_C) || defined (SW_MONITOR_L) || defined(SW_MONITOR_RCL) || defined(SW_MONITOR_RL)
+    #ifdef SW_PROBEPINOUT_RCL
     case PROBES_RCL:
       /* probe #1: * / probe #3: * */
       Char1 = '*';
@@ -839,7 +839,6 @@ void Check_LED(uint8_t Probe1, uint8_t Probe2)
 {
   uint16_t          U1;                 /* voltage */
 
-  /* update all three probes (3rd probe is done automatically) */
   UpdateProbes2(Probe1, Probe2);        /* update probes */
 
   /* we assume: probe-1 = A / probe2 = C */
@@ -947,8 +946,7 @@ void OptoCoupler_Tool(void)
 
       if (Check.Diodes == 1)       /* got one */
       {
-        /* update all three probes for remaining checks */
-        /* (3rd probe is done automatically) */
+        /* update probes for remaining checks (3rd probe is done automatically) */
         UpdateProbes2(Diodes[0].A, Diodes[0].C);
 
         Test = DETECTED_LED;            /* proceed with other checks */
@@ -1472,7 +1470,7 @@ void Monitor_R(void)
   ProbePinout(PROBES_RCL);              /* show probes used */
 
   /* init */
-  UpdateProbes2(PROBE_1, PROBE_3);      /* set probes */
+  UpdateProbes2(PROBE_1, PROBE_3);      /* update probes */
   R1 = &Resistors[0];                   /* pointer to first resistor */
   /* increase number of samples to lower spread of measurement values */
   Cfg.Samples = 100;                    /* perform 100 ADC samples */
@@ -1656,7 +1654,7 @@ void Monitor_L(void)
     #endif
 
     /* measure R */
-    UpdateProbes2(PROBE_1, PROBE_3);    /* set probes */
+    UpdateProbes2(PROBE_1, PROBE_3);    /* update probes */
     Check.Resistors = 0;                /* reset resistor counter */
     CheckResistor();                    /* check for resistor */
     LCD_ClearLine2();                   /* clear line #2 */
@@ -1747,7 +1745,7 @@ void Monitor_RCL(void)
       Cfg.Samples = 100;                /* perform 100 ADC samples */
 
       /* measure R */
-      UpdateProbes2(PROBE_1, PROBE_3);       /* set probes */
+      UpdateProbes2(PROBE_1, PROBE_3);       /* update probes */
       Check.Resistors = 0;                   /* reset resistor counter */
       CheckResistor();                       /* check for resistor */
 
@@ -1879,7 +1877,7 @@ void Monitor_RL(void)
   while (Flag)
   {
     /* measure R and display value */
-    UpdateProbes2(PROBE_1, PROBE_3);    /* set probes */
+    UpdateProbes2(PROBE_1, PROBE_3);    /* update probes */
     Check.Resistors = 0;                /* reset resistor counter */
     CheckResistor();                    /* check for resistor */
     LCD_ClearLine2();                   /* clear line #2 */
@@ -2441,9 +2439,9 @@ void Flashlight(void)
 #ifdef SW_PHOTODIODE
 
 /*
- *  check photodiode
+ *  check photodiodes
  *  - supports reverse-bias and no-bias mode
- *  - uses probe #1 (anode) and probe #3 (cathode)
+ *  - uses probes #1 (anode) and #3 (cathode)
  */
 
 void PhotodiodeCheck(void)
@@ -2551,7 +2549,7 @@ void PhotodiodeCheck(void)
     I /= R;                        /* / R (in 0.1 Ohms) -> I in 0.1 µA */ 
 
     /* display I_P */
-    LCD_ClearLine2();              /* line #2 */
+    LCD_ClearLine2();              /* clear line #2 */
     if (Flag & REVERSE_BIAS)       /* reverse-bias mode */
     {
       Display_EEString_Space(ReverseBias_str);    /* display: rev */
@@ -2602,6 +2600,120 @@ void PhotodiodeCheck(void)
   #undef NO_BIAS
   #undef REVERSE_BIAS
   #undef UPDATE_BIAS
+}
+
+#endif
+
+
+
+/* ************************************************************************
+ *   diode/LED check
+ * ************************************************************************ */
+
+
+#ifdef SW_DIODE_LED
+
+/*
+ *  display diode pinout and Uf
+ *
+ *  requires:
+ *  - Diode: pointer of diode data
+ */
+
+void Show_Single_Diode(Diode_Type *Diode)
+{
+  Display_ProbeNumber(Diode->A);        /* show probe number of anode */
+  Display_EEString(Diode_AC_str);       /* show: ->|- */
+  Display_ProbeNumber(Diode->C);        /* show probe number of cathode */
+  Display_Space();
+  Display_Value(Diode->V_f, -3, 'V');   /* show Uf (in mV) */
+}
+
+
+
+/*
+ *  quick-check diodes and LEDs
+ *  - uses probes #1 and #3
+ *  - requires a display with >= 3 text lines
+ */
+
+void Diode_LED_Check(void)
+{
+  uint8_t           Flag = 1;           /* loop control */
+  uint8_t           Test;               /* user feedback */
+
+
+  /*
+   *  show info
+   */
+
+  LCD_Clear();
+  #ifdef UI_COLORED_TITLES
+    /* display: diode/LED */
+    Display_ColoredEEString(Diode_LED_str, COLOR_TITLE);
+  #else
+    Display_EEString(Diode_LED_str);         /* display: diode/LED */
+  #endif
+  ProbePinout(PROBES_RCL);                   /* show probes used */
+
+
+  /*
+   *  processing loop
+   */
+
+  while (Flag > 0)
+  {
+    /*
+     *  check for diodes
+     */
+
+    /* reset values */
+    Check.Diodes = 0;                   /* reset diode counter */
+
+    /* check for diode in one direction (probe #1: A, probe #3: C */
+    UpdateProbes2(PROBE_1, PROBE_3);         /* update probes */
+    CheckDiode();                            /* run diode check */
+
+    /* check for diode in other direction (probe #1: C, probe #3: A */
+    UpdateProbes2(PROBE_3, PROBE_1);         /* update probes */
+    CheckDiode();                            /* run diode check */
+
+
+    /*
+     *  process results
+     */
+
+    LCD_ClearLine(3);                   /* clear line #3 */
+    LCD_ClearLine2();                   /* clear line #2 */
+
+    if (Check.Diodes == 0)              /* no diode */
+    {
+      Display_Minus();                  /* display: - */
+    }
+    else                                /* one diode or more */
+    {
+      Show_Single_Diode(&Diodes[0]);    /* display pinout and Uf of first diode */
+    }
+
+    if (Check.Diodes == 2)              /* two anti-parallel diodes */
+    {
+      LCD_CharPos(1, 3);                /* go to start of line #3 */
+      Show_Single_Diode(&Diodes[1]);    /* display pinout and Uf of second diode */
+    }
+
+
+    /*
+     *  user feedback
+     */
+
+    /* check for user feedback and slow down update rate */
+    Test = TestKey(250, CHECK_KEY_TWICE | CHECK_BAT);
+
+    if (Test == KEY_TWICE)         /* two short key presses */
+    {
+      Flag = 0;                    /* end loop */
+    }
+  }
 }
 
 #endif

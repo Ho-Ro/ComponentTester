@@ -6,7 +6,7 @@
  *   - 8 bit parallel interface (not supported)
  *   - I2C via PCF8574 based backpack (driving 4 bit parallel interface)
  *
- *   (c) 2015-2022 by Markus Reschke
+ *   (c) 2015-2024 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -31,7 +31,7 @@
  *    R/W    LCD_RW  (default: P1)
  *    E      LCD_EN1 (default: P2)
  *    LED    LCD_LED (default: P3)
- *  - max. clock for PCF8574 I2C: 100kHz (standard mode)
+ *  - I2C clock mode for PCF8574: standard (100kHz)
  */
 
 
@@ -387,12 +387,13 @@ void PCF8574_Write(uint8_t Byte)
 {
   if (I2C_Start(I2C_START) == I2C_OK)             /* start */
   {
-    I2C.Byte = LCD_I2C_ADDR << 1;       /* address (7 bit & write) */
+    I2C.Byte = LCD_I2C_ADDR << 1;                 /* address (7 bits) & write (0) */
 
-    if (I2C_WriteByte(I2C_ADDRESS) == I2C_ACK)    /* address slave */
+    /* send address & write bit, expect ACK from PCF8574 */
+    if (I2C_WriteByte(I2C_ADDRESS) == I2C_ACK)    /* address PCF8574 */
     {
-      I2C.Byte = Byte;                  /* port pins */
-      I2C_WriteByte(I2C_DATA);          /* send data */
+      I2C.Byte = Byte;                            /* set port pins */
+      I2C_WriteByte(I2C_DATA);                    /* send data */
     }
     /* todo: error handling? */
   }

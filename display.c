@@ -2,7 +2,7 @@
  *
  *   common display functions and common functions for LCD modules
  *
- *   (c) 2015-2023 by Markus Reschke
+ *   (c) 2015-2024 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1581,7 +1581,7 @@ void FontTest(void)
   uint8_t           n = 0;         /* char counter */
   uint8_t           i;             /* loop counter */
   uint8_t           Pos;           /* char X position */
-  uint8_t           Max;           /* max char lines */
+  uint8_t           MaxLines;      /* max char lines */
 
   /* show info in line #1 */
   LCD_Clear();
@@ -1594,19 +1594,25 @@ void FontTest(void)
   UI.LineMode = LINE_STD | LINE_KEEP;   /* next-line mode: keep first line */
 
   /* manage display size */
-  Max = UI.CharMax_Y;         /* get maximum number of lines */
-  Max--;                      /* - first line */
+  MaxLines = UI.CharMax_Y;         /* get maximum number of lines */
+  MaxLines--;                      /* - first line */
 
   /*
    *  processing loop
-   *  - show start address and next 8 characters in each line
+   *  - display characters and manage user interface
+   *  - default output format:
+   *    - index number (hex) and next 8 characters (including missing ones)
+   *    - display 'space' for unavailable characters
+   *  - packed output format:
+   *    - no index, only available characters, complete text line
    */
 
   while (Run)
   {
     Display_NextLine();            /* move to next line */
 
-    /* display start value in hexadecimal */
+    #ifndef FONT_PACKED
+    /* display start index in hexadecimal */
     Display_HexByte(n);
     Display_Space();
 
@@ -1619,34 +1625,87 @@ void FontTest(void)
 
       if (UI.CharPos_X == Pos)     /* no char available */
       {
+        /* display 'space' by moving right */
         UI.CharPos_X++;            /* move right by one char */
         /* update character position (required by some display drivers) */
         LCD_CharPos(UI.CharPos_X, UI.CharPos_Y);
       }
 
-      i++;                         /* next char */
-      n++;
+      i++;                         /* next char in current line */
+      n++;                         /* next char in font */
+    }
+    #endif
+
+    #ifdef FONT_PACKED
+    /* display available chars (complete text line) */
+    i = UI.CharMax_X;              /* max number of chars per line */
+
+    /* keep last position in last line clear for cursor */
+    if (Run == MaxLines)           /* last line */
+    {
+      i--;                         /* one char less */
     }
 
+    /* display a complete text line of characters */
+    while (i > 0)                  /* complete text line */
+    {
+      Pos = UI.CharPos_X;          /* get currect X position */
+      Display_Char(n);             /* display char */
+
+      if (UI.CharPos_X > Pos)      /* char available */
+      {
+        i--;                       /* char done, next one */
+      }
+
+      n++;                         /* next char in font */
+      if (n == 0)                  /* overflow to zero */
+      {
+        /* all chars in font done */
+        i = 0;                     /* end this loop */
+
+        /* special case: cleared screen and no characters shown */
+        if (UI.CharPos_Y == 2)     /* second text line */
+        {
+          if (Pos == 1)            /* no char shown */
+          {
+            /* end processing loop and signal special case */ 
+            Run = 0;
+          }
+        }
+      }
+    }
+    #endif
 
     /* line/loop management */
-    Pos = 0;
+    Pos = 0;                  /* feedback flag: reset */
     if (n == 0)               /* overflow to zero */
     {
       /* all 256 chars done */
-      Run = 0;                /* end loop */
-      Pos = 1;                /* request user feedback */
+
+      #ifndef FONT_PACKED
+      Run = 0;                     /* end processing loop */
+      Pos = 1;                     /* request user feedback */
+      #endif
+
+      #ifdef FONT_PACKED
+      if (Run)                     /* no special case */
+      {
+        Run = 0;                   /* end processing loop */
+        Pos = 1;                   /* request user feedback */   
+      }
+      /* else: skip user feedback */
+      #endif
     }
     else                      /* not done yet */
     {
-      if (Run == Max)         /* screen full */
+      if (Run == MaxLines)         /* screen full */
       {
-        Run = 1;              /* reset counter */
-        Pos = 1;              /* request user feedback */
+        Run = 1;                   /* reset counter */
+        Pos = 1;                   /* request user feedback */
       }
-      else                    /* some space left */
+      else                         /* some space left */
       {
-        Run++;                /* another line */ 
+        Run++;                     /* another line */ 
       }
     }
 
@@ -1867,11 +1926,11 @@ void Display_ColorCode(uint16_t Value, int8_t Scale, uint16_t TolBand)
   {
     if (Scale == -1)          /* -1 / 0.1 */
     {
-      Color = COLOR_CODE_SILVER;
+      Color = COLOR_CODE_GOLD;
     }
     else if (Scale == -2)     /* -2 / 0.01 */
     {
-      Color = COLOR_CODE_GOLD;
+      Color = COLOR_CODE_SILVER;
     }
   }
 

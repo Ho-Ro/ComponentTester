@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2023 by Markus Reschke
+ *   (c) 2012-2024 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -189,8 +189,10 @@
 
 #ifndef MAX6675_C
 
+  #ifdef HW_MAX6675
   extern void MAX6675_BusSetup(void);
   extern void MAX6675_Tool(void);
+  #endif
 
 #endif
 
@@ -201,8 +203,23 @@
 
 #ifndef MAX31855_C
 
+  #ifdef HW_MAX31855   
   extern void MAX31855_BusSetup(void);
   extern void MAX31855_Tool(void);
+  #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from BH1750.c
+ * ************************************************************************ */
+
+#ifndef BH1750_C
+
+  #ifdef HW_BH1750
+  extern void BH1750_Tool(void);
+  #endif
 
 #endif
 
@@ -532,6 +549,10 @@
 
   #ifdef SW_PHOTODIODE
   extern void PhotodiodeCheck(void);
+  #endif
+
+  #ifdef SW_DIODE_LED
+  extern void Diode_LED_Check(void);
   #endif
 
 #endif

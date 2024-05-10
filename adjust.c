@@ -2,7 +2,7 @@
  *
  *   self-adjustment functions
  *
- *   (c) 2012-2023 by Markus Reschke
+ *   (c) 2012-2024 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -132,6 +132,9 @@ void SetAdjustmentDefaults(void)
  *  requires:
  *  - pointer to data structure in RAM
  *  - size of data structure
+ *
+ *  returns:
+ *  - checksum
  */
 
 uint8_t CheckSum(uint8_t *Data, uint8_t Size)
@@ -169,20 +172,19 @@ uint8_t CheckSum(uint8_t *Data, uint8_t Size)
  *
  *  returns:
  *  - 0 on checksum error for read operation
- *  - number of bytes read/written
+ *  - 1 on success
  */
 
 uint8_t DataStorage(uint8_t *Data_RAM, uint8_t *Data_EE, uint8_t Size, uint8_t Mode)
 {
-  uint8_t      n;                       /* counter & return value */
-  uint8_t      *Help;                   /* pointer */
+  uint8_t      Flag = 1;                /* return value */
+  uint8_t      Check;                   /* checksum */
+  uint8_t      *Help;                   /* pointer to checksum byte */
 
   /* update checksum */
   Help = Data_RAM;                      /* start pointer */
   Help += Size - 1;                     /* last byte (checksum) */
   *Help = CheckSum(Data_RAM, Size);     /* update checksum */
-
-  Help = Data_RAM;                      /* save pointer */
 
 
   /*
@@ -207,13 +209,14 @@ uint8_t DataStorage(uint8_t *Data_RAM, uint8_t *Data_EE, uint8_t Size, uint8_t M
 
   if (Mode != STORAGE_SAVE)        /* read mode */
   {
-    n = CheckSum(Help, Size);      /* checksum of data in RAM */
+    Check = CheckSum(Data_RAM, Size);   /* checksum of data in RAM */
 
     /* data structure's last byte is checksum */
-    Data_RAM += Size - 1;          /* point to last byte */
-    if (*Data_RAM != 0)            /* EEPROM updated */
+    Data_RAM += Size - 1;              /* point to last byte */
+    /* todo: couldn't we simply use Help? */
+    if (*Data_RAM != 0)                /* EEPROM updated */
     {
-      if (*Data_RAM != n)          /* mismatch */
+      if (*Data_RAM != Check)          /* checksum mismatch */
       {
         /* tell user */
         LCD_Clear();
@@ -222,17 +225,17 @@ uint8_t DataStorage(uint8_t *Data_RAM, uint8_t *Data_EE, uint8_t Size, uint8_t M
           Display_EEString_Center(Checksum_str);  /* display: Checksum */
           Display_NL_EEString_Center(Error_str);  /* display: error! */
         #else
-          Display_EEString(Checksum_str);    /* display: Checksum */
-          Display_NL_EEString(Error_str);    /* display: error! */
+          Display_EEString(Checksum_str);         /* display: Checksum */
+          Display_NL_EEString(Error_str);         /* display: error! */
         #endif
-        MilliSleep(2000);                    /* give user some time to read */
+        MilliSleep(2000);                         /* give user some time to read */
 
-        n = 0;           /* signal checksum problem */
+        Flag = 0;                                 /* signal checksum problem */
       }
     }
   }
 
-  return n;
+  return Flag;
 }
 
 
@@ -613,7 +616,7 @@ uint8_t SelfAdjustment(void)
            */
 
           /* probe pair 1-2 */
-          UpdateProbes2(PROBE_2, PROBE_1);   /* probes #2 and #1 */
+          UpdateProbes2(PROBE_2, PROBE_1);   /* update probes (#2 and #1) */
           Val1 = SmallResistor(0);           /* get R in 0.01 Ohm */
           if (Val1 < 150)                    /* within limit (< 1.5 Ohm) */
           {
@@ -627,7 +630,7 @@ uint8_t SelfAdjustment(void)
           }
 
           /* probe pair 1-3 */
-          UpdateProbes2(PROBE_3, PROBE_1);   /* probes #3 and #1 */
+          UpdateProbes2(PROBE_3, PROBE_1);   /* update probes (#3 and #1) */
           Val2 = SmallResistor(0);           /* get R in 0.01 Ohm */
           if (Val2 < 150)                    /* within limit (< 1.5 Ohm) */
           {
@@ -641,7 +644,7 @@ uint8_t SelfAdjustment(void)
           }
 
           /* probe pair 2-3 */
-          UpdateProbes2(PROBE_3, PROBE_2);   /* probes #3 and #2 */
+          UpdateProbes2(PROBE_3, PROBE_2);   /* update probes (#3 and #2) */
           Val3 = SmallResistor(0);           /* get R in 0.01 Ohm */
           if (Val3 < 150)                    /* within limit (< 1.5 Ohm) */
           {
@@ -724,6 +727,7 @@ uint8_t SelfAdjustment(void)
 
           /*
            *  measure the probe pair capacitance
+           *  - take raw capacitance value (no offset considered)
            *  - we expect a value less than 100pF
            */
 
@@ -990,8 +994,8 @@ uint8_t SelfTest(void)
           /* set up a voltage divider using two Rl */
           /* get offset by substracting theoretical voltage of voltage divider */
 
-          /* voltage of voltage divider */
-          Temp = ((int32_t)Cfg.Vcc * (R_MCU_LOW + R_LOW)) / (R_MCU_LOW + R_LOW + R_LOW + R_MCU_HIGH);
+          /* voltage of voltage divider (in mV) */
+          Temp = ((int32_t)Cfg.Vcc * (R_MCU_LOW/10 + R_LOW)) / (R_MCU_LOW/10 + R_LOW + R_LOW + R_MCU_HIGH/10);
 
           /* TP3: Gnd -- Rl -- probe-2 -- probe-1 -- Rl -- Vcc */
           R_PORT = (1 << R_RL_1);

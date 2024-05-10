@@ -1,9 +1,9 @@
 /* ************************************************************************
  *
- *   functions for MAX31855 (thermocouple ADC)
+ *   functions for MAX31855 (thermocouple ADC, SPI bus)
  *   - supports MAX31855K, J, N, T, S, R and E
  *
- *   (c) 2021 by Markus Reschke
+ *   (c) 2021-2024 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -196,7 +196,7 @@ void MAX31855_DeselectChip(void)
  *  - 0 on any problem
  */
 
-uint8_t MAX31855_ReadTemperature(int32_t *Value, int8_t *Scale)
+uint8_t MAX31855_ReadTemperature(int32_t *Value, uint8_t *Scale)
 {
   uint8_t           Flag = 0;           /* return value */
   uint8_t           n;                  /* counter */
@@ -263,7 +263,7 @@ void MAX31855_Tool(void)
   uint8_t           Test;               /* key / feedback */
   uint8_t           Mode = MODE_MANUAL; /* operation mode */
   uint16_t          Timeout = 0;        /* timeout for user feedback */
-  int8_t            Scale;              /* temperature scale / decimal places */
+  uint8_t           Scale;              /* temperature scale / decimal places */
   int32_t           Value;              /* temperature value */
 
   /*

@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# find the biggest interupt vector used by transistor tester
+# the first command line parameter possible values:
+#           '-flto': CFLAGS in Makefile contains -flto option
+#   any other value: CFLAGS in Makefile doesn't contain -flto option
+# the second command line parameter:
+#   list of compiled object files to analyze
+
+
+LAST_USED_VECTOR=`if [ x"$1" = x"-flto" ]
+then
+  avr-readelf -W -S $2 | grep -e '\s\.gnu\.lto___vector_[0-9]\+\.' | sed 's/^.*\s\.gnu\.lto___vector_\([0-9]\+\)\..*/\1/'
+else
+  avr-readelf -W -s $2 | grep -e '\b__vector_[0-9]\+\b' | grep -e '\bFUNC\b' | grep -e '\bGLOBAL\b' | sed 's/^.*\b__vector_\([0-9]\+\)\b.*$/\1/'
+fi | sort -n | tail -n 1`
+
+if [ x"$LAST_USED_VECTOR" = x"" ]
+then
+  LAST_USED_VECTOR=0
+fi
+
+echo .set last_used_vector,$LAST_USED_VECTOR > gcrt1.inc

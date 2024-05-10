@@ -2,7 +2,7 @@
  *
  *   support for global configuration
  *
- *   (c) 2012-2023 by Markus Reschke
+ *   (c) 2012-2024 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -310,7 +310,7 @@
 
 
 /* ************************************************************************
- *   options management
+ *   memory/storage options 
  * ************************************************************************ */
 
 
@@ -336,8 +336,13 @@
 
 
 
+/* ************************************************************************
+ *   hardware/software options
+ * ************************************************************************ */
+
+
 /*
- *  hardware/software options
+ *  power management
  */
 
 /* power switch: prefer soft-latching type */
@@ -348,11 +353,15 @@
 #endif
 
 
-/* additional keys */
+/*
+ *  additional keys / user input
+ */
+
 /* rotary encoder, increase/decrease push buttons or touch screen */
 #if defined (HW_ENCODER) || defined (HW_INCDEC_KEYS) | defined (HW_TOUCH)
   #define HW_KEYS
 #endif
+
 
 /* options which require additional keys */
 #ifndef HW_KEYS
@@ -396,6 +405,10 @@
 #endif
 
 
+/*
+ *  inductance measurement
+ */
+
 /* options which require inductance measurement */
 #ifndef SW_INDUCTOR
 
@@ -417,6 +430,10 @@
 #endif
 
 
+/*
+ *  ESR measurement
+ */
+
 /* options which require ESR measurement */
 #if ! defined (SW_ESR) && ! defined (SW_OLD_ESR)
   /* ESR tool */
@@ -425,6 +442,10 @@
   #endif
 #endif
 
+
+/*
+ *  buzzer
+ */
 
 /* buzzer type: either active or passive */
 #ifdef HW_BUZZER
@@ -436,6 +457,7 @@
     #error <<< Buzzer: select buzzer type! >>>
   #endif
 #endif
+
 
 /* options which require a buzzer */
 #if ! defined (HW_BUZZER)
@@ -458,6 +480,10 @@
 #endif
 
 
+/*
+ *  MCU clock
+ */
+
 /* options which require a MCU clock >= 8MHz */
 #if CPU_FREQ < 8000000
 
@@ -473,6 +499,10 @@
 
 #endif
 
+
+/*
+ *  battery monitoring
+ */
 
 /* battery monitoring: if disabled */
 #ifdef BAT_NONE
@@ -490,15 +520,21 @@
 #endif
 
 
+/*
+ *  SPI
+ */
+
 /* SPI: either bit-bang or hardware */
 #if defined (SPI_BITBANG) && defined (SPI_HARDWARE)
   #error <<< SPI: select either bitbang or hardware SPI! >>>
 #endif
 
+
 /* SPI: common switch */
 #if defined (SPI_BITBANG) || defined (SPI_HARDWARE)
   #define HW_SPI
 #endif
+
 
 /* 9-Bit SPI requires bit-bang mode */
 #ifdef SPI_9
@@ -507,6 +543,7 @@
   #endif
 #endif
 
+
 /* options which require SPI */
 #ifndef HW_SPI
   /* SPI read support */
@@ -514,6 +551,7 @@
     #undef SPI_RW
   #endif
 #endif
+
 
 /* options which require SPI read support */
 #ifndef SPI_RW
@@ -527,6 +565,7 @@
   #endif
 #endif
 
+
 /* bit-bang SPI with read support requires SPI_PIN and SPI_MISO */
 #if defined (SPI_BITBANG) && defined (SPI_RW)
   #ifndef SPI_PIN
@@ -538,10 +577,15 @@
 #endif
 
 
+/*
+ *  I2C
+ */
+
 /* I2C: either bit-bang or hardware */
 #if defined (I2C_BITBANG) && defined (I2C_HARDWARE)
   #error <<< I2C: select either bitbang or hardware I2C! >>>
 #endif
+
 
 /* I2C: common switch */
 #if defined (I2C_BITBANG) || defined (I2C_HARDWARE)
@@ -549,15 +593,39 @@
 #endif
 
 
+/* options which require I2C */
+#ifndef HW_I2C
+  /* I2C read support */
+  #ifdef I2C_RW
+    #undef I2C_RW
+  #endif
+#endif
+
+
+/* options which require I2C read support */
+#ifndef I2C_RW
+  /* BH1750 */
+  #ifdef HW_BH1750
+    #undef HW_BH1750
+  #endif
+#endif
+
+
+/*
+ *  TTL serial
+ */
+
 /* TTL serial: either bit-bang or hardware */
 #if defined (SERIAL_BITBANG) && defined (SERIAL_HARDWARE)
   #error <<< Serial: select either bitbang or hardware serial interface! >>>
 #endif
 
+
 /* TTL serial: common switch */
 #if defined (SERIAL_BITBANG) || defined (SERIAL_HARDWARE)
   #define HW_SERIAL
 #endif
+
 
 /* VT100 display driver disables other options for serial interface */
 #ifdef LCD_VT100
@@ -572,6 +640,7 @@
     #undef UI_BATTERY
   #endif
 #endif
+
 
 /* options which require TTL serial */
 #ifndef HW_SERIAL
@@ -589,6 +658,7 @@
   #endif
 #endif
 
+
 /* options which require TTL serial RW */
 #ifndef SERIAL_RW
   #ifdef UI_SERIAL_COMMANDS
@@ -597,10 +667,15 @@
 #endif
 
 
-/* OneWire */
+/*
+ *  OneWire
+ */
+
+/* OneWire: either via probes or dedicated pin */
 #if defined (ONEWIRE_PROBES) && defined (ONEWIRE_IO_PIN)
   #error <<< OneWire: select either probes or dedicated IO pin! >>>
 #endif
+
 
 /* options which require OneWire */
 #if ! defined (ONEWIRE_PROBES) && ! defined (ONEWIRE_IO_PIN)
@@ -623,7 +698,11 @@
 #endif
 
 
-/* LCD module */
+/*
+ *  display module 
+ */
+
+/* LCD module: contrast */
 #ifdef LCD_CONTRAST
   #define SW_CONTRAST
 #else
@@ -674,12 +753,17 @@
 #endif
 
 
+/*
+ *  fonts: additional characters
+ */
+
 /* additional font characters: probe numbers with reversed colors */
 #ifdef UI_PROBE_REVERSED
   #ifndef FONT_EXTRA
     #define FONT_EXTRA
   #endif
 #endif
+
 
 /* additional font characters: battery symbol */
 #ifdef UI_BATTERY
@@ -688,6 +772,10 @@
   #endif
 #endif
 
+
+/*
+ *  component symbols
+ */
 
 /* component symbols for fancy pinout */
 #if defined (SYMBOLS_24X24_H) || defined (SYMBOLS_24X24_OLD_H) || defined (SYMBOLS_24X24_ALT1_H) || defined (SYMBOLS_24X24_ALT2_H)
@@ -773,6 +861,10 @@
 #endif
 
 
+/*
+ *  PWM and counters
+ */
+
 /* PWM generators: can't have both variants */
 #if defined (SW_PWM_SIMPLE) && defined (SW_PWM_PLUS)
   #error <<< PWM: select either PWM generator with simple UI or fancy UI! >>>
@@ -783,6 +875,7 @@
 #if defined (HW_FREQ_COUNTER_BASIC) && defined (HW_FREQ_COUNTER_EXT)
   #error <<< Counter: select either basic or extended frequency counter! >>>
 #endif
+
 
 /* frequency counter: common switch */
 #if defined (HW_FREQ_COUNTER_BASIC) || defined (HW_FREQ_COUNTER_EXT)
@@ -803,6 +896,10 @@
 #endif
 
 
+/*
+ *  IR detector/decoder
+ */
+
 /* IR detector/decoder: can't have probes and dedicated pin */
 #if defined (SW_IR_RECEIVER) && defined (HW_IR_RECEIVER)
   #error <<< Select either probes or dedicated IO pin for IR detector! >>>
@@ -817,6 +914,10 @@
 #endif
 
 
+/*
+ *  DS18B20
+ */
+
 /* rounding for DS18B20 requires DS18B20 support */
 #ifdef UI_ROUND_DS18B20
   #ifndef SW_DS18B20
@@ -824,6 +925,10 @@
   #endif
 #endif
 
+
+/*
+ *  Zener check
+ */
 
 /* Zener check: can't have unswitched and switched mode */
 #if defined (ZENER_UNSWITCHED) && defined (ZENER_SWITCHED)
@@ -855,6 +960,10 @@
 #endif
 
 
+/*
+ *  R & D
+ */
+
 /* read functions for display require bus with read support enabled */
 #ifdef LCD_READ
   #if defined (LCD_SPI) && ! defined (SPI_RW)
@@ -866,12 +975,14 @@
   /* can't check parallel busses */
 #endif
 
+
 /* display ID requires read functions for display */
 #ifdef SW_DISPLAY_ID
   #ifndef LCD_READ
     #undef SW_DISPLAY_ID
   #endif
 #endif
+
 
 /* output of display registers requires read functions for display
    and serial output */
@@ -891,7 +1002,11 @@
  * ************************************************************************ */
 
 
-/* ProbePinout() */
+/*
+ *  probe pinout
+ */
+
+/* function: ProbePinout() */
 #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (SW_SQUAREWAVE) || defined (SW_SERVO)
   #ifndef FUNC_PROBE_PINOUT
     #define FUNC_PROBE_PINOUT
@@ -916,35 +1031,66 @@
   #endif
 #endif
 
-#if defined (SW_PHOTODIODE)
+#if defined (SW_PHOTODIODE) || defined (SW_DIODE_LED)
   #ifndef FUNC_PROBE_PINOUT
     #define FUNC_PROBE_PINOUT
   #endif
 #endif
 
 
-/* E6 norm values */
+/* option: pinout for PWM */
+#if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS) || defined (SW_SERVO) || defined (SW_SQUAREWAVE)
+  #define SW_PROBEPINOUT_PWM
+#endif
+
+
+/* option: pinout for ESR */
+#if defined (SW_ESR_TOOL) || defined (SW_CONTINUITY_CHECK)
+  #define SW_PROBEPINOUT_ESR
+#endif
+
+
+/* option: pinout for RCL monitor */
+#if defined (SW_MONITOR_R) || defined (SW_MONITOR_C) || defined (SW_MONITOR_L) || defined(SW_MONITOR_RCL)
+  #define SW_PROBEPINOUT_RCL
+#endif
+
+#if defined(SW_MONITOR_RL) || defined(SW_DIODE_LED)
+  #ifndef SW_PROBEPINOUT_RCL
+    #define SW_PROBEPINOUT_RCL
+  #endif
+#endif
+
+
+/*
+ *  norm values
+ */
+
+/* option: E6 norm values */
 #if defined (SW_C_E6_T) || defined (SW_L_E6_T)
   #define SW_E6
 #endif
 
-/* E12 norm values */
+
+/* option: E12 norm values */
 #if defined (SW_C_E12_T) || defined (SW_L_E12_T)
   #define SW_E12
 #endif
 
-/* E24 norm values */
+
+/* option: E24 norm values */
 #if defined (SW_R_E24_5_T) || defined (SW_R_E24_5_CC) || defined (SW_R_E24_1_T) || defined (SW_R_E24_1_CC)
   #define SW_E24
 #endif
 
-/* E96 norm values */
+
+/* option: E96 norm values */
 #if defined (SW_R_E96_T) || defined (SW_R_E96_CC) || defined (SW_R_E96_EIA96)
   #define SW_E96
 #endif
 
 
-/* Show_ENormValues(), Display_EValue() */
+/* functions: Show_ENormValues(), Display_EValue() */
 #if defined (SW_R_E24_5_T) || defined (SW_R_E24_1_T) || defined (SW_R_E96_T)
   #ifndef FUNC_EVALUE
     #define FUNC_EVALUE
@@ -961,7 +1107,7 @@
 #endif
 
 
-/* Show_ENormCodes(), Display_ColorCode() */
+/* functions: Show_ENormCodes(), Display_ColorCode() */
 #if defined (SW_R_E24_5_CC) || defined (SW_R_E24_1_CC) || defined (SW_R_E96_CC)
   #ifndef FUNC_COLORCODE
     #define FUNC_COLORCODE
@@ -972,7 +1118,7 @@
 #endif
 
 
-/* Show_ENormEIA96(), Display_EIA96() */
+/* functions: Show_ENormEIA96(), Display_EIA96() */
 #if defined (SW_R_E96_EIA96)
   #ifndef FUNC_EIA96
     #define FUNC_EIA96
@@ -983,7 +1129,11 @@
 #endif
 
 
-/* SmoothLongKeyPress() */
+/*
+ *  UI / user feedback functions
+ */
+
+/* function: SmoothLongKeyPress() */
 #if defined (SW_PWM_PLUS) || defined (SW_SERVO) || defined (HW_EVENT_COUNTER) || defined (HW_LC_METER)
   #ifndef FUNC_SMOOTHLONGKEYPRESS
     #define FUNC_SMOOTHLONGKEYPRESS
@@ -991,7 +1141,11 @@
 #endif
 
 
-/* Display_FullValue() */
+/*
+ *  misc output functions
+ */
+
+/* function: Display_FullValue() */
 #if defined (SW_SQUAREWAVE) || defined (SW_PWM_PLUS) || defined (HW_FREQ_COUNTER_EXT) || defined (SW_SERVO)
   #ifndef FUNC_DISPLAY_FULLVALUE
     #define FUNC_DISPLAY_FULLVALUE
@@ -1004,14 +1158,14 @@
   #endif
 #endif
 
-#if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE) || defined (FUNC_EIA96)
+#if defined (FUNC_EVALUE) || defined (FUNC_COLORCODE) || defined (FUNC_EIA96) || defined (HW_BH1750)
   #ifndef FUNC_DISPLAY_FULLVALUE
     #define FUNC_DISPLAY_FULLVALUE
   #endif
 #endif
 
 
-/* Display_SignedFullValue() */
+/* function: Display_SignedFullValue() */
 #if defined (SW_DS18B20) || defined (SW_DS18S20) || defined (SW_DHTXX) || defined (HW_MAX31855)
   #ifndef FUNC_DISPLAY_SIGNEDFULLVALUE
     #define FUNC_DISPLAY_SIGNEDFULLVALUE
@@ -1019,7 +1173,7 @@
 #endif
 
 
-/* Display_HexByte() */
+/* function: Display_HexByte() */
 #if defined (SW_IR_RECEIVER) || defined (HW_IR_RECEIVER) || defined (ONEWIRE_READ_ROM) || defined (SW_ONEWIRE_SCAN)
   #ifndef FUNC_DISPLAY_HEXBYTE
     #define FUNC_DISPLAY_HEXBYTE
@@ -1033,7 +1187,7 @@
 #endif
 
 
-/* Display_HexValue() */
+/* function: Display_HexValue() */
 #if defined (SW_IR_TRANSMITTER) || defined (SW_DISPLAY_ID)
   #ifndef FUNC_DISPLAY_HEXVALUE
     #define FUNC_DISPLAY_HEXVALUE
@@ -1041,7 +1195,19 @@
 #endif
 
 
-/* RoundSignedValue() */
+/* function: Display_ColoredEEString_Center() */
+#if defined (TOUCH_ADS7843) && defined (UI_COLORED_TITLES) && defined (UI_CENTER_ALIGN)
+  #ifndef FUNC_DISPLAY_COLOREDEESTRING_CENTER
+    #define FUNC_DISPLAY_COLOREDEESTRING_CENTER
+  #endif
+#endif
+
+
+/*
+ *  math & conversion functions
+ */
+
+/* function: RoundSignedValue() */
 #if defined (UI_ROUND_DS18B20)
   #ifndef FUNC_ROUNDSIGNEDVALUE
     #define FUNC_ROUNDSIGNEDVALUE
@@ -1049,7 +1215,7 @@
 #endif
 
 
-/* Celsius2Fahrenheit() */
+/* function: Celsius2Fahrenheit() */
 #ifdef UI_FAHRENHEIT
   #if defined (SW_DS18B20) || defined (SW_DS18S20) || defined (SW_DHTXX) || defined (HW_MAX6675) || defined (HW_MAX31855)
     #ifndef FUNC_CELSIUS2FAHRENHEIT
@@ -1059,24 +1225,20 @@
 #endif
 
 
-/* variable Start_str */
+/*
+ *  misc variables
+ */
+
+/* variable: Start_str */
 #if defined (SW_OPTO_COUPLER) || defined (HW_EVENT_COUNTER) || defined (SW_DS18B20) || defined (SW_DS18S20) || defined (SW_ONEWIRE_SCAN)
   #ifndef VAR_START_STR
     #define VAR_START_STR
   #endif
 #endif
 
-#if defined (SW_DHTXX) || defined (HW_MAX6675) || defined (HW_MAX31855)
+#if defined (SW_DHTXX) || defined (HW_MAX6675) || defined (HW_MAX31855) || defined (HW_BH1750)
   #ifndef VAR_START_STR
     #define VAR_START_STR
-  #endif
-#endif
-
-
-/* Display_ColoredEEString_Center() */
-#if defined (TOUCH_ADS7843) && defined (UI_COLORED_TITLES) && defined (UI_CENTER_ALIGN)
-  #ifndef FUNC_DISPLAY_COLOREDEESTRING_CENTER
-    #define FUNC_DISPLAY_COLOREDEESTRING_CENTER
   #endif
 #endif
 

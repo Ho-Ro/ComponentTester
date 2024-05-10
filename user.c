@@ -2,7 +2,7 @@
  *
  *   user interface functions
  *
- *   (c) 2012-2023 by Markus Reschke
+ *   (c) 2012-2024 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1853,6 +1853,8 @@ void AdjustmentMenu(uint8_t Mode)
 #define MENUITEM_FLASHLIGHT       37
 #define MENUITEM_DS18S20          38
 #define MENUITEM_PHOTODIODE       39
+#define MENUITEM_BH1750           40
+#define MENUITEM_DIODE_LED        41
 
 
 /*
@@ -2074,11 +2076,22 @@ uint8_t PresentMainMenu(void)
     #define ITEM_34      0
   #endif
 
+  #ifdef HW_BH1750
+    #define ITEM_35      1
+  #else
+    #define ITEM_35      0
+  #endif
+
+  #ifdef SW_DIODE_LED
+    #define ITEM_36      1
+  #else
+    #define ITEM_36      0
+  #endif
 
   #define ITEMS_PACK_0   (ITEM_01 + ITEM_02 + ITEM_03 + ITEM_04 + ITEM_05 + ITEM_06 + ITEM_07 + ITEM_08 + ITEM_09 + ITEM_10)
   #define ITEMS_PACK_1   (ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20)
   #define ITEMS_PACK_2   (ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24 + ITEM_25 + ITEM_26 + ITEM_27 + ITEM_28 + ITEM_29 + ITEM_30)
-  #define ITEMS_PACK_3   (ITEM_31 + ITEM_32 + ITEM_33 + ITEM_34)
+  #define ITEMS_PACK_3   (ITEM_31 + ITEM_32 + ITEM_33 + ITEM_34 + ITEM_35 + ITEM_36)
 
   /* number of menu items */
   #define MENU_ITEMS     (ITEMS_BASIC + ITEMS_PACK_0 + ITEMS_PACK_1 + ITEMS_PACK_2 + ITEMS_PACK_3)
@@ -2250,6 +2263,13 @@ uint8_t PresentMainMenu(void)
   n++;
   #endif
 
+  #ifdef SW_DIODE_LED
+  /* diode/LED check */
+  Item_Str[n] = (void *)Diode_LED_str;
+  Item_ID[n] = MENUITEM_DIODE_LED;
+  n++;
+  #endif
+
   #ifdef SW_SERVO
   /* servo check */
   Item_Str[n] = (void *)Servo_str;
@@ -2297,6 +2317,13 @@ uint8_t PresentMainMenu(void)
   Item_Str[n] = (void *)MAX31855_str;
   Item_ID[n] = MENUITEM_MAX31855;
   n++;
+  #endif
+
+  #ifdef HW_BH1750
+  /* BH1750FVI ambient light sensor */
+  Item_Str[n] = (void *)BH1750_str;
+  Item_ID[n] = MENUITEM_BH1750;
+  n++;  
   #endif
 
   #ifdef HW_FLASHLIGHT
@@ -2434,6 +2461,8 @@ uint8_t PresentMainMenu(void)
   #undef ITEM_32
   #undef ITEM_33
   #undef ITEM_34
+  #undef ITEM_35
+  #undef ITEM_36
 
   return(ID);                 /* return item ID */
 }
@@ -2759,6 +2788,20 @@ uint8_t MainMenu(void)
       PhotodiodeCheck();
       break;
     #endif
+
+    #ifdef HW_BH1750
+    /* BH1750FVI ambient light sensor */
+    case MENUITEM_BH1750:
+      BH1750_Tool();
+      break;    
+    #endif
+
+    #ifdef SW_DIODE_LED
+    /* diode/LED check */
+    case MENUITEM_DIODE_LED:
+      Diode_LED_Check();
+      break;
+    #endif
   }
 
   #ifdef POWER_OFF_TIMEOUT
@@ -2870,6 +2913,8 @@ uint8_t MainMenu(void)
 #undef MENUITEM_FLASHLIGHT
 #undef MENUITEM_DS18S20
 #undef MENUITEM_PHOTODIODE
+#undef MENUITEM_BH1750
+#undef MENUITEM_DIODE_LED
 
 
 

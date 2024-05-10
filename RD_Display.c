@@ -8,7 +8,7 @@
  *     - 8 bit parallel in 6800 mode (untested)
  *     - 4 line SPI (untested)
  *
- *   (c) 2020-2022 by Markus Reschke
+ *   (c) 2020-2024 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -92,6 +92,7 @@
 /* fonts and symbols */
 /* horizontally aligned, horizontal bit order flipped */
 #include "font_8x8_hf.h"
+#include "font_8x16_alt_hf.h"
 #include "font_12x16_hf.h"
 #include "font_16x26_hf.h"
 #include "font_10x16_iso8859-2_hf.h"

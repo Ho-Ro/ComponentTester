@@ -2,7 +2,7 @@
  *
  *   common header file
  *
- *   (c) 2012-2023 by Markus Reschke
+ *   (c) 2012-2024 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -77,6 +77,7 @@
 #define OP_EXT_REF            0b00000100     /* external voltage reference used */
 #define OP_SPI                0b00001000     /* SPI is set up */
 #define OP_I2C                0b00010000     /* I2C is set up */
+#define OP_AUTOHOLD_TEMP      0b00100000     /* temporary auto-hold mode */
 
 
 /* operation control/signaling flags (bitfield) */
@@ -572,6 +573,7 @@ typedef struct
 
   /* increase/decrease push buttons */
   #ifdef HW_INCDEC_KEYS
+  /* no additional variables needed */
   #endif
 
   /* touch screen */

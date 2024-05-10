@@ -2,9 +2,38 @@
 
             Change Log for the Component Tester firmware (m-firmware)
 
-                       (c) 2012-2023 by Markus Reschke
+                       (c) 2012-2024 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.52m 2024-04
+- Added quick-check tool for diodes and LEDs (SW_DIODE_LED). 
+- Support for BH1750VFI ambient light sensor (HW_BH1750).
+- Fixed protocol issue for addressing chips in read mode in function
+  I2C_WriteByte() for bit-bang I2C.
+- Fixed scaling error in the voltage divider calculation in T2 of the Self
+  Test function.
+- Option for packed output format of font display for test purposes (
+  FONT_PACKED).
+- Added new font font_8x16_alt_hf.h (FONT_8x16_ALT_HF, thanks to
+  Feliciano@EEVblog).
+- Corrected bitmap for O umlaut in font_8x16_iso8859-2_hf.h (thanks to
+  Feliciano@EEVblog).
+- Fixed data byte issue in I2C_ReadByte() for hardware TWI (reported by
+  fail@mikrocontroller.net).
+- Corrected the colors for 0.1 and 0.01 multipliers in Display_ColorCode() (
+  reported by chaoslegion@VRTP)
+- Option to switch temporarily to auto-hold mode after a component is found (
+  in continuous mode, UI_AUTOHOLD_FOUND, suggested by Maniaxx@EEVBlog).
+- Added option to optimize the interrupt vector table to reduce firmware size
+  (Makefile: OPTIMIZE_VECTORS, thanks to Viktor Klimkovich).
+- Improved UJT detection to exclude potentiometers with a specifc resistance
+  (3-15 k) and the wiper turned to one end (reported by wandows@EEVblog).
+- Fixed issue with return value in DataStorage() (thanks to Viktor
+  Klimkovich).
+- Fixed detection issue of small capacitances which was caused by the newly
+  added negative zero offset in LargeCap() (reported by Yuriy_K@EEVblog and
+  Obelix2007@EEVblog).
 
 v1.51m 2023-12
 - Changed GetThirdProbe() into convenience function UpdateProbes2() to reduce
