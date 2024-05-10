@@ -12,7 +12,7 @@
  *     - 4 line SPI
  *     - 3 line SPI (not supported, requires bit-bang SPI)
  *
- *   (c) 2015-2022 by Markus Reschke
+ *   (c) 2015-2024 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -81,6 +81,7 @@
 /* fonts and symbols */
 /* horizontally aligned, horizontal bit order flipped */
 #include "font_8x8_hf.h"
+#include "font_8x16_alt_hf.h"
 #include "font_8x16_win1251_hf.h"
 #include "font_8x16alt_win1251_hf.h"
 #include "font_12x16_hf.h"

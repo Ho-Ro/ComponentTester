@@ -2,9 +2,40 @@
 
              Änderungen der Component-Tester-Firmware (m-firmware)
 
-                       (c) 2012-2023 by Markus Reschke
+                       (c) 2012-2024 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.52m 2024-04
+- Schnelltest von Dioden und LEDs (SW_DIODE_LED).
+- Unterstützung vom BH1750VFI Umgebungslichtsensor (HW_BH1750).
+- Protokollfehler von IC-Adressierung im Lesemodus in I2C_WriteByte() für
+  Bit-Bang-I2C beseitigt.
+- Skalierungsfehler in der Berechnung des Spannungteilers in T2 vom Selbsttest
+  behoben.
+- Option für komprimiertes Ausgabeformat bei Testausgabe des Zeichensatzes (
+  FONT_PACKED).
+- Neuer Zeichensatz font_8x16_alt_hf.h (FONT_8x16_ALT_HF, Dank an
+  Feliciano@EEVblog).
+- Bitmap für Ö in font_8x16_iso8859-2_hf.h korrigiert (Dank an
+  Feliciano@EEVblog).
+- Problem mit Datenbyte in I2C_ReadByte() für Hardware-TWI beseitigt (
+  gemeldet von fail@mikrocontroller.net).
+- Farben der Multiplikatoren für 0,1 und 0,01 in Funktion Display_ColorCode()
+  korrigiert (gemeldet von chaoslegion@VRTP).
+- Option zum temporären Umschalten in den Auto-Hold-Modus nachdem ein Bauteil
+  erkannt wurde (im kontinuierlichen Modus, UI_AUTOHOLD_FOUND, Vorschlag von
+  Maniaxx@EEVBlog).
+- Optimierungsoption für Interruptvektortabelle zum Reduzieren der Firmware-
+  größe (Makefile: OPTIMIZE_VECTORS, Dank an Viktor Klimkovich).
+- UJT-Erkennung verbessert, d.h. Potis mit einem bestimmten Wert (3-15 k) und
+  auf eine Endposition gestellt werden ausgeschlossen (gemeldet von
+  wandows@EEVblog).
+- Problem mit Rückgabewert in Funktion DataStorage() gelöst (Dank an Viktor
+  Klimkovich).
+- Problem mit der Erkennung von kleinen Kapazitäten beseitigt. Wurde durch den
+  neuen negativen Null-Offset in Funktion LargeCap() verursacht (gemeldet von
+  Yuriy_K@EEVblog und Obelix2007@EEVblog).
 
 v1.51m 2023-12
 - Funktion GetThirdProbe() zu Vereinfachungsfunktion UpdateProbes2() geändert

@@ -1,7 +1,7 @@
 #
 #  Makefile
 #
-#  (c) 2012-2023 by Markus Reschke
+#  (c) 2012-2024 by Markus Reschke
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
@@ -121,6 +121,14 @@ PORT = /dev/ttyUSB0
 
 
 #
+#  settings for special options
+#
+
+# optimize interrupt vector table (requires linux/unix environment)
+#OPTIMIZE_VECTORS = yes
+
+
+#
 #  global settings
 #
 
@@ -129,7 +137,7 @@ DIST = $(notdir ${CURDIR})
 
 # compiler flags
 CC = avr-gcc
-#CPP = avr-g++
+CPP = avr-g++
 OBJCOPY = avr-objcopy
 OBJDUMP = avr-objdump
 CFLAGS = -mmcu=${MCU} -Wall -I. -Ibitmaps
@@ -142,6 +150,9 @@ CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d
 
 # linker flags
 LDFLAGS = -mmcu=${MCU} -Wl,-Map=${NAME}.map
+ifeq (${OPTIMIZE_VECTORS},yes)
+  LDFLAGS += -nostartfiles
+endif
 LDFLAGS += -Wl,-relax
 
 # hex file flags
@@ -163,12 +174,15 @@ OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o display.o
 OBJECTS_C += resistor.o cap.o semi.o inductor.o
 OBJECTS_C += tools_misc.o tools_signal.o tools_counter.o tools_LC_Meter.o
 OBJECTS_C += SPI.o I2C.o serial.o commands.o OneWire.o
-OBJECTS_C += IR_RX.o IR_TX.o DHTxx.o ADS7843.o MAX6675.o MAX31855.o
+OBJECTS_C += IR_RX.o IR_TX.o DHTxx.o ADS7843.o MAX6675.o MAX31855.o BH1750.o
 OBJECTS_C += HD44780.o ILI9163.o ILI9341.o ILI9481.o ILI9486.o ILI9488.o
 OBJECTS_C += PCD8544.o PCF8814.o SH1106.o SSD1306.o
 OBJECTS_C += ST7036.o ST7565R.o ST7735.o Semi_ST7735.o ST7920.o
 OBJECTS_C += STE2007.o VT100.o RD_Display.o
 OBJECTS_S = wait.o
+ifeq (${OPTIMIZE_VECTORS},yes)
+  OBJECTS_S += gcrt1.o
+endif
 OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 
 
@@ -204,6 +218,7 @@ $(NAME): ${OBJECTS}
 size: ${NAME}
 	@echo
 	@avr-size -C --mcu=${MCU} $<
+#	@avr-objdump -Pmem-usage $<
 
 
 #
@@ -218,8 +233,26 @@ ${OBJECTS_C}: %.o: %.c ${HEADERS} ${MAKEFILE_LIST}
 ${OBJECTS_S}: %.o: %.S ${HEADERS} ${MAKEFILE_LIST}
 	${CC} ${CFLAGS} -c ${@:.o=.S}
 
+
 # external dependencies
 -include $(shell mkdir dep 2>/dev/null) $(wildcard dep/*)
+
+
+#
+#  special options
+#
+
+# trigger creation of gcrt1.inc
+ifeq (${OPTIMIZE_VECTORS},yes)
+gcrt1.S: gcrt1.inc
+endif
+
+# rule for gcrt1.inc
+ifeq (${OPTIMIZE_VECTORS},yes)
+gcrt1.inc: $(filter-out gcrt1.o, $(OBJECTS))
+	chmod +x ./gcrt1.inc-builder
+	./gcrt1.inc-builder '$(findstring -flto, ${CFLAGS})' '$^'
+endif
 
 
 #
@@ -273,11 +306,13 @@ dist: clean
 	  ${DIST}/*.h ${DIST}/*.c ${DIST}/*.S ${DIST}/bitmaps/*.h \
 	  ${DIST}/Makefile ${DIST}/README ${DIST}/CHANGES \
 	  ${DIST}/README.de ${DIST}/CHANGES.de ${DIST}/Clones \
-	  ${DIST}/EUPL-v1.2.txt ${DIST}/dep
+	  ${DIST}/EUPL-v1.2.txt ${DIST}/dep ${DIST}/gcrt1.inc-builder
 
 # clean up
 clean:
-	-rm -rf ${OBJECTS} ${NAME} ${NAME}* dep/* *.tgz *~
+	-rm -rf ${OBJECTS} ${NAME} dep/* *.tgz
+	-rm -rf ${NAME}.hex ${NAME}.eep ${NAME}.lss ${NAME}.map
+	-rm -rf gcrt1.inc
 
 
 #

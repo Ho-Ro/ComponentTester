@@ -2,7 +2,7 @@
  *
  *   semiconductor tests and measurements
  *
- *   (c) 2012-2023 by Markus Reschke
+ *   (c) 2012-2024 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -352,6 +352,7 @@ void CheckDiode(void)
   /* R_DDR is set to HiZ by DischargeProbes() */
   U2_Zero = ReadU(Probes.Ch_1);         /* get voltage at anode */
 
+  /* measure voltage across DUT (Vf) with Rh */
   /* set probes: Gnd -- Rh -- probe-2 / probe-1 -- Vcc */
   ADC_DDR = 0;                          /* set to HiZ to prepare change */
   ADC_PORT = Probes.Pin_1;              /* pull up anode directly */
@@ -370,6 +371,7 @@ void CheckDiode(void)
     U2_Rh = 0;                          /* simply zero */
   }
 
+  /* measure voltage across DUT (Vf) with Rl */
   /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc */
   R_DDR = Probes.Rl_2;                  /* pull down cathode via Rl */
   PullProbe(Probes.Rl_3, PULL_10MS | PULL_DOWN);   /* discharge gate */
@@ -492,7 +494,7 @@ void CheckDiode(void)
     {
       Check.Found = COMP_DIODE;
       /* Check.Type = TYPE_STANDARD; */
-      /* we don't set Comp.Done in case we'll find something different */
+      /* we don't set Check.Done in case we'll find something different */
     }
 
     /* save data */
@@ -2058,8 +2060,8 @@ void CheckUJT(void)
   uint16_t          U_3;           /* voltage */
 
   /* 
-   *  A UJT has a resistance of about 4-12kOhms between B2 and B1,
-   *  a PN junction between E and B2, and another one between E and B1.
+   *  A UJT has a resistance of about 4-12 kOhms between B2 and B1, and
+   *  a PN junction between E and B2/B1 (same N-type semi).
    *  E is nearer B2, i.e. R_B2 < R_B1 when not conducting.
    * 
    *  we assume: probe-1 = B2 / probe-2 = B1 / probe-3 = E
@@ -2067,17 +2069,17 @@ void CheckUJT(void)
 
 
   /*
-   *  Measure R_BB 
+   *  Measure R_BB
    *  - At this point we shouldn't have found any resistors.
    */
 
-  if (Check.Resistors == 0)        /* */
+  if (Check.Resistors == 0)        /* no resistors found yet */
   {
-    CheckResistor();               /* measure R_BB */
+    CheckResistor();               /* measure R_BB (between probe-1 and probe-2) */
 
     if (Check.Resistors == 1)      /* got resistance */
     {
-      /* check for 4 - 12kOhms */
+      /* check for 3 - 15 kOhms */
       if (CmpValue(Resistors[0].Value, Resistors[0].Scale, 3000, 0) == 1)
       {
         if (CmpValue(Resistors[0].Value, Resistors[0].Scale, 15000, 0) == -1)
@@ -2092,17 +2094,40 @@ void CheckUJT(void)
 
 
   /*
+   *  Check for pn junction:
+   *  - excludes a potentiometer (3-15 k) with the wiper turned to one end
+   *  - the Emitter reverse current is just a few µA (< 20 µA)
+   */
+
+  if (Flag)                   /* next check */
+  {
+    /* measure Emitter reverse current (Rl + RiL as shunt) */
+    /* set probes: probe-1 -- Vcc / probe-2 -- HiZ / Gnd -- Rl -- probe-3 */
+    R_PORT = 0;
+    R_DDR = Probes.Rl_3;                /* pull down E via Rl */
+    ADC_PORT = Probes.Pin_1;
+    ADC_DDR = Probes.Pin_1;             /* pull up B2 directly */
+    U_1 = ReadU_5ms(Probes.Ch_3);       /* voltage at E */
+
+    if (U_1 > 14)                       /* > 14mV (20µA) */
+    {
+      /* reverse current is too large */
+      Flag = 0;                         /* can't be a UJT */
+    }
+  }
+
+
+  /*
    *  Check if we can switch the UJT.
    */
 
-  if (Flag)
+  if (Flag)                   /* next check */
   {
     /* switched off, only R_BB */
     /* set probes: Gnd -- Rl -- probe-2 / probe-1 -- Vcc / probe-3 -- HiZ */
-    R_PORT = 0;
+                                        /* R_PORT is already 0 */
     R_DDR = Probes.Rl_2;                /* pull down B1 via Rl */
-    ADC_PORT = Probes.Pin_1;
-    ADC_DDR = Probes.Pin_1;             /* pull up B2 directly */
+                                        /* B2 is already pulled up directly */ 
     U_1 = ReadU_5ms(Probes.Ch_2);       /* voltage at B1 */
 
     /* switched on */

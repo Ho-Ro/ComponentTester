@@ -2,7 +2,7 @@
  *
  *   global variables
  *
- *   (c) 2012-2023 by Markus Reschke
+ *   (c) 2012-2024 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -156,7 +156,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.51m_AY-AT_20M";
+  const unsigned char Version_str[] MEM_TYPE = "v1.52m_AY-AT_20M";
 
 
   /* common terms and texts */
@@ -292,6 +292,10 @@
     const unsigned char MAX31855_str[] MEM_TYPE = "MAX31855";
   #endif
 
+  #ifdef HW_BH1750
+    const unsigned char BH1750_str[] MEM_TYPE = "BH1750";
+  #endif
+
   #ifdef SW_R_TRIMMER
     const unsigned char R_t_str[] MEM_TYPE = "Rt";
     const unsigned char R1_str[] MEM_TYPE = "R1";
@@ -301,6 +305,7 @@
   #ifdef SW_C_VLOSS
     const unsigned char U_loss_str[] MEM_TYPE = "V_l";
   #endif
+
 
   /* component symbols */
   const unsigned char Cap_str[] MEM_TYPE = {'-', LCD_CHAR_CAP, '-',0};
@@ -760,6 +765,10 @@
     extern const unsigned char MAX31855_str[];
   #endif
 
+  #ifdef HW_BH1750
+    extern const unsigned char BH1750_str[];
+  #endif
+
   #ifdef SW_ENCODER
     extern const unsigned char Encoder_str[];
     extern const unsigned char TurnRight_str[];
@@ -918,6 +927,15 @@
     extern const unsigned char NoBias_str[];
     extern const unsigned char ReverseBias_str[];
   #endif
+
+  #ifdef SW_DIODE_LED
+    extern const unsigned char Diode_LED_str[];
+  #endif
+
+
+  /* component symbols */
+  extern const unsigned char Diode_AC_str[];
+  extern const unsigned char Diode_CA_str[];
 
 
   /* remote commands */

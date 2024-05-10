@@ -2,7 +2,7 @@
  *
  *   main part
  *
- *   (c) 2012-2023 by Markus Reschke
+ *   (c) 2012-2024 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -1027,7 +1027,7 @@ void Show_Diode(void)
 
   if (Check.Diodes == 1)           /* single diode */
   {
-    C = D1->C;                     /* make cathode first pin */
+    C = D1->C;                     /* make anode first pin */
   }
   else if (Check.Diodes == 2)      /* two diodes */
   {
@@ -1088,7 +1088,7 @@ void Show_Diode(void)
     C = D1->C;                     /* cathode of first diode */
     A = 3;                         /* in series mode */
   }
-  else                             /* too much diodes */
+  else                             /* too many diodes */
   {
     /* display number of diodes found in line #1 */
     Display_EEString_Space(Diode_AC_str);    /* display: -|>|- */
@@ -1120,7 +1120,7 @@ void Show_Diode(void)
     Display_EEString(Diode_CA_str);     /* show -|<- */
     Display_ProbeNumber(A);             /* show A */
   }
-  else              /* common cathode or in-series: show A first */
+  else              /* single, common cathode or in-series: show A first */
   {
     Display_ProbeNumber(D1->A);         /* show A */
     Display_EEString(Diode_AC_str);     /* show ->|- */
@@ -2922,14 +2922,24 @@ show_component:
   #ifdef UI_PROBING_DONE_BEEP
     /* buzzer: short beep for probing result (probing done) */
     #ifdef BUZZER_ACTIVE
-    BUZZER_PORT |= (1 << BUZZER_CTRL);    /* enable: set pin high */
-    MilliSleep(20);                       /* wait for 20 ms */
-    BUZZER_PORT &= ~(1 << BUZZER_CTRL);   /* disable: set pin low */
+    BUZZER_PORT |= (1 << BUZZER_CTRL);       /* enable: set pin high */
+    MilliSleep(20);                          /* wait for 20 ms */
+    BUZZER_PORT &= ~(1 << BUZZER_CTRL);      /* disable: set pin low */
     #endif
 
     #ifdef BUZZER_PASSIVE
-    PassiveBuzzer(BUZZER_FREQ_LOW);       /* low frequency beep */
+    PassiveBuzzer(BUZZER_FREQ_LOW);          /* low frequency beep */
     #endif
+  #endif
+
+  #ifdef UI_AUTOHOLD_FOUND
+  /* when in continuous mode and some component is found */
+  if ((! (Cfg.OP_Mode & OP_AUTOHOLD)) &&
+      (Check.Found >= COMP_RESISTOR))
+  {
+    /* set flag and switch temporarily to auto-hold mode */
+    Cfg.OP_Mode |= OP_AUTOHOLD_TEMP | OP_AUTOHOLD;
+  }
   #endif
 
   /* call output function based on component type */
@@ -3120,6 +3130,16 @@ cycle_action:
   Serial_Ctrl(SER_RX_PAUSE);       /* disable TTL serial RX */
   /* todo: when we got a locked buffer meanwhile? */
   #endif
+
+  #ifdef UI_AUTOHOLD_FOUND
+  /* when temporary auto-hold is enabled */
+  if (Cfg.OP_Mode & OP_AUTOHOLD_TEMP)
+  {
+    /* clear flag and switch back to continuous mode */
+    Cfg.OP_Mode &= ~(OP_AUTOHOLD_TEMP | OP_AUTOHOLD);
+  }
+  #endif
+
 
   if (Key == KEY_MAINMENU)         /* run main menu */
   {

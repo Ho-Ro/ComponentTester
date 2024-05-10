@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Danish (ISO 8859-1)
  *
- *   (c) 2018-2023 by Markus Reschke
+ *   (c) 2018-2024 by Markus Reschke
  *   translation by glenndk@mikrocontroller.net
  *   based on code from Markus Frejek and Karl-Heinz K¸bbeler
  *
@@ -217,6 +217,10 @@
     const unsigned char Photodiode_str[] MEM_TYPE = "Photodiode";
     const unsigned char NoBias_str[] MEM_TYPE = "no";
     const unsigned char ReverseBias_str[] MEM_TYPE = "rev";
+  #endif
+
+  #ifdef SW_DIODE_LED
+    const unsigned char Diode_LED_str[] MEM_TYPE = "Diode/LED";
   #endif
 
 #endif

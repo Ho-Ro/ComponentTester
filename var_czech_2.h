@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Czech (ISO 8859-2)
  *
- *   (c) 2015-2023 by Markus Reschke
+ *   (c) 2015-2024 by Markus Reschke
  *   translation by Kapa and Bohu
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
@@ -217,6 +217,10 @@
     const unsigned char Photodiode_str[] MEM_TYPE = "Photodiode";
     const unsigned char NoBias_str[] MEM_TYPE = "no";
     const unsigned char ReverseBias_str[] MEM_TYPE = "rev";
+  #endif
+
+  #ifdef SW_DIODE_LED
+    const unsigned char Diode_LED_str[] MEM_TYPE = "Diode/LED";
   #endif
 
 #endif

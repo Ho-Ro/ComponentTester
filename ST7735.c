@@ -7,7 +7,7 @@
  *     - 3 line SPI (not supported)
  *     - 4 line SPI
  *
- *   (c) 2016-2023 by Markus Reschke
+ *   (c) 2016-2024 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -57,6 +57,7 @@
 /* fonts and symbols */
 /* horizontally aligned, horizontal bit order flipped */
 #include "font_8x8_hf.h"
+#include "font_8x16_alt_hf.h"
 #include "font_10x16_hf.h"
 #include "font_6x8_iso8859-2_hf.h"
 #include "font_8x8_iso8859-2_hf.h"

@@ -2,7 +2,7 @@
  *
  *   global configuration, setup and settings
  *
- *   (c) 2012-2023 by Markus Reschke
+ *   (c) 2012-2024 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -360,6 +360,17 @@
  */
 
 //#define HW_FLASHLIGHT
+
+
+/*
+ *  BH1750VFI ambient light sensor
+ *  - requires I2C bus and I2C read support
+ *  - uncomment to enable and also select the correct I2C address
+ */
+
+//#define HW_BH1750
+#define BH1750_I2C_ADDR       0x23      /* I2C address 0x23 (ADDR low) */
+//#define BH1750_I2C_ADDR      0x5c       /* I2C address 0x5c (ADDR high) */
 
 
 
@@ -729,6 +740,15 @@
 //#define SW_PHOTODIODE
 
 
+/*
+ *  diode/LED quick-check
+ *  - requires a display with more than 2 text lines
+ *  - uncomment to enable
+ */
+
+//#define SW_DIODE_LED
+
+
 
 /* ************************************************************************
  *   workarounds for some testers
@@ -845,11 +865,20 @@
 
 /*
  *  Set the default operation mode to auto-hold.
- *  - instead of continous mode
+ *  - instead of continuous mode
  *  - uncomment to enable
  */
 
 #define UI_AUTOHOLD
+
+
+/*
+ *  Switch temporarily to auto-hold mode when a component is detected.
+ *  - only in continuous mode
+ *  - uncomment to enable
+ */
+
+//#define UI_AUTOHOLD_FOUND
 
 
 /*
@@ -1109,10 +1138,15 @@
 
 /*
  *  main menu: display font for test purposes
+ *  - default output format:
+ *    index number (hex) and 8 characters (including unavailable ones)
+ *  - packed output format:
+ *    no index, only available characters, complete text line
  *  - uncomment to enable
  */
 
 //#define SW_FONT_TEST
+//#define FONT_PACKED           /* packed output format */
 
 
 /*
@@ -1489,7 +1523,7 @@
 //#define I2C_HARDWARE               /* MCU's hardware TWI */
 //#define I2C_STANDARD_MODE          /* 100kHz bus speed */
 //#define I2C_FAST_MODE              /* 400kHz bus speed */
-//#define I2C_RW                     /* enable I2C read support (untested) */
+//#define I2C_RW                     /* enable I2C read support */
 
 
 /*

@@ -2,7 +2,7 @@
  *
  *   language specific global variables: Brazilian Portuguese (ISO 8859-1)
  *
- *   (c) 2016-2023 by Markus Reschke
+ *   (c) 2016-2024 by Markus Reschke
  *   translation by (°~°) Dr. Wando  --  pressaperfeicao@yahoo.com.br
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
@@ -218,6 +218,10 @@
     const unsigned char Photodiode_str[] MEM_TYPE = "Fotodiodo";
     const unsigned char NoBias_str[] MEM_TYPE = "nao";
     const unsigned char ReverseBias_str[] MEM_TYPE = "inv";
+  #endif
+
+  #ifdef SW_DIODE_LED
+    const unsigned char Diode_LED_str[] MEM_TYPE = "Diodo/LED";
   #endif
 
 #endif

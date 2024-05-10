@@ -3,11 +3,11 @@
 
             ReadMe for the Component Tester firmware (m-firmware)
 
-        (c) 2012-2023 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2024 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit: 2023-12-18
+Last edit: 2024-03-29
 
 Content
   - About
@@ -77,11 +77,13 @@ Content
     - IR RC Transmitter
     - Opto Coupler Tool
     - Photodiode Check
+    - Diode/LED Quick-Check
     - Servo Check
     - OneWire Scan
     - DS18B20/DS18S20 Temperature Sensors
-    - DHTxx Sensors
+    - DHTxx Temperature & Humidity Sensors
     - MAX6675/MAX31855 Thermocouple Converters
+    - BH1750 Ambient Light Sensor
     - Flashlight
     - Self Test
     - Self Adjustment
@@ -187,13 +189,14 @@ k-firmware:
 - IR RC transmitter
 - opto coupler check
 - RC servo check
-- OneWire (DS18B20, DS18S20)
+- OneWire (plus sensors DS18B20 and DS18S20)
 - DHTxx Sensors
 - event counter
 - ring tester (LOPT/FBT tester)
 - logic probe
 - continuity check
 - MAX6675/MAX31855 thermocouple converters
+- BH1750 Ambient Light Sensor
 - flashlight / general purpose switched output
 - structured source code
 - simple frameworks for displays and data busses
@@ -385,10 +388,14 @@ The Makefile provides following additional targets:
 - prog_ee   to program only the EEPROM data (via avrdude)
 
 Hints on compiler/linker optimizations:
-There are multiple lines of CFLAGS and LDFLAGS with compiler/linker options
-in the Makefile. You'll find a few lines commented out which contain
-additional optimization options to reduce the firmware size. Those are not
-supported by all compilers. So please feel free to experiment. ;)
+- There are multiple lines of CFLAGS and LDFLAGS with compiler/linker options
+  in the Makefile. You'll find a few lines commented out which contain
+  additional optimization options to reduce the firmware size. Those are not
+  supported by all compilers. So please feel free to experiment. ;)
+
+Hints on special settings in the Makefile:
+- In a linux/unix environment you can enable OPTIMIZE_VECTORS to optimize the
+  interrupt vector table to reduce the firmware size.
 
 
 * Busses & Interfaces
@@ -536,6 +543,11 @@ changing the symbols setting to SYMBOLS_<size>_OLD_<format>.h.
 
 For test purposes you can enable a menu function to show all font characters (
 SW_FONT_TEST) or all component symbols (SW_SYMBOL_TEST).
+
+Hint:
+- When on a color display characters seem to be shifted slightly up or down
+  based on the color, this is caused by the construction of the display, i.e.
+  by the positioning of the RGB subpixels.
 
 
 + HD44780
@@ -885,7 +897,8 @@ see some random pixels for a moment.
 
 Meanwhile a semi-compatible LCD module appeared which won't run with the
 standard driver. The solution is to use a modified driver (LCD_SEMI_ST7735
-instead of LCD_ST7735) with the same settings.
+instead of LCD_ST7735) with the same settings. Note that the semi-compatible
+LCD module doesn't support high SPI clock rates.
 
 
 + ST7920
@@ -1198,8 +1211,11 @@ active during probing cycles and in the main menu.
 In both modes you can enter a menu with additional functions or power off
 the tester. For details please see below.
 
-With the buzzer harwdare option you can enable a short confirmation beep for
-a completed probing cycle (UI_PROBING_DONE_BEEP).
+With the buzzer hardware option you can enable a short confirmation beep for
+a completed probing cycle (UI_PROBING_DONE_BEEP). There's also an option to
+switch temporarily to the auto-hold mode after a component is found (when in
+continuous mode, UI_AUTOHOLD_FOUND). This helps with reading the display
+output.
 
 
 * Battery Monitoring
@@ -1476,7 +1492,7 @@ How to connect the capacitor:
 + R/C/L Monitors
 
 The monitor tools measure continuously a passive component connected to
-probes #1 and #3. After starting a monitor tool the tester displays the probe
+probes #1 and #3. After starting a monitor tool, the tester displays the probe
 pinout for a few seconds which can be skipped by pressing the test button.
 
 There's a delay of one or two seconds between measurements, indicated by a
@@ -1496,7 +1512,8 @@ is displayed in the third text line.
 
 Hint:
 - The capacitance values for electrolytic caps can be a bit lower than in
-  the normal probing cycle (reason still unknown).
+  the normal probing cycle (caused by the repeating measurements with a DC
+  signal).
 
 
 + LC Meter (hardware option)
@@ -1958,7 +1975,7 @@ tester displays the probe pinout for a few seconds (can be ended by a short
 button press). Then it switches to monitoring the current I_P with the diode
 in reverse-bias (photoconductive) mode, noted by 'rev'. A short button press
 changes the bias to no-bias (photovoltaic) mode, noted by 'no'. Another button
-press changes the mode back again. And as you already guessed, two short
+press changes the mode back again. And as you've already guessed, two short
 button presses end the check function.
 
 For checking the photodiode you could cover it with your hand or use an
@@ -1974,6 +1991,20 @@ Warning:
 Pinout for probes:
   Probe #1:    Anode 
   Probe #3:    Cathode
+
+
++ Diode/LED Quick-Check
+
+The quick-check looks continuously for a diode or LED connected to probes #1
+and #3. It's meant to quick-check diodes/LEDs and to determine their polarity.
+LEDs will blink while being checked.
+
+After starting, the tester displays the probe pinout for a few seconds which
+can be skipped by pressing the test button. When a diode or LED is found its
+pinout and Vf are shown. The anode pin will be always on the left, and the
+cathode pin on the right. In case of two anti-parallel diodes/LEDs the second
+one is also displayed. You know the drill, two short button presses end the
+quick-check.
 
 
 + Servo Check
@@ -2062,7 +2093,7 @@ Hints:
 - The DS18B20 tool can also read the sensor DS1822.
 
 
-+ DHTxx Sensors
++ DHTxx Temperature & Humidity Sensors
 
 Tool for reading DHT11, DHT22 and compatible temperature & humidity sensors.
 First the tester displays the pinout and then waits for the external pull-up
@@ -2109,6 +2140,31 @@ the auto-mode by a long press of the test button, indicated by an "*" in after
 the MAX's name. A second long key press disables the auto-mode. Two short key
 presses will end the tool.
 
+Hints:
+- Customize MAX31855_CS in config_<MCU>.h!
+- You also need SPI read support (SPI_RW).
+
+
++ BH1750 Ambient Light Sensor
+
+The BH1750 is an inexpensive ambient light sensor with an I2C bus and a 3.3V
+operating voltage. With a 3.3V voltage regulator and pull-up resistors for SCL
+and SDA (to 3.3V) is can be usually connected directly to an 5V ATmega, when
+other I2C ICs on the bus don't cause any issues. Otherwise you'll need a level
+shifter.
+
+A short button press starts a new measurement. Alternatively, a long button
+press switches to the automatic mode (indicated by an '*' in the first line),
+and also back again. In the automatic mode the tester runs a measurement every
+second. In case of an error the tester displays a '-' instead of the light
+intensity. And as usual, two short key presses will end the tool.
+
+Hints:
+- BH1750 modules usually come with a 3.3V LDO and 4.7kOhms pull-up resistors (
+  to 3.3V) for SCL and SDA.
+- An "error" directly after starting indicates a sensor issue, e.g. no I2C
+  communication.
+
 
 + Flashlight
 
@@ -2131,12 +2187,26 @@ In test #4 you have to remove the short circuit of the probes. The tester will
 wait until you removed the short circuit.
 
 The test steps are:
-- T1 internal bandgap reference (in mV)
-- T2 comparison of Rl resistors (offset in mV)
-- T3 comparison of Rh resistors (offset in mV)
-- T4 remove short circuit of probes
-- T5 leakage check for probes in pull-down mode (voltage in mV)
-- T6 leakage check for probes in pull-up mode (voltage in mV)
+- T1: internal bandgap reference (in mV)
+      should be 1000 - 1200 mV
+- T2: comparison of Rl resistors (offset in mV)
+      should be close to 0 mV (usually within +/- 10 mV)
+- T3: comparison of Rh resistors (offset in mV)
+      should be close to 0 mV (usually within +/- 10 mV)
+- T4: remove short circuit of probes
+- T5: leakage check for probes in pull-down mode (voltage in mV)
+      should be close to 0 mV (usually within 3 mV)
+- T6: leakage check for probes in pull-up mode (voltage in mV)
+      should be close to Vcc (usually within 10 mV)
+
+Hints:
+- When the T2 values differ by more than 5 mV between probe pairs there could
+  be a mismatch of the Rl test resistors.
+- The same for T3 values and Rh test resistors.
+- Long test leads have a negative impact and worsen the values in T2, T3, T5
+  and T6.
+- Strange values are typically a sign of shot MCU pins, shorts, dirty PCB
+  and bad contact issues.
 
 
 + Self Adjustment
@@ -2175,13 +2245,13 @@ The self-adjustment is very similar to the self-test regarding the procedure
 and user interface.
 
 The adjustments steps are:
-- A1 offsets for bandgap reference and analog comparator
-     (only for fixed cap option)
-- A2 resistance of probe leads/pins (in 10 mOhms)
-- A3 remove short circuit of probes
-- A4 MCU's internal pin resistance for Gnd (voltage across RiL)
-- A5 MCU's internal pin resistance for Vcc (voltage across RiH)
-- A6 capacitance of probe leads/pins (in pF)
+- A1: offsets for bandgap reference and analog comparator
+      (only for fixed cap option)
+- A2: resistance of probe leads/pins (in 10 mOhms)
+- A3: remove short circuit of probes
+- A4: MCU's internal pin resistance for Gnd (voltage across RiL)
+- A5: MCU's internal pin resistance for Vcc (voltage across RiH)
+- A6: capacitance of probe leads/pins (in pF)
 
 Limits:
 - probe resistance   < 1.50 Ohms for two probes in series
@@ -2189,8 +2259,11 @@ Limits:
 - IO pin's internal resistance in low mode (RiL)   < 25 Ohms
 - IO pin's internal resistance in high mode (RiH)  < 29 Ohms
 
-Hint: When the resistance values for the probe leads/pins vary too much,
-there could be a contact problem.
+Hints:
+- When the resistance values for the probe leads/pins vary too much,
+  there could be a contact problem.
+- If the capacitance offset (A6) is 0 it's most likely caused by a discharge
+  issue (increase CAP_DISCHARGED).
 
 Remember: Adjustment is not calibration! Calibration is the procedure to
 compare measurement results with a known traceable standard and noting the
@@ -2301,9 +2374,10 @@ The tester tries to measure the ESR for capacitors larger than 10nF.
 Alternatively you can also enable the old ESR measurement method starting
 at 180nF. But since the ESR measurement isn't done via an AC signal with a
 specific frequency, please don't expect a solid result. The method used might
-be comparable with a 1kHz test. Anyway, the results are good enough to check
-electrolytic caps. For low value film caps you could get different results
-based on the MCU clock rate. I'd guess Mr. Fourier is able to explain this.
+be comparable to a 1 or 10 kHz test signal. Anyway, the results are good enough
+to check electrolytic caps. For low value film caps you could get different
+results based on the MCU clock rate (comparable to a test signal around 600 Hz
+or so). I'd guess Mr. Fourier is able to explain this.
 
 Another measurement taken is the self-discharge leakage current for
 capacitors larger than 4.7 µF. It gives a hint about the state of an 

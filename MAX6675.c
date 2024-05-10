@@ -1,8 +1,8 @@
 /* ************************************************************************
  *
- *   functions for MAX6675 (K thermocouple ADC)
+ *   functions for MAX6675 (K thermocouple ADC, SPI bus)
  *
- *   (c) 2021 by Markus Reschke
+ *   (c) 2021-2024 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -190,7 +190,7 @@ void MAX6675_DeselectChip(void)
  *  - 0 on any problem
  */
 
-uint8_t MAX6675_ReadTemperature(int32_t *Value, int8_t *Scale)
+uint8_t MAX6675_ReadTemperature(int32_t *Value, uint8_t *Scale)
 {
   uint8_t           Flag = 0;      /* return value */
   uint8_t           HighByte;      /* MSB */
@@ -255,7 +255,7 @@ void MAX6675_Tool(void)
   uint8_t           Test;               /* key / feedback */
   uint8_t           Mode = MODE_MANUAL; /* operation mode */
   uint16_t          Timeout = 0;        /* timeout for user feedback */
-  int8_t            Scale;              /* temperature scale / decimal places */
+  uint8_t           Scale;              /* temperature scale / decimal places */
   int32_t           Value;              /* temperature value */
 
   /*
