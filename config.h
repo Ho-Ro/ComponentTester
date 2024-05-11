@@ -746,7 +746,7 @@
  *  - uncomment to enable
  */
 
-//#define SW_DIODE_LED
+#define SW_DIODE_LED
 
 
 
