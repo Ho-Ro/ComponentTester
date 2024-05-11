@@ -1,0 +1,854 @@
+diff --git a/.gitignore b/.gitignore
+index c1efebb..6747f0c 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,8 +1,9 @@
+-ComponentTester
++CT_AY-AT*
+ dep
+ 
+ *.o
+ *.eep
++*.elf
+ *.hex
+ *.lss
+ *.map
+diff --git a/Makefile b/Makefile
+index d16de4c..812f3c3 100644
+--- a/Makefile
++++ b/Makefile
+@@ -5,7 +5,8 @@
+ #  based on code from Markus Frejek and Karl-Heinz Kübbeler
+ #
+ 
+-PROJECT = ComponentTester
++# project name
++NAME = CT_AY-AT_20MHz
+ 
+ 
+ #
+@@ -29,7 +30,7 @@ MCU = atmega328
+ # - 8MHz  : 8
+ # - 16MHz : 16
+ # - 20MHz : 20
+-FREQ = 8
++FREQ = 20
+ 
+ # oscillator type
+ # - internal RC oscillator      : RC
+@@ -78,15 +79,20 @@ PARTNO = m328p
+ #PORT = /dev/ttyACM0
+ #OPTIONS = -b 19200
+ 
++# Arduino nano as ISP
++PROGRAMMER = nanoSTK
++PORT = /dev/ttyUSB0
++#OPTIONS = -b 115200
++
+ # Bus Pirate
+ #PROGRAMMER = buspirate
+ #PORT = /dev/bus_pirate
+ #OPTIONS = -B 10.0
+ 
+ # Diamex ALL-AVR/AVR-Prog
+-PROGRAMMER = avrispmkII
+-PORT = usb
+-OPTIONS = -B 1.0
++#PROGRAMMER = avrispmkII
++#PORT = usb
++#OPTIONS = -B 1.0
+ 
+ # Pololu USB AVR Programmer
+ #PROGRAMMER = stk500v2
+@@ -126,21 +132,20 @@ OPTIONS = -B 1.0
+ #  global settings
+ #
+ 
+-# project name
+-NAME = ComponentTester
+-
+ # name and version based on directory name
+ DIST = $(notdir ${CURDIR})
+ 
+ # compiler flags
+ CC = avr-gcc
+ CPP = avr-g++
++OBJCOPY = avr-objcopy
++OBJDUMP = avr-objdump
+ CFLAGS = -mmcu=${MCU} -Wall -I. -Ibitmaps
+ CFLAGS += -DF_CPU=${FREQ}000000UL
+ CFLAGS += -DOSC_STARTUP=${OSC_STARTUP}
+ CFLAGS += -gdwarf-2 -std=gnu99 -Os -mcall-prologues
+ CFLAGS += -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
+-#CFLAGS += -flto
++CFLAGS += -flto
+ CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d
+ 
+ # linker flags
+@@ -148,7 +153,7 @@ LDFLAGS = -mmcu=${MCU} -Wl,-Map=${NAME}.map
+ ifeq (${OPTIMIZE_VECTORS},yes)
+   LDFLAGS += -nostartfiles
+ endif
+-#LDFLAGS += -Wl,-relax
++LDFLAGS += -Wl,-relax
+ 
+ # hex file flags
+ HEX_FLASH_FLAGS = -R .eeprom -R .fuse -R .lock -R .signature
+@@ -186,7 +191,7 @@ OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
+ #
+ 
+ .PHONY: all size
+-all: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
++all: ${NAME}.elf ${NAME}.hex ${NAME}.eep ${NAME}.lss size
+ 
+ 
+ #
+@@ -194,23 +199,24 @@ all: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
+ #
+ 
+ # link firmware
+-$(NAME): ${OBJECTS}
+-	 ${CC} ${LDFLAGS} ${OBJECTS} ${LIBDIRS} ${LIBS} -o ${NAME}
++${NAME}.elf: ${OBJECTS}
++	 ${CC} ${LDFLAGS} ${OBJECTS} ${LIBDIRS} ${LIBS} -o $@
++	 chmod -x $@
+ 
+ # create hex file of firmware
+-%.hex: ${NAME}
+-	avr-objcopy -O ihex ${HEX_FLASH_FLAGS} $< $@
++%.hex: ${NAME}.elf
++	${OBJCOPY} -O ihex ${HEX_FLASH_FLAGS} $< $@
+ 
+ # create hex file of EEPROM data
+-%.eep: ${NAME}
+-	-avr-objcopy ${HEX_EEPROM_FLAGS} -O ihex $< $@ || exit 0
++%.eep: ${NAME}.elf
++	-${OBJCOPY} ${HEX_EEPROM_FLAGS} -O ihex $< $@ || exit 0
+ 
+ # create dump of firmware
+-%.lss: ${NAME}
+-	avr-objdump -h -S $< > $@
++%.lss: ${NAME}.elf
++	${OBJDUMP} -h -S $< > $@
+ 
+ # output firmware size and other info
+-size: ${NAME}
++size: ${NAME}.elf
+ 	@echo
+ 	@avr-size -C --mcu=${MCU} $<
+ #	@avr-objdump -Pmem-usage $<
+@@ -258,20 +264,37 @@ endif
+ .PHONY: upload
+ upload: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
+ 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
+-	  -U flash:w:./${NAME}.hex:a -U eeprom:w:./${NAME}.eep:a
++	  -U flash:w:${NAME}.hex:i -U eeprom:w:${NAME}.eep:i
+ 
+ # program firmware only
+ .PHONY: prog_fw
+ prog_fw: ${NAME} ${NAME}.hex ${NAME}.lss size
+ 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
+-	  -U flash:w:./${NAME}.hex:a
++	  -U flash:w:${NAME}.hex:i
++
++# program firmware only w/o verify
++.PHONY: fast_fw
++fast_fw: ${NAME} ${NAME}.hex ${NAME}.lss size
++	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} -V\
++	  -U flash:w:${NAME}.hex:i
+ 
+ # program EEPROM data only
+ .PHONY: prog_ee
+ prog_ee: ${NAME} ${NAME}.eep ${NAME}.lss size
+ 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
+-	  -U eeprom:w:./${NAME}.eep:a
++	  -U eeprom:w:${NAME}.eep:i
+ 
++# read back EEPROM calibration data
++.PHONY: get_cal
++get_cal:
++	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
++	  -U eeprom:r:${NAME}_cal.eep:i
++
++# restore EEPROM calibration data
++.PHONY: set_cal
++set_cal:
++	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
++	  -U eeprom:w:${NAME}_cal.eep:i
+ 
+ #
+ #  misc
+@@ -288,8 +311,8 @@ dist: clean
+ 
+ # clean up
+ clean:
+-	-rm -rf ${OBJECTS} ${NAME} dep/* *.tgz
+-	-rm -rf ${NAME}.hex ${NAME}.eep ${NAME}.lss ${NAME}.map
++	-rm -rf ${OBJECTS} dep/* *.tgz
++	-rm -rf ${NAME}.elf ${NAME}.hex ${NAME}.eep ${NAME}.lss ${NAME}.map
+ 	-rm -rf gcrt1.inc
+ 
+ 
+diff --git a/colors.h b/colors.h
+index 97f768f..c8de93f 100644
+--- a/colors.h
++++ b/colors.h
+@@ -239,6 +239,7 @@
+ #ifdef LCD_ST7735
+   /* common colors */
+   #define COLOR_BLACK         0x0000    /* RGB 000000 */
++  #define COLOR_NAVY          0x000f    /* RGB 000078 */
+   #define COLOR_BLUE          0x001f    /* RGB 0000F8 */
+   #define COLOR_GREEN         0x07e0    /* RGB 00FC00 */
+   #define COLOR_CYAN          0x07ff    /* RGB 00FCF8 */
+@@ -383,6 +384,7 @@
+ #endif
+ 
+ 
++#if 0
+ 
+ /* ************************************************************************
+  *   default colors
+@@ -429,7 +431,50 @@
+ #define COLOR_BAT_WEAK        COLOR_YELLOW
+ #define COLOR_BAT_LOW         COLOR_RED
+ 
++#else
+ 
++/* ************************************************************************
++ *   horo colors
++ * ************************************************************************ */
++
++/* background color */
++#define COLOR_BACKGROUND      COLOR_NAVY
++
++/* standard pen color */
++#define COLOR_PEN             COLOR_WHITE
++
++/* titles */
++#define COLOR_TITLE           COLOR_YELLOW
++
++/* cursor */
++#define COLOR_CURSOR          COLOR_YELLOW
++
++/* infos (hello/bye) */
++#define COLOR_INFO            COLOR_CYAN
++
++/* warnings */
++#define COLOR_WARN            COLOR_WHITE
++
++/* errors */
++#define COLOR_ERROR           COLOR_RED
++
++/* marker (selected item) */
++#define COLOR_MARKER          COLOR_WHITE
++
++/* symbols */
++#define COLOR_SYMBOL          COLOR_YELLOW
++
++/* color codes for probe pins */
++#define COLOR_PROBE_1         COLOR_YELLOW
++#define COLOR_PROBE_2         COLOR_GREEN
++#define COLOR_PROBE_3         COLOR_RED
++
++/* battery status */
++#define COLOR_BAT_OK          COLOR_GREEN
++#define COLOR_BAT_WEAK        COLOR_YELLOW
++#define COLOR_BAT_LOW         COLOR_RED
++
++#endif
+ 
+ /* ************************************************************************
+  *   EOF
+diff --git a/config.h b/config.h
+index fe51ff4..00ec5c4 100644
+--- a/config.h
++++ b/config.h
+@@ -36,7 +36,7 @@
+  *    to match your rotary encoder
+  */
+ 
+-//#define HW_ENCODER
++#define HW_ENCODER
+ 
+ 
+ /*
+@@ -58,7 +58,7 @@
+  *  - adjust value to match your rotary encoder
+  */
+ 
+-#define ENCODER_STEPS    24
++#define ENCODER_STEPS    20
+ 
+ 
+ /*
+@@ -80,7 +80,7 @@
+  *    reference
+  */
+ 
+-//#define HW_REF25
++#define HW_REF25
+ 
+ 
+ /*
+@@ -89,7 +89,7 @@
+  *  - or use >= 5.5 digit DMM to measure the voltage
+  */
+ 
+-#define UREF_25           2495
++#define UREF_25           2499
+ 
+ 
+ /*
+@@ -114,7 +114,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define HW_ZENER
++#define HW_ZENER
+ 
+ 
+ /*
+@@ -137,7 +137,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define ZENER_UNSWITCHED
++#define ZENER_UNSWITCHED
+ 
+ 
+ /*
+@@ -188,7 +188,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define HW_FREQ_COUNTER_BASIC
++#define HW_FREQ_COUNTER_BASIC
+ 
+ 
+ /*
+@@ -432,7 +432,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define SW_ESR_TOOL
++#define SW_ESR_TOOL
+ 
+ 
+ /*
+@@ -460,7 +460,7 @@
+  *  - uncomment to enable
+  */
+ 
+-#define SW_IR_RECEIVER
++//#define SW_IR_RECEIVER
+ 
+ 
+ /*
+@@ -538,7 +538,7 @@
+  *  - uncomment to enable
+  */
+ 
+-#define SW_OPTO_COUPLER
++//#define SW_OPTO_COUPLER
+ 
+ 
+ /*
+@@ -615,7 +615,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define SW_CAP_LEAKAGE
++#define SW_CAP_LEAKAGE
+ 
+ 
+ /*
+@@ -624,7 +624,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define SW_REVERSE_HFE
++#define SW_REVERSE_HFE
+ 
+ 
+ /*
+@@ -634,7 +634,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define SW_HFE_CURRENT
++#define SW_HFE_CURRENT
+ 
+ 
+ /*
+@@ -648,7 +648,7 @@
+ //#define SW_MONITOR_R          /* just R */
+ //#define SW_MONITOR_C          /* just C plus ESR */
+ //#define SW_MONITOR_L          /* just L */
+-//#define SW_MONITOR_RCL        /* R plus L, or C plus ESR */
++#define SW_MONITOR_RCL        /* R plus L, or C plus ESR */
+ //#define SW_MONITOR_RL         /* R plus L */
+ 
+ 
+@@ -729,7 +729,7 @@
+  *  - uncomment to enable
+  */ 
+ 
+-//#define SW_C_VLOSS
++#define SW_C_VLOSS
+ 
+ 
+ /*
+@@ -746,7 +746,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define SW_DIODE_LED
++#define SW_DIODE_LED
+ 
+ 
+ 
+@@ -869,7 +869,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_AUTOHOLD
++#define UI_AUTOHOLD
+ 
+ 
+ /*
+@@ -898,7 +898,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_KEY_HINTS
++#define UI_KEY_HINTS
+ 
+ 
+ /*
+@@ -964,7 +964,7 @@
+  *  - uncomment to enable, also adjust timeout (in s)
+  */
+ 
+-//#define POWER_OFF_TIMEOUT     60
++#define POWER_OFF_TIMEOUT     60
+ 
+ 
+ /*
+@@ -1001,7 +1001,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_ZENER_DIODE
++#define UI_ZENER_DIODE
+ 
+ 
+ /*
+@@ -1047,7 +1047,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_BATTERY
++#define UI_BATTERY
+ 
+ 
+ /*
+@@ -1076,7 +1076,7 @@
+  *    (COLOR_PROBE_1, COLOR_PROBE_2 and COLOR_PROBE_3)
+  */
+ 
+-#define UI_PROBE_COLORS
++//#define UI_PROBE_COLORS
+ 
+ 
+ /*
+@@ -1086,7 +1086,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_COLORED_TITLES
++#define UI_COLORED_TITLES
+ 
+ 
+ /*
+@@ -1096,7 +1096,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_COLORED_CURSOR
++#define UI_COLORED_CURSOR
+ 
+ 
+ /*
+@@ -1125,7 +1125,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define UI_MAINMENU_AUTOEXIT
++#define UI_MAINMENU_AUTOEXIT
+ 
+ 
+ /*
+@@ -1133,7 +1133,7 @@
+  *  - uncomment to enable
+  */
+ 
+-//#define SW_POWER_OFF
++#define SW_POWER_OFF
+ 
+ 
+ /*
+@@ -1193,8 +1193,8 @@
+  *  - uncomment one
+  */ 
+ 
+-#define DATA_EEPROM           /* store data in EEPROM */
+-//#define DATA_FLASH            /* store data in Flash */
++//#define DATA_EEPROM           /* store data in EEPROM */
++#define DATA_FLASH            /* store data in Flash */
+ 
+ 
+ 
+@@ -1259,10 +1259,10 @@
+  *  transistor (in mV):
+  *  - or any other circuitry in the power section
+  *  - Get your DMM and measure the voltage drop!
+- *  - Schottky diode about 200mV / PNP BJT about 100mV.
++ *  - Schottky diode about 350mV / PNP BJT about 150mV.
+  */  
+ 
+-#define BAT_OFFSET       290
++#define BAT_OFFSET       500
+ 
+ 
+ /*
+@@ -1271,7 +1271,7 @@
+  *  - Voltage drop BAT_OFFSET is considered in calculation.
+  */
+ 
+-#define BAT_WEAK         7400
++#define BAT_WEAK         7000
+ 
+ 
+ /*
+@@ -1280,7 +1280,7 @@
+  *  - Voltage drop BAT_OFFSET is considered in calculation.
+  */
+ 
+-#define BAT_LOW          6400 
++#define BAT_LOW          6000
+ 
+ 
+ /*
+@@ -1322,10 +1322,10 @@
+  */
+ 
+ /* Rl in Ohms */
+-#define R_LOW            680
++#define R_LOW            679
+ 
+ /* Rh in Ohms */
+-#define R_HIGH           470000
++#define R_HIGH           470413
+ 
+ 
+ /*
+diff --git a/config_328.h b/config_328.h
+index cf60bf0..9fffe63 100644
+--- a/config_328.h
++++ b/config_328.h
+@@ -626,7 +626,7 @@
+  *  - uses LCD_CS to support rotary encoder in parallel at PD2/3
+  */
+ 
+-//#if 0
++#if 0
+ #define LCD_ST7565R                     /* display controller ST7565R */
+ #define LCD_GRAPHIC                     /* graphic display */
+ #define LCD_SPI                         /* SPI interface */
+@@ -669,7 +669,7 @@
+ #define SPI_DDR          LCD_DDR        /* SPI port data direction register */
+ #define SPI_SCK          LCD_SCL        /* port pin used for SCK */
+ #define SPI_MOSI         LCD_SI         /* port pin used for MOSI */
+-//#endif
++#endif
+ 
+ 
+ 
+@@ -727,6 +727,59 @@
+ 
+ 
+ 
++/*
++ *  ST7735 AY-AT
++ *  - 4 wire SPI interface using bit-bang SPI
++ */
++
++#if 1
++#define LCD_ST7735                      /* display controller ST7735 */
++#define LCD_GRAPHIC                     /* graphic display */
++#define LCD_COLOR                       /* color display */
++#define LCD_SPI                         /* SPI interface */
++/* control and data lines */
++#define LCD_PORT         PORTD          /* port data register */
++#define LCD_DDR          DDRD           /* port data direction register */
++#define LCD_RES          PD0            /* port pin used for /RESX (optional) */
++#define LCD_CS           PD5            /* port pin used for /CSX (optional) */
++#define LCD_DC           PD1            /* port pin used for D/CX */
++#define LCD_SCL          PD2            /* port pin used for SCL */
++#define LCD_SDA          PD3            /* port pin used for SDA */
++/* display settings */
++#define LCD_DOTS_X       128            /* number of horizontal dots */
++#define LCD_DOTS_Y       160            /* number of vertical dots */
++//#define LCD_OFFSET_X     4               /* enable x offset of 2 or 4 dots */
++//#define LCD_OFFSET_Y     2               /* enable y offset of 1 or 2 dots */
++#define LCD_FLIP_X                      /* enable horizontal flip */
++//#define LCD_FLIP_Y                      /* enable vertical flip */
++#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
++//#define LCD_BGR                         /* reverse red and blue color channels */
++#define LCD_LATE_ON                     /* turn on LCD after clearing it */
++/* font and symbols: horizontally aligned & flipped */
++#define FONT_10X16_HF                   /* 10x16 font */
++//#define FONT_6X8_ISO8859_2_HF           /* 6x8 Central European font */
++//#define FONT_8X8_ISO8859_2_HF           /* 8x8 Central European font */
++//#define FONT_8X12T_ISO8859_2_HF         /* thin 8x12 Central European font */
++//#define FONT_8X16_ISO8859_2_HF          /* 8x16 Central European font */
++//#define FONT_10X16_ISO8859_2_HF         /* 10x16 Central European font */
++//#define FONT_8X16_WIN1251_HF            /* 8x16 cyrillic font */
++//#define FONT_8X16ALT_WIN1251_HF         /* 8x16 alternative cyrillic font */
++#define SYMBOLS_30X32_HF                /* 30x32 symbols */
++//#define SYMBOLS_30X32_ALT1_HF           /* 30x32 alternative symbols #1 */
++//#define SYMBOLS_30X32_ALT2_HF           /* 30x32 alternative symbols #2 */
++//#define SYMBOLS_32X32_HF                /* 32x32 symbols */
++//#define SYMBOLS_32X32_ALT1_HF           /* 32x32 alternative symbols #1 */
++//#define SYMBOLS_32X32_ALT2_HF           /* 32x32 alternative symbols #2 */
++/* SPI bus */
++#define SPI_BITBANG                     /* bit-bang SPI */
++#define SPI_PORT         LCD_PORT       /* SPI port data register */
++#define SPI_DDR          LCD_DDR        /* SPI port data direction register */
++#define SPI_SCK          LCD_SCL        /* port pin used for SCK */
++#define SPI_MOSI         LCD_SDA        /* port pin used for MOSI */
++#endif
++
++
++
+ /*
+  *  ST7920
+  *  - SPI interface using bit-bang SPI
+@@ -946,11 +999,26 @@
+  *  rotary encoder
+  */
+ 
++#if 0
+ #define ENCODER_PORT     PORTD     /* port data register */
+ #define ENCODER_DDR      DDRD      /* port data direction register */
+ #define ENCODER_PIN      PIND      /* port input pins register */
+ #define ENCODER_A        PD3       /* rotary encoder A signal */
+ #define ENCODER_B        PD2       /* rotary encoder B signal */
++#endif
++
++
++/*
++ *  rotary encoder AY-AT
++ */
++
++#if 1
++#define ENCODER_PORT     PORTD     /* port data register */
++#define ENCODER_DDR      DDRD      /* port data direction register */
++#define ENCODER_PIN      PIND      /* port input pins register */
++#define ENCODER_A        PD3       /* rotary encoder A signal */
++#define ENCODER_B        PD1       /* rotary encoder B signal */
++#endif
+ 
+ 
+ /*
+diff --git a/inductor.c b/inductor.c
+index 57182f3..72b6780 100644
+--- a/inductor.c
++++ b/inductor.c
+@@ -580,18 +580,18 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
+       #endif
+ 
+       #if CPU_FREQ == 20000000
+-      /* 20 MHz */
++      /* 20 MHz - modifications provided by indman@EEVBlog */
+       if (Temp < 1500)        /* < 1.5µs / < 100µH */
+       {
+-        Offset = 10;
++        Offset = -10;
+       }
+       else if (Temp < 5000)   /* 1.5-5µs / 100-330µH */
+       {
+-        Offset = -20; 
++        Offset = -10;
+       }
+       else                    /* > 5µs / > 330µH */
+       {
+-        Offset = -70;
++        Offset = -30;
+       }
+       #endif
+     }
+diff --git a/user.c b/user.c
+index 06600c6..df49e48 100644
+--- a/user.c
++++ b/user.c
+@@ -1425,11 +1425,11 @@ void MarkItem(uint8_t Item, uint8_t Selected)
+ {
+   if (Selected == Item)       /* current item selected */
+   {
+-    /* mark with asterisk */
++    /* mark with right arrow */
+     #ifdef LCD_COLOR
+     UI.PenColor = COLOR_MARKER;    /* change color */
+     #endif
+-    Display_Char('*');             /* display asterisk */
++    Display_Char('>');             /* display marker */
+     #ifdef LCD_COLOR
+     UI.PenColor = COLOR_PEN;       /* reset color */
+     #endif
+@@ -2112,44 +2112,21 @@ uint8_t PresentMainMenu(void)
+    *  - items are added in display order
+    */
+ 
+-  /*
+-   *  test/check/signal features
+-   */
+-
+-  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
+-  /* PWM tool */
+-  Item_Str[n] = (void *)PWM_str;
+-  Item_ID[n] = MENUITEM_PWM_TOOL;
+-  n++;
+-  #endif
+-
+-  #ifdef SW_SQUAREWAVE
+-  /* Square Wave Signal Generator */
+-  Item_Str[n] = (void *)SquareWave_str;
+-  Item_ID[n] = MENUITEM_SQUAREWAVE;
+-  n++;
+-  #endif
+-
+-  #ifdef HW_ZENER
+-  /* Zener tool */
+-  Item_Str[n] = (void *)Zener_str;
+-  Item_ID[n] = MENUITEM_ZENER;  
++  /* exit menu */
++  Item_Str[n] = (void *)Exit_str;
++  Item_ID[n] = MENUITEM_EXIT;
+   n++;
+-  #endif
+ 
+-  #ifdef HW_LOGIC_PROBE
+-  /* logic probe */
+-  Item_Str[n] = (void *)LogicProbe_str;
+-  Item_ID[n] = MENUITEM_LOGIC_PROBE;  
++  #ifdef SW_POWER_OFF
++  /* power off tester */
++  Item_Str[n] = (void *)PowerOff_str;
++  Item_ID[n] = MENUITEM_POWER_OFF;
+   n++;
+   #endif
+ 
+-  #ifdef SW_CONTINUITY_CHECK
+-  /* continuity check */
+-  Item_Str[n] = (void *)ContinuityCheck_str;
+-  Item_ID[n] = MENUITEM_CONTINUITY;  
+-  n++;
+-  #endif
++  /*
++   *  test/check/signal features
++   */
+ 
+   #ifdef SW_ESR_TOOL
+   /* in-circuit ESR */
+@@ -2200,6 +2177,41 @@ uint8_t PresentMainMenu(void)
+   n++;
+   #endif
+ 
++  #ifdef HW_ZENER
++  /* Zener tool */
++  Item_Str[n] = (void *)Zener_str;
++  Item_ID[n] = MENUITEM_ZENER;
++  n++;
++  #endif
++
++  #ifdef SW_SQUAREWAVE
++  /* Square Wave Signal Generator */
++  Item_Str[n] = (void *)SquareWave_str;
++  Item_ID[n] = MENUITEM_SQUAREWAVE;
++  n++;
++  #endif
++
++  #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
++  /* PWM tool */
++  Item_Str[n] = (void *)PWM_str;
++  Item_ID[n] = MENUITEM_PWM_TOOL;
++  n++;
++  #endif
++
++  #ifdef HW_LOGIC_PROBE
++  /* logic probe */
++  Item_Str[n] = (void *)LogicProbe_str;
++  Item_ID[n] = MENUITEM_LOGIC_PROBE;
++  n++;
++  #endif
++
++  #ifdef SW_CONTINUITY_CHECK
++  /* continuity check */
++  Item_Str[n] = (void *)ContinuityCheck_str;
++  Item_ID[n] = MENUITEM_CONTINUITY;
++  n++;
++  #endif
++
+   #ifdef HW_LC_METER
+   /* LC meter */
+   Item_Str[n] = (void *)LC_Meter_str;
+@@ -2391,18 +2403,6 @@ uint8_t PresentMainMenu(void)
+   n++;
+   #endif
+ 
+-  #ifdef SW_POWER_OFF
+-  /* power off tester */
+-  Item_Str[n] = (void *)PowerOff_str;
+-  Item_ID[n] = MENUITEM_POWER_OFF;
+-  n++;
+-  #endif
+-
+-  /* exit menu */
+-  Item_Str[n] = (void *)Exit_str;
+-  Item_ID[n] = MENUITEM_EXIT;
+-  n++;
+-
+ 
+   /*
+    *  run menu
+diff --git a/var_english.h b/var_english.h
+index 02bfc88..a59ffab 100644
+--- a/var_english.h
++++ b/var_english.h
+@@ -29,9 +29,9 @@
+   const unsigned char Timeout_str[] MEM_TYPE = "Timeout";
+   const unsigned char Failed1_str[] MEM_TYPE = "No component";
+   const unsigned char Failed2_str[] MEM_TYPE = "found!";
+-  const unsigned char Done_str[] MEM_TYPE = "done!";
++  const unsigned char Done_str[] MEM_TYPE = ""; // "done!";
+   const unsigned char Select_str[] MEM_TYPE = "Select";
+-  const unsigned char Selftest_str[] MEM_TYPE = "Test";
++  const unsigned char Selftest_str[] MEM_TYPE = "Self Test";
+   const unsigned char Adjustment_str[] MEM_TYPE = "Adjustment";
+   const unsigned char Save_str[] MEM_TYPE = "Save";
+   const unsigned char Load_str[] MEM_TYPE = "Load";
+diff --git a/variables.h b/variables.h
+index ca93752..24a0188 100644
+--- a/variables.h
++++ b/variables.h
+@@ -156,7 +156,7 @@
+ 
+ 
+   /* firmware */
+-  const unsigned char Version_str[] MEM_TYPE = "v1.52m";
++  const unsigned char Version_str[] MEM_TYPE = "v1.52m_AY-AT_20M";
+ 
+ 
+   /* common terms and texts */
