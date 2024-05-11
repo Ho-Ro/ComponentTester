@@ -191,7 +191,7 @@ OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 #
 
 .PHONY: all size
-all: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
+all: ${NAME}.elf ${NAME}.hex ${NAME}.eep ${NAME}.lss size
 
 
 #
@@ -199,23 +199,24 @@ all: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
 #
 
 # link firmware
-$(NAME): ${OBJECTS}
-	 ${CC} ${LDFLAGS} ${OBJECTS} ${LIBDIRS} ${LIBS} -o ${NAME}
+${NAME}.elf: ${OBJECTS}
+	 ${CC} ${LDFLAGS} ${OBJECTS} ${LIBDIRS} ${LIBS} -o $@
+	 chmod -x $@
 
 # create hex file of firmware
-%.hex: ${NAME}
+%.hex: ${NAME}.elf
 	${OBJCOPY} -O ihex ${HEX_FLASH_FLAGS} $< $@
 
 # create hex file of EEPROM data
-%.eep: ${NAME}
+%.eep: ${NAME}.elf
 	-${OBJCOPY} ${HEX_EEPROM_FLAGS} -O ihex $< $@ || exit 0
 
 # create dump of firmware
-%.lss: ${NAME}
+%.lss: ${NAME}.elf
 	${OBJDUMP} -h -S $< > $@
 
 # output firmware size and other info
-size: ${NAME}
+size: ${NAME}.elf
 	@echo
 	@avr-size -C --mcu=${MCU} $<
 #	@avr-objdump -Pmem-usage $<
@@ -310,8 +311,8 @@ dist: clean
 
 # clean up
 clean:
-	-rm -rf ${OBJECTS} ${NAME} dep/* *.tgz
-	-rm -rf ${NAME}.hex ${NAME}.eep ${NAME}.lss ${NAME}.map
+	-rm -rf ${OBJECTS} dep/* *.tgz
+	-rm -rf ${NAME}.elf ${NAME}.hex ${NAME}.eep ${NAME}.lss ${NAME}.map
 	-rm -rf gcrt1.inc
 
 

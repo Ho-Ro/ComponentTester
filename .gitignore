@@ -1,13 +1,16 @@
-ComponentTester
 CT_AY-AT*
 dep
+
 *.o
 *.eep
+*.elf
 *.hex
 *.lss
 *.map
+
 *~
 *.bak
 *.new
 *.old
 *.orig
+*.rej
