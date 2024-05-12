@@ -7,6 +7,7 @@ dep
 *.hex
 *.lss
 *.map
+gcrt1.inc
 
 *~
 *.bak
