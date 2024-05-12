@@ -10,6 +10,7 @@ dep
 
 *~
 *.bak
+*.diff
 *.new
 *.old
 *.orig
