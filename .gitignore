@@ -3,12 +3,14 @@ dep
 
 *.o
 *.eep
+*.elf
 *.hex
 *.lss
 *.map
 
 *~
 *.bak
+*.diff
 *.new
 *.old
 *.orig
