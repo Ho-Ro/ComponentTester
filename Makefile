@@ -5,8 +5,15 @@
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
+
+# MCU freqency can be one of, my default is 20 MHz:
+# - 8MHz  : 8
+# - 16MHz : 16
+# - 20MHz : 20
+FREQ ?= 20
+
 # project name
-NAME = CT_AY-AT_20MHz
+NAME = CT_AY-AT_${FREQ}MHz
 
 
 #
@@ -24,13 +31,6 @@ NAME = CT_AY-AT_20MHz
 # - ATmega 1284/1284P      : atmega1284
 # - ATmega 2560            : atmega2560
 MCU = atmega328
-
-# MCU freqency:
-# - 1MHz  : 1
-# - 8MHz  : 8
-# - 16MHz : 16
-# - 20MHz : 20
-FREQ = 20
 
 # oscillator type
 # - internal RC oscillator      : RC
@@ -125,7 +125,7 @@ PORT = /dev/ttyUSB0
 #
 
 # optimize interrupt vector table (requires linux/unix environment)
-#OPTIMIZE_VECTORS = yes
+OPTIMIZE_VECTORS = yes
 
 
 #
@@ -135,11 +135,13 @@ PORT = /dev/ttyUSB0
 # name and version based on directory name
 DIST = $(notdir ${CURDIR})
 
+# compiler version, default is 8
+CC_VER = -13
 # compiler flags
-CC = avr-gcc
-CPP = avr-g++
-OBJCOPY = avr-objcopy
-OBJDUMP = avr-objdump
+CC = avr-gcc${CC_VER}
+CPP = avr-g++${CC_VER}
+OBJCOPY = avr-objcopy${CC_VER}
+OBJDUMP = avr-objdump${CC_VER}
 CFLAGS = -mmcu=${MCU} -Wall -I. -Ibitmaps
 CFLAGS += -DF_CPU=${FREQ}000000UL
 CFLAGS += -DOSC_STARTUP=${OSC_STARTUP}
@@ -190,9 +192,15 @@ OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 #  build
 #
 
-.PHONY: all size
+.PHONY: all
 all: ${NAME}.elf ${NAME}.hex ${NAME}.eep ${NAME}.lss size
 
+.PHONY: tar tgz
+tar: all
+	tar -cf ${NAME}.tar ${NAME}.hex ${NAME}.eep
+
+tgz: all
+	tar -czf ${NAME}.tgz ${NAME}.hex ${NAME}.eep
 
 #
 #  link
@@ -200,26 +208,26 @@ all: ${NAME}.elf ${NAME}.hex ${NAME}.eep ${NAME}.lss size
 
 # link firmware
 ${NAME}.elf: ${OBJECTS}
-	 ${CC} ${LDFLAGS} ${OBJECTS} ${LIBDIRS} ${LIBS} -o $@
-	 chmod -x $@
+	${CC} ${LDFLAGS} ${OBJECTS} ${LIBDIRS} ${LIBS} -o $@
+	chmod -x $@
 
 # create hex file of firmware
-%.hex: ${NAME}.elf
+${NAME}.hex: ${NAME}.elf
 	${OBJCOPY} -O ihex ${HEX_FLASH_FLAGS} $< $@
 
 # create hex file of EEPROM data
-%.eep: ${NAME}.elf
+${NAME}.eep: ${NAME}.elf
 	-${OBJCOPY} ${HEX_EEPROM_FLAGS} -O ihex $< $@ || exit 0
 
 # create dump of firmware
-%.lss: ${NAME}.elf
+${NAME}.lss: ${NAME}.elf
 	${OBJDUMP} -h -S $< > $@
 
 # output firmware size and other info
+.PHONY: size
 size: ${NAME}.elf
 	@echo
-	@avr-size -C --mcu=${MCU} $<
-#	@avr-objdump -Pmem-usage $<
+	@avr-objdump -Pmem-usage $<
 
 
 #
@@ -262,25 +270,25 @@ endif
 
 # program firmware and EEPROM data
 .PHONY: upload
-upload: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
+upload: ${NAME}.hex ${NAME}.eep size
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
 	  -U flash:w:${NAME}.hex:i -U eeprom:w:${NAME}.eep:i
 
 # program firmware only
 .PHONY: prog_fw
-prog_fw: ${NAME} ${NAME}.hex ${NAME}.lss size
+prog_fw: ${NAME}.hex size
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
 	  -U flash:w:${NAME}.hex:i
 
 # program firmware only w/o verify
 .PHONY: fast_fw
-fast_fw: ${NAME} ${NAME}.hex ${NAME}.lss size
+fast_fw: ${NAME}.hex size
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} -V\
 	  -U flash:w:${NAME}.hex:i
 
 # program EEPROM data only
 .PHONY: prog_ee
-prog_ee: ${NAME} ${NAME}.eep ${NAME}.lss size
+prog_ee: ${NAME}.eep size
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
 	  -U eeprom:w:${NAME}.eep:i
 
@@ -301,7 +309,7 @@ set_cal:
 #
 
 # create distribution package
-.PHONY: dist clean
+.PHONY: dist clean distclean
 dist: clean
 	cd ..; tar -czf ${DIST}/${DIST}.tgz \
 	  ${DIST}/*.h ${DIST}/*.c ${DIST}/*.S ${DIST}/bitmaps/*.h \
@@ -311,10 +319,12 @@ dist: clean
 
 # clean up
 clean:
-	-rm -rf ${OBJECTS} dep/* *.tgz
+	-rm -rf ${OBJECTS} dep/*
 	-rm -rf ${NAME}.elf ${NAME}.hex ${NAME}.eep ${NAME}.lss ${NAME}.map
 	-rm -rf gcrt1.inc
 
+distclean: clean
+	-rm -rf *.tgz
 
 #
 #  MCU fuses

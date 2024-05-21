@@ -70,7 +70,7 @@
 .macro vector i
   .if (. - __vectors <= last_used_vector*4)
     .weak __vector_\i
-    .set __vector_\i, __bad_interrupt
+    // .set __vector_\i, __bad_interrupt
     XJMP __vector_\i
   .endif
 .endm
