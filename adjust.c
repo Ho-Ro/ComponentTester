@@ -449,9 +449,9 @@ void ShowAdjustmentValues(void)
   Display_NL_EEString_Space(CapOffset_str);       /* display: C0 */
   #ifdef CAP_MULTIOFFSET
   /* show the first two values without unit (assuming pF) */
-  Display_Value(NV.CapZero[0], 0, 0);        /* display C0 offset for probes 1-2 */
+  Display_Value2(NV.CapZero[0]);             /* display C0 offset for probes 1-2 */
   Display_Space();                           /* display space */
-  Display_Value(NV.CapZero[1], 0, 0);        /* display C0 offset for probes 1-3 */
+  Display_Value2(NV.CapZero[1]);             /* display C0 offset for probes 1-3 */
   Display_Space();                           /* display space */
   Display_Value(NV.CapZero[2], -12, 'F');    /* display C0 offset for probes 2-3 */
   #else
@@ -566,22 +566,39 @@ uint8_t SelfAdjustment(void)
   {
     Flag = 1;            /* reset loop counter */
 
-    /* repeat each measurement 5 times */
-    while (Flag <= 5)
-    {
-      /* display step number */
-      LCD_Clear();
+    #ifdef UI_TEST_PAGEMODE
+    /* display step number */
+    LCD_Clear();
       #ifdef UI_COLORED_TITLES
       Display_UseTitleColor();          /* use title color */
       #endif
-      Display_Char('A');                /* display: A (for Adjust) */
-      Display_Char('0' + Step);         /* display number */
+    Display_Char('A');                  /* display: A (for Adjust) */
+    Display_Char('0' + Step);           /* display number */
       #ifdef UI_COLORED_TITLES
       Display_UseOldColor();            /* use old color */
       #endif
+    Display_Space();
+    #endif
+
+    /* repeat each measurement 5 times */
+    while (Flag <= 5)
+    {
+      #ifndef UI_TEST_PAGEMODE
+      /* display step number */
+      LCD_Clear();
+        #ifdef UI_COLORED_TITLES
+        Display_UseTitleColor();        /* use title color */
+        #endif
+      Display_Char('A');                /* display: A (for Adjust) */
+      Display_Char('0' + Step);         /* display number */
+        #ifdef UI_COLORED_TITLES
+        Display_UseOldColor();          /* use old color */
+        #endif
       Display_Space();
+      #endif
 
       DisplayFlag = 1;        /* display values by default */
+
 
       /*
        *  adjustment steps
@@ -591,9 +608,15 @@ uint8_t SelfAdjustment(void)
       {
         #ifdef HW_ADJUST_CAP
         case 1:     /* voltage offsets */
-
+          #ifdef UI_TEST_PAGEMODE
+          if (Flag == 1)                     /* first run */
+          {
+          #endif
           Display_EEString_Space(URef_str);  /* display: Vref */
           Display_EEString(CompOffset_str);  /* display: AComp */
+          #ifdef UI_TEST_PAGEMODE
+          }
+          #endif
 
           RefCounter += RefCap();            /* use fixed cap */
 
@@ -607,8 +630,15 @@ uint8_t SelfAdjustment(void)
         #endif        
 
         case 2:     /* resistance of probe leads (probes shorted) */
+          #ifdef UI_TEST_PAGEMODE
+          if (Flag == 1)                     /* first run */
+          {
+          #endif
           Display_EEString_Space(ROffset_str);    /* display: R0 */
           Display_EEString(ProbeComb_str);        /* display: 12 13 23 */          
+          #ifdef UI_TEST_PAGEMODE
+          }
+          #endif
 
           /*
            *  The resistance is for two probes in series and we expect it to be
@@ -666,6 +696,9 @@ uint8_t SelfAdjustment(void)
           break;
 
         case 4:     /* internal resistance of MCU pin in pull-down mode */
+          #ifdef UI_TEST_PAGEMODE
+          if (Flag == 1)                     /* first run */
+          #endif
           Display_EEString(RiLow_str);  /* display: Ri- */
 
           /* TP1:  Gnd -- RiL -- probe-1 -- Rl -- RiH -- Vcc */
@@ -694,6 +727,9 @@ uint8_t SelfAdjustment(void)
           break;
 
         case 5:     /* internal resistance of MCU pin in pull-up mode */
+          #ifdef UI_TEST_PAGEMODE
+          if (Flag == 1)                     /* first run */
+          #endif
           Display_EEString(RiHigh_str);      /* display: Ri+ */
 
           /* TP1: Gnd -- RiL -- Rl -- probe-1 -- RiH -- Vcc */
@@ -722,8 +758,15 @@ uint8_t SelfAdjustment(void)
           break;
 
         case 6:     /* capacitance offset (PCB and probe leads) */
+          #ifdef UI_TEST_PAGEMODE
+          if (Flag == 1)                     /* first run */
+          {
+          #endif
           Display_EEString_Space(CapOffset_str);  /* display: C0 */
           Display_EEString(ProbeComb_str);        /* display: 12 13 23 */
+          #ifdef UI_TEST_PAGEMODE
+          }
+          #endif
 
           /*
            *  measure the probe pair capacitance
@@ -789,14 +832,14 @@ uint8_t SelfAdjustment(void)
       R_PORT = 0;                       /* all pins low */
 
       /* display values */
-      if (DisplayFlag)
+      if (DisplayFlag)                  /* display requested */
       {
         Display_NextLine();             /* move to line #2 */
-        Display_Value(Val1, 0 , 0);     /* display value probe-1 */
+        Display_Value2(Val1);           /* display value probe-1 */
         Display_Space();
-        Display_Value(Val2, 0 , 0);     /* display value probe-2 */
+        Display_Value2(Val2);           /* display value probe-2 */
         Display_Space();
-        Display_Value(Val3, 0 , 0);     /* display value probe-3 */
+        Display_Value2(Val3);           /* display value probe-3 */
       }
 
       /* wait and check test push button */
@@ -922,6 +965,8 @@ uint8_t SelfAdjustment(void)
  * ************************************************************************ */
 
 
+#ifdef SW_SELFTEST
+
 /*
  *  selftest
  *  - perform measurements on internal voltages and probe resistors
@@ -953,20 +998,36 @@ uint8_t SelfTest(void)
   {
     Flag = 1;                 /* reset loop counter */
 
-    /* repeat each test 5 times */
-    while (Flag <= 5)
-    {
-      /* display test number */
-      LCD_Clear();
+    #ifdef UI_TEST_PAGEMODE
+    /* display test number */
+    LCD_Clear();
       #ifdef UI_COLORED_TITLES
       Display_UseTitleColor();          /* use title color */
       #endif
-      Display_Char('T');                /* display: T */
-      Display_Char('0' + Test);         /* display test number */
+    Display_Char('T');                  /* display: T */
+    Display_Char('0' + Test);           /* display test number */
       #ifdef UI_COLORED_TITLES
       Display_UseOldColor();            /* use old color */
       #endif
+    Display_Space();
+    #endif
+
+    /* repeat each test 5 times */
+    while (Flag <= 5)
+    {
+      #ifndef UI_TEST_PAGEMODE
+      /* display test number */
+      LCD_Clear();
+        #ifdef UI_COLORED_TITLES
+        Display_UseTitleColor();        /* use title color */
+        #endif
+      Display_Char('T');                /* display: T */
+      Display_Char('0' + Test);         /* display test number */
+        #ifdef UI_COLORED_TITLES
+        Display_UseOldColor();          /* use old color */
+        #endif
       Display_Space();
+      #endif
 
       DisplayFlag = 1;                  /* display values by default */
 
@@ -979,6 +1040,10 @@ uint8_t SelfTest(void)
         case 1:     /* reference voltage */
           Val0 = ReadU(ADC_CHAN_BANDGAP);    /* dummy read for bandgap stabilization */
           Val0 = ReadU(ADC_CHAN_BANDGAP);    /* read bandgap reference voltage */ 
+
+          #ifdef UI_TEST_PAGEMODE
+          if (Flag == 1)                     /* first run */
+          #endif
           Display_EEString(URef_str);        /* display: Vref */
 
           Display_NextLine();
@@ -988,8 +1053,15 @@ uint8_t SelfTest(void)
           break;
 
         case 2:     /* compare Rl resistors (probes still shorted) */
+          #ifdef UI_TEST_PAGEMODE
+          if (Flag == 1)                     /* first run */
+          {
+          #endif
           Display_EEString_Space(Rl_str);    /* display: +Rl- */
           Display_EEString(ProbeComb_str);   /* display: 12 13 23 */
+          #ifdef UI_TEST_PAGEMODE
+          }
+          #endif
 
           /* set up a voltage divider using two Rl */
           /* get offset by substracting theoretical voltage of voltage divider */
@@ -1017,8 +1089,15 @@ uint8_t SelfTest(void)
           break;
 
         case 3:     /* compare Rh resistors (probes still shorted) */
+          #ifdef UI_TEST_PAGEMODE
+          if (Flag == 1)                     /* first run */
+          {
+          #endif
           Display_EEString_Space(Rh_str);    /* display: +Rh- */
           Display_EEString(ProbeComb_str);   /* display: 12 13 23 */
+          #ifdef UI_TEST_PAGEMODE
+          }
+          #endif
 
           /* set up a voltage divider using two Rh */
           /* get offset by substracting theoretical voltage of voltage divider */
@@ -1052,6 +1131,9 @@ uint8_t SelfTest(void)
           break;
 
         case 5:     /* leakage check: probes pulled down */
+          #ifdef UI_TEST_PAGEMODE
+          if (Flag == 1)                     /* first run */
+          #endif
           Display_EEString(RhLow_str);       /* display: Rh- */
 
           /* pull down probe via Rh and get voltage */
@@ -1073,6 +1155,9 @@ uint8_t SelfTest(void)
           break;
 
         case 6:     /* leakage check: probes pulled up */
+          #ifdef UI_TEST_PAGEMODE
+          if (Flag == 1)                     /* first run */
+          #endif
           Display_EEString(RhHigh_str);      /* display: Rh+ */
 
           /* pull up probe via Rh and get voltage */
@@ -1101,14 +1186,26 @@ uint8_t SelfTest(void)
       R_PORT = 0;                            /* all pins low */
 
       /* display voltages/values of all probes */
-      if (DisplayFlag)
+      if (DisplayFlag)                       /* display requested */
       {
         Display_NextLine();                  /* move to line #2 */
-        Display_SignedValue(Val1, 0 , 0);    /* display value probe-1 */
+
+        #ifndef UI_PREFIX
+        Display_SignedValue(Val1, 0, 0);     /* display value probe-1 */
         Display_Space();
-        Display_SignedValue(Val2, 0 , 0);    /* display value probe-2 */
+        Display_SignedValue(Val2, 0, 0);     /* display value probe-2 */
         Display_Space();
-        Display_SignedValue(Val3, 0 , 0);    /* display value probe-3 */
+        Display_SignedValue(Val3, 0, 0);     /* display value probe-3 */
+        #endif
+
+        #ifdef UI_PREFIX
+        /* we need a 4-digit output for T6 Rh+ */
+        Display_SignedFullValue(Val1, 0, 0);      /* display value probe-1 */
+        Display_Space();
+        Display_SignedFullValue(Val2, 0, 0);      /* display value probe-2 */
+        Display_Space();
+        Display_SignedFullValue(Val3, 0, 0);      /* display value probe-3 */
+        #endif
       }
 
       /* wait and check test push button */
@@ -1134,6 +1231,8 @@ uint8_t SelfTest(void)
   Flag = 1;         /* signal success */
   return Flag;
 } 
+
+#endif
 
 
 

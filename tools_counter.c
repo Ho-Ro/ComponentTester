@@ -2,7 +2,7 @@
  *
  *   counter tools (hardware and software options)
  *
- *   (c) 2012-2023 by Markus Reschke
+ *   (c) 2012-2024 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -309,7 +309,7 @@ void FrequencyCounter(void)
 
     if (Flag == SHOW_FREQ)              /* valid frequency */
     {
-      Display_Value(Value, 0, 0);       /* display frequency */
+      Display_Value2(Value);            /* display frequency */
       Display_EEString(Hertz_str);      /* display: Hz */
       Flag = RUN_FLAG;                  /* clear flag */
     }
@@ -1010,7 +1010,7 @@ void RingTester(void)
 
     if (Flag == SHOW_RINGS)             /* valid number of rings */
     {
-      Display_Value(Pulses, 0, 0);      /* display rings */
+      Display_Value2(Pulses);           /* display rings */
       Flag = RUN_FLAG;                  /* clear flag */
     }
     else                                /* invalid number of rings */

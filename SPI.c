@@ -2,7 +2,7 @@
  *
  *   SPI (bit-bang & hardware)
  *
- *   (c) 2017-2023 by Markus Reschke
+ *   (c) 2017-2024 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -494,7 +494,7 @@ uint8_t SPI_WriteRead_Byte(uint8_t Byte)
   while (!(SPSR & (1 << SPIF)));   /* wait for flag */
 
   /* get received byte */
-  Byte2 = SPDR;                    /* clear flag by reading data */
+  Byte2 = SPDR;                    /* also clears flag (by reading data) */
 
   return Byte2;
 }

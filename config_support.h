@@ -1013,7 +1013,7 @@
   #endif
 #endif
 
-#if defined (SW_ESR_TOOL) || defined (SW_CONTINUITY_CHECK)
+#if defined (SW_ESR_TOOL) || defined (SW_CONTINUITY_CHECK) || defined (SW_METER_5VDC)
   #ifndef FUNC_PROBE_PINOUT
     #define FUNC_PROBE_PINOUT
   #endif
@@ -1045,7 +1045,7 @@
 
 
 /* option: pinout for ESR */
-#if defined (SW_ESR_TOOL) || defined (SW_CONTINUITY_CHECK)
+#if defined (SW_ESR_TOOL) || defined (SW_CONTINUITY_CHECK) || defined (SW_METER_5VDC)
   #define SW_PROBEPINOUT_ESR
 #endif
 
@@ -1140,6 +1140,12 @@
   #endif
 #endif
 
+#if defined (SW_METER_5VDC)
+  #ifndef FUNC_SMOOTHLONGKEYPRESS
+    #define FUNC_SMOOTHLONGKEYPRESS
+  #endif
+#endif
+
 
 /*
  *  misc output functions
@@ -1167,6 +1173,12 @@
 
 /* function: Display_SignedFullValue() */
 #if defined (SW_DS18B20) || defined (SW_DS18S20) || defined (SW_DHTXX) || defined (HW_MAX31855)
+  #ifndef FUNC_DISPLAY_SIGNEDFULLVALUE
+    #define FUNC_DISPLAY_SIGNEDFULLVALUE
+  #endif
+#endif
+
+#if defined (SW_SELFTEST) && defined (UI_PREFIX)
   #ifndef FUNC_DISPLAY_SIGNEDFULLVALUE
     #define FUNC_DISPLAY_SIGNEDFULLVALUE
   #endif
@@ -1239,6 +1251,14 @@
 #if defined (SW_DHTXX) || defined (HW_MAX6675) || defined (HW_MAX31855) || defined (HW_BH1750)
   #ifndef VAR_START_STR
     #define VAR_START_STR
+  #endif
+#endif
+
+
+/* variables: T1_Prescaler_table and T1_RegBits_table */
+#if defined (SW_PWM_PLUS) || defined (SW_SQUAREWAVE) || defined (HW_FREQ_COUNTER) || defined (HW_LC_METER)
+  #ifndef VAR_TIMER1_TABLES
+    #define VAR_TIMER1_TABLES
   #endif
 #endif
 

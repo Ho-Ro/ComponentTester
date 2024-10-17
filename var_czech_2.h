@@ -32,7 +32,6 @@
   const unsigned char Failed2_str[] MEM_TYPE = "neznámá - vadná?";
   const unsigned char Done_str[] MEM_TYPE = "hotovo!";
   const unsigned char Select_str[] MEM_TYPE = "Výbìr";
-  const unsigned char Selftest_str[] MEM_TYPE = "Autotest";
   const unsigned char Adjustment_str[] MEM_TYPE = "Kalibrace";
   const unsigned char Save_str[] MEM_TYPE = "Ulo¾it";
   const unsigned char Load_str[] MEM_TYPE = "Naèíst";
@@ -56,6 +55,10 @@
 
 
   /* options */
+  #ifdef SW_SELFTEST
+    const unsigned char Selftest_str[] MEM_TYPE = "Autotest";
+  #endif
+
   #if ! defined (BAT_NONE) && ! defined (UI_BATTERY)
     const unsigned char Battery_str[] MEM_TYPE = "Bat";
     const unsigned char OK_str[] MEM_TYPE = "ok";
@@ -221,6 +224,10 @@
 
   #ifdef SW_DIODE_LED
     const unsigned char Diode_LED_str[] MEM_TYPE = "Diode/LED";
+  #endif
+
+  #ifdef SW_METER_5VDC
+    const unsigned char Meter_5VDC_str[] MEM_TYPE = "5V-Meter";
   #endif
 
 #endif

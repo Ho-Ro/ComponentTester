@@ -6,6 +6,29 @@
 
 ------------------------------------------------------------------------------
 
+v1.53m 2024-08
+- Interrupt-Adressproblem in gcrt1.S (OPTIMIZE_VECTORS) beseitigt, primär für
+  avr-gcc 8.3.0 (Dank an horo@EEVblog).
+- Polnische Texte #2 aktualisiert (Dank an Jacon@EEVblog).
+- Fehler im Quellcodemanagement für globale Variablen für Timer1 behoben (
+  gemeldet von indman@EEVblog).
+- Polnische Texte aktualisiert (Dank an szpila@EEVblog).
+- Option zum Aktivieren/Deaktivieren des Selbsttests (SW_SELFTEST, Vorschlag
+  von indman@EEVblog).
+- Option zur seitenweisen Ausgabe der Messwerte im Selbst-Test/Abgleich (
+  UI_TEST_PAGEMODE, benötigt >= 6 Textzeilen).
+- Neue Vereinfachungsfunktion Display_Value2() zum Reduzieren der Firmware-
+  größe. Alle passenden Funktionsaufrufe entsprechend geändert. 
+- 5V-Meter mit auswählbarer Eingangsimpedanz (SW_METER_5VDC, Vorschlag von
+  boneDragon@EEVblog). Optionaler Piep bei Überschreiten eines Schwellwertes (
+  benötigt Summer/Pieper). 
+- Option zur Ausgabe von 4-stelligen Werten als Wert mit Präfix (UI_PREFIX,
+  Vorschlag von Kim Christensen@EEVblog und edgard22@EEVblog).
+- Optionale Rücklaufdiode wird nun auch für JFETs angezeigt (Vorschlag von
+  Yuriy_K@EEVblog). Problem mit D/S-Verdrehung bei p-Kanal JFETs mit Rück-
+  laufdiode gelöst.
+- Brasilianisch-portugiesische Texte aktualisiert (Dank an wandows@EEVblog).
+
 v1.52m 2024-04
 - Schnelltest von Dioden und LEDs (SW_DIODE_LED).
 - Unterstützung vom BH1750VFI Umgebungslichtsensor (HW_BH1750).
@@ -468,7 +491,7 @@ v1.37m 2019-09
   als Einheit für DisplayValue() plus zusätzliches "z").  
 - Option zum Anzeigen von Bedienungshilfen  (UI_KEY_HINTS). Momentan nur
   "Menu/Test" (Vorschlag von carrascoso@EEVblog).
-- Polnische Texte aktualisiert (C szpila@EEVblog). 
+- Polnische Texte aktualisiert (Dank an szpila@EEVblog).
 - Russische Texte aktualisiert (Dank an indman@EEVblog).
 - Spanische Texte aktualisiert (Dank an pepe10000@EEVblog).
 

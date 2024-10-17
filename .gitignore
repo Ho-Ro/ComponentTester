@@ -16,3 +16,6 @@ gcrt1.inc
 *.old
 *.orig
 *.rej
+
+!CT_AY-AT_*.eep
+!CT_AY-AT_*.hex

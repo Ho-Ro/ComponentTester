@@ -2,7 +2,7 @@
  *
  *   automation / remote commands via serial interface 
  *
- *   (c) 2018-2022 by Markus Reschke
+ *   (c) 2018-2024 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1137,7 +1137,7 @@ uint8_t Cmd_H_FE(void)
   if (Check.Found == COMP_BJT)          /* BJT */
   {
     /* send value */
-    Display_Value(Semi.F_1, 0, 0);
+    Display_Value2(Semi.F_1);
   }
   else                                  /* other component */
   {
@@ -1177,7 +1177,7 @@ uint8_t Cmd_H_FE_R(void)
     else
     {
       /* send value */
-      Display_Value(Semi.F_2, 0, 0);
+      Display_Value2(Semi.F_2);
     }
   }
   else                                  /* other component */
@@ -1754,7 +1754,7 @@ uint8_t RunCommand(uint8_t ID)
       break;
 
     case CMD_COMP:            /* return component type ID */
-      Display_Value(Check.Found, 0, 0);      /* send component type ID */
+      Display_Value2(Check.Found);           /* send component type ID */
       break;
 
     case CMD_MSG:             /* return error message */
@@ -1762,7 +1762,7 @@ uint8_t RunCommand(uint8_t ID)
       break;
 
     case CMD_QTY:             /* return component quantity */
-      Display_Value(Info.Quantity, 0, 0);    /* send quantity */
+      Display_Value2(Info.Quantity);         /* send quantity */
       break;
 
     case CMD_NEXT:            /* select next component */

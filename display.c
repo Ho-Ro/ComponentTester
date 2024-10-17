@@ -949,11 +949,16 @@ void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit)
     Index = Exponent / 3;               /* number of 10^3 steps */
     Offset = Exponent % 3;              /* offset to lower 10^3 step */
 
+    #ifdef UI_PREFIX
+    /* dot required or 4-digit value */
+    if ((Offset > 0) || (Value >= 1000))
+    #else
     if (Offset > 0)                     /* dot required */
+    #endif
     {
       Index++;                          /* upscale prefix */ 
       Offset = 3 - Offset;              /* reverse value (1 or 2) */
-    }    
+    }
 
     /* look up prefix in table */
     if (Index < NUM_PREFIXES)           /* prevent array overflow */
@@ -983,9 +988,9 @@ void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit)
     /* 0: factor 10 / -1: factor 100 */
     Display_Char('0');                  /* display: 0 */
     #ifdef UI_COMMA
-    Display_Char(',');                  /* display: , */
+      Display_Char(',');                /* display: , */
     #else
-    Display_Char('.');                  /* display: . */
+      Display_Char('.');                /* display: . */
     #endif
     if (Exponent < 0)                   /* factor 100 */
     {
@@ -1010,9 +1015,9 @@ void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit)
     if (Index == Exponent)              /* starting point of decimal fraction */
     {
       #ifdef UI_COMMA
-      Display_Char(',');                /* display: , */
+        Display_Char(',');              /* display: , */
       #else
-      Display_Char('.');                /* display: . */
+        Display_Char('.');              /* display: . */
       #endif
     }
 
@@ -1024,8 +1029,31 @@ void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit)
   #endif
 
   /* display prefix and unit */
-  if (Prefix) Display_Char(Prefix);
-  if (Unit) Display_Char(Unit);
+  if (Prefix)                      /* prefix available */
+  {
+    Display_Char(Prefix);
+  }
+  if (Unit)                        /* unit available */
+  {
+    Display_Char(Unit);
+  }
+}
+
+
+
+/*
+ *  display unsigned value
+ *  - convenience function for Display_Value() without exponent and unit
+ *  - decreases firmware size
+ *
+ *  requires:
+ *  - unsigned value
+ */
+
+void Display_Value2(uint32_t Value)
+{
+  /* call Display_Value() without exponent (10^0) and unit (0) */
+  Display_Value(Value, 0 , 0);
 }
 
 
@@ -1531,8 +1559,9 @@ void ChangeContrast(void)
 
   while (Flag)
   {
+    /* display contrast */
     LCD_ClearLine2();
-    Display_Value(Contrast, 0, 0);
+    Display_Value2(Contrast);
 
     #ifdef HW_KEYS
     if (Flag < KEY_RIGHT)               /* just for test button usage */

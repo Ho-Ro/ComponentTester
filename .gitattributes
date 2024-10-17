@@ -1,0 +1,4 @@
+# do not convert lf <-> crlf for intel hex files
+
+*.eep -text
+*.hex -text
