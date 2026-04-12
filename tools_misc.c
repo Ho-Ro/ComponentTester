@@ -2746,8 +2746,8 @@ void Meter_5VDC(void)
   uint16_t          U;                  /* voltage */
   #ifdef HW_BUZZER
   uint16_t          Threshold;          /* voltage threshold */
-  uint8_t           n;
   #endif
+  uint8_t           n;                  /* counter */
 
   /* local constants for Flag (bitfield) */
   #define RUN_FLAG            0b00000001     /* run / otherwise end */

@@ -156,7 +156,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.53m_AY-AT_20M";
+  const unsigned char Version_str[] MEM_TYPE = "v1.54m_AY-AT_20M";
 
 
   /* common terms and texts */
@@ -166,7 +166,7 @@
   const unsigned char Enhancement_str[] MEM_TYPE = "enh.";
   const unsigned char Depletion_str[] MEM_TYPE = "dep.";
   const unsigned char IGBT_str[] MEM_TYPE = "IGBT";
-  const unsigned char Cgs_str[] MEM_TYPE = "Cgs";
+  const unsigned char C_gs_str[] MEM_TYPE = "Cgs";
   const unsigned char NPN_str[] MEM_TYPE = "NPN";
   const unsigned char PNP_str[] MEM_TYPE = "PNP";
   const unsigned char h_FE_str[] MEM_TYPE ="hFE";
@@ -266,6 +266,10 @@
 
   #ifdef SW_REVERSE_HFE
     const unsigned char h_FE_r_str[] MEM_TYPE ="hFEr";
+  #endif
+
+  #ifdef SW_C_BE
+    const unsigned char C_be_str[] MEM_TYPE = "Cbe";
   #endif
 
   #ifdef SW_DHTXX
@@ -377,6 +381,7 @@
     #ifdef SW_SCHOTTKY_BJT
       const unsigned char Cmd_V_F_clamp_str[] MEM_TYPE = "V_F_clamp";
     #endif
+    const unsigned char Cmd_C_BE_str[] MEM_TYPE = "C_BE";
 
     /* command reference table */
     const Cmd_Type Cmd_Table[] MEM_TYPE = {
@@ -435,6 +440,7 @@
       #ifdef SW_SCHOTTKY_BJT
         {CMD_V_F_CLAMP, Cmd_V_F_clamp_str},
       #endif
+      {CMD_C_BE, Cmd_C_BE_str},
       {0, 0}
     };
   #endif
@@ -664,7 +670,7 @@
   extern const unsigned char Channel_str[];
   extern const unsigned char Enhancement_str[];
   extern const unsigned char Depletion_str[];
-  extern const unsigned char Cgs_str[];
+  extern const unsigned char C_gs_str[];
   extern const unsigned char NPN_str[];
   extern const unsigned char PNP_str[];
   extern const unsigned char h_FE_str[];
@@ -1003,6 +1009,7 @@
     #ifdef HW_PROBE_ZENER
       extern const unsigned char Cmd_V_Z_str[];
     #endif
+    extern const unsigned char Cmd_C_BE_str[];
 
     /* command reference table */
     extern const Cmd_Type Cmd_Table[];

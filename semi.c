@@ -147,6 +147,7 @@ void GetLeakageCurrent(uint8_t Mode)
     /* consider internal resistance of MCU */
     R_Shunt = (uint32_t)NV.RiL;         /* in 0.1 Ohms */
     Scale = -7;                         /* 100n */
+    Value = 100000;                     /* scale voltage to 10 nV */
 
     if ((U_Rl > 1400) && (Mode == 1))   /* > 2mA */
     {
@@ -189,7 +190,8 @@ void GetLeakageCurrent(uint8_t Mode)
 
     /* neglect MCU's internal resistance */
     R_Shunt =  R_HIGH;
-    Scale = -8;                    /* 10n */
+    Scale = -9;                         /* 1n */
+    Value = 1000000;                    /* scale voltage to 1 nV */
   }
 
   /* clean up */
@@ -199,7 +201,7 @@ void GetLeakageCurrent(uint8_t Mode)
   R_PORT = 0;            /* set resistor port low */
 
   /* calculate current */
-  Value = U_Rl * 100000;           /* scale voltage to 10nV */
+  Value *= U_Rl;                   /* scale voltage */
   Value /= R_Shunt;                /* I = U/R */
 
   /* save result */
@@ -293,7 +295,7 @@ void CheckDiode(void)
    *    p and n channel FETs.
    *  - Take care about the internal voltage drop of the MCU at the cathode
    *    for high test currents (Rl).
-   *  - Filter out resistors by the used voltage divider:
+   *  - Filter out resistors via the voltage divider used:
    *    k = Rh / (Rl + Ri_H + Ri_L)
    *    U_Rh = U_Rl / (k - (k - 1) U_Rl / Vcc)
    *    U_Rl = k U_Rh / (1 + (k - 1) U_Rh / Vcc) 
@@ -447,7 +449,7 @@ void CheckDiode(void)
 
   /*
    *  Check for a resistor:
-   *  - Measure current in forward and reverse direction. Both curents
+   *  - Measure current in forward and reverse direction. Both currents
    *    should be the same for a resistor.
    *  - For U_Rh > 40mV we don't need to check for a resistor.
    */
@@ -905,7 +907,7 @@ uint32_t Get_hFE_C(uint8_t Type)
 
 /*
  *  check for BJT, enhancement-mode MOSFET and IGBT
- *  - sets hFE test circuit type in Semi.Flags (when SW_HFE_CIRCUIT)
+ *  - sets hFE test circuit type in Semi.Flags
  *
  *  requires:
  *  - BJT_Type: NPN or PNP (also used for FET channel type)
@@ -1001,6 +1003,8 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
      *  A reversed collector and emitter also passes the tests, but with a
      *  lower hFE. So we take the results of the test run with the higher
      *  hFE. A freewheeling diode might prevent one test run.
+     *  Another possible solution: V_f for collector junction is slightly
+     *  lower than for emitter junction (larger area for collector -> lower R).
      */
 
     if (Check.Found == COMP_BJT)        /* second test run */
@@ -1110,11 +1114,11 @@ void CheckTransistor(uint8_t BJT_Type, uint16_t U_Rl)
     /* measure Base-Emitter capacitance */
     if (BJT_Type == TYPE_NPN)           /* NPN */
     {
-      MeasureCap(Probes.ID_2, Probes.ID_3, 0);       /* E-B */
+      MeasureCap(Probes.ID_2, Probes.ID_3, 0);    /* E-B */
     }
     else                                /* PNP */
     {
-      MeasureCap(Probes.ID_3, Probes.ID_1, 0);       /* B-E */
+      MeasureCap(Probes.ID_3, Probes.ID_1, 0);    /* B-E */
     }
 
     RestoreProbes();               /* restore original probe IDs */
@@ -1427,7 +1431,8 @@ void CheckDepletionModeFET(uint16_t U_Rl)
     U_1 = ReadU_20ms(Probes.Ch_3);           /* get voltage at base */
     ADC_DDR = 0;
 
-    if (U_1 < 700)            /* low V_BE < (550mV + 150mV) */
+    if ((U_1 < 700) &&        /* low V_BE < (550mV + 150mV) */
+        (U_1 > 50))           /* but not too low */
     {
       Flag = SIGNAL_OTHER;    /* most likely a Ge BJT */
     }
@@ -1606,7 +1611,8 @@ void CheckDepletionModeFET(uint16_t U_Rl)
       U_1 = ReadU_20ms(Probes.Ch_3);         /* get voltage at base */
       ADC_PORT = 0;
 
-      if (U_1 > 4300)       /* low V_BE < 550mV + 150mV (V_BE = Vcc - V_B) */
+      if ((U_1 > 4300) &&     /* low V_BE < (550mV + 150mV) (V_BE = Vcc - V_B) */
+          (U_1 < 4950))       /* but not too low  (Vcc - 50mV) */
       {
         Flag = SIGNAL_OTHER;       /* most likely a Ge BJT */
       }

@@ -25,7 +25,8 @@ can be hard to identify the MCU. Some hints:
   - 5 pins: Vdd, Vcc, F_SDAT, F_SCLK, F_RST
 - Testers with APT32F172K8T6 often lack a quartz crystal.
 - LGT8F328 has slightly different pins:
-  - QFP32L: 21=PE2/SWD (ATmega328 32-TQFP: 21=Gnd)
+  - QFP32L: 21=PE2/SWD      (ATmega328 32-TQFP: 21=Gnd)
+            18=PE0/SWC/APN4 (ATmega328 32-TQFP: 18=AVcc)
 - LGT8F328 uses SWD port for ISP:
   - 5 pins: Gnd, Vcc, SWD, SWC, Reset
 - Clone variants with an genuine ATmega are usually about EUR/US$ 5 more

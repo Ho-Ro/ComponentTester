@@ -227,7 +227,7 @@
   #endif
 
   #ifdef SW_METER_5VDC
-    const unsigned char Meter_5VDC_str[] MEM_TYPE = "5V-Meter";
+    const unsigned char Meter_5VDC_str[] MEM_TYPE = "5V-Medidor";
   #endif
 
 #endif

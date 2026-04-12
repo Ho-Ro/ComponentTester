@@ -452,7 +452,11 @@ void Show_Fail(void)
   #ifdef UI_QUESTION_MARK
   /* display question mark symbol */
   Check.Symbol = SYMBOL_QUESTIONMARK;   /* set symbol ID */
-  Display_FancySemiPinout(3);           /* show symbol starting in line #3 */
+    #ifdef UI_CENTER_ALIGN
+      Display_FancySemiPinout(1);       /* show symbol starting in line #1 */
+    #else
+      Display_FancySemiPinout(3);       /* show symbol starting in line #3 */
+    #endif
   #endif
 
   #if CYCLE_MAX < 255
@@ -950,7 +954,7 @@ void Show_Capacitor(void)
 
 void Show_SemiCurrent(const unsigned char *String)
 {
-  if (CmpValue(Semi.I_value, Semi.I_scale, 50, -9) >= 0)  /* show if >=50nA */
+  if (CmpValue(Semi.I_value, Semi.I_scale, 10, -9) >= 0)  /* show if >= 10nA */
   {
     Display_NL_EEString_Space(String);               /* display: <string> */
     Display_Value(Semi.I_value, Semi.I_scale, 'A');  /* display current */
@@ -1311,6 +1315,7 @@ void Show_BJT(void)
    *  F_1 - hFE
    *  F_2 - reverse hFE
    *  I_value/I_scale - I_CEO
+   *  C_value/C_scale - C_be
    */
 
   /*
@@ -1421,7 +1426,7 @@ void Show_BJT(void)
     #else
       Show_SingleResistor('B', 'E');              /* show resistor */
     #endif
-    /* B-E resistor renders hFE and V_BE measurements useless */
+    /* B-E resistor renders hFE, V_BE and C_be measurements useless */
 
     #ifdef SW_SYMBOLS
     UI.SymbolLine = 4;             /* display fancy pinout in line #4 */
@@ -1436,6 +1441,7 @@ void Show_BJT(void)
 
   /*
    *  display h_FE in next line
+   *  - B-E resistor renders value useless
    */
 
   /* display h_FE */
@@ -1487,7 +1493,8 @@ void Show_BJT(void)
 
   /*
    *  display V_BE in next line
-   *  (taken from diode's forward voltage)
+   *  - taken from diode's forward voltage
+   *  - B-E resistor renders value useless
    */
 
   Diode = SearchDiode(BE_A, BE_C);      /* search for matching B-E diode */
@@ -1547,8 +1554,23 @@ void Show_BJT(void)
     #endif
   }
 
-  /* I_CEO: collector emitter open current (leakage) */
+
+  /*
+   *  I_CEO: collector emitter open current (leakage)
+   */
+
   Show_SemiCurrent(I_CEO_str);          /* display I_CEO */
+
+
+  #ifdef SW_C_BE
+  /*
+   *  C_BE: base emitter capacitance
+   *  - B-E resistor renders value useless
+   */
+
+  Display_NL_EEString_Space(C_be_str);               /* display: Cbe */
+  Display_Value(Semi.C_value, Semi.C_scale, 'F');    /* display C_be */
+  #endif
 
 
   #ifdef SW_SCHOTTKY_BJT
@@ -1689,7 +1711,7 @@ void Show_FET_Extras(void)
 
     /* display gate-source capacitance C_GS */
     /* todo: display "Cge" for IGBT? */
-    Display_NL_EEString_Space(Cgs_str);                /* display: Cgs */
+    Display_NL_EEString_Space(C_gs_str);               /* display: Cgs */
     Display_Value(Semi.C_value, Semi.C_scale, 'F');    /* display value and unit */
 
     #ifdef UI_SERIAL_COMMANDS

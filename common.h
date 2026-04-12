@@ -82,7 +82,7 @@
 
 /* operation control/signaling flags (bitfield) */
 #define OP_BREAK_KEY          0b00000001     /* exit key processing */
-#define OP_OUT_LCD            0b00000010     /* output to LCD display */
+#define OP_OUT_LCD            0b00000010     /* output to display */
 #define OP_OUT_SER            0b00000100     /* output to TTL serial */
 #define OP_RX_LOCKED          0b00001000     /* RX buffer locked */
 #define OP_RX_OVERFLOW        0b00010000     /* RX buffer overflow */
@@ -234,6 +234,7 @@
 #define CMD_V_Z               45   /* return V_Z */
 #define CMD_V_L               46   /* return V_loss */
 #define CMD_V_F_CLAMP         47   /* return V_f of clamping diode */
+#define CMD_C_BE              48   /* return C_BE */
 
 
 
@@ -325,10 +326,10 @@
 #define TYPE_STANDARD         0b00000001     /* standard diode */
 
 
-/* BJT flags (bitfield) */
+/* semiconductor flags (bitfield) */
 #define HFE_COMMON_EMITTER    0b00000001     /* hFE: common emitter circuit */
 #define HFE_COMMON_COLLECTOR  0b00000010     /* hFE: common collector circuit */
-#define HFE_CIRCUIT_MASK      0b00000011
+#define HFE_CIRCUIT_MASK      0b00000011     /* mask for hFE circuit flags */
 
 
 /* flags for semicondutor detection logic (bitfield) */

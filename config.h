@@ -646,6 +646,14 @@
 
 
 /*
+ *  display C_be (base-emitter capacitance) for BJTs
+ *  - uncomment to enable
+ */
+
+//#define SW_C_BE
+
+
+/*
  *  R/C/L monitors
  *  - monitor passive components connected to probes #1 and #3
  *  - monitors for L require SW_INDUCTOR to be enabled

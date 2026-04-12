@@ -7,7 +7,8 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2024-08-01
+Letzte Änderung: 2024-12-13
+Für Version:     1.54m
 
 Inhaltsübersicht:
   - Über den Tester
@@ -85,7 +86,7 @@ Inhaltsübersicht:
     - MAX6675/MAX31855 Thermoelement-Konverter
     - BH1750 Umgebungslichtsensor
     - Licht
-    - Voltmeter 0-5V DC
+    - Voltmeter 0-5 V DC
     - Selbsttest
     - Selbstabgleich
     - Speichern/Laden
@@ -123,7 +124,7 @@ Firmware für die aktuelle Testerschaltung von Karl-Heinz und bietet einige
 Änderungen der Benutzerschnittstelle und Mess- und Testverfahren. Auch gibt
 es zusätzliche Funktionen. Während die Firmware von Karl-Heinz die offizielle
 Version ist und auch ältere ATmega-MCUs unterstützt, benötigt diese Version
-einen ATmega mit mindestens 32kB Flash.
+einen ATmega mit mindestens 32 kB Flash.
 
 Hinweise:
 - Bitte den Selbstabgleich bei brandneuen Testern oder nach Firmware-
@@ -136,7 +137,7 @@ Hinweise:
 
 Der Component-Tester ist kein Multimeter! Es ist ein einfacher Tester für
 Bauteile, der Verschiedenes messen kann. Die Eingänge sind nicht geschützt
-und werden durch Spannungen über 5V beschädigt. Den Tester nicht für
+und werden durch Spannungen über 5 V beschädigt. Den Tester nicht für
 Schaltungen in Betrieb nutzen, sondern nur für einzelne Bauteile! Bei
 Kondensatoren darauf achten, daß sie entladen sind, bevor der Tester
 angeklemmt wird. Benutzung auf eigene Gefahr!
@@ -166,7 +167,7 @@ sein.
 
 * Unterschiede zur k-Firmware
 
-Karl-Heinz hat eine richtig gute Doumentation für den Tester geschrieben.
+Karl-Heinz hat eine richtig gute Dokumentation für den Tester geschrieben.
 Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 
 - Benutzerschnittstelle
@@ -178,8 +179,8 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - Widerstandsmessung
   + zusätliche Methode für Widerstände <10 Ohm (anstatt ESR-Messung)
 - Kapazitätsmessung
-  + ab 5pF
-  + zusätzliche Methode für Kondensatoren zwischen 4,7µF und 47µF
+  + ab 5 pF
+  + zusätzliche Methode für Kondensatoren zwischen 4,7 µF und 47 µF
   + anderes Verfahren zur Korrektur/Kompensation
 - kein SamplingADC() für sehr niedrige Kapazitäten oder Induktivitäten
 - Dioden
@@ -249,12 +250,12 @@ Folgende Hardware-Optionen werden unterstützt:
   - Summer/Pieper
 
   Verbesserungen
-  - externe Spannungsreferenz 2,5V
+  - externe Spannungsreferenz 2,5 V
   - fester Abgleichkondensator
   - Schutz-Relais zum Entladen von Kondensatoren
 
   zusätzliche Tests und Messungen
-  - Zener-Test / Messung einer externen Spannung <50V
+  - Zener-Test / Messung einer externen Spannung < 50 V
   - einfacher Frequenzzähler
   - erweiterter Frequenzzähler
     mit Vorteiler und Quarzoszillatoren für niedrige und hohe Frequenzen 
@@ -288,7 +289,7 @@ Hardware-Optionen:
   - Drehencoder
   - Mehr/Weniger-Tasten
   - Touch-Screen
-- externe 2,5V Spannungsreferenz
+- externe 2,5 V Spannungsreferenz
 - Schutz-Relais zur Kondensatorentladung
 - Messung von Zenerdioden (DC-DC-Konverter)
 - Frequenzzähler (einfache und erweiterte Version)
@@ -303,10 +304,10 @@ Hardware-Optionen:
 - OneWire Bus (Bit-Bang)
 - ...
 
-Die externe 2,5V Spannungsreferenz sollte nur genutzt werden, wenn sie
+Die externe 2,5 V Spannungsreferenz sollte nur genutzt werden, wenn sie
 um den Faktor 10 genauer als der Spannungsregler ist. Ansonsten würde
 sie die Messergebnisse eher verschlechtern als verbessern. Wenn Du einen
-MCP1702 mit einer typischen Genauigkeit von 0,4% als Spannungsregler
+MCP1702 mit einer typischen Genauigkeit von 0,4 % als Spannungsregler
 hast, brauchst Du eigentlich keine zusätzliche Spannungsreferenz mehr.
 
 Und natürlich die Software-Optionen:
@@ -329,7 +330,7 @@ Und natürlich die Software-Optionen:
 - DHT11/22 Temperatur- und Luftfeuchtigkeitssensor
 - ...
 
-Bitte die Optionen entprechend Deinen Wünschen und den begrenzten Ressourcen 
+Bitte die Optionen entsprechend Deinen Wünschen und den begrenzten Ressourcen 
 der MCU, d.h. RAM, EEPROM und Flash-Speicher, auswählen. Sollte die Firmware
 zu groß werden, versuche für Dich nicht so wichtige Optionen zu deaktivieren. 
 
@@ -384,7 +385,7 @@ Als Ergebnis werden zwei Dateien erzeugt:
 
 Die Firmware wird in das Flash geschrieben und die EEPROM-Daten in das EEPROM.
 Die Daten enthalten zwei Sätze an Standardabgleichswerten, Texte und Tabellen.
-Wenn Du bei der Aktualsierung der Firmware die alten Abgleichswerte im EEPROM
+Wenn Du bei der Aktualisierung der Firmware die alten Abgleichswerte im EEPROM
 beibehalten möchtest, kann Du mit dem Schalter DATA_FLASH in config.h die
 Texte und Tabellen in die Firmware verschieben. In diesem Fall muss dann nur
 die Firmware in das Flash geschrieben werden; das EEPROM bleibt unverändert.  
@@ -414,7 +415,7 @@ Hinweise zu speziellen Einstellungen im Makefile:
 
 + I2C/SPI
 
-Manche LCD-Module and andere Komponenten benötigen I2C oder SPI als Schnitt-
+Manche LCD-Module und andere Komponenten benötigen I2C oder SPI als Schnitt-
 stelle zur MCU. Daher hat der Firmware Treiber für beide Bussysteme. Um
 unterschiedliche Beschaltungen zu unterstützen haben die Bustreiber einen
 Bit-Bang und einen Hardware-Modus. Beim Bit-Bang-Modus können beliebige IO
@@ -462,8 +463,8 @@ ist, wenn die Schnittstelle ruht. Ursache dafür ist benutze Methode wie
 Port-Pins angesteuert werden. Ein Umschreiben der Ansteuerung würde die
 Firmware deutlich vergrößern. Dieses Problem scheint aber keine Auswirkung
 auf die meisten USB-zu-TTL Konverter zu haben. Sollte es doch Probleme
-geben, kannst Du einen Pull-up-Widerstand (10-100k) am TX-Pin probieren, um
-den Signalpegel im Ruhemodus auf "high" zu halten. 
+geben, kannst Du einen Pull-up-Widerstand (10-100 kOhm) am TX-Pin probieren,
+um den Signalpegel im Ruhemodus auf "high" zu halten. 
 
 Die Standardeinstellung der seriellen Schnittstele ist 9600 8N1:
   - 9600 bps
@@ -484,7 +485,7 @@ Beschaltung von Test-Pins:
   Probe #1:  Gnd
   Probe #2:  DQ (Daten)
   Probe #3:  Vcc (Strom durch 680 Ohm Widerstand begrenzt)
-  Ein externer Pull-Up-Widerstand von 4,7kOhm zwischen DQ and Vcc wird
+  Ein externer Pull-Up-Widerstand von 4,7 kOhm zwischen DQ and Vcc wird
   benötigt!
 
 Funktionen, die genau einen Client am Bus erfordern, können optional den ROM-
@@ -512,7 +513,7 @@ Im Augenblick werden folgende Controller unterstützt:
 - ST7735 (grafisches Farb-Display 128x160)
 - ST7920 (grafisches Display bis zu 256x64)
 - STE2007/HX1230 (grafisches Display 96x68)
-- VT100 Terminal (über serielle Schnitstelle)
+- VT100 Terminal (über serielle Schnittstelle)
 
 Beachte die Versorgungsspannung und die Logikpegel des Anzeige-Moduls! Benutze
 Pegelumsetzer, sofern notwendig. Ein einfacher Pegelumsetzer mit Widerständen
@@ -530,14 +531,14 @@ Kontrast zu ändern (config_<MCU>.h).
 
 Grafik-Anzeigen haben meistens Einstellmöglichkeiten für die Orientierung der
 Ausgabe, z.B. Bild um 90° rotieren, Bild horizontal spiegeln oder auch
-vertikal. Damit läßt sich das Bild an den jeweiligen Tester anpassen. Für
+vertikal. Damit lässt sich das Bild an den jeweiligen Tester anpassen. Für
 grafische Farbanzeigen gibt es zusätzliche Einstellungen. Im normalen Farbmodus
 werden mehrere Farben verwendet, die mittels der Datei colors.h änderbar sind.
 Durch Auskommentieren von LCD_COLOR wird der Zwei-Farb-Modus aktiviert. Die
 Schriftfarbe ist dann COLOR_PEN und die Hintergrundfarbe COLOR_BACKGROUND.  
 Sollten die RGB-Grundfarben Rot und Blau vertauscht sein, kannst Du per LCD_BGR
 die entsprechenden Farbkanäle tauschen. Bei manchen Anzeigen ist die
-Reihenfolge der RGB-Unterpixel verdreht und der Controller weiss nichts davon.
+Reihenfolge der RGB-Unterpixel verdreht und der Controller weiß nichts davon.
 
 Hinweis zu ATmega 328:
 Wenn Du einen Drehencoder an PD2/PD3 hängst, dann verbinde /CS vom Anzeige-
@@ -570,7 +571,7 @@ Hinweis:
 
 + HD44780
 
-Der HD44780 wird im 4-Bit-Modus bestrieben. Die Pins für den Parallelbus sind:
+Der HD44780 wird im 4-Bit-Modus betrieben. Die Pins für den Parallelbus sind:
 
   Modul       config-<MCU>.h   Standard     Hinweis
                                ATmega 328
@@ -662,12 +663,12 @@ Für eine korrekte Anzeige mußt Du evtl. mit den Einstellungen X/Y-Flip und
 Rotate experimentieren. Und nicht vergessen, die X und Y-Auflösung korrekt
 zu setzen (ILI9341 ist 240x320 und ILI9342 ist 320x240). Manche Anzeigemodule
 haben den erweiterten Befehlssatz des ILI9341 deaktiviert (EXTC-Pin liegt auf
-Masse), und die Ausgabe ist dann oft nur schemenhaft. Das läßt sich per
+Masse), und die Ausgabe ist dann oft nur schemenhaft. Das lässt sich per
 LCD_EXT_CMD_OFF korrigieren.
 
 Aufgrund der hohen Pixelzahl ist die Ausgabe per SPI etwas langsam. Das
 Löschen der kompletten Anzeige dauert etwa 3 Sekunden bei Bit-Bang-SPI
-und 8MHz MCU-Takt. Besser Hardware-SPI oder den Parallel-Bus nutzen.
+und 8 MHz MCU-Takt. Besser Hardware-SPI oder den Parallel-Bus nutzen.
 
 
 + ILI9481 (teilweise ungetestet)
@@ -805,11 +806,11 @@ Und für I2C:
   /CS                          Gnd
   SCL (D0)    I2C_SCL          PD1
   SDA (D1)    I2C_SDA          PD0
-  SA0 (A0)                     Gnd (0x3c) / 3.3V (0x3d)
+  SA0 (A0)                     Gnd (0x3c) / 3.3 V (0x3d)
 
 Mit den X/Y-Flip Einstellungen kannst Du die Orientierung der Anzeige
-anpassen, wenn notwenig. Bei vielen SH1106-Display-Modulen muss der X-Offset
-auf 2 gesetzt werden. Falls the Pixelzeilen total durcheinander sind, kannst
+anpassen, wenn notwendig. Bei vielen SH1106-Display-Modulen muss der X-Offset
+auf 2 gesetzt werden. Falls dei Pixelzeilen total durcheinander sind, kannst
 Du das sequenzielle COM-Pin-Layout (LCD_COM_SEQ) versuchen.
 
 
@@ -840,12 +841,12 @@ Und für I2C:
   /RES        LCD_RESET        PD4          optional
   SCL (D0)    I2C_SCL          PD1
   SDA (D1&2)  I2C_SDA          PD0
-  SA0 (D/C)                    Gnd (0x3c) / 3.3V (0x3d)
+  SA0 (D/C)                    Gnd (0x3c) / 3.3 V (0x3d)
 
 Mit den X/Y-Flip Einstellungen kannst Du die Orientierung der Anzeige
-anpassen, wenn notwenig. Falls the Pixelzeilen total durcheinander sind, kannst
-Du das sequenzielle COM-Pin-Layout (LCD_COM_SEQ) und/oder die umgedrehte
-COM-Pin-Zuordnung (LCD_COM_REMAP) versuchen.
+anpassen, wenn notwendig. Falls die Pixelzeilen total durcheinander sind,
+kannst Du das sequenzielle COM-Pin-Layout (LCD_COM_SEQ) und/oder die
+umgedrehte COM-Pin-Zuordnung (LCD_COM_REMAP) versuchen.
 
 
 + ST7036 (ungetestet)
@@ -874,7 +875,7 @@ Und für 4-Draht-SPI:
   SI (DB7)    LCD_SI           PD1          SPI MOSI
 
 Der ST7036i spricht I2C, wird aber (noch) nicht unterstützt. Ein spezielles
-Merkmal des ST7036 ist ein Pin zum Aktivieren eines erweiterten Befehlsatzes (
+Merkmal des ST7036 ist ein Pin zum Aktivieren eines erweiterten Befehlssatzes (
 Pin EXT), welcher bei den meisten Modulen eingeschaltet ist. Sollte er
 abgeschaltet sein, sind die Einstellungen LCD_EXTENDED_CMD und LCD_CONTRAST
 auszukommentieren.
@@ -951,7 +952,6 @@ Wegen dem schlechten Design des ST7920 können nur Zeichensätze mit einer Breite
 von 8 Pixeln verwendet werden. Zur Handhabung der horizontalen Addressierung in
 16-Bit Schritten mußte ich einen Bildschirmpuffer für Zeichen einrichten.
 
-
 + STE2007/HX1230
 
 Der STE2007 wird typischerweise per 3-Draht-SPI gesteuert. Die Pins für 3-Draht-SPI 
@@ -988,7 +988,7 @@ manche Funktion auch notwendig sind.
 
 Die Test-Taste schaltet den Tester ein und dient zur Bedienung. Dazu
 unterscheidet der Tester zwischen einem kurzen Tastendruck und einem langen (
-0,3s). Der kurze Tastendruck wird üblicherweise zum Fortfahren einer Funktion
+0,3 s). Der kurze Tastendruck wird üblicherweise zum Fortfahren einer Funktion
 oder zur Auswahl des nächsten Menüpunktes benutzt. Der lange Tastendruck führt
 eine kontextabhängige Aktion aus.
 
@@ -1021,9 +1021,9 @@ Ein höherer Wert verlangsamt die Drehgeschwindigkeit, ein niedriger Wert
 erhöht sie. Sollte die Drehrichtung verkehrt herum sein, einfach die Pin-
 Definitionen für A und B in config_<MCU>.h vertauschen.
 
-Die Erkennung der Drehgeschwindigkeit mißt die Zeit von zwei Schritten. Also
+Die Erkennung der Drehgeschwindigkeit misst die Zeit von zwei Schritten. Also
 solltest Du den Encoder mindestens um zwei Schritte für mittlere
-Gewindigkeiten drehen. Für höhere Geschwindigkeiten sind es drei Schritte.
+Geschwindigkeiten drehen. Für höhere Geschwindigkeiten sind es drei Schritte.
 Ein einzelner Schritt resultiert immer in der niedrigsten Geschwindigkeit. 
 
 
@@ -1083,7 +1083,7 @@ Unterstützte Touch-Screen-Controller:
 
 Du findest die Konfiguration dazu unterhalb des Bereichs für LCD-Module in
 config-<MCU>.h (momentan nur config_644.h und config_1280.h, da der 328 zu
-wenig unbenutze IO-Pins hat).
+wenig unbenutzte IO-Pins hat).
 
 
 * Benutzerschnittstelle
@@ -1113,7 +1113,7 @@ Für graphische Anzeigen:
 - Anzeige eines Fragezeichensymbols bei fehlgeschlagenem Suchlauf (
   UI_QUESTION_MARK)
 - Anzeige eines Zenerdiodensymbols bei allen Zener-Tests (UI_ZENER_DIODE)
-- Anzeige eines Schwingquartzsymbols für LF/HF-Modi im erweiterten
+- Anzeige eines Schwingquarzsymbols für LF/HF-Modi im erweiterten
   Frequenzzähler (UI_QUARTZ_CRYSTAL)
 - Anzeige eines Symbols für OneWire-Bauteile in DS18B20, DS18S20 und
   DHTXX-Funktion
@@ -1135,23 +1135,24 @@ Für farbige Grafikanzeigen:
 Falls Du auch ein akustisches Signal haben möchtest, kannst Du einen aktiven
 Summer (mit integriertem Oszillator) oder einen passiven Summer verwenden. Der
 Summer wird über einen festen Port-Pin kontrolliert (siehe BUZZER_CTRL in
-config_<MCU>.h) und kann direkt (< 20mA) bzw. über einen Transistor (NPN oder
+config_<MCU>.h) und kann direkt (< 20 mA) bzw. über einen Transistor (NPN oder
 n-Kanal-MOSFET) angesteuert werden.
 
 Der passive Summer gibt kurze Töne mit den Frequenzen 2,5 und 5 kHz aus.
 
-Im Augenblick wird der Summer benutzt für
+Im Augenblick wird der Summer benutzt für:
 - Durchgangstest (SW_CONTINUITY_CHECK)
 - Bestätigungston nach Bauteilesuche (UI_PROBING_DONE_BEEP)
 - Bestätigungston für gültiges Datenpaket im IR-Empfänger/Decoder (
   SW_IR_RX_BEEP)
+- Voltmeter 0-5 V DC wenn Schwellwert überschritten (SW_METER_5VDC)
 
 
 * Kommunikation mit PC
 
-Der Tester kann eine serielle TTL-Schnittstelle zur Kommunilkation mit einem
-PC nutzen. Dies kann eine unidrektionale Verbindung (nur Senden) zur seriellen
-Ausgabe von gefundenen Bauteilen sein, oder auch eine bidrektionale zur
+Der Tester kann eine serielle TTL-Schnittstelle zur Kommunikation mit einem
+PC nutzen. Dies kann eine unidirektionale Verbindung (nur Senden) zur seriellen
+Ausgabe von gefundenen Bauteilen sein, oder auch eine bidirektionale zur
 Automatisierung. In beiden Fällen muß die serielle Schnittstelle aktiviert
 werden (siehe Abschnitt "Busses" in config.h).
 
@@ -1173,22 +1174,22 @@ Hinweise:
 + Serielle Ausgabe
 
 Der Tester gibt gefundene Bauteile zusätzlich über die serielle Schnitt-
-stelle aus, wenn dies aktviert ist (siehe UI_SERIAL_COPY im Abschnitt "misc
+stelle aus, wenn dies aktiviert ist (siehe UI_SERIAL_COPY im Abschnitt "misc
 settings" in config.h). Dazu reicht ein einfaches Terminalprogramm auf dem PC. 
 Die Ausgabe folgt der Ausgabe auf dem LCD-Display, aber nur für gefundene
-Bauteile.  Es erfolgt keine Ausgabe von Menüs und Funtionen über
+Bauteile.  Es erfolgt keine Ausgabe von Menüs und Funktionen über
 die Serielle, außer für Ergebnisse vom Opto-Koppler-Test.
 
 
 +  Automatisierung
 
 Die Automatisierung ermöglicht die Fernsteuerung des Testers per Kommandos über
-eine bidrektionale serielle Verbindung. Zum Aktivieren dieser Funktion siehe
+eine bidirektionale serielle Verbindung. Zum Aktivieren dieser Funktion siehe
 bitte UI_SERIAL_COMMANDS im Abschnitt "misc settings" in config.h. Das Verhalten
-des Testers ändert sich etwas. Die Automatisierung erwingt den Auto-Hold-Modus,
+des Testers ändert sich etwas. Die Automatisierung erzwingt den Auto-Hold-Modus,
 und der Tester sucht nach dem Einschalten nicht automatisch nach einem Bauteil. 
 
-Die Kommandoschnitstelle ist recht einfach. Du sendest ein Komanndo und der
+Die Kommandoschnitstelle ist recht einfach. Du sendest ein Kommando und der
 Tester antwortet. Die Kommunikation basiert auf ASCII-Textzeilen, und bei den
 Kommandos ist auf Groß- und Kleinschreibung zu achten. Jede Kommandozeile
 wird mit einem <CR><LF> oder <LF> Newline abgeschlossen. Der Tester nimmt
@@ -1202,7 +1203,7 @@ ihrer Beschreibung siehe Abschnitt "Fernsteuerungskommandos"
 
 Anstatt einer LCD-Anzeige kann die komplette Ausgabe über ein VT100-Terminal
 erfolgen (siehe VT100 im Abschnitt LCD-Module). Um ein Durcheinander im Layout
-der Ausgabe zu vemeiden, werden die anderen Optionen für die serielle Schnitt-
+der Ausgabe zu vermeiden, werden die anderen Optionen für die serielle Schnitt-
 stelle deaktiviert.
 
 
@@ -1211,11 +1212,11 @@ stelle deaktiviert.
 Ein langer Tastendruck beim Einschalten aktiviert den Auto-Hold-Modus. In
 diesem Modus wartet der Tester nach einer Ausgabe auf einen kurzen Tastendruck,
 um mit der Bauteilesuche weiter zu machen. Ansonsten läuft der Tester im
-kontinuierlichen Modus. Die Auswahl des Modus läßt sich per config.h (
+kontinuierlichen Modus. Die Auswahl des Modus lässt sich per config.h (
 UI_AUTOHOLD) umdrehen. Nach dem Einschalten wird kurz die Firmwareversion
 angezeigt.
 
-Mit einem sehr langen Tastendruck (2s) beim Einschalten kannst Du die
+Mit einem sehr langen Tastendruck (2 s) beim Einschalten kannst Du die
 Abgleichwerte auf ihre Standards zurück setzen. Das kann praktisch sein, wenn
 z.B. der Kontrast vom LCD-Modul so verstellt ist, daß man nichts mehr sieht. 
 
@@ -1256,16 +1257,16 @@ Dies hilft beim Lesen der Ergebnisausgabe.
 * Batterieüberwachung
 
 Jeder Zyklus der Bauteilesuche beginnt mit der Anzeige der Batteriespannung
-und des Status (ok, schwach, leer). Bei Unterschreiten der Schwellspannung für
-eine leere Batterie schaltet sich der Tester aus. Die Batterie wird regelmäßig
-während des Betriebs überprüft.
+und des Status (ok, schwach, leer). Bei Unterschreiten der Schwellenspannung
+für eine leere Batterie schaltet sich der Tester aus. Die Batterie wird
+regelmäßig während des Betriebs überprüft.
 
-Die Standardkonfiguration der Batterieüberwachung ist für eine 9V-Batterie
+Die Standardkonfiguration der Batterieüberwachung ist für eine 9-V-Batterie
 ausgelegt, kann aber an fast jede andere Stromversorgung angepaßt werden. Im
 Abschnitt "power management" in config.h findest Du alle Einstellungen dazu.
 
 Die Batterieüberwachung kann mittels BAT_NONE deaktiviert werden, auf direkte
-Messung für Batterien mit weniger als 5V per BAT_DIRECT konfiguriert werden,
+Messung für Batterien mit weniger als 5 V per BAT_DIRECT konfiguriert werden,
 oder auf indirekte Messung über einen Spannungsteiler (definiert durch BAT_R1
 und BAT_R2) gesetzt werden. Manche Tester unterstützen zwar eine optionale
 externe Stromversorgung, aber erlauben keine Überwachung dieser. In diesem
@@ -1338,7 +1339,7 @@ Bedienung auswählen. Letzterer benötigt einen Drehencoder und ein größeres
 Display. Für die optionale Ausgabe der Pulsdauer zusätzlich PWM_SHOW_DURATION
 aktivieren.
 
-Beschaltung bei Signalsusgabe über die Testpins: 
+Beschaltung bei Signalausgabe über die Testpins: 
   Pin #2:          Ausgang (680 Ohm Widerstand zur Strombegrenzung)
   Pin #1 und #3:   Masse
 
@@ -1349,11 +1350,11 @@ Zuerst muß man aus einer vorgegeben Liste die Frequenz wählen. Kurzer Tasten-
 druck für die nächste Frequenz und langer Tastendruck zum Starten, wie beim
 Menü. Mit Drehencoder ein kurzer Tastendruck zum Starten.
 
-Das Tastverhältnis startet bei 50% und kann in 5%-Schritten geändert werden.
-Ein kurzer Tastendruck für +5% und ein langer für -5%. Zum Beenden die Test-
+Das Tastverhältnis startet bei 50 % und kann in 5-%-Schritten geändert werden.
+Ein kurzer Tastendruck für +5 % und ein langer für -5 %. Zum Beenden die Test-
 Taste zweimal kurz hintereinander drücken.
 
-Ist ein Drehencoder vorhanden, läßt sich das Tastverhältnis in 1%-Schritten
+Ist ein Drehencoder vorhanden, lässt sich das Tastverhältnis in 1-%-Schritten
 ändern.
 
 
@@ -1363,33 +1364,33 @@ Mit einem kurzen Tastendruck schaltest Du zwischen Frequenz und Tastverhältnis
 um. Der ausgewählte Wert wird durch ein Sternchen markiert. Mit dem Dreh-
 encoder änderst Du den Wert, rechts für höher, links für niedriger. Und mit
 einem langen Tastendruck wird auf den Standardwert zurück gestellt (Frequenz:
-1kHz, Tastverhältnis: 50%). Mit zwei kurzen Tastendrücken wird der PWM-
+1 kHz, Tastverhältnis: 50 %). Mit zwei kurzen Tastendrücken wird der PWM-
 Generator beendet.
 
 
 + Rechteck-Signalgenerator
 
 Der Signalgenerator gibt ein Rechtecksignal mit variabler Frequenz bis zu
-einem 1/4 des MCU-Taktes aus (2MHz bei 8MHz Takt). Die Startfrequenz liegt
-bei 1000Hz und kann mit dem Drehencoder geändert werden. Die Dreh-
+einem 1/4 des MCU-Taktes aus (2 MHz bei 8 MHz Takt). Die Startfrequenz liegt
+bei 1000 Hz und kann mit dem Drehencoder geändert werden. Die Dreh-
 geschwindigkeit bestimmt den Grad der Änderung, d.h. langsames Drehen ergibt
 kleine Änderungen und schnelles Drehen große. Da die Signalerzeugung auf
 der internen PWM-Funktion der MCU basiert, können nicht beliebige Frequenzen
 generiert werden, sondern nur in Schritten. Für niedrige Frequenzen ist die
 Schrittweite recht klein, erst bei hohen Frequenzen wird sie signifikant.
-Ein langer Tastendruck stellt die Frequenz zurück auf 1kHz und zwei kurze
+Ein langer Tastendruck stellt die Frequenz zurück auf 1 kHz und zwei kurze
 Tastendrücke beenden den Signalgenerator.
 
-Beschaltung bei Signalsusgabe über die Testpins:
+Beschaltung bei Signalausgabe über die Testpins:
   Pin #2:          Ausgang (680 Ohm Widerstand zur Strombegrenzung)
   Pin #1 und #3:   Masse
 
-Hinweis: Drehencoder oder andere EIngabeoption notwendig!
+Hinweis: Drehencoder oder andere Eingabeoption notwendig!
 
 
 + Zenertest (Hardware-Option)
 
-Mit Hilfe eines DC-DC-Konverters wird eine Testspannung von bis zu 50V zum
+Mit Hilfe eines DC-DC-Konverters wird eine Testspannung von bis zu 50 V zum
 Testen von Zenerdioden generiert. Der Anschluß erfolgt über zusätzliche
 Testpins. Solange die Test-Taste gedrückt wird, erzeugt der Konverter die
 Testspannung und die aktuelle Spannung wird angezeigt. Nach dem Loslassen
@@ -1427,7 +1428,7 @@ Beschaltung für Zenerdiode:
 
 Der Logiktester prüft den Zustand von Logiksignalen mittels einem festen ADC-
 Pin plus Spannungsteiler. Der Spannungsteiler sollte 4:1 sein, damit Spannungen
-bis 20V möglich sind (15V CMOS). Der ADC-Pin ist TP_LOGIC (in config_<MCU>.h)
+bis 20 V möglich sind (15 V CMOS). Der ADC-Pin ist TP_LOGIC (in config_<MCU>.h)
 und der Spannungsteiler wird in config.h gesetzt (LOGIC_PROBE_R1 und
 LOGIC_PROBE_R2). Es dürfte keine schlechte Idee sei, den Eingangsschutz zu
 verbessern, z.B. mit einem Paar Schutzdioden.
@@ -1447,8 +1448,8 @@ Schwellwerte automatisch angepasst. Danach kannst Du die Schwellwerte bei
 Bedarf ändern. Im Fall einer unüblichen Vcc/Vdd-Spannung bitte die nächst
 höhere auswählen und dann die Schwellwerte entsprechend ändern. Die Standard-
 werte für Vcc/Vdd sind:
-  - TTL  : 5V
-  - CMOS : 3.3V, 5V, 9V, 12V, 15V
+  - TTL  : 5 V
+  - CMOS : 3.3 V, 5 V, 9 V, 12 V, 15 V
 
 Und wie gewohnt, zwei kurze Tastendrücke beenden den Logiktester.
 
@@ -1481,20 +1482,20 @@ Spannungsteiler-Eingang:
 
 Diese Funktion prüft Schaltungen auf Durchgang und gibt Dir ein akustisches
 Signal über einen Summer/Pieper, während auch die Spannung zwischen den
-Testpins ausgegeen wird. Der Teststrom wird über Rl (680 Ohm) auf etwa 7 mA
+Testpins ausgegeben wird. Der Teststrom wird über Rl (680 Ohm) auf etwa 7 mA
 begrenzt. Die Schwellwerte für den Summer sind:
-  - <100mV      aktiver Summer: kontinuierlicher Piep
-                passiver Smmer: wiederholender Piep mit hoher Frequenz
-  - 100-700mV   aktiver Summer: wiederholender kurzer Piep
-                passiver Smmer: wiederholender Piep mit niedriger Frequenz
-  - >700mV      kein Piep
+  - <100 mV      aktiver Summer: kontinuierlicher Piep
+                 passiver Summer: wiederholender Piep mit hoher Frequenz
+  - 100-700 mV   aktiver Summer: wiederholender kurzer Piep
+                 passiver Summer: wiederholender Piep mit niedriger Frequenz
+  - >700 mV      kein Piep
 
 Der kurze Piep zeigt einen möglichen Halbleiterübergang an. Bei einer Unter-
 brechung oder einem sehr hohen Widerstand liegt die Spannung nahe 5 V.
 
 Nach dem Starten vom Durchgangsprüfer zeigt der Tester die Beschaltung der
 Testpins für ein paar Sekunden an (kann mit Testtaste übersprungen werden).
-Und zwei kuze Tastendrücke beenden den Test.  
+Und zwei kurze Tastendrücke beenden den Test.  
 
 Beschaltung der Testpins:
   Pin #1:  Vcc (680 Ohm Widerstand zur Strombegrenzung)
@@ -1570,31 +1571,31 @@ Hinweis:
 + L/C-Meter (Hardware-Option)
 
 Das L/C-Meter basiert auf einer einfachen LC-Oszillatorschaltung, welche von
-mehreren preiswerten PIC-L/C-Metern benutzt wird. Das übliche Design (82µH und
-1nF) hat eine Grundfrequenz von etwa 595 kHz, und das Verbinden eines
-zusätzlichen Kondensators oder einer Induktivität veringert diese Frequenz.
+mehreren preiswerten PIC-L/C-Metern benutzt wird. Das übliche Design (82 µH
+und 1 nF) hat eine Grundfrequenz von etwa 595 kHz, und das Verbinden eines
+zusätzlichen Kondensators oder einer Induktivität verringert diese Frequenz.
 Mit der Hilfe von einen Referenzkondensator mit bekanntem Wert, den gemessenen
 Frequenzen und etwas Mathematik kann der Wert des unbekannten Kondensators bzw.
 Induktivität berechnet werden.
 
-Die PIC-L/C-Meter haben in der Regel einen Messbereich von 10nH bis 100mH,
-und 0.1pF bis 900nF. Sie scheinen eine Torzeit von 100ms für den Frequenz-
+Die PIC-L/C-Meter haben in der Regel einen Messbereich von 10 nH bis 100 mH,
+und 0.1 pF bis 900 nF. Sie scheinen eine Torzeit von 100 ms für den Frequenz-
 zähler zu nutzen. Die m-Firmware hat dagegen eine automatische Bereichswahl
-mit Torzeiten von 100ms und 1000ms, um die Auflösung für kleine L/C-Werte zu
-verbessern. Somit starten die Messbereiche bei ca. 1nH und 10fF (0.01pF). Die
-maximal messbare Induktivität ist grob 150mH. Bzgl. der Kapazität bin ich bei
-der Schaltung auf ein Problem mit dem Ausgangssignal ab ca. 33nF gestoßen.
+mit Torzeiten von 100 ms und 1000 ms, um die Auflösung für kleine L/C-Werte zu
+verbessern. Somit starten die Messbereiche bei ca. 1 nH und 10 fF (0.01 pF).
+Die maximal messbare Induktivität ist grob 150 mH. Bzgl. der Kapazität bin ich
+bei der Schaltung auf ein Problem mit dem Ausgangssignal ab ca. 33 nF gestoßen.
 Dort bekommen die Flanken kleine Sporne, wodurch der Frequenzzähler mehr
 Pulse sieht als wirklich da sind. Ein Benutzer erwähnte, dass es sich um ein
-bekanntes Problem der LM311-basierten Oszilatorschaltung handelt. Beim Testen
+bekanntes Problem der LM311-basierten Oszillatorschaltung handelt. Beim Testen
 mehrerer Modifikationen ergab sich keine nennenswerte Verbesserung. Daher
 scheint ein weiterer Komparator oder ein Logik-Gatter mit Schmitt-Trigger-
 Eingang die beste Lösung zu sein, um das Ausgangssignal des Oszillators zu
 bereinigen. Das CMOS Vierfach-NAND 4093 funktioniert dazu prima. Bei einem
-sauberen Ausgangssignal liegt das Maximum der Kapazität bei ca. 120nF (darüber
+sauberen Ausgangssignal liegt das Maximum der Kapazität bei ca. 120 nF (darüber
 wird der LC-Oszillator instabil). Der Tester begrenzt die Messungen auf einen 
-unteren Wert von 10kHz, d.h. die theoretischen Maximalwerte sind 250mH bzw.
-3,5µF, wenn der LC-Oszillator stabil liefe.
+unteren Wert von 10 kHz, d.h. die theoretischen Maximalwerte sind 250 mH bzw.
+3,5 µF, wenn der LC-Oszillator stabil liefe.
 
 Nach dem Starten vom L/C-Meter führt der Tester als Erstes einen Selbst-
 abgleich durch, angezeigt durch eine "abgleichen..." Nachricht. Danach
@@ -1604,13 +1605,13 @@ Frequenz des LC-Oszillators driftet mit der Zeit etwas (bis zu 100 Hz) und
 benötigt dann einen erneuten Abgleich. Wenn Du einen größer werdenden Null-
 Wert oder ein "-" ohne angeklemmtem Bauteil siehst, bitte den Selbstabgleich
 über einen langen Tastendruck starten. Falls es ein Problem mit dem Abgleich
-gibt oder er durch einen Tastendruck abgebrochen wird, verläßt der Tester das
+gibt oder er durch einen Tastendruck abgebrochen wird, verlässt der Tester das
 L/C-Meter und gibt einen Fehler aus. Zwei kurze Tastendrücke beenden das
 L/C-Meter.
 
 Hinweise:
-- Der Referenzkondensator sollte ein 1nF-Folientyp mit kleiner Toleranz sein.
-  Du kannst aber auch einen üblichen Folienkondensator um die 1nF nehmen, ihn
+- Der Referenzkondensator sollte ein 1-nF-Folientyp mit kleiner Toleranz sein.
+  Du kannst aber auch einen üblichen Folienkondensator um die 1 nF nehmen, ihn
   mit einem guten LCR-Meter messen, und LC_METER_C_REF entsprechend ändern.
 - Wenn Dich die Frequenz des LC-Oszillators und ihr Driften interessiert, dann
   aktiviere LC_METER_SHOW_FREQ.
@@ -1620,7 +1621,7 @@ Hinweise:
 
 Den Frequenzzähler gibt es in zwei Versionen. Der Einfache besteht aus einem
 passiven Eingang für den T0-Pin der MCU. Und der Erweiterte hat neben einem
-Eingangspuffer auch zwei Oszillatoren zum Testen von Quartzen (für niedrige
+Eingangspuffer auch zwei Oszillatoren zum Testen von Quarzen (für niedrige
 und hohe Frequenzen) und einen zusätzlichen Frequenzvorteiler. Beide
 Schaltungen sind in der Dokumentation von Karl-Heinz beschrieben.
 
@@ -1628,12 +1629,12 @@ Schaltungen sind in der Dokumentation von Karl-Heinz beschrieben.
 - Einfacher Zähler
 
 Ist die Zusatzschaltung für den einfachen Frequenzzähler eingebaut, kannst Du
-damit Frequenzen von ca. 10Hz bis zu 1/4 der MCU-Taktfrequenz mit einer
-Auflösung von 1Hz bei Frequenzen unterhalb von 10kHz messen. Die Frequenz wird
-ständig gemessen und angezeigt, bis Du die Messung durch zwei kurze Tasten-
-drücke beendest. Die automatische Bereichswahl setzt die Torzeit auf Werte
-zwischen 10ms und 1000ms, je nach Frequenz. Der T0-Pin kann parallel zum 
-Ansteuern einer Anzeige verwendet werden.
+damit Frequenzen von ca. 10 Hz bis zu 1/4 der MCU-Taktfrequenz mit einer
+Auflösung von 1 Hz bei Frequenzen unterhalb von 10 kHz messen. Die Frequenz
+wird ständig gemessen und angezeigt, bis Du die Messung durch zwei kurze
+Tastendrücke beendest. Die automatische Bereichswahl setzt die Torzeit auf
+Werte zwischen 10 ms und 1000 ms, je nach Frequenz. Der T0-Pin kann parallel
+zum Ansteuern einer Anzeige verwendet werden.
 
 
 - Erweiterter Zähler
@@ -1644,8 +1645,8 @@ Messung höherer Frequenzen erlaubt. Das theoretische Maximum liegt bei
 signale werden in config_<MCU>.h definiert, und bitte nicht vergessen, in
 config.h den korrekten Vorteiler auszuwählen.
 
-Der Signaleingang (gepufferter Eingang, Quartz-Oszillator für niedrige
-Frequenzen, Quartz-Oszillator für hohe Frequenzen) wird über die Testtaste oder
+Der Signaleingang (gepufferter Eingang, Quarz-Oszillator für niedrige
+Frequenzen, Quarz-Oszillator für hohe Frequenzen) wird über die Testtaste oder
 den Drehencoder geändert. Zwei kurze Tastendrücke beenden den Frequenzzähler.
 
 
@@ -1704,15 +1705,15 @@ Der zweite Menüpunkt "n" ist die Anzahl der Ereignisse. Im Zählermodus
 "Ereignisse" wird der Stopwert angezeigt, welcher geändert werden kann. Ein
 langer Tastendruck stelt den Stopwert auf einen Vorgabewert (100). In anderen
 Zählermodi ist dieser Menüpunkt blockiert. Der nächste Menüpunkt "t" ist
-die Zeitperiode in Sekunden (Vorgebwert: 60s). Gleiches Spiel, nur für den
+die Zeitperiode in Sekunden (Vorgebwert: 60 s). Gleiches Spiel, nur für den
 Zeit-Modus. Und der letzte Menüpunkt startet oder stoppt den Zähler über
 einen langen Tastendruck. Während der Zähler läuft, werden die Anzahl der
 Ereignisse und die vergangene Zeit jede Sekunde aktualisiert, und nach dem
 Stoppen die Ergebnisse angezeigt.
 
-Der Grenzwert für die Zeit ist 43200s (12h) und für die Ereignisse 4*10^9.
+Der Grenzwert für die Zeit ist 43200 s (12 h) und für die Ereignisse 4*10^9.
 Sobald einer der Grenzwerte überschritten wird, stoppt der Zähler automatisch.
-Der Grenz- oder Stopwert für Ereignisse wird alle 200ms überprüft. Daher ist
+Der Grenz- oder Stopwert für Ereignisse wird alle 200 ms überprüft. Daher ist
 bei mehr als 5 Ereignissen/s ein Übersteigen des Wertes möglich.
 
 
@@ -1772,7 +1773,7 @@ und die Dauer des ersten Puls und der ersten Pause in Einheiten von 50µs an:
   ? <Pulse>:<erster Pulse>-<erste Pause>
 
 Wenn die Anzahl der Pulse bei verschiedenen Tasten der Fernbedienung gleich
-bleit, ist die Modulation sehr wahrscheinlich PDM oder PWM. Eine sich
+bleibt, ist die Modulation sehr wahrscheinlich PDM oder PWM. Eine sich
 ändernde Anzahl von Pulsen weist auf Bi-Phase-Modulation hin. 
 
 Zum Beenden die Test-Taste einmal kurz drücken.
@@ -1780,7 +1781,7 @@ Zum Beenden die Test-Taste einmal kurz drücken.
 Unterstützte Protokolle und ihre Datenfelder:
 
   - JVC
-    <Addresse>:<Kommando>
+    <Adresse>:<Kommando>
 
   - Kaseikyo (Japancode, 48 Bit)
     <Herstellercode>:<System>-<Produkt>:<Funktion>
@@ -1792,27 +1793,27 @@ Unterstützte Protokolle und ihre Datenfelder:
     <Kommando>
 
   - NEC (Standard & Erweitert)
-    <Addresse>:<Kommando>
+    <Adresse>:<Kommando>
     R für Wiederholsequenz
 
   - Proton / Mitsubishi (M50560)
-    <Addresse>:<Kommando>
+    <Adresse>:<Kommando>
 
   - RC-5 (Standard)
-    <Addresse>:<Kommando>
+    <Adresse>:<Kommando>
 
   - RC-6 (Standard)
-    <Addresse>:<Kommando>
+    <Adresse>:<Kommando>
 
   - Samsung / Toshiba (32 Bit)
     <Gerätecode>:<Datencode>
 
   - Sharp
-    <Addresse>:<Kommando>
+    <Adresse>:<Kommando>
 
   - Sony SIRC (12, 15 & 20 Bit)
-    12 & 15: <Kommando>:<Addresse>
-    20:      <Kommando>:<Addresse>:<Erweitert>
+    12 & 15: <Kommando>:<Adresse>
+    20:      <Kommando>:<Adresse>:<Erweitert>
 
 Optionale Protokolle (SW_IR_RX_EXTRA):
 
@@ -1826,10 +1827,10 @@ Optionale Protokolle (SW_IR_RX_EXTRA):
     <Datencode>
 
   - RECS80 (Standard & Erweitert)
-    <Addresse>:<Kommando>
+    <Adresse>:<Kommando>
 
   - RCA
-    <Addresse>:<Kommando>
+    <Adresse>:<Kommando>
 
   - Sanyo (LC7461)
     <Gerätecode>:<Taste>
@@ -1847,7 +1848,7 @@ für gültige Daten-Pakete aktivieren (SW_IR_RX_BEEP).
 
 - IR-Empfängermodul an Testpins
 
-Das IR-Empfängermodul bitte erst im IR-Fernbedienungsdetektor anschliessen!
+Das IR-Empfängermodul bitte erst im IR-Fernbedienungsdetektor anschließen!
 
 Beschaltung für das TSOP-Modul (Standard-Pinout SW_IR_RX_PINOUT_G_V_D):
   Pin #1:  Masse/Gnd
@@ -1868,7 +1869,7 @@ nützlich:
 
 Hinweis:
   Der Widerstand zur Strombegrenzung setzt ein IR-Empfängermodul mit einem
-  Versorgungsspannungsbereich von ca. 2,5 - 5V voraus. Wenn Du ein 5V-Modul
+  Versorgungsspannungsbereich von ca. 2,5 - 5 V voraus. Wenn Du ein 5V-Modul
   hast, kannst Du in config.h den Widerstand auf eigene Gefahr abschalten.
   Ein Kurzschluss kann allerdings die MCU zerstören.
 
@@ -1897,9 +1898,10 @@ gedrückt bleibt. Und wie üblich beenden zwei kurze Tastendrücke die Funktion.
 Wenn Du das Protokoll änderst, werden Trägerfrequenz und Tastverhältnis auf
 die Standardwerte des jeweiligen Protokolls gesetzt. Du kannst diese aber
 nach Belieben ändern. Die Trägerfrequenz kann auf 30 bis 56 kHz gestellt
-werden, und das Tastverhältnis auf  1/2 (50%), 1/3 (33%) oder 1/4 (25%). Die
-Datenfelder sind die Teile des Fernbedienungscodes, die Du setzen kannst. Sie
-werden weiter unten erklärt und sind meistens nur die Adresse und das Kommando.
+werden, und das Tastverhältnis auf  1/2 (50 %), 1/3 (33 %) oder 1/4 (25 %).
+Die Datenfelder sind die Teile des Fernbedienungscodes, die Du setzen kannst.
+Sie werden weiter unten erklärt und sind meistens nur die Adresse und das
+Kommando.
 
 Unterstützte Protokolle und ihre Datenfelder:
 
@@ -1953,18 +1955,18 @@ Optionale Protokolle (SW_IR_RX_EXTRA):
 Die Datenfelder sind durch Leerzeichen getrennt und ihre Syntax ist:
   <Feldname>:<Anzahl Bits>
 
-Beschaltung bei Signalsusgabe über die Testpins:
+Beschaltung bei Signalausgabe über die Testpins:
   Pin #2:           Signalausgang (680 Ohm Widerstand zur Strombegrenzung)
   Pin #1 und #3:    Masse
 
 Der Signalausgang (Test-Pin #2) hat einen Widerstand zur Strombegrenzung und
-kann eine IR-LED mit nur etwa 5mA direkt schalten, was für eine typische IR-LED
-mit einem If von 100mA nicht ausreichend ist. Daher wird ein einfacher Treiber
-auf Basis eines Transistors, der IR-LED und einem Widerstand zur Strom-
-begrenzung benötigt.
+kann eine IR-LED mit nur etwa 5 mA direkt schalten, was für eine typische
+IR-LED mit einem If von 100 mA nicht ausreichend ist. Daher wird ein einfacher
+Treiber auf Basis eines Transistors, der IR-LED und einem Widerstand zur
+Strombegrenzung benötigt.
 
-Beispielschaltung für einen Treiber, welcher die IR-LED (Vf 1.5V, If 100mA) mit
-50mA schaltet:
+Beispielschaltung für einen Treiber, welcher die IR-LED (Vf 1.5 V, If 100 mA)
+mit 50 mA schaltet:
 
                            + +5V
                            |
@@ -2001,12 +2003,12 @@ Hinweis:
 Dieser Test prüft Opto-Koppler und gibt V_f der LED, den CTR-Wert (auch If)
 und t_on bzw. t_off Zeiten (für Transistortypen) aus. Unterstützt werden
 Standard-NPN-Transistoren, NPN-Darlington-Stufen und TRIACs. Für die CTR-
-Messung wird der I/O-Pin der MCU kurzzeitig für ca. 3ms überlastet. Das
-Datenblatt gibt einen maximalen Ausgangsstrom vom 20mA an, wir überlasten
-den Pin aber bis zu ca. 100mA. Daher ist der maximale CTR-Wert begrenzt, und
-Werte über 2000% sollte man mit Vorsicht geniessen.
+Messung wird der I/O-Pin der MCU kurzzeitig für ca. 3 ms überlastet. Das
+Datenblatt gibt einen maximalen Ausgangsstrom vom 20 mA an, wir überlasten
+den Pin aber bis zu ca. 100 mA. Daher ist der maximale CTR-Wert begrenzt, und
+Werte über 2000 % sollte man mit Vorsicht genießen.
 
-Der maximale Strom für die LED ist 5mA, was bei TRIAC-Typen zu beachten ist.
+Der maximale Strom für die LED ist 5 mA, was bei TRIAC-Typen zu beachten ist.
 Relais-Typen (MOSFET back to back) werden als Transistor erkannt und der
 CTR-Wert ist dann bedeutungslos. Typen mit anti-parallelen LEDs werden
 ignoriert.
@@ -2030,7 +2032,7 @@ Nach dem Starten bitte den Adapter mit den Testpins vom Tester verbinden und
 kurz die Taste zum Prüfen drücken. Wenn ein Opto-Koppler gefunden wurde, zeigt
 der Tester den Typen und verschiedene Infos an. Wurde keiner erkannt, erfolgt
 die Anzeige von "keiner". Ein blinkender Cursor weist darauf hin, daß ein
-Tastendruck für die nächste Prüfung erwartet wird. Zwei kurze Testendrücke
+Tastendruck für die nächste Prüfung erwartet wird. Zwei kurze Tastendrücke
 beenden, wie üblich, den Test.
 
 
@@ -2079,13 +2081,13 @@ die Übung: zum Beenden zweimal kurz die Testtaste drücken.
 
 Diese Funktion erzeugt ein PWM-Signal für Modellbau-Servos, welche mit einem
 1-2 ms PWM-Puls gesteuert werden. Die typischen PWM-Frequenzen von 50, 125,
-250 und 333Hz werden unterstützt, und die Pulselänge ist im Bereich von 0,5
+250 und 333 Hz werden unterstützt, und die Pulselänge ist im Bereich von 0,5
 bis 2,5 ms einstellbar. Zusätzlich gibt es einen Sweep-Modus für Pulse
-von 1 - 2ms und wählbarer Geschwindigkeit. 
+von 1-2 ms und wählbarer Geschwindigkeit. 
 
 Die Pulsbreite stellst Du mit dem Drehencoder ein. Links für kürzere Pulse,
 und rechts für längere. Mit einem langen Tastendruck wird die Pulsweite auf
-1,5ms zurück gesetzt (mittlere Position vom Servo).
+1,5 ms zurück gesetzt (mittlere Position vom Servo).
 
 Mit einem kurzen Tastendruck wechselst Du zwischen Puls- und Frequenzauswahl (
 durch ein Sternchen markiert). In der Frequenzauswahl schaltest Du mit dem
@@ -2097,7 +2099,7 @@ Sweep-Zeit ersetzt, welche mittels dem Drehencoder geändert werden kann.
 
 Wie üblich beenden zwei kurze Tastendrücke die Funktion.
 
-Beschaltung bei Signalsusgabe über die Testpins:
+Beschaltung bei Signalausgabe über die Testpins:
   Pin #2:          PWM-Ausgang (680 Ohm Widerstand zur Strombegrenzung)
   Pin #1 und #3:   Masse
 
@@ -2119,7 +2121,7 @@ Der OneWire-Scan zeigt die ROM-Codes all angeschlossenen Busteilnehmer an.
 Zum Einrichten des OneWire-Busses siehe bitte den Abschnitt "Busse &
 Schnittstellen". Bei Benutzung der Test-Pins informiert der Tester über die
 Beschaltung und wartet bis ein externer Pull-Up-Widerstand erkannt wurde.
-Mit einem Tastendruck läßt sich dies überspringen.
+Mit einem Tastendruck lässt sich dies überspringen.
 
 Bei jedem Tastendruck sucht der Tester nach dem nächsten Busteilnehmer und
 gibt dessen ROM-Code aus (in hexadezimal). Der erste Teil der Ausgabe ist der
@@ -2128,7 +2130,7 @@ Bei einem Familiencode >= 0x80 (Bit 7 gesetzt) handelt es sich um einen
 kundenspezifischen Code, und die oberen (linken) drei Stellen der Seriennummer
 sind die Kunden-ID.
 
-Der Tester informiert Dich, wenn er den letzten Busteilnemher gefunden hat,
+Der Tester informiert Dich, wenn er den letzten Busteilnehmer gefunden hat,
 bzw. bei CRC- oder Busfehlern. Im Fall des letzten Busteilnehmers oder eines
 Busfehlers kannst Du per Tastendruck einen komplett neuen Scandurchlauf
 starten. Wie üblich beenden zwei kurze Tastendrücke die Funktion. 
@@ -2140,20 +2142,20 @@ Hiermit wird der OneWire-Temperatursensor DS18B20/DS18S20 ausgelesen. Zum Ein-
 richten des OneWire-Busses siehe bitte den Abschnitt "Busse & Schnittstellen".
 Bei Benutzung der Test-Pins informiert der Tester über die Beschaltung und
 wartet dann bis ein externer Pull-Up-Widerstand erkannt wurde. Mit einem
-Tastendruck läßt sich dies überspringen.
+Tastendruck lässt sich dies überspringen.
 
 Nach den Verbinden des DS18B20/DS18S20 als einziger Client am Bus startet ein
 Tastendruck das Auslesen der Temperatur (kann fast eine Sekunde dauen). Zum
 Beenden zweimal kurz die Test-Taste drücken. Mit einem langen Tastendruck
 wählst Du den Auto-Modus (automatische Aktualisierung), welcher durch ein "*"
-in der ersten Zeile signalisert wird. Ein weiterer langer Tastendruck schaltet
+in der ersten Zeile signalisiert wird. Ein weiterer langer Tastendruck schaltet
 wieder zurück zum manuellen Modus.
 
 Beschaltung von Test-Pins:
   Probe #1:  Gnd
   Probe #2:  DQ (Daten)
   Probe #3:  Vcc (Strom durch 680 Ohm Widerstand begrenzt)
-  Ein externer Pull-Up-Widerstand von 4,7kOhm zwischen DQ and Vcc wird
+  Ein externer Pull-Up-Widerstand von 4,7 kOhm zwischen DQ and Vcc wird
   benötigt!
 
 Hints:
@@ -2186,9 +2188,9 @@ Beschaltung von Test-Pins:
   Probe #2:  Data
   Probe #3:  Vdd (Strom nicht begrenzt)
 
-Ein externer Pull-Up-Widerstand von 4,7kOhm zwischen Data and Vdd wird benötigt!
-Manche Sensormodule haben bereits einen 10kOhm Pull-Up-Widerstand integriert,
-welcher ebenfalls gut mit kürzeren Kabeln funktioniert.
+Ein externer Pull-Up-Widerstand von 4,7 kOhm zwischen Data and Vdd wird
+benötigt! Manche Sensormodule haben bereits einen 10 kOhm Pull-Up-Widerstand
+integriert, welcher ebenfalls gut mit kürzeren Kabeln funktioniert.
 
 
 Hinweis:
@@ -2201,8 +2203,8 @@ Hinweis:
 
 Die beiden MAX sind Thermoelement-Konverter mit Kaltstellenkompensation und
 werden über den SPI-Bus gesteuert. Der MAX6675 ist nur für Thermoelemente vom
-Typ K, während es den MAX31855 für mehrehre Typen gibt. Der MAX31855 hat eine
-Betriebsspannung von 3.3V und benötigt daher Pegelwandler.
+Typ K, während es den MAX31855 für mehrere Typen gibt. Der MAX31855 hat eine
+Betriebsspannung von 3.3 V und benötigt daher Pegelwandler.
 
 Die Bedienung für beide MAX ist gleich. Durch das Drücken der Testtaste wird
 eine Messung ausgelöst und die Temperatur angezeigt. Bei Fehlern kommt ein "-"
@@ -2218,9 +2220,9 @@ Hinweise:
 
 + BH1750 Umgebungslichtsensor
 
-Der BH1750 ist ein günstiger Umgebungslichtsensor mit I2C-Bus und 3,3V
-Betriebsspannung. Mit einem 3,3V Spannungsregler und Pull-Up-Widerständen für
-SCL und SDA (auf 3,3V) kann er meistens direkt an einem 5V ATmega betrieben
+Der BH1750 ist ein günstiger Umgebungslichtsensor mit I2C-Bus und 3,3 V
+Betriebsspannung. Mit einem 3,3 V Spannungsregler und Pull-Up-Widerständen für
+SCL und SDA (auf 3,3 V) kann er meistens direkt an einem 5 V ATmega betrieben
 werden, sofern keine anderen I2C-ICs am Bus Probleme machen. Ansonsten sind
 Pegelwandler nötig.
 
@@ -2231,8 +2233,8 @@ Sekunde gemessen. Bei einem Fehler zeigt der Tester ein "-" statt der Licht-
 stärke. Und wie üblich, zwei kurze Tastendrücke beenden die Funktion.
 
 Hinweise:
-- BH1750-Module haben meistens einen 3,3V LDO und 4,7kOhm Pull-Up-Widerstände (
-  auf 3,3V) für SCL und SDA.
+- BH1750-Module haben meistens einen 3,3-V-LDO und 4,7 kOhm Pull-Up-
+  Widerstände (auf 3,3 V) für SCL und SDA.
 - Ein "Error" direkt nach dem Funktionsaufruf deutet auf ein Sensorproblem hin,
   z.B. keine I2C-Kommunikation.
 
@@ -2241,27 +2243,27 @@ Hinweise:
 
 Dies ist ein allgemeiner Schaltausgang zum Steuern von einem zusätzlichen
 Schaltungsteil, wie z.B. einem LED-Licht. Der Tester schaltet einfach den
-Ausgang zwischen Low und High um, jedes Mal bei Aufruf. Lasten kleiner 20mA
+Ausgang zwischen Low und High um, jedes Mal bei Aufruf. Lasten kleiner 20 mA
 können direkt betrieben werden.
 
 
-+ Voltmeter 0-5V DC
++ Voltmeter 0-5 V DC
 
-Ein einfaches Voltmeter für Gleichspannungen von 0 bis 5V mit zwei auswählbaren
-Eingangsimpedanzen (hoch: 470 kOhm, niedrig: 700 Ohm). Nach der Anzeige der
-obligatorischen Test-Pin-Beschaltung, die mit einem Tastendruck übersprungen
-werden kann, startet die Messung im Modus mit hoher Eingangsimpedanz (gekenn-
-zeichnet durch ein "H" in der ersten Zeile). Mit einem kurzen Tastendruck
-wechselst Du zur niedrigen Eingangsimpedanz (gekennzeichnet durch ein "L"),
-und auch wieder zurück.
+Ein einfaches Voltmeter für Gleichspannungen von 0 bis 5 V mit zwei aus-
+wählbaren Eingangsimpedanzen (hoch: 470 kOhm, niedrig: 700 Ohm). Nach der
+Anzeige der obligatorischen Test-Pin-Beschaltung, die mit einem Tastendruck
+übersprungen werden kann, startet die Messung im Modus mit hoher Eingangs-
+impedanz (gekennzeichnet durch ein "H" in der ersten Zeile). Mit einem kurzen
+Tastendruck wechselst Du zur niedrigen Eingangsimpedanz (gekennzeichnet durch
+ein "L"), und auch wieder zurück.
 
 Zusätzliche Funktionalität erhält man, wenn ein Summer/Pieper installiert ist.
-Sobald ein bestimmer Schwellwert überschritten wird, erzeugt der Tester einen
-kurzen Piepton. Ein kurzer Tastendruck schaltet diese Funktion ein, was durch
-Ausgabe des Schwellwertes in Klammern in der zweiten Zeile (nach dem Messwert)
-bestätigt wird. Ist zudem auch ein Drehencoder (oder eine andere Eingabeoption)
-vorhanden, kann der Schwellwert in 0,1V-Schritten geändert werden (links:
-niedriger, rechts: höher).
+Sobald ein bestimmter Schwellenwert überschritten wird, erzeugt der Tester
+einen kurzen Piepton. Ein kurzer Tastendruck schaltet diese Funktion ein, was
+durch Ausgabe des Schwellenwertes in Klammern in der zweiten Zeile (nach dem
+Messwert) bestätigt wird. Ist zudem auch ein Drehencoder (oder eine andere
+Eingabeoption) vorhanden, kann der Schwellenwert in 0,1-V-Schritten geändert
+werden (links: niedriger, rechts: höher).
 
 Und zu guter Letzt, zwei kurze Tastendrücke beenden das Voltmeter.
 
@@ -2270,7 +2272,7 @@ Beschaltung von Test-Pins:
   Probe #3:  negativ
 
 Warnungen:
-- Kein Eingangsschutz! Nur für Gleichspannungen von 0 bis 5V!
+- Kein Eingangsschutz! Nur für Gleichspannungen von 0 bis 5 V!
 - Kein Verpolungsschutz! Also besonders vorsichtig sein!
 
 
@@ -2323,11 +2325,11 @@ aber nicht automatisch im EEPROM gespeichert (siehe Speichern/Laden).
 
 Der Spannungsoffset des Analogkomparators wird automatisch bei der Messung
 eines Kondensators bestimmt (bei der normalen Bauteilesuche), wenn der
-Kondensator einen Wert zwischen 100nF und 3,3µF hat. Außerdem wird
+Kondensator einen Wert zwischen 100 nF und 3,3 µF hat. Außerdem wird
 gleichzeitig der Offset der internen Spannungsreferenz gemessen.
 
 Bevor der Selbstabgleich ausgeführt wird, solltest Du einen Folienkondensator
-mit einer Kapazität zwischen 100nF und 3,3µF min. 3-mal messen, damit die oben
+mit einer Kapazität zwischen 100 nF und 3,3 µF min. 3-mal messen, damit die oben
 erwähnten Offsets bestimmt werden können. Typischerweise liefert die erste
 Messung einen zu niedrigen Wert, die zweite einen zu hohen und erst die dritte
 einen korrekten Wert. Das wird durch die sich selbst abgleichenden Offsets
@@ -2349,10 +2351,10 @@ Der Selbstabgleich ist dem Selbsttest vom Ablauf und der Bedienung her sehr
 Die Schritte des Selbstabgleichs sind:
 - A1: Offsets für interne Spannungsreferenz und Analogkomparator
       (nur bei festem Abgleichkondensator)
-- A2: Widerstand der Testpins/kabel (in 10mOhm)
+- A2: Widerstand der Testpins/kabel (in 10 mOhm)
 - A3: Entfernen des Kurzschlusses der Testpins/kabel
-- A4: interner Widerstand der Portspins für Gnd (Spannung über RiL)
-- A5: interner Widerstand der Portspins für Vcc (Spannung über RiH)
+- A4: interner Widerstand der Portpins für Gnd (Spannung über RiL)
+- A5: interner Widerstand der Portpins für Vcc (Spannung über RiH)
 - A6: Kapazität der Testpins/kabel (in pF)
 
 Erlaubte Maximalwerte:
@@ -2397,7 +2399,7 @@ Testers anzeigen lassen (UI_CHOOSE_PROFILE).
 + Werte anzeigen
 
 Diese Funktion zeigt die aktuellen Abgleichwerte an. Die Nutzung einer
-externen 2.5V Spannungsreferenz wird mit einem "*" nach Vcc signalisiert.
+externen 2.5 V Spannungsreferenz wird mit einem "*" nach Vcc signalisiert.
 
 
 + Zeichensatz/Symbole
@@ -2416,7 +2418,7 @@ aktiviert wurde.
 
 + Exit
 
-Damit kannst Du das Menü verlassen, wenn Du z.B. aus Versehen reingegangen
+Damit kannst Du das Menü verlassen, wenn Du z.B. aus Versehen rein gegangen
 bist.
 
 
@@ -2446,15 +2448,15 @@ Displaymodul und Farbkombinationen unterschiedlich ausfallen. Falls eine Farbe
 danebenliegt, einfach den Farbwert (COLOR_CODE_*) in der Datei colors.h
 entsprechend ändern. Eine Internetsuche nach "RGB565 tool" listet viele
 Online-Tools zum Auswählen der RGB565-Farbwerte. Speziell für SMD-Widerstände
-gibt es eine zusätzliche Ausgabe des EIA-96-Codes (impliziert E96 1%).
+gibt es eine zusätzliche Ausgabe des EIA-96-Codes (impliziert E96 1 %).
 
 
 * Kondensatoren
 
 Die Messung von Kondensatoren ist in drei Methoden aufgeteilt. Große
-Kondensatoren >47µF werden mittels Ladezyklenmethode mit Pulsen von 10ms
-gemessen. Mittelgroße zwischen 4,7µF and 47µF werden ebenfalls mit der
-Ladezyklenmethode gemessen, aber mit Pulsen von 1ms. Kleine Kondensatoren
+Kondensatoren > 47µF werden mittels Ladezyklenmethode mit Pulsen von 10 ms
+gemessen. Mittelgroße zwischen 4,7 µF and 47 µF werden ebenfalls mit der
+Ladezyklenmethode gemessen, aber mit Pulsen von 1 ms. Kleine Kondensatoren
 laufen über den analogen Komparator. Auf dies Weise wird die Genauigkeit der
 Kapazitätsmessung optimiert. 
 
@@ -2473,30 +2475,31 @@ Eine Logik zum Verhindern, daß große Kondensatoren als Widerstände erkannt
 werden, wurde hinzugefügt. Widerstände kleiner als 10 Ohm werden zusätzlich
 auf Kapazität geprüft.
 
-Der Tester versucht den ESR bei Kondensatoren größer als 18nF zu messen.
-Alternativ kannst Du auch die alte Messmethode aktivieren, welche ab 180nF
+Ein gemessener Kapazitätswert von mehr als 5 pF (incl. Nulloffset) wird
+als gültig angesehen. Niedrigere Werte sind zu ungenau und könnten durch
+Verschiedenes, wie z.B. anderes Platzieren der Messkabel, verursacht werden.
+
+Der Tester versucht den ESR bei Kondensatoren größer als 10 nF zu messen.
+Alternativ kannst Du auch die alte Messmethode aktivieren, welche ab 180 nF
 mißt. Da aber die Messung nicht per Wechselstromsignal mit einer bestimmten
-Frequenz durchgefüghrt wird, bitte keine supergenauen Ergebnisse erwarten. Die
+Frequenz durchgeführt wird, bitte keine supergenauen Ergebnisse erwarten. Die
 benutzte Methode entspricht vielleicht der Messung mit 1 oder 10 kHz. Für die
 Prüfung von Elkos ist die Messung mehr als ausreichend. Bei Filmkondensatoren
 mit kleinen Werten, können je nach MCU-Taktrate unterschiedliche Werte zustande
 kommen (vergleichbar mit einem Testsignal grob um die 600 Hz). Ich denke, Herr
 Fourier könnte dies erklären.
 
-Ein gemessener Kapazitätswert von mehr als 5pF (incl. Nulloffset) wird
-als gültig angesehen. Niedrigere Werte sind zu ungenau und könnten durch
-Verschiedenes, wie z.B. anderes Platzieren der Messkabel, verursacht werden.
-
-Eine weitere Messung ist der Selbstentladungsleckstrom für Kodensatoren größer
-als 4,7 µF. Der Wert gibt z.B. einen Hinweis auf den Zustand eines Elkos.
-Von meinen Tests her scheinen folgende Werte typisch für Elkos zu sein:  
+Eine weitere Messung ist der Selbstentladungsleckstrom für Kondensatoren größer
+als 4,7 µF. Der Wert gibt einen Hinweis auf den Zustand eines Elkos. Bitte
+diesen Wert nicht mit dem Leckstrom bei Maximalspannung verwechseln. Von
+meinen Tests her scheinen folgende Werte typisch für Elkos zu sein:  
   - 10-220 µF    1-3 µA
   - 330-470 µF   4-5 µA
   - 470-820 µF   4-7 µA
   - >1000 µF     5-7 µA pro 1000 µF
 
 Wenn Du auch den Spannungsverlust in % wissen möchtest, dann aktiviere
-SW_C_VLOSS (für Kondensatoren > 50nF).
+SW_C_VLOSS (für Kondensatoren > 50 nF).
 
 Die optionale Prüfung auf E-Normwerte gibt es ebenfalls für Kondensatoren (
 SW_C_E*), aber nur im Text-Modus, da es einfach zu viele unterschiedliche
@@ -2548,10 +2551,10 @@ und der Restspannung aus.
 
 Die Entladefunktion basiert nicht auf einem festen Timeout, sondern paßt
 sich automatisch dem Entladefortschritt an. Auf diese Weise wird eine
-Batterie schneller erkannt und große Kondensatoren erhalten mehr Zeit zum
-Entladen. Sollte ein großer Elko als Batterie erkannt werden, bitte nochmal
-versuchen. In einer Umgebung mit vielen elektrischen Störungen könnte auch
-der Nullwert CAP_DISCHARGED mit 2mV zu niedrig sein (ggf. anpassen). Die
+Batterie schneller erkannt (etwa 2 s) und große Kondensatoren erhalten mehr
+Zeit zum Entladen. Sollte ein großer Elko als Batterie erkannt werden, bitte
+nochmal versuchen. In einer Umgebung mit vielen elektrischen Störungen könnte
+auch der Nullwert CAP_DISCHARGED mit 2 mV zu niedrig sein (ggf. anpassen). Die
 anzeigte Restspannung hilft beim Finden des optimalen Nullwertes.
 
 
@@ -2571,26 +2574,28 @@ wird auf mehrere Seiten aufgeteilt, wenn das LCD-Modul nicht ausreichend viele
 Zeilen hat.
 
 Bei einer einzelnen Diode wird das Vf der Messung mit niedrigem Teststrom (
-10µA) in Klammern angezeigt, wenn der Wert unter 250mV liegt. Damit erhält man
+10µA) in Klammern angezeigt, wenn der Wert unter 250 mV liegt. Damit erhält man
 einen Hinweis auf eine Germaniumdiode. Die meisten Datenblätter von Germanium-
-dioden geben einen Messtrom von 0,1mA für Vf an. Leider unterstützt der Tester
-nicht diesen Messstrom. Und für höhere Ströme liegt Vf bei etwa 0,7V, was eine
+dioden geben einen Messtrom von 0,1 mA für Vf an. Leider unterstützt der Tester
+nicht diesen Messstrom. Und für höhere Ströme liegt Vf bei etwa 0,7 V, was eine
 Unterscheidung zu Siliziumdioden schwierig macht. 
 
 Der Leckstrom I_R für eine einzelne Diode bzw. I_CEO für einen Bipolar-
-Transistor wird ausgegeben, sofern er höher als 50nA ist. Germanium-
-transistoren haben einen Leckstrom im Bereich von wenigen µA bis etwa 500µA.
+Transistor wird ausgegeben, sofern er höher als 10 nA ist. Germanium-
+transistoren haben einen Leckstrom im Bereich von wenigen µA bis etwa 500 µA.
 Germaniumdioden liegen üblicherweise bei ein paar µA.
 
 Für manche Bauteile wird ein Kapazitätswert angezeigt. Liegt die Kapazität
-unterhalb von 5pF oder die Messung schlug fehl, wird 0pF ausgegeben.
+unterhalb von 5 pF oder die Messung schlug fehl, wird 0 pF ausgegeben. Im Fall
+von Schottky-Dioden kann der Leckstrom zu groß sein, um ihre Kapazität zu
+messen.
 
 Wenn ein Verarmungs-FET mit symmetrischem Drain und Source gefunden wird,
 zeigt die Pinbelegung ein 'x' statt 'D' oder 'S', da beide vom Tester nicht
 unterschieden werden können, sie sind funktional identisch. In diesem Fall
 bitte im Datenblatt nach Details der Pinbelegung schauen.
 
-Die Pinbelegung eines TRIAC wird mit den Pins 'G', '1' and '2'. angezeigt.
+Die Pinbelegung eines TRIAC wird mit den Pins 'G', '1' und '2'. angezeigt.
 '1' ist MT1 und '2' ist MT2. Und für einen UJT, sofern die Erkennung aktiviert
 ist, ist es '1' für B1, '2' für B2 und 'E' für den Emitter.
 
@@ -2612,7 +2617,8 @@ die zum Messen benutzt wurde:
 
 Wenn Du die Ausgabe vom hFE-Teststrom aktiviert hast (SW_HFE_CURRENT), dann
 zeigt der Tester I_C für die Emitterschaltung und I_E für die Kollector-
-schaltung.
+schaltung. Weitere Optionen sind die Ausgabe von dem Reverse-hFE (
+SW_REVERSE_HFE) und der Basis-Emitter-Kapazität C_be (SW_C_BE).
 
 Beim Test auf Dioden wird Vf zum einen mit Rl (hoher Teststrom) und zum
 anderen mit Rh (niedriger Teststrom) gemessen. Die Ausgabefunktion für
@@ -2622,17 +2628,17 @@ eines Kleinsignaltransistors mit einem anderen Strom gemessen wird als bei
 einem Leistungstransistor.
 
 Bei einem Bipolartransistor mit Basis-Emitter-Widerstand wird der Widerstand
-angezeigt. Beachte, dass der B-E-Widerstand Einfluss auf V_BE und hFE hat.
-Wenn der Transistor zusätzlich eine Schutzdiode hat, kann er als Transistor
-oder zwei Dioden erkannt werden, je nach Wert des Basis-Emitter-Widerstands.
-Im letzteren Fall werden zwei Dioden plus Widerstand mit dem Hinweis auf einen
-möglichen Transistor angezeigt. Ein niedriger Basis-Emitter-Widerstand
-verhindert leider die eindeutige Erkennung des Transistors.
+angezeigt. Beachte, dass der B-E-Widerstand Einfluss auf V_BE, hFE und C_be
+hat. Wenn der Transistor zusätzlich eine Schutzdiode hat, kann er als
+Transistor oder zwei Dioden erkannt werden, je nach Wert des Basis-Emitter-
+Widerstands. Im letzteren Fall werden zwei Dioden plus Widerstand mit dem
+Hinweis auf einen möglichen Transistor angezeigt. Ein niedriger Basis-Emitter-
+Widerstand verhindert leider die eindeutige Erkennung des Transistors.
 
 Ein weiterer Spezialfall ist ein Bipolartransistor mit integrierter
 Schutzdiode, die sich auf dem gleichen Substrat befindet. Der integrierte
 PN-Übergang erzeugt einen parasitären zweiten Transistor. Ein NPN bekommt
-somit einen paristären PNP und umgekehrt. Wird ein solcher Transistor
+somit einen parasitären PNP und umgekehrt. Wird ein solcher Transistor
 entdeckt, wird er mit einem "+" hinter der Typenangabe gekennzeichnet.
 
 Bei einem Schottky-Transistor (Schottky-clamped BJT) wird die Schottky-
@@ -2642,7 +2648,8 @@ einem Schottky-Transistor erhöht ist.
 
 Hinweise:
 - Der hohe hFE von Darlington-Transistoren kann in Verbindung mit EMV zu
-  falschen I_CEO-Werten führen. 
+  falschen I_CEO-Werten führen.
+- Ein Basis-Emitter-Widerstand macht die Werte für V_BE, hFE und C_be sinnlos.
 - Wenn Du ein Temperaturproblem beim BJT vermutest, teste ihn im kalten
   Zustand, erwärme ihn (Lötkolben oder Heizluft) und teste ihn nochmals 
   im warmen Zustand.
@@ -2651,10 +2658,10 @@ Hinweise:
 FETs
 
 Beim Testen von FETs bitte etwas aufpassen, den FET nicht durch Überschreiten
-der maximalen Gate-Spannung (bis zu 20V) zu beschädigen. Das kann passieren,
+der maximalen Gate-Spannung (bis zu 20 V) zu beschädigen. Das kann passieren,
 wenn Du elektrostatisch aufgeladen bist. Oder, wenn Du den Tester mit einem
 Schaltnetzteil betreibst und einen Strompfad nach Erde hast (der EMV-
-Kondensator zwischen Primär- und Sekundärseite läßt einen kleinen Leckstrom
+Kondensator zwischen Primär- und Sekundärseite lässt einen kleinen Leckstrom
 durch).
 
 
@@ -2670,7 +2677,7 @@ unterscheiden, d.h. sie könnten vertauscht sein.
 
 Manche TRIACs können vom Tester getriggert werden, haben aber einen zu hohen
 Haltestrom (I_H), wodurch sie nicht korrekt erkannt werden können. Wenn bei
-einem TRIAC der Triggerstom zu hoch für den Tester ist, wird er meistens
+einem TRIAC der Triggerstrom zu hoch für den Tester ist, wird er meistens
 als Widerstand erkannt. Es ist auch möglich, dass der Tester einen
 vermeintlichen NPN mit parasitärem BJT (NPN+) und Basis-Emitter-Widerstand
 anzeigt.
@@ -2682,7 +2689,7 @@ Die Diodenprüfung erkennt eine CLD (Current Limiting Diode) als normale Diode
 und gibt ihren Strom I_F als Leckstrom aus. Zu beachten ist, daß bei einer CLD
 Anode und Kathode gegenüber einer normalen Diode vertauscht sind. Eine
 gesonderte Erkennung von CLDs ist schwierig, da der Leckstrom einer Germanium
-oder Leistungs-Schottky-Diode im Bereich von I_F (ab ca. 33µA) liegt.
+oder Leistungs-Schottky-Diode im Bereich von I_F (ab ca. 33 µA) liegt.
 
 Wenn eine Diode ein ungewöhnliches V_f hat, ein niedriges V_f beim Niedrig-
 stromtest (zweiter Wert in Klammern) und keine Kapazität gemessen werden
@@ -2698,15 +2705,15 @@ nicht unterstützt, aber als PUT erkannt.
 * Nicht unterstütze Bauelemente
 
 Alle Halbleiter, welche einen hohen Steuerstrom oder eine hohe Steuerspannung
-benötigen, können nicht erkannt werden, da der Tester max. ca. 7mA Strom und
-5V Spannung zum Schalten hat. So kann z.B. ein DIAC mit einem V_BO von 20-200V
-nicht getestet werden. Das gleiche für Thyristoren and TRIACs mit hohem
+benötigen, können nicht erkannt werden, da der Tester max. ca. 7 mA Strom und
+5 V Spannung zum Schalten hat. So kann z.B. ein DIAC mit einem V_BO von 20 -
+200 V nicht getestet werden. Das gleiche für Thyristoren and TRIACs mit hohem
 Triggerstrom.
 
 
 * Abhilfen für manche Tester
 
-Wenn Dein Tester eines der folgenden Probleme zeigt, kannst Du ein Worksround
+Wenn Dein Tester eines der folgenden Probleme zeigt, kannst Du ein Workaround
 versuchen:
 
 - hFE viel zu hoch 
@@ -2728,7 +2735,7 @@ versuchen:
   Problem:
   Tester schaltet sich plötzlich nach der ersten Bauteilesuche ab. Wird
   wahrscheinlich durch unterschiedliche Spannungspegel verursacht (SCT15L104W
-  hat 3,3V, der ATmega 5V)
+  hat 3,3 V, der ATmega 5 V)
 
   Betroffene Tester:
   T7-H, wahrscheinlich auch andere Modelle der TC-1-Familie
@@ -2745,7 +2752,7 @@ versuchen:
 - Bei Verwendung eines Schaltnetzteiles oder DC-DC-Konverters zur Strom-
   versorgung gibt der Tester manchmal fälschlicherweise einen Elko um
   die 50µF aus, obwohl kein Bauteil angeschlossen ist.
-- Der ESR kann bei Kondensatoren mit 180 - 220nF je nach MCU-Takt
+- Der ESR kann bei Kondensatoren mit 180 - 220 nF je nach MCU-Takt
   variieren.
 - Problem mit der ESR-Messung bei low-ESR Elkos mit festem Elektrolyt. 
 
@@ -2789,12 +2796,13 @@ Basiskommandos:
 
   VER
   - gibt Version der Firmware zurück
-  - to verify connectivity and to determine command set based on version
+  - zum Prüfen der seriellen Verbindung und zum Bestimmen des Kommandosatzes
+    anhand der Firmwareversion
   - Beispielantwort: "1.33m"
 
   OFF
   - schaltet den Tester aus
-  - Tester anwortet mit "OK" vor dem Auschalten
+  - Tester antwortet mit "OK" vor dem Auschalten
   - Beispielantwort: "OK" <Tester schaltet ab>
 
 
@@ -2803,7 +2811,7 @@ Testkommandos:
   PROBE
   - sucht nach Bauteil und überspringt alle Pausen für Benutzereingaben
   - Tester antwortet mit einem "OK" nach dem Beenden der Suche
-  - Beispielantwort: <some time elapses for probing> "OK"
+  - Beispielantwort: <etwas Zeit vergeht für die Bauteilesuche> "OK"
 
   COMP
   - gibt ID der Bauteilart zurück
@@ -2885,7 +2893,7 @@ Testkommandos:
 
   R
   - gibt Widerstandswert zurück
-  - nur für Widerstand (beinhaltet auch Induktiviät)
+  - nur für Widerstand (beinhaltet auch Induktivität)
   - Beispielantwort: "122R"
 
   C
@@ -2895,7 +2903,7 @@ Testkommandos:
 
   L
   - gibt Induktiviätswert zurück
-  - nur für Widerstand (beinhaltet auch Induktiviät)
+  - nur für Widerstand (beinhaltet auch Induktivität)
   - Beispielantwort: "115uH"
 
   ESR
@@ -2971,9 +2979,14 @@ Testkommandos:
   - Beispielantwort: "657mV"
 
   I_CEO
-  - gibt I_CEO rurück (Kollektor-Emitter-Strom, offene Basis)
+  - gibt I_CEO zurück (Kollektor-Emitter-Strom, offene Basis)
   - nur für BJT
   - Beispielantwort: "460.0uA"
+
+  C_BE
+  - gibt C_BE zurück (Basis-Emitter-Kapazität)
+  - nur für BJT
+  - Beispielantwort: "724pF"
 
   V_th
   - gibt V_th zurück (threshold voltage)

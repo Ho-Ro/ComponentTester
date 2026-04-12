@@ -56,7 +56,7 @@ void Display_NextLine(void)
    */
 
   #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
-  if (Cfg.OP_Control & OP_OUT_LCD)      /* copy to LCD enabled */
+  if (Cfg.OP_Control & OP_OUT_LCD)      /* copy to display enabled */
   {
   #endif
 
@@ -126,7 +126,7 @@ void Display_LastLine(void)
    */
 
   #if defined (UI_SERIAL_COPY) || defined (UI_SERIAL_COMMANDS)
-  if (Cfg.OP_Control & OP_OUT_LCD)      /* copy to LCD enabled */
+  if (Cfg.OP_Control & OP_OUT_LCD)      /* copy to display enabled */
   {
   #endif
 
@@ -168,7 +168,7 @@ void Display_Char(unsigned char Char)
    *  display module
    */
 
-  if (Cfg.OP_Control & OP_OUT_LCD)      /* copy to LCD enabled */
+  if (Cfg.OP_Control & OP_OUT_LCD)      /* copy to display enabled */
   {
     LCD_Char(Char);                     /* send char to display */
   }
