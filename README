@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Last edit: 2024-03-29
+Last edit: 2024-08-01
 
 Content
   - About
@@ -85,6 +85,7 @@ Content
     - MAX6675/MAX31855 Thermocouple Converters
     - BH1750 Ambient Light Sensor
     - Flashlight
+    - Voltmeter 0-5V DC
     - Self Test
     - Self Adjustment
     - Save/Load
@@ -100,8 +101,10 @@ Content
   - Displaying Results
     - Additional Hints
       - BJTs
+      - FETs
       - TRIACs
       - CLDs
+      - SUS/SBSs
   - Unsupported Components
   - Workarounds for some Testers
   - Known Issues
@@ -122,8 +125,11 @@ offers a few additional features. While Karl-Heinz provides an official
 release supporting also older ATmega MCUs, this firmware does require an
 ATmega with 32kB flash at least.
 
-Hint: Run the self-adjustment for a new tester or if you've done any
-modifications, like a firmware update or changing probe leads.
+Hints:
+- Run the self-adjustment for a new tester or if you've done any
+  modifications, like a firmware update or changing probe leads.
+- The Component Tester isn't an LCR meter. It can measure capacitance and
+  inductance within some limits.
 
 
 * Safety Advice
@@ -256,7 +262,9 @@ Following hardware options are supported:
   - LC meter
   - ring tester (LOPT/FBT tester)
   - logic probe
+  - fixed DS18B20/DS18S20 temperature sensors
   - MAX6675/MAX31855 thermocouple converters
+  - BH1750 ambient light sensor
   - flashlight / general purpose switched output
 
 
@@ -291,6 +299,7 @@ Hardware options:
 - I2C bus (bit-bang and hardware)
 - TTL Serial (bit-bang and hardware)
 - OneWire bus (bit-bang)
+- ...
 
 The external 2.5V voltage reference should be only enabled if it's at least
 10 times more precise than the voltage regulator. Otherwise it would make
@@ -1071,6 +1080,8 @@ For displays with more then two text lines:
 - center-align infos and some other texts (UI_CENTER_ALIGN)
 - display battery status in the last line after showing the probing result (
   UI_BATTERY_LASTLINE)
+- display measurement values of self-test/adjustment page-wise (
+  UI_TEST_PAGEMODE, requires >= 6 text lines)
 
 For graphic displays:
 - all options listed before
@@ -1473,7 +1484,9 @@ How to connect the capacitor:
 
 The cap leakage check charges a cap and displays the current and the voltage
 across the current shunt. It starts charging the cap using Rl (680 Ohms) and
-switches to Rh (470kOhms) when the current drops below a specific threshold.
+switches to Rh (470 kOhms) when the current drops below a specific threshold.
+As soon as the voltage has reached its minimum and doesn't change anymore the
+displayed current is the leakage current.
 
 Each cycle begins with the display of the pinout. After connecting the cap
 press the test button (or right turn in case of a rotary encoder) to start
@@ -2174,6 +2187,34 @@ output pin between low and high each time this function is run. Loads lower
 than 20mA can be driven directly.
 
 
++ Voltmeter 0-5V DC
+
+A simple voltmeter for DC voltages from 0 to 5V with two selectable input
+impedances (high: 470 kOhms, low: 700 Ohms). After displaying the obligatory
+probe pinout, which can be skipped by pressing the test button, the
+measurement starts in the high input impedance mode (indicated by an 'H' in
+the first line). With a long button press you switch to the low impedance
+mode (indicated by an 'L'), and also vice versa.
+
+Additional functionality is available when a buzzer is installed. If a
+specific threshold is exceeded the tester will sound a short beep. A short
+button press enables this function, which is indicated by displaying the
+threshold voltage in braces in the second line (right of the measured voltage).
+Another short button press disables the function again. If you also have
+a rotary encoder (or any other input option) the threshold can be changed in
+0.1V steps by turning the encoder left (decrease) or right (increase).
+
+Last, but not least, two short button presses exit the voltmeter.
+
+Pin assignment for probes:
+  Probe #1:  positive
+  Probe #3:  negative
+
+Warnings:
+- No input protection! Only for DC voltages from 0 to 5V!
+- No reverse polarity protection! Be extra careful!
+
+
 + Self Test
 
 If you start the self-test via the menu you'll be asked to short circuit all
@@ -2181,7 +2222,7 @@ three probes and the tester will wait until you have. In case of any problem
 you can abort that by a key press. That will also skip the complete self-test.
 
 The self-test function runs each test just 5 times. You can skip a test by a
-short key press or skip the entire selfttest by a long key press.
+short key press or skip the entire self-test by a long key press.
 
 In test #4 you have to remove the short circuit of the probes. The tester will
 wait until you removed the short circuit.
@@ -2200,6 +2241,7 @@ The test steps are:
       should be close to Vcc (usually within 10 mV)
 
 Hints:
+- Run the self-test with the ISCP/ISP cable removed!
 - When the T2 values differ by more than 5 mV between probe pairs there could
   be a mismatch of the Rl test resistors.
 - The same for T3 values and Rh test resistors.
@@ -2260,6 +2302,7 @@ Limits:
 - IO pin's internal resistance in high mode (RiH)  < 29 Ohms
 
 Hints:
+- Run the self-adjustment with the ISCP/ISP cable removed!
 - When the resistance values for the probe leads/pins vary too much,
   there could be a contact problem.
 - If the capacitance offset (A6) is 0 it's most likely caused by a discharge
@@ -2425,7 +2468,10 @@ SW_L_E* switches in config.h (text mode only).
 Hints:
 - When getting unexpected results please re-run the test.
 - The inductance measurement is only performed when the inductors's
-  resistance is lower than 2k Ohms.
+  resistance is lower than 2 kOhms.
+- The inductor's wire resistance impacts the measurement, i.e. a higher
+  resistance causes the displayed inductance value to decrease. For small
+  inductance values the result can be off significantly.
 
 
 * Discharging Components
@@ -2530,6 +2576,15 @@ Hints:
   state, heat it up (soldering iron, hot air), and check it again while warm.
 
 
+FETs
+
+When checking FETs please pay some attention to not damage them by exceeding
+the maximum gate voltage (up to 20V). This can happen when you're
+electrostatically charged. Or if you power the tester by a SMPSU and provide a
+path to earth/ground (the EMI suppression cap between primary and secondary
+passes a low current).
+
+
 TRIACs
 
 TRIACs can be used in three or four different operation modes, also known as
@@ -2558,6 +2613,12 @@ diode is in the range of I_F (>= 33µA).
 If a diode has an unusual forward voltage, a quite low V_f for the low current
 check (2nd value in braces) and no capacitance could be measured then it's
 most likely a CLD.
+
+
+SUS/SBSs
+
+SUS (Silicon Unilateral Switch) and SBS (Silicon Bilateral Switch) aren't
+supported, but detected as a PUT.
 
 
 * Unsupported Components

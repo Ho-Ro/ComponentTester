@@ -6,6 +6,29 @@
 
 ------------------------------------------------------------------------------
 
+v1.53m 2024-08
+- Fixed interrupt address issue in gcrt1.S (OPTIMIZE_VECTORS), mainly for
+  avr-gcc 8.3.0 (thanks to horo@EEVblog).
+- Updated Polish texts #2 (thanks to Jacon@EEVblog).
+- Fixed source code management issue for Timer1 related global variables (
+  reported by indman@EEVblog).
+- Updated Polish texts (thanks to szpila@EEVblog).
+- Added option to enable/disable self-test (SW_SELFTEST, suggested by
+  indman@EEVblog).
+- Added option to display measurement values of self-test/adjustment
+  page-wise (UI_TEST_PAGEMODE, requires >= 6 text lines).
+- Added convenience function Display_Value2() to reduce firmware size and
+  changed all suitable function calls.
+- Added 5V-Meter with selectable input impedance (SW_METER_5VDC, suggegsted
+  by boneDragon@EEVblog). Optional beep when a threshold is exceeded (requires
+  buzzer).
+- Added option to display 4-digit values as value with prefix (UI_PREFIX,
+  suggested by Kim Christensen@EEVblog and edgard22@EEVblog).
+- Optional flyback diode is also shown for JFETs now (suggested by
+  Yuriy_K@EEVblog). Fixed D/S reversal issue for p-channel JFETs with flyback
+  diode.
+- Updated Brazilian Portuguese texts (thanks to wandows@EEVblog).
+
 v1.52m 2024-04
 - Added quick-check tool for diodes and LEDs (SW_DIODE_LED). 
 - Support for BH1750VFI ambient light sensor (HW_BH1750).
@@ -22,7 +45,7 @@ v1.52m 2024-04
 - Fixed data byte issue in I2C_ReadByte() for hardware TWI (reported by
   fail@mikrocontroller.net).
 - Corrected the colors for 0.1 and 0.01 multipliers in Display_ColorCode() (
-  reported by chaoslegion@VRTP)
+  reported by chaoslegion@VRTP).
 - Option to switch temporarily to auto-hold mode after a component is found (
   in continuous mode, UI_AUTOHOLD_FOUND, suggested by Maniaxx@EEVBlog).
 - Added option to optimize the interrupt vector table to reduce firmware size
@@ -456,7 +479,7 @@ v1.37m 2019-09
   of split "H" and "z".
 - Added option to display key hints (UI_KEY_HINTS), currently just
   "Menu/Test" (suggegsted by carrascoso@EEVblog).
-- Updated Polish texts (thanks to szpila@EEVblog). 
+- Updated Polish texts (thanks to szpila@EEVblog).
 - Updated Russian texts (thanks to indman@EEVblog).
 - Updated Spanish texts (thanks to pepe10000@EEVblog).
 

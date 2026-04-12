@@ -86,6 +86,7 @@ Hardware Options:
 #define ENCODER_STEPS    20             /* usually 20 detents */
 #define HW_REF25
 #define HW_ZENER
+#define ZENER_UNSWITCHED                /* no boost converter */
 #define HW_FREQ_COUNTER_BASIC
 
 LCD module:
@@ -177,7 +178,7 @@ Inductance compensation offsets for 20MHz model
 ------------------------------------------------------------------------------
 
 BSide ESR02 (DTU-1701)
-- ATmega 328, 8MHz clock
+- ATmega328, 8MHz clock
 - ST7565 display (bit-bang SPI)
 - external 2.5V voltage reference (TL431)
 - settings provided by indman@EEVblog
@@ -224,6 +225,8 @@ Fish8840 TFT
 - ST7735 color display (bit-bang SPI)
 - external 2.5V voltage reference (TL431)
 - settings provided by indman@EEVBlog / bdk100@vrtp.ru
+- LCD_DOTS_Y is set to 156 because of an alignment issue between display
+  and case. Might need some additional tweaking.
 
 LCD module:
 #define LCD_ST7735
@@ -239,8 +242,8 @@ LCD module:
 #define LCD_SDA          PD1            /* port pin used for SDA */
 #define LCD_DOTS_X       128            /* number of horizontal dots */
 #define LCD_DOTS_Y       156            /* number of vertical dots */
-#define LCD_OFFSET_X                    /* enable x offset of 4 dots */
-#define LCD_OFFSET_Y                    /* enable y offset of 2 dots */
+#define LCD_OFFSET_X                    /* enable x offset of 0 dots */
+#define LCD_OFFSET_Y                    /* enable y offset of 0 dots */
 #define LCD_FLIP_X                      /* enable horizontal flip */
 //#define LCD_FLIP_Y                      /* enable vertical flip */
 #define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
@@ -252,6 +255,16 @@ LCD module:
 #define SPI_DDR          LCD_DDR        /* SPI port data direction register */
 #define SPI_SCK          LCD_SCL        /* port pin used for SCK */
 #define SPI_MOSI         LCD_SDA        /* port pin used for MOSI */
+
+Alternative geometry settings from Feliciano@EEVBlog:
+#define LCD_DOTS_X       128            /* number of horizontal dots */
+#define LCD_DOTS_Y       158            /* number of vertical dots */
+#define LCD_OFFSET_X     1               /* enable x offset of 1 dot */
+#define LCD_OFFSET_Y     6               /* enable y offset of 6 dots */
+#define LCD_FLIP_X                      /* enable horizontal flip */
+//#define LCD_FLIP_Y                      /* enable vertical flip */
+#define LCD_ROTATE                      /* switch X and Y (rotate by 90°) */
+
 
 ------------------------------------------------------------------------------
 
@@ -613,7 +626,7 @@ Hardware Options:
 #define ZENER_DIVIDER_CUSTOM
 #define ZENER_R1         100000
 #define ZENER_R2         12000
-#define ZENER_UNSWITCHED
+#define ZENER_UNSWITCHED                /* boost converter runs all the time */
 #define HW_IR_RECEIVER
 #define HW_ADJUST_CAP
 
@@ -722,7 +735,7 @@ Hardware Options:
 #define ZENER_DIVIDER_CUSTOM
 #define ZENER_R1         100000
 #define ZENER_R2         12000
-#define ZENER_UNSWITCHED
+#define ZENER_UNSWITCHED                /* boost converter runs all the time */
 #define HW_IR_RECEIVER
 #define HW_ADJUST_CAP
 
@@ -856,7 +869,7 @@ Hardware Options:
 #define ZENER_DIVIDER_CUSTOM
 #define ZENER_R1         100000
 #define ZENER_R2         12000
-#define ZENER_UNSWITCHED
+#define ZENER_UNSWITCHED                /* boost converter runs all the time */
 #define HW_IR_RECEIVER
 
 Optionally:

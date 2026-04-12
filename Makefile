@@ -212,7 +212,7 @@ $(NAME): ${OBJECTS}
 # output firmware size and other info
 size: ${NAME}
 	@echo
-	@avr-size -C --mcu=${MCU} $<
+	@avr-size $<
 #	@avr-objdump -Pmem-usage $<
 
 

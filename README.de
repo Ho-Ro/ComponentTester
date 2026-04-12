@@ -7,7 +7,7 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2024-03-29
+Letzte Änderung: 2024-08-01
 
 Inhaltsübersicht:
   - Über den Tester
@@ -85,6 +85,7 @@ Inhaltsübersicht:
     - MAX6675/MAX31855 Thermoelement-Konverter
     - BH1750 Umgebungslichtsensor
     - Licht
+    - Voltmeter 0-5V DC
     - Selbsttest
     - Selbstabgleich
     - Speichern/Laden
@@ -100,8 +101,10 @@ Inhaltsübersicht:
   - Ergebnisanzeige
     - Zusätzliche Hinweise
       - Bipolartransistoren
+      - FETs
       - TRIACs
       - CLDs
+      - SUS/SBSs
   - Nicht unterstütze Bauelemente
   - Abhilfen für manche Tester
   - Bekannte Probleme
@@ -114,7 +117,7 @@ Inhaltsübersicht:
 
 * Über den Tester
 
-Der Component Tester basiert auf dem Projekt von Markus Frejek [1&2] und der
+Der Component-Tester basiert auf dem Projekt von Markus Frejek [1&2] und der
 Weiterführung von Karl-Heinz Kübbeler [3&4]. Es ist eine alternative
 Firmware für die aktuelle Testerschaltung von Karl-Heinz und bietet einige
 Änderungen der Benutzerschnittstelle und Mess- und Testverfahren. Auch gibt
@@ -122,13 +125,16 @@ es zusätzliche Funktionen. Während die Firmware von Karl-Heinz die offizielle
 Version ist und auch ältere ATmega-MCUs unterstützt, benötigt diese Version
 einen ATmega mit mindestens 32kB Flash.
 
-Hinweis: Bitte den Selbstabgleich bei brandneuen Testern oder nach Firmware-
-aktualisierung laufen lassen. Oder auch bei Benutzung anderer Messkabel.
+Hinweise:
+- Bitte den Selbstabgleich bei brandneuen Testern oder nach Firmware-
+  aktualisierung laufen lassen. Oder auch bei Benutzung anderer Messkabel.
+- Der Component-Tester ist kein LCR-Meter. Er kann Induktivität und
+  Kapazität in gewissen Grenzen messen.
 
 
 * Sicherheitshinweise
 
-Der Component Tester ist kein Multimeter! Es ist ein einfacher Tester für
+Der Component-Tester ist kein Multimeter! Es ist ein einfacher Tester für
 Bauteile, der Verschiedenes messen kann. Die Eingänge sind nicht geschützt
 und werden durch Spannungen über 5V beschädigt. Den Tester nicht für
 Schaltungen in Betrieb nutzen, sondern nur für einzelne Bauteile! Bei
@@ -256,7 +262,9 @@ Folgende Hardware-Optionen werden unterstützt:
   - LC-Meter
   - Klingeltester (LOPT/FBT-Tester)
   - Logiktester
+  - feste DS18B20/DS18S20 Temperatursensoren
   - MAX6675/MAX31855 Thermoelement-Konverter
+  - BH1750 Umgebungslichtsensor
   - Licht / allgemeiner Schaltausgang
 
 
@@ -293,6 +301,7 @@ Hardware-Optionen:
 - I2C-Bus (Bit-Bang und Hardware)
 - TTL-Serielle (Bit-Bang und Hardware)
 - OneWire Bus (Bit-Bang)
+- ...
 
 Die externe 2,5V Spannungsreferenz sollte nur genutzt werden, wenn sie
 um den Faktor 10 genauer als der Spannungsregler ist. Ansonsten würde
@@ -322,8 +331,7 @@ Und natürlich die Software-Optionen:
 
 Bitte die Optionen entprechend Deinen Wünschen und den begrenzten Ressourcen 
 der MCU, d.h. RAM, EEPROM und Flash-Speicher, auswählen. Sollte die Firmware
-zu groß werden, versuche für Dich nicht so wichtige Optionen wieder zu
-deaktivieren.
+zu groß werden, versuche für Dich nicht so wichtige Optionen zu deaktivieren. 
 
 Verfügbare Sprachen:
 - brasilianisches Portugiesisch
@@ -1088,6 +1096,8 @@ Für Anzeigen mit mehr als zwei Textzeilen:
 - Infos und ein paar andere Text zentriert ausgeben (UI_CENTER_ALIGN)
 - Ausgabe vom Batteriestatus in der letzten Zeile nach der Ergebnisanzeige (
   UI_BATTERY_LASTLINE)
+- Messwerte im Selbst-Test/Abgleich seitenweise ausgeben (UI_TEST_PAGEMODE,
+  benötigt >= 6 Textzeilen)
 
 Für graphische Anzeigen:
 - alle vorherigen Optionen
@@ -1511,8 +1521,9 @@ Beschaltung für Kondensator:
 
 Der Test auf Leckstrom lädt einen Kondensator auf und zeigt dabei den Strom
 und die Spannung über den Messwiderstand an. Das Laden beginnt mit Rl (680 Ohm)
-und schaltet auf Rh (470kOhm) um, sobald der Strom einen bestimmten Grenzwert
-unterschreitet.
+und schaltet auf Rh (470 kOhm) um, sobald der Strom einen bestimmten Grenzwert
+unterschreitet. Wenn die Spannung ihr Minimum erreicht hat und sich nicht
+weiter ändert, ist der angezeigte Strom der Leckstrom.
 
 Jeder Testzyklus beginnt mit der Anzeige der Belegung der Testpins. Nach dem
 Verbinden des Kondensators startet ein Druck der Testtaste das Laden (oder
@@ -2234,6 +2245,35 @@ Ausgang zwischen Low und High um, jedes Mal bei Aufruf. Lasten kleiner 20mA
 können direkt betrieben werden.
 
 
++ Voltmeter 0-5V DC
+
+Ein einfaches Voltmeter für Gleichspannungen von 0 bis 5V mit zwei auswählbaren
+Eingangsimpedanzen (hoch: 470 kOhm, niedrig: 700 Ohm). Nach der Anzeige der
+obligatorischen Test-Pin-Beschaltung, die mit einem Tastendruck übersprungen
+werden kann, startet die Messung im Modus mit hoher Eingangsimpedanz (gekenn-
+zeichnet durch ein "H" in der ersten Zeile). Mit einem kurzen Tastendruck
+wechselst Du zur niedrigen Eingangsimpedanz (gekennzeichnet durch ein "L"),
+und auch wieder zurück.
+
+Zusätzliche Funktionalität erhält man, wenn ein Summer/Pieper installiert ist.
+Sobald ein bestimmer Schwellwert überschritten wird, erzeugt der Tester einen
+kurzen Piepton. Ein kurzer Tastendruck schaltet diese Funktion ein, was durch
+Ausgabe des Schwellwertes in Klammern in der zweiten Zeile (nach dem Messwert)
+bestätigt wird. Ist zudem auch ein Drehencoder (oder eine andere Eingabeoption)
+vorhanden, kann der Schwellwert in 0,1V-Schritten geändert werden (links:
+niedriger, rechts: höher).
+
+Und zu guter Letzt, zwei kurze Tastendrücke beenden das Voltmeter.
+
+Beschaltung von Test-Pins:
+  Probe #1:  positiv
+  Probe #3:  negativ
+
+Warnungen:
+- Kein Eingangsschutz! Nur für Gleichspannungen von 0 bis 5V!
+- Kein Verpolungsschutz! Also besonders vorsichtig sein!
+
+
 + Selbsttest
 
 Wenn Du den Selbsttest über das Menü gestartet hast, bittet dich der Tester
@@ -2261,6 +2301,7 @@ Die Testschritte sind:
       sollte nahe Vcc sein (typisch innerhalb 10 mV)
 
 Hinweise:
+- Den Selbsttest ohne ISCP/ISP-Kabel durchführen!
 - Wenn die T2-Werte sich zwischen den Testpin-Paaren mehr als 5 mV unter-
   scheiden, könnte das an zu ungleichen Rl-Testwiderständen liegen.
 - Das gleiche gilt für die T3-Werte und Rh-Testwiderstände.
@@ -2321,6 +2362,7 @@ Erlaubte Maximalwerte:
 - Interner Widerstand vom IO-Pin im High-Modus (RiH)  < 29 Ohm
 
 Hinweise:
+- Den Selbstabgleich ohne ISCP/ISP-Kabel durchführen!
 - Wenn der Widerstandswerte der Testpins zu sehr variieren, könnte ein
   Kontaktproblem vorliegen.
 - Falls der Kapazitätsoffset (A6) Null ist, dürfte es an einem Entladeproblem
@@ -2491,7 +2533,10 @@ in config.h aktivieren (nur Text-Modus).
 Hinweise:
 - Bei unerwarteten Messwerten bitte die Messung wiederholen.
 - Die Induktivitätsmessung wird nur durchgeführt, wenn der Widerstand der
-  Spule kleiner als 2k Ohm ist.
+  Spule kleiner als 2 kOhm ist.
+- Der Drahtwiderstand beeinflusst die Induktivitätsmessung, d.h. ein höherer
+  Widerstand führt zu einem niedrigeren Anzeigewert. Bei kleinen Induktivitäten
+  kann der Wert erheblich abweichen.
 
 
 * Bauteile entladen
@@ -2603,6 +2648,16 @@ Hinweise:
   im warmen Zustand.
 
 
+FETs
+
+Beim Testen von FETs bitte etwas aufpassen, den FET nicht durch Überschreiten
+der maximalen Gate-Spannung (bis zu 20V) zu beschädigen. Das kann passieren,
+wenn Du elektrostatisch aufgeladen bist. Oder, wenn Du den Tester mit einem
+Schaltnetzteil betreibst und einen Strompfad nach Erde hast (der EMV-
+Kondensator zwischen Primär- und Sekundärseite läßt einen kleinen Leckstrom
+durch).
+
+
 TRIACs
 
 TRIACs werden in drei bzw. vier Modi, auch als Quadranten bekannt, betrieben.
@@ -2632,6 +2687,12 @@ oder Leistungs-Schottky-Diode im Bereich von I_F (ab ca. 33µA) liegt.
 Wenn eine Diode ein ungewöhnliches V_f hat, ein niedriges V_f beim Niedrig-
 stromtest (zweiter Wert in Klammern) und keine Kapazität gemessen werden
 konnte, dann ist es wahrscheinlich eine CLD.
+
+
+SUS/SBSs
+
+SUS (Silicon Unilateral Switch) und SBS (Silicon Bilateral Switch) werden
+nicht unterstützt, aber als PUT erkannt.
 
 
 * Nicht unterstütze Bauelemente
