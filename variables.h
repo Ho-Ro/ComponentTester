@@ -156,7 +156,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.52m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.54m";
 
 
   /* common terms and texts */
@@ -166,7 +166,7 @@
   const unsigned char Enhancement_str[] MEM_TYPE = "enh.";
   const unsigned char Depletion_str[] MEM_TYPE = "dep.";
   const unsigned char IGBT_str[] MEM_TYPE = "IGBT";
-  const unsigned char Cgs_str[] MEM_TYPE = "Cgs";
+  const unsigned char C_gs_str[] MEM_TYPE = "Cgs";
   const unsigned char NPN_str[] MEM_TYPE = "NPN";
   const unsigned char PNP_str[] MEM_TYPE = "PNP";
   const unsigned char h_FE_str[] MEM_TYPE ="hFE";
@@ -266,6 +266,10 @@
 
   #ifdef SW_REVERSE_HFE
     const unsigned char h_FE_r_str[] MEM_TYPE ="hFEr";
+  #endif
+
+  #ifdef SW_C_BE
+    const unsigned char C_be_str[] MEM_TYPE = "Cbe";
   #endif
 
   #ifdef SW_DHTXX
@@ -377,6 +381,7 @@
     #ifdef SW_SCHOTTKY_BJT
       const unsigned char Cmd_V_F_clamp_str[] MEM_TYPE = "V_F_clamp";
     #endif
+    const unsigned char Cmd_C_BE_str[] MEM_TYPE = "C_BE";
 
     /* command reference table */
     const Cmd_Type Cmd_Table[] MEM_TYPE = {
@@ -435,6 +440,7 @@
       #ifdef SW_SCHOTTKY_BJT
         {CMD_V_F_CLAMP, Cmd_V_F_clamp_str},
       #endif
+      {CMD_C_BE, Cmd_C_BE_str},
       {0, 0}
     };
   #endif
@@ -468,7 +474,7 @@
     const uint16_t Inductor_table[NUM_INDUCTOR] MEM_TYPE = {4481, 3923, 3476, 3110, 2804, 2544, 2321, 2128, 1958, 1807, 1673, 1552, 1443, 1343, 1252, 1169, 1091, 1020, 953, 890, 831, 775, 721, 670, 621, 574, 527, 481, 434, 386, 334, 271};
   #endif
 
-  #if defined (HW_FREQ_COUNTER) || defined (SW_SQUAREWAVE)
+  #ifdef VAR_TIMER1_TABLES
     /* Timer1 prescalers and corresponding register bits */
     const uint16_t T1_Prescaler_table[NUM_TIMER1] MEM_TYPE = {1, 8, 64, 256, 1024};
     const uint8_t T1_RegBits_table[NUM_TIMER1] MEM_TYPE = {(1 << CS10), (1 << CS11), (1 << CS11) | (1 << CS10), (1 << CS12), (1 << CS12) | (1 << CS10)};
@@ -646,7 +652,6 @@
   extern const unsigned char Failed2_str[];
   extern const unsigned char Done_str[];
   extern const unsigned char Select_str[];
-  extern const unsigned char Selftest_str[];
   extern const unsigned char Adjustment_str[];
   extern const unsigned char Save_str[];
   extern const unsigned char Load_str[];
@@ -665,7 +670,7 @@
   extern const unsigned char Channel_str[];
   extern const unsigned char Enhancement_str[];
   extern const unsigned char Depletion_str[];
-  extern const unsigned char Cgs_str[];
+  extern const unsigned char C_gs_str[];
   extern const unsigned char NPN_str[];
   extern const unsigned char PNP_str[];
   extern const unsigned char h_FE_str[];
@@ -695,6 +700,10 @@
 
 
   /* options */
+  #ifdef SW_SELFTEST
+  extern const unsigned char Selftest_str[];
+  #endif
+
   #ifdef UI_THREE_PROFILES
     extern const unsigned char Profile3_str[];
   #endif
@@ -932,6 +941,10 @@
     extern const unsigned char Diode_LED_str[];
   #endif
 
+  #ifdef SW_METER_5VDC
+    extern const unsigned char Meter_5VDC_str[];
+  #endif
+
 
   /* component symbols */
   extern const unsigned char Diode_AC_str[];
@@ -996,6 +1009,7 @@
     #ifdef HW_PROBE_ZENER
       extern const unsigned char Cmd_V_Z_str[];
     #endif
+    extern const unsigned char Cmd_C_BE_str[];
 
     /* command reference table */
     extern const Cmd_Type Cmd_Table[];
@@ -1027,7 +1041,7 @@
     extern const uint16_t Inductor_table[];
   #endif
 
-  #if defined (HW_FREQ_COUNTER) || defined (SW_SQUAREWAVE)
+  #ifdef VAR_TIMER1_TABLES
     /* Timer1 prescalers and corresponding register bits */
     extern const uint16_t T1_Prescaler_table[];
     extern const uint8_t T1_RegBits_table[];

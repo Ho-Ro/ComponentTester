@@ -22,7 +22,7 @@
 
 
   /* firmware */
-  const unsigned char Tester_str[] MEM_TYPE = "Component Tester";
+  const unsigned char Tester_str[] MEM_TYPE = "Tester Elementow";
 
 
   /* common terms and texts */
@@ -32,15 +32,15 @@
   const unsigned char Failed2_str[] MEM_TYPE = "elementu!";
   const unsigned char Done_str[] MEM_TYPE = "zrobione!";
   const unsigned char Select_str[] MEM_TYPE = "Wybierz";
-  const unsigned char Selftest_str[] MEM_TYPE = "Selftest";
-  const unsigned char Adjustment_str[] MEM_TYPE = "Ustawienia";
+  const unsigned char Selftest_str[] MEM_TYPE = "Autotest";
+  const unsigned char Adjustment_str[] MEM_TYPE = "Kompensacja";
   const unsigned char Save_str[] MEM_TYPE = "Zapisz";
   const unsigned char Load_str[] MEM_TYPE = "Wczytaj";
   const unsigned char Show_str[] MEM_TYPE = "Pokaz parametry";
   const unsigned char Remove_str[] MEM_TYPE = "Usun";
   const unsigned char Create_str[] MEM_TYPE = "Utworz";
   const unsigned char ShortCircuit_str[] MEM_TYPE = "zwarcie sond!";
-  const unsigned char DischargeFailed_str[] MEM_TYPE = "Bateria?";
+  const unsigned char DischargeFailed_str[] MEM_TYPE = "Nierozladowane!";
   const unsigned char Error_str[] MEM_TYPE = "Blad!";
   const unsigned char Exit_str[] MEM_TYPE = "Wyjscie";
   const unsigned char Checksum_str[] MEM_TYPE = "Suma kontrolna";
@@ -60,11 +60,11 @@
     const unsigned char Battery_str[] MEM_TYPE = "Bat";
     const unsigned char OK_str[] MEM_TYPE = "ok";
     const unsigned char Weak_str[] MEM_TYPE = "slaba";
-    const unsigned char Low_str[] MEM_TYPE = "niska";
+    const unsigned char Low_str[] MEM_TYPE = "pusta!";
   #endif
 
   #ifdef BAT_EXT_UNMONITORED
-    const unsigned char External_str[] MEM_TYPE = "ext";
+    const unsigned char External_str[] MEM_TYPE = "zewn.";
   #endif
 
   #ifdef UI_KEY_HINTS
@@ -88,40 +88,40 @@
   #endif
 
   #ifdef HW_FREQ_COUNTER
-    const unsigned char FreqCounter_str[] MEM_TYPE = "Licznik czest.";
+    const unsigned char FreqCounter_str[] MEM_TYPE = "Meirnik czest.";
   #endif
 
   #ifdef HW_FREQ_COUNTER_EXT
-    const unsigned char CounterChannel_str[] MEM_TYPE = "Ch";
+    const unsigned char CounterChannel_str[] MEM_TYPE = "Wejscie";
     const unsigned char FreqInput_str[] MEM_TYPE = "BNC";
-    const unsigned char LF_Crystal_str[] MEM_TYPE = "LF kwarc";
-    const unsigned char HF_Crystal_str[] MEM_TYPE = "HF kwarc";
+    const unsigned char LF_Crystal_str[] MEM_TYPE = "Kwarc LF";
+    const unsigned char HF_Crystal_str[] MEM_TYPE = "Kwarc HF";
   #endif
 
   #ifdef HW_RING_TESTER
-    const unsigned char RingTester_str[] MEM_TYPE = "Ring Tester";
+    const unsigned char RingTester_str[] MEM_TYPE = "Test zwarc w L";
   #endif
 
   #ifdef HW_EVENT_COUNTER
-    const unsigned char EventCounter_str[] MEM_TYPE = "Event Counter";
-    const unsigned char Count_str[] MEM_TYPE = "Count";
-    const unsigned char Time_str[] MEM_TYPE = "Time";
-    const unsigned char Events_str[] MEM_TYPE = "Events";
+    const unsigned char EventCounter_str[] MEM_TYPE = "Licznik zdarzen";
+    const unsigned char Count_str[] MEM_TYPE = "Liczenie";
+    const unsigned char Time_str[] MEM_TYPE = "Czas";
+    const unsigned char Events_str[] MEM_TYPE = "Zdarzenia";
     const unsigned char Stop_str[] MEM_TYPE = "Stop";
   #endif
 
   #ifdef HW_LC_METER
-    const unsigned char LC_Meter_str[] MEM_TYPE = "LC Meter";
-    const unsigned char Adjusting_str[] MEM_TYPE = "adjusting...";
+    const unsigned char LC_Meter_str[] MEM_TYPE = "Miernik LC";
+    const unsigned char Adjusting_str[] MEM_TYPE = "regulacja...";
   #endif
 
   #ifdef HW_LOGIC_PROBE
-    const unsigned char LogicProbe_str[] MEM_TYPE = "Logic Probe";
+    const unsigned char LogicProbe_str[] MEM_TYPE = "Sonda logiczna";
   #endif
 
   #ifdef SW_ENCODER
     const unsigned char Encoder_str[] MEM_TYPE = "Enkoder";
-    const unsigned char TurnRight_str[] MEM_TYPE = "Pokrec w prawo!";
+    const unsigned char TurnRight_str[] MEM_TYPE = "Obroc w prawo!";
   #endif
 
   #ifdef SW_CONTRAST
@@ -133,12 +133,12 @@
   #endif
 
   #ifdef SW_IR_TRANSMITTER
-    const unsigned char IR_Transmitter_str[] MEM_TYPE = "Enkoder IR";
-    const unsigned char IR_Send_str[] MEM_TYPE = "wysylam...";
+    const unsigned char IR_Transmitter_str[] MEM_TYPE = "Koder IR";
+    const unsigned char IR_Send_str[] MEM_TYPE = "Wysylam...";
   #endif
 
   #ifdef SW_OPTO_COUPLER
-    const unsigned char OptoCoupler_str[] MEM_TYPE = "Opto-izolator";
+    const unsigned char OptoCoupler_str[] MEM_TYPE = "Transoptor";
     const unsigned char None_str[] MEM_TYPE = "Brak";
     const unsigned char CTR_str[] MEM_TYPE = "CTR";
   #endif
@@ -158,30 +158,30 @@
 
   #ifdef SW_CAP_LEAKAGE
     const unsigned char CapLeak_str[] MEM_TYPE = "Uplywnosc";
-    const unsigned char CapCharge_str[] MEM_TYPE = "Ladowanie";
+    const unsigned char CapCharge_str[] MEM_TYPE = "Laduje";
     const unsigned char CapHigh_str[] MEM_TYPE = "Rl";
     const unsigned char CapLow_str[] MEM_TYPE = "Rh";
-    const unsigned char CapDischarge_str[] MEM_TYPE = "Rozladowyw.";
+    const unsigned char CapDischarge_str[] MEM_TYPE = "Rozladowuje";
   #endif
 
   #ifdef SW_MONITOR_R
-    const unsigned char Monitor_R_str[] MEM_TYPE = "R Monitor";
+    const unsigned char Monitor_R_str[] MEM_TYPE = "Monitor R";
   #endif
 
   #ifdef SW_MONITOR_C
-    const unsigned char Monitor_C_str[] MEM_TYPE = "C Monitor";
+    const unsigned char Monitor_C_str[] MEM_TYPE = "Monitor C";
   #endif
 
   #ifdef SW_MONITOR_L
-    const unsigned char Monitor_L_str[] MEM_TYPE = "L Monitor";
+    const unsigned char Monitor_L_str[] MEM_TYPE = "Monitor L";
   #endif
 
   #ifdef SW_MONITOR_RCL
-    const unsigned char Monitor_RCL_str[] MEM_TYPE = "RCL Monitor";
+    const unsigned char Monitor_RCL_str[] MEM_TYPE = "Monitor RLC";
   #endif
 
   #ifdef SW_MONITOR_RL
-    const unsigned char Monitor_RL_str[] MEM_TYPE = "RL Monitor";
+    const unsigned char Monitor_RL_str[] MEM_TYPE = "Monitor RL";
   #endif
 
   #ifdef HW_TOUCH
@@ -193,12 +193,12 @@
   #endif
 
   #ifdef SW_ONEWIRE_SCAN
-    const unsigned char OneWire_Scan_str[] MEM_TYPE = "OneWire Scan";
+    const unsigned char OneWire_Scan_str[] MEM_TYPE = "Skanuj 1-Wire";
     const unsigned char Bus_str[] MEM_TYPE = "Bus";
   #endif
 
   #ifdef SW_CONTINUITY_CHECK
-    const unsigned char ContinuityCheck_str[] MEM_TYPE = "Continuity";
+    const unsigned char ContinuityCheck_str[] MEM_TYPE = "Ciaglosc";
   #endif
 
   #ifdef SW_FONT_TEST
@@ -206,11 +206,11 @@
   #endif
 
   #ifdef SW_SYMBOL_TEST
-    const unsigned char SymbolTest_str[] MEM_TYPE = "Symbols";
+    const unsigned char SymbolTest_str[] MEM_TYPE = "Symbole";
   #endif
 
   #ifdef HW_FLASHLIGHT
-    const unsigned char Flashlight_str[] MEM_TYPE = "Flashlight";
+    const unsigned char Flashlight_str[] MEM_TYPE = "Latarka";
   #endif
 
   #ifdef SW_PHOTODIODE

@@ -330,6 +330,7 @@
   #endif
 
   extern void Display_Value(uint32_t Value, int8_t Exponent, unsigned char Unit);
+  extern void Display_Value2(uint32_t Value);
   extern void Display_SignedValue(int32_t Value, int8_t Exponent, unsigned char Unit);
 
   #ifdef FUNC_EVALUE
@@ -394,7 +395,9 @@
   extern void ShowAdjustmentValues(void);
   extern uint8_t SelfAdjustment(void);
 
+  #ifdef SW_SELFTEST
   extern uint8_t SelfTest(void);
+  #endif
 
 #endif
 
@@ -553,6 +556,10 @@
 
   #ifdef SW_DIODE_LED
   extern void Diode_LED_Check(void);
+  #endif
+
+  #ifdef SW_METER_5VDC
+  extern void Meter_5VDC(void);
   #endif
 
 #endif

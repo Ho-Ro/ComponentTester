@@ -2,7 +2,7 @@
  *
  *   automation / remote commands via serial interface 
  *
- *   (c) 2018-2022 by Markus Reschke
+ *   (c) 2018-2024 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1137,7 +1137,7 @@ uint8_t Cmd_H_FE(void)
   if (Check.Found == COMP_BJT)          /* BJT */
   {
     /* send value */
-    Display_Value(Semi.F_1, 0, 0);
+    Display_Value2(Semi.F_1);
   }
   else                                  /* other component */
   {
@@ -1177,7 +1177,7 @@ uint8_t Cmd_H_FE_R(void)
     else
     {
       /* send value */
-      Display_Value(Semi.F_2, 0, 0);
+      Display_Value2(Semi.F_2);
     }
   }
   else                                  /* other component */
@@ -1266,10 +1266,11 @@ uint8_t Cmd_V_TH(void)
 
 
 /*
- *  command: C_GS / C_GE
+ *  command: C_GS / C_GE / C_BE
  *  - return
  *    C_GS value (enh. mode FET: gate-source capacitance)
  *    C_GE value (enh. mode IGBT: gate-emitter capacitance)
+ *    C_BE value (BJT: base-emitter capacitance)
  *
  *  requires:
  *  - Cmd: command ID
@@ -1296,7 +1297,7 @@ uint8_t Cmd_C_GS(uint8_t Cmd)
       }
       else                              /* wrong command */
       {
-        Flag = SIGNAL_ERR;              /* signal err */
+        Flag = SIGNAL_ERR;                   /* signal err */
       }
       break;
 
@@ -1310,7 +1311,18 @@ uint8_t Cmd_C_GS(uint8_t Cmd)
       }
       else                              /* wrong command */
       {
-        Flag = SIGNAL_ERR;              /* signal err */
+        Flag = SIGNAL_ERR;                   /* signal err */
+      }
+      break;
+
+    case COMP_BJT:            /* BJT */
+      if (Cmd == CMD_C_BE)              /* C_BE */
+      {
+        Flag = SIGNAL_OK;                    /* signal ok */
+      }
+      else                              /* wrong command */
+      {
+        Flag = SIGNAL_ERR;                   /* signal err */
       }
       break;
 
@@ -1319,7 +1331,7 @@ uint8_t Cmd_C_GS(uint8_t Cmd)
       break;
   }
 
-  if (Flag == SIGNAL_OK)      /* got C_GS/C_GE */
+  if (Flag == SIGNAL_OK)      /* got C_GS/C_GE/C_BE */
   {
     /* send value */
     Display_Value(Semi.C_value, Semi.C_scale, 'F');
@@ -1754,7 +1766,7 @@ uint8_t RunCommand(uint8_t ID)
       break;
 
     case CMD_COMP:            /* return component type ID */
-      Display_Value(Check.Found, 0, 0);      /* send component type ID */
+      Display_Value2(Check.Found);           /* send component type ID */
       break;
 
     case CMD_MSG:             /* return error message */
@@ -1762,7 +1774,7 @@ uint8_t RunCommand(uint8_t ID)
       break;
 
     case CMD_QTY:             /* return component quantity */
-      Display_Value(Info.Quantity, 0, 0);    /* send quantity */
+      Display_Value2(Info.Quantity);         /* send quantity */
       break;
 
     case CMD_NEXT:            /* select next component */
@@ -1863,6 +1875,7 @@ uint8_t RunCommand(uint8_t ID)
 
     case CMD_C_GS:            /* return C_GS */
     case CMD_C_GE:            /* return C_GE */
+    case CMD_C_BE:            /* return C_BE */
       Flag = Cmd_C_GS(ID);                   /* run command */
       break;
 

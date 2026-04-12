@@ -70,7 +70,8 @@
 .macro vector i
   .if (. - __vectors <= last_used_vector*4)
     .weak __vector_\i
-    .set __vector_\i, __bad_interrupt
+    /* fix for avr-gcc 8.3.0 */
+    //.set __vector_\i, __bad_interrupt
     XJMP __vector_\i
   .endif
 .endm

@@ -6,6 +6,25 @@
 
 ------------------------------------------------------------------------------
 
+v1.54m 2024-12
+- Filter für Germanium-BJTs in CheckDepletionModeFET() verbessert (Dank an
+  KenBC1).
+- Schwellenwert zur Ausgabe vom Leckstrom auf 10 nA geändert (Vorschlag von
+  fafa80@EEVblog und indman@EEVblog). Auch GetLeakageCurrent() angepaßt für
+  kleine Ströme mit nA-Skalierung.
+- Problem bei Kapazitätsmessung von Dioden mit hohem Leckstrom behoben (
+  war Regression in LargeCap(), gemeldet von fafa80@EEVblog).
+- Brasilianisch-portugiesische Texte aktualisiert (Dank an wandows@EEVblog).
+- Compilerfehler für Variable in 5V-Meter behoben (gemeldet von
+  Alkapton@GitHub).
+- Option zur Anzeige der Basis-Emitter-Kapazität C_be von Bipolar-
+  transistoren (SW_C_BE, Vorschlag von edgard22@EEVblog).
+- Neues Fernsteuerkommando C_BE für Basis-Emitter-Kapazität von Bipolar-
+  transistoren.
+- Andere Position vom Fragezeichensymbol in Funktion Show_Fail(), wenn
+  UI_CENTER_ALIGN aktiviert ist (gemeldet von carrascoso@EEVblog).
+- Spanische Texte aktualisiert (Dank an pepe10000@EEVblog).
+
 v1.53m 2024-08
 - Interrupt-Adressproblem in gcrt1.S (OPTIMIZE_VECTORS) beseitigt, primär für
   avr-gcc 8.3.0 (Dank an horo@EEVblog).

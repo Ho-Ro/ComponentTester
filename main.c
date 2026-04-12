@@ -452,7 +452,11 @@ void Show_Fail(void)
   #ifdef UI_QUESTION_MARK
   /* display question mark symbol */
   Check.Symbol = SYMBOL_QUESTIONMARK;   /* set symbol ID */
-  Display_FancySemiPinout(3);           /* show symbol starting in line #3 */
+    #ifdef UI_CENTER_ALIGN
+      Display_FancySemiPinout(1);       /* show symbol starting in line #1 */
+    #else
+      Display_FancySemiPinout(3);       /* show symbol starting in line #3 */
+    #endif
   #endif
 
   #if CYCLE_MAX < 255
@@ -950,7 +954,7 @@ void Show_Capacitor(void)
 
 void Show_SemiCurrent(const unsigned char *String)
 {
-  if (CmpValue(Semi.I_value, Semi.I_scale, 50, -9) >= 0)  /* show if >=50nA */
+  if (CmpValue(Semi.I_value, Semi.I_scale, 10, -9) >= 0)  /* show if >= 10nA */
   {
     Display_NL_EEString_Space(String);               /* display: <string> */
     Display_Value(Semi.I_value, Semi.I_scale, 'A');  /* display current */
@@ -1225,7 +1229,7 @@ void Show_Diode(void)
     if (D1->V_f2 < 250)            /* < 250mV */
     {
       Display_Char('(');
-      Display_Value(D1->V_f2, 0, 0);    /* no unit */
+      Display_Value2(D1->V_f2);    /* no unit */
       Display_Char(')');
     }
 
@@ -1311,6 +1315,7 @@ void Show_BJT(void)
    *  F_1 - hFE
    *  F_2 - reverse hFE
    *  I_value/I_scale - I_CEO
+   *  C_value/C_scale - C_be
    */
 
   /*
@@ -1421,7 +1426,7 @@ void Show_BJT(void)
     #else
       Show_SingleResistor('B', 'E');              /* show resistor */
     #endif
-    /* B-E resistor renders hFE and V_BE measurements useless */
+    /* B-E resistor renders hFE, V_BE and C_be measurements useless */
 
     #ifdef SW_SYMBOLS
     UI.SymbolLine = 4;             /* display fancy pinout in line #4 */
@@ -1436,11 +1441,12 @@ void Show_BJT(void)
 
   /*
    *  display h_FE in next line
+   *  - B-E resistor renders value useless
    */
 
   /* display h_FE */
   Display_NL_EEString_Space(h_FE_str);       /* display: hFE */
-  Display_Value(Semi.F_1, 0, 0);             /* display h_FE */
+  Display_Value2(Semi.F_1);                  /* display h_FE */
 
   /* display hFE test circuit type */
   Display_Space();
@@ -1479,7 +1485,7 @@ void Show_BJT(void)
     if (Semi.F_2 > 0)              /* valid value */
     {
       Display_NL_EEString_Space(h_FE_r_str);      /* display: hFEr */
-      Display_Value(Semi.F_2, 0, 0);              /* display reverse h_FE */
+      Display_Value2(Semi.F_2);                   /* display reverse h_FE */
     }
   }
   #endif
@@ -1487,7 +1493,8 @@ void Show_BJT(void)
 
   /*
    *  display V_BE in next line
-   *  (taken from diode's forward voltage)
+   *  - taken from diode's forward voltage
+   *  - B-E resistor renders value useless
    */
 
   Diode = SearchDiode(BE_A, BE_C);      /* search for matching B-E diode */
@@ -1547,8 +1554,23 @@ void Show_BJT(void)
     #endif
   }
 
-  /* I_CEO: collector emitter open current (leakage) */
+
+  /*
+   *  I_CEO: collector emitter open current (leakage)
+   */
+
   Show_SemiCurrent(I_CEO_str);          /* display I_CEO */
+
+
+  #ifdef SW_C_BE
+  /*
+   *  C_BE: base emitter capacitance
+   *  - B-E resistor renders value useless
+   */
+
+  Display_NL_EEString_Space(C_be_str);               /* display: Cbe */
+  Display_Value(Semi.C_value, Semi.C_scale, 'F');    /* display C_be */
+  #endif
 
 
   #ifdef SW_SCHOTTKY_BJT
@@ -1591,10 +1613,12 @@ void Show_BJT(void)
 
 
 /*
- *  show MOSFET/IGBT extras
- *  - diode
+ *  show MOSFET/JFET/IGBT extras
+ *  - diode (intrinsic or flyback)
  *  - V_th
  *  - Cgs
+ *  - R_DS_on
+ *  - V_f of diode
  */
 
 void Show_FET_Extras(void)
@@ -1616,6 +1640,7 @@ void Show_FET_Extras(void)
    *  show instrinsic/freewheeling diode
    */
 
+  /* get expected anode and cathode pins */
   if (Check.Type & TYPE_N_CHANNEL)      /* n-channel/NPN */
   {
     Anode = Semi.C;                /* source/emitter */
@@ -1629,12 +1654,13 @@ void Show_FET_Extras(void)
 
   /* search for matching diode */
   Diode = SearchDiode(Anode, Cathode);
-  if (Diode != NULL)          /* got it */
+
+  if (Diode != NULL)               /* if available */
   {
     #ifdef UI_NO_BODYDIODE_TEXTPINOUT
     if (! (Check.Type & TYPE_MOSFET))   /* no MOSFET */
     {
-      /* show diode for anything but MOSFETs */
+      /* show diode for anything but a MOSFET */
     #endif
 
       #ifndef UI_NO_TEXTPINOUT
@@ -1654,50 +1680,65 @@ void Show_FET_Extras(void)
 
     #ifdef UI_SERIAL_COMMANDS
     /* set data for remote commands */
-    Info.Flags |= INFO_FET_D_FB;   /* found flyback diode */
-    Info.Comp1 = Diode;            /* link diode */
+    Info.Flags |= INFO_FET_D_FB;   /* found diode */
+    Info.Comp1 = Diode;            /* link diode data */
     #endif
+
+    /* todo: move output of Vf here? */
   }
 
-  /* skip remaining stuff for depletion-mode FETs/IGBTs */
-  if (Check.Type & TYPE_DEPLETION) return;
 
-  /* gate threshold voltage V_th */
-  if (Semi.U_2 != 0)
+  /*
+   *  for enhancement mode FET/IGBT show:
+   *  - V_th
+   *  - C_GS
+   *  - R_DS_on
+   */
+
+  if (Check.Type & TYPE_ENHANCEMENT)    /* enhancement mode */
   {
-    Display_NL_EEString_Space(Vth_str);      /* display: Vth */
-    Display_SignedValue(Semi.U_2, -3, 'V');  /* display V_th in mV */
+    /* display gate threshold voltage V_th */
+    if (Semi.U_2 != 0)                       /* if available */
+    {
+      Display_NL_EEString_Space(Vth_str);         /* display: Vth */
+      Display_SignedValue(Semi.U_2, -3, 'V');     /* display V_th in mV */
+
+      #ifdef UI_SERIAL_COMMANDS
+      /* set data for remote commands */
+      Info.Flags |= INFO_FET_V_TH;                /* measured Vth */
+      #endif
+    }
+
+    /* display gate-source capacitance C_GS */
+    /* todo: display "Cge" for IGBT? */
+    Display_NL_EEString_Space(C_gs_str);               /* display: Cgs */
+    Display_Value(Semi.C_value, Semi.C_scale, 'F');    /* display value and unit */
 
     #ifdef UI_SERIAL_COMMANDS
     /* set data for remote commands */
-    Info.Flags |= INFO_FET_V_TH;             /* measured Vth */
+    Info.Flags |= INFO_FET_C_GS;                  /* measured C_GS */
     #endif
+
+    /* display R_DS_on */
+    if (Semi.U_1 > 0)                             /* if available */
+    {
+      Display_NL_EEString_Space(R_DS_str);             /* display: Rds */
+      Display_Value(Semi.U_1, -2, LCD_CHAR_OMEGA);     /* display value */
+
+      #ifdef UI_SERIAL_COMMANDS
+      /* set data for remote commands */
+      Info.Flags |= INFO_FET_R_DS;                /* measured R_DS */
+      #endif
+    }
   }
 
-  /* display gate-source capacitance C_GS */
-  /* todo: display "Cge" for IGBT? */
-  Display_NL_EEString_Space(Cgs_str);             /* display: Cgs */
-  Display_Value(Semi.C_value, Semi.C_scale, 'F'); /* display value and unit */
 
-  #ifdef UI_SERIAL_COMMANDS
-  /* set data for remote commands */
-  Info.Flags |= INFO_FET_C_GS;               /* measured C_GS */
-  #endif
+  /*
+   *  show V_f of diode (instrinsic or flyback)
+   */
 
-  /* display R_DS_on, if available */
-  if (Semi.U_1 > 0)
-  {
-    Display_NL_EEString_Space(R_DS_str);          /* display: Rds */
-    Display_Value(Semi.U_1, -2, LCD_CHAR_OMEGA);  /* display value */
-
-    #ifdef UI_SERIAL_COMMANDS
-    /* set data for remote commands */
-    Info.Flags |= INFO_FET_R_DS;             /* measured R_DS */
-    #endif
-  }
-
-  /* display V_f of diode, if available */
-  if (Diode != NULL)
+  /* display V_f of diode */
+  if (Diode != NULL)                    /* if available */
   {
     Display_NextLine();                      /* new line */
     Display_Char(LCD_CHAR_DIODE_AC);         /* diode symbol |>| */
@@ -1790,7 +1831,7 @@ void Show_FET(void)
   /* display channel type */
   Show_FET_Channel();
       
-  /* display mode for MOSFETs*/
+  /* display mode for MOSFET */
   if (Check.Type & TYPE_MOSFET) Show_FET_Mode();
 
   #ifdef UI_COLORED_TITLES
@@ -1812,8 +1853,9 @@ void Show_FET(void)
    *  display additional stuff
    */
 
-  /* show body diode, V_th and Cgs for MOSFETs */
-  if (Check.Type & TYPE_MOSFET) Show_FET_Extras();
+  /* show body diode, V_th, Cgs, etc. for MOSFET */
+  /* or optional flyback diode plus V_f for JFET */
+  Show_FET_Extras();
 
   /* show I_DSS and V_GS(off) for depletion mode FET */
   if (Check.Type & TYPE_DEPLETION)

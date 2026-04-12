@@ -2,7 +2,7 @@
  *
  *   signal tools (hardware and software options)
  *
- *   (c) 2012-2023 by Markus Reschke
+ *   (c) 2012-2024 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -96,7 +96,7 @@ void PWM_Tool(uint16_t Frequency)
   #else
     Display_EEString_Space(PWM_str);    /* display: PWM */
   #endif
-  Display_Value(Frequency, 0, 0);       /* display frequency */
+  Display_Value2(Frequency);            /* display frequency */
   Display_EEString(Hertz_str);          /* display: Hz */
   #ifndef HW_FIXED_SIGNAL_OUTPUT
   ProbePinout(PROBES_PWM);              /* show probes used */
@@ -968,7 +968,7 @@ void Servo_Check(void)
 
       Test = Period[Index];             /* get period */
       Value = 10000 / Test;             /* calculate frequency */
-      Display_Value(Value, 0, 0);       /* display frequency */
+      Display_Value2(Value);            /* display frequency */
       Display_EEString(Hertz_str);      /* display: Hz */
 
       if (Flag & SWEEP_MODE)            /* in sweep mode */

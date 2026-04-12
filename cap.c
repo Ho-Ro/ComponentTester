@@ -890,7 +890,7 @@ uint8_t LargeCap(Capacitor_Type *Cap)
   int16_t           U_temp;        /* temporary voltage */
   uint16_t          U_Cap;         /* voltage of DUT */
   uint16_t          U_Drop = 0;    /* voltage drop (self-discharge) */
-  uint16_t          U_leak = 0;    /* voltage drop (leakage current) */
+  uint16_t          U_Leak = 0;    /* voltage drop (leakage current) */
   uint32_t          Raw;           /* raw capacitance value */
   uint32_t          Value;         /* corrected capacitance value */
 
@@ -928,6 +928,7 @@ large_cap:
    *  - create reference point with a low positive voltage to be able to
    *    measure also a low negative offset
    *  - use voltage divider: top RiH + Rl, bottom RiL (about 140mV)
+   *  - can cause incorrect negative zero offset for diodes with low Vf
    */
 
   /* set probes: Gnd -- probe-2 -- Rl - Vcc / probe-1 -- HiZ */
@@ -942,8 +943,7 @@ large_cap:
   R_PORT = 0;                      /* set resistor port to low */
   R_DDR = 0;                       /* set resistor port to HiZ */  
 
-
-  /* charge DUT with up to 500 pulses until it reaches 300mV */
+  /* charge DUT with up to 500 pulses until it exceeds 300mV */
   /* pulse: probe-1 -- Rl -- Vcc */
   Pulses = 0;                      /* reset number of pulses */
   TempByte = 1;                    /* set loop control */
@@ -1008,20 +1008,27 @@ large_cap:
   if (Flag == 3)              /* no issues so far */
   {
     /* check self-discharging for measuring period */
-    U_Drop = ReadU(Probes.Ch_1);        /* get start voltage */
     TempInt = Pulses;                   /* same number of loop runs (pulses) */
     while (TempInt > 0)                 /* delay loop */
     {
       TempInt--;                        /* decrease timeout */
-      U_leak = ReadU(Probes.Ch_1);      /* get current voltage */
+      U_Drop = ReadU(Probes.Ch_1);      /* get current voltage */
+
+      /* consider zero offset */
+      U_temp = (int16_t)U_Drop;         /* explicit type conversion */
+      if (U_temp > U_Zero)              /* voltage higher than zero offset */
+        U_temp -= U_Zero;                 /* subtract zero offset */
+      else                              /* shouldn't happen but you never know */
+        U_temp = 0;                       /* assume 0V */
+      U_Drop = (uint16_t)U_temp;        /* take result */
 
       wdt_reset();                      /* reset watchdog */
     }
 
     /* calculate voltage drop */
-    if (U_Drop > U_leak)           /* sanity check */
+    if (U_Cap > U_Drop)                 /* sanity check */
     {
-      U_Drop -= U_leak;            /* voltage drop */
+      U_Drop = U_Cap - U_Drop;          /* voltage drop */
 
       #ifdef SW_C_VLOSS
       /* voltage loss in 0.1% */
@@ -1044,7 +1051,7 @@ large_cap:
      *    C_S/H is just 14pF (very small vs. DUT).
      */
 
-    U_leak = ReadU(Probes.Ch_1);        /* get start voltage */
+    U_Leak = ReadU(Probes.Ch_1);        /* get start voltage */
 
     if (Mode & PULL_10MS)     /* > 47µF */
     {
@@ -1058,26 +1065,26 @@ large_cap:
     TempInt = ReadU(Probes.Ch_1);       /* get voltage after delay */
 
     /* calculate voltage drop */
-    if (U_leak > TempInt)               /* sanity check */
+    if (U_Leak > TempInt)               /* sanity check */
     {
       #if 0
       /* SW_C_VLOSS alternative */
       uint16_t           U_Temp;        /* temp. value */
 
-      U_Temp = U_leak;                  /* save voltage */
+      U_Temp = U_Leak;                  /* save voltage */
       #endif
 
-      U_leak -= TempInt;                /* voltage drop */
+      U_Leak -= TempInt;                /* voltage drop */
 
       #if 0
       /* SW_C_VLOSS alternative */
       /* voltage loss in 0.1% */
-      Cap->U_loss = (unsigned long)(U_leak * 1000UL) / U_Temp;
+      Cap->U_loss = (unsigned long)(U_Leak * 1000UL) / U_Temp;
       #endif
     }
     else                                /* no drop */
     {
-      U_leak = 0;                       /* drop is zero */
+      U_Leak = 0;                       /* drop is zero */
     }
   }
 
@@ -1142,7 +1149,7 @@ large_cap:
     }
 
     /* I = C * U_diff / t */
-    Value *= U_leak;          /* * U_diff (mV) */
+    Value *= U_Leak;          /* * U_diff (mV) */
     Value /= 1000;            /* scale to V */
     if (Mode & PULL_1MS)      /* short pulses */
     {

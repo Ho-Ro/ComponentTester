@@ -6,6 +6,23 @@
 
 ------------------------------------------------------------------------------
 
+v1.54m 2024-12
+- Improved filter for Ge BJTs in CheckDepletionModeFET() (thanks to KenBC1).
+- Changed threshold for output of leakage/reverse current to 10 nA (suggested
+  by fafa80@EEVblog and indman@EEVblog). Also adapted GetLeakageCurrent() to
+  support low currents at nA scale.
+- Fixed capacitance measurement issue for diodes with high leakage current (
+  was Regression in LargeCap(), reported by fafa80@EEVblog).
+- Updated Brazilian Portuguese texts (thanks to wandows@EEVblog).
+- Fixed compiler error for a counter variable in 5V-Meter (reported by
+  Alkapton@GitHub).
+- Added option for display of base-emitter capacitance C_be for BJTs (SW_C_BE,
+  suggested by edgard22@EEVblog). 
+- Added remote control command C_BE for base-emitter capacitance of BJTs.
+- Different position of question mark symbol in function Show_Fail() when
+  UI_CENTER_ALIGN is enabled (reported by carrascoso@EEVblog).
+- Updated Spanish texts (thanks to pepe10000@EEVblog).
+
 v1.53m 2024-08
 - Fixed interrupt address issue in gcrt1.S (OPTIMIZE_VECTORS), mainly for
   avr-gcc 8.3.0 (thanks to horo@EEVblog).

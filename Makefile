@@ -148,6 +148,7 @@ LDFLAGS = -mmcu=${MCU} -Wl,-Map=${NAME}.map
 ifeq (${OPTIMIZE_VECTORS},yes)
   LDFLAGS += -nostartfiles
 endif
+# > 128kB flash
 #LDFLAGS += -Wl,-relax
 
 # hex file flags

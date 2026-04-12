@@ -380,6 +380,14 @@
 
 
 /*
+ *  Self Test
+ *  - comment out to disable
+ */
+
+#define SW_SELFTEST
+
+
+/*
  *  PWM generator with simple user interface
  *  - signal output via OC1B
  *  - uncomment to enable
@@ -515,7 +523,7 @@
 
 
 /*
- *  Alternative delay loop for IR remote control sender
+ *  alternative delay loop for IR remote control sender
  *  - in case the the C compiler screws up the default delay loop
  *    and causes incorrect pulse/pause timings
  *  - uncomment to enable
@@ -638,6 +646,14 @@
 
 
 /*
+ *  display C_be (base-emitter capacitance) for BJTs
+ *  - uncomment to enable
+ */
+
+//#define SW_C_BE
+
+
+/*
  *  R/C/L monitors
  *  - monitor passive components connected to probes #1 and #3
  *  - monitors for L require SW_INDUCTOR to be enabled
@@ -749,6 +765,18 @@
 //#define SW_DIODE_LED
 
 
+/*
+ *  Voltmeter 0-5V DC
+ *  - warning: no input protection!!!
+ *  - with optional buzzer:
+ *    beep when default threshold is exceeded
+ *  - uncomment to enable
+ */
+
+//#define SW_METER_5VDC
+#define METER_5VDC_THRESHOLD  25        /* default threshold in 100 mV */
+
+
 
 /* ************************************************************************
  *   workarounds for some testers
@@ -807,20 +835,22 @@
 
 
 /*
- *  Language of user interface. Available languages:
- *  - English (default)
- *  - Brazilian Portuguese
- *  - Czech (based on ISO 8859-1)
- *  - Czech 2 (with Czech characters based on ISO 8859-2)
- *  - Danish
- *  - French (based on ISO 8859-1)
- *  - German
- *  - Polish (based on ISO 8859-1)
- *  - Polish 2 (with Polish characters based on ISO 8859-2)
- *  - Spanish
- *  - Romanian
- *  - Russian (with cyrillic characters based on Windows-1251)
- *  - Russian 2 (with cyrillic characters based on Windows-1251)
+ *  Language of user interface.
+ *  - Available languages:
+ *    - English (default)
+ *    - Brazilian Portuguese
+ *    - Czech (based on ISO 8859-1)
+ *    - Czech 2 (with Czech characters based on ISO 8859-2)
+ *    - Danish
+ *    - French (based on ISO 8859-1)
+ *    - German
+ *    - Polish (based on ISO 8859-1)
+ *    - Polish 2 (with Polish characters based on ISO 8859-2)
+ *    - Spanish
+ *    - Romanian
+ *    - Russian (with cyrillic characters based on Windows-1251)
+ *    - Russian 2 (with cyrillic characters based on Windows-1251)
+ *  - choose one language
  */
 
 #define UI_ENGLISH
@@ -856,7 +886,18 @@
 
 
 /*
- *  Display hexadecimal values in uppercase instead of lowercase
+ *  Display 4-digit values as value with metric prefix (where applicable).
+ *  - 1234  -> 1.234k
+ *    1234k -> 1.234M
+ *    1234p -> 1.234n
+ *  - uncomment to enable.
+ */
+
+//#define UI_PREFIX
+
+
+/*
+ *  Display hexadecimal values in uppercase instead of lowercase.
  *  - uncomment to enable
  */
 
@@ -1184,6 +1225,15 @@
  */
 
 //#define UI_PROBING_DONE_BEEP
+
+
+/*
+ *  Self-Test/Adjustment: display measurement values page-wise
+ *  - requires display with 6 text lines or more
+ *  - uncomment to enable
+ */
+
+//#define UI_TEST_PAGEMODE
 
 
 /*
