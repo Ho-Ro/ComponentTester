@@ -1,7 +1,7 @@
 #
 #  Makefile
 #
-#  (c) 2012-2024 by Markus Reschke
+#  (c) 2012-2025 by Markus Reschke
 #  based on code from Markus Frejek and Karl-Heinz Kübbeler
 #
 
@@ -160,7 +160,7 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 # header files
 HEADERS = config.h config_328.h config_644.h config_1280.h
 HEADERS += colors.h common.h functions.h variables.h $(wildcard var_*.h)
-HEADERS += OneWire.h ADS7843.h
+HEADERS += OneWire.h
 HEADERS += HD44780.h ILI9163.h ILI9341.h ILI9481.h ILI9486.h ILI9488.h
 HEADERS += PCD8544.h PCF8814.h SH1106.h SSD1306.h
 HEADERS += ST7036.h ST7565R.h ST7735.h ST7920.h STE2007.h
@@ -170,7 +170,8 @@ OBJECTS_C = main.o user.o pause.o adjust.o ADC.o probes.o display.o
 OBJECTS_C += resistor.o cap.o semi.o inductor.o
 OBJECTS_C += tools_misc.o tools_signal.o tools_counter.o tools_LC_Meter.o
 OBJECTS_C += SPI.o I2C.o serial.o commands.o OneWire.o
-OBJECTS_C += IR_RX.o IR_TX.o DHTxx.o ADS7843.o MAX6675.o MAX31855.o BH1750.o
+OBJECTS_C += IR_RX.o IR_TX.o DHTxx.o ADS7843.o MAX6675.o MAX31855.o
+OBJECTS_C += BH1750.o INA226.o
 OBJECTS_C += HD44780.o ILI9163.o ILI9341.o ILI9481.o ILI9486.o ILI9488.o
 OBJECTS_C += PCD8544.o PCF8814.o SH1106.o SSD1306.o
 OBJECTS_C += ST7036.o ST7565R.o ST7735.o Semi_ST7735.o ST7920.o

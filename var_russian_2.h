@@ -22,7 +22,7 @@
 
 
   /* firmware */
-  const unsigned char Tester_str[] MEM_TYPE = "Component Tester";
+  const unsigned char Tester_str[] MEM_TYPE = "Мультитестер";
 
 
   /* common terms and texts */
@@ -43,15 +43,15 @@
   const unsigned char Error_str[] MEM_TYPE = "Ошибка!";
   const unsigned char Exit_str[] MEM_TYPE = "Выход";
   const unsigned char Checksum_str[] MEM_TYPE = "Контр. сумма";
-  const unsigned char BJT_str[] MEM_TYPE = "Транз. (бипол.)";
+  const unsigned char BJT_str[] MEM_TYPE = "Транз.(бипол.)";
   const unsigned char Thyristor_str[] MEM_TYPE = "Тиристор";
   const unsigned char Triac_str[] MEM_TYPE = "Симистор";
-  const unsigned char PUT_str[] MEM_TYPE = "Транз. (ПОПТ)";
+  const unsigned char PUT_str[] MEM_TYPE = "Транз.(ПОПТ)";
   const unsigned char Bye_str[] MEM_TYPE = "До свидания!";
 
 
   /* units */
-  const unsigned char Hertz_str[] MEM_TYPE = "Hz";
+  const unsigned char Hertz_str[] MEM_TYPE = "Гц";
 
 
   /* options */
@@ -60,22 +60,22 @@
   #endif
 
   #if ! defined (BAT_NONE) && ! defined (UI_BATTERY)
-    const unsigned char Battery_str[] MEM_TYPE = "Bat";
+    const unsigned char Battery_str[] MEM_TYPE = "Бат";
     const unsigned char OK_str[] MEM_TYPE = "ok";
     const unsigned char Weak_str[] MEM_TYPE = "слабая";
-    const unsigned char Low_str[] MEM_TYPE = "разр.";
+    const unsigned char Low_str[] MEM_TYPE = "разряд";
   #endif
 
   #ifdef BAT_EXT_UNMONITORED
-    const unsigned char External_str[] MEM_TYPE = "ext";
+    const unsigned char External_str[] MEM_TYPE = "внешн.";
   #endif
 
   #ifdef UI_KEY_HINTS
-    const unsigned char Menu_or_Test_str[] MEM_TYPE = "<Menu Test>";
+    const unsigned char Menu_or_Test_str[] MEM_TYPE = "<Меню Тест>";
   #endif
 
   #if defined (SW_PWM_SIMPLE) || defined (SW_PWM_PLUS)
-    const unsigned char PWM_str[] MEM_TYPE = "PWM";
+    const unsigned char PWM_str[] MEM_TYPE = "ШИМ";
   #endif
 
   #ifdef SW_SQUAREWAVE
@@ -87,7 +87,7 @@
   #endif
 
   #if defined (HW_ZENER) && ! defined (ZENER_UNSWITCHED)
-    const unsigned char Min_str[] MEM_TYPE = "мин.";
+    const unsigned char Min_str[] MEM_TYPE = "Мин.";
   #endif
 
   #ifdef HW_FREQ_COUNTER
@@ -95,35 +95,35 @@
   #endif
 
   #ifdef HW_FREQ_COUNTER_EXT
-    const unsigned char CounterChannel_str[] MEM_TYPE = "Ch";
+    const unsigned char CounterChannel_str[] MEM_TYPE = "Вх.канал:";
     const unsigned char FreqInput_str[] MEM_TYPE = "BNC";
-    const unsigned char LF_Crystal_str[] MEM_TYPE = "LF crystal";
-    const unsigned char HF_Crystal_str[] MEM_TYPE = "HF crystal";
+    const unsigned char LF_Crystal_str[] MEM_TYPE = "НЧ кварц";
+    const unsigned char HF_Crystal_str[] MEM_TYPE = "ВЧ кварц";
   #endif
 
   #ifdef HW_RING_TESTER
-    const unsigned char RingTester_str[] MEM_TYPE = "Ring Tester";
+    const unsigned char RingTester_str[] MEM_TYPE = "Тест LOPT/FBT";
   #endif
 
   #ifdef HW_EVENT_COUNTER
-    const unsigned char EventCounter_str[] MEM_TYPE = "Event Counter";
-    const unsigned char Count_str[] MEM_TYPE = "Count";
-    const unsigned char Time_str[] MEM_TYPE = "Time";
-    const unsigned char Events_str[] MEM_TYPE = "Events";
-    const unsigned char Stop_str[] MEM_TYPE = "Stop";
+    const unsigned char EventCounter_str[] MEM_TYPE = "Счетчик";
+    const unsigned char Count_str[] MEM_TYPE = "Подсчет";
+    const unsigned char Time_str[] MEM_TYPE = "Время";
+    const unsigned char Events_str[] MEM_TYPE = "События";
+    const unsigned char Stop_str[] MEM_TYPE = "Стоп";
   #endif
 
   #ifdef HW_LC_METER
-    const unsigned char LC_Meter_str[] MEM_TYPE = "LC Meter";
-    const unsigned char Adjusting_str[] MEM_TYPE = "adjusting...";
+    const unsigned char LC_Meter_str[] MEM_TYPE = "LC-метр";
+    const unsigned char Adjusting_str[] MEM_TYPE = "настройка...";
   #endif
 
   #ifdef HW_LOGIC_PROBE
-    const unsigned char LogicProbe_str[] MEM_TYPE = "Logic Probe";
+    const unsigned char LogicProbe_str[] MEM_TYPE = "Лог.пробник";
   #endif
 
   #ifdef SW_ENCODER
-    const unsigned char Encoder_str[] MEM_TYPE = "Валкодер";
+    const unsigned char Encoder_str[] MEM_TYPE = "Энкодер";
     const unsigned char TurnRight_str[] MEM_TYPE = "Направо!";
   #endif
 
@@ -136,8 +136,8 @@
   #endif
 
   #ifdef SW_IR_TRANSMITTER
-    const unsigned char IR_Transmitter_str[] MEM_TYPE = "IR RC";
-    const unsigned char IR_Send_str[] MEM_TYPE = "sending...";
+    const unsigned char IR_Transmitter_str[] MEM_TYPE = "ИК передатчик";
+    const unsigned char IR_Send_str[] MEM_TYPE = "Код.посылка...";
   #endif
 
   #ifdef SW_OPTO_COUPLER
@@ -151,7 +151,7 @@
   #endif
 
   #ifdef SW_UJT
-    const unsigned char UJT_str[] MEM_TYPE = "Транз. (ОПТ)";
+    const unsigned char UJT_str[] MEM_TYPE = "Транз.(ОПТ)";
   #endif
 
   #ifdef SW_SERVO
@@ -160,74 +160,74 @@
   #endif
 
   #ifdef SW_CAP_LEAKAGE
-    const unsigned char CapLeak_str[] MEM_TYPE = "Cap Leakage";
-    const unsigned char CapCharge_str[] MEM_TYPE = "Charging";
+    const unsigned char CapLeak_str[] MEM_TYPE = "Ток утечки С";
+    const unsigned char CapCharge_str[] MEM_TYPE = "Заряд";
     const unsigned char CapHigh_str[] MEM_TYPE = "Rl";
     const unsigned char CapLow_str[] MEM_TYPE = "Rh";
-    const unsigned char CapDischarge_str[] MEM_TYPE = "Discharging";
+    const unsigned char CapDischarge_str[] MEM_TYPE = "Разряд";
   #endif
 
   #ifdef SW_MONITOR_R
-    const unsigned char Monitor_R_str[] MEM_TYPE = "R Monitor";
+    const unsigned char Monitor_R_str[] MEM_TYPE = "R монитор";
   #endif
 
   #ifdef SW_MONITOR_C
-    const unsigned char Monitor_C_str[] MEM_TYPE = "C Monitor";
+    const unsigned char Monitor_C_str[] MEM_TYPE = "C монитор";
   #endif
 
   #ifdef SW_MONITOR_L
-    const unsigned char Monitor_L_str[] MEM_TYPE = "L Monitor";
+    const unsigned char Monitor_L_str[] MEM_TYPE = "L монитор";
   #endif
 
   #ifdef SW_MONITOR_RCL
-    const unsigned char Monitor_RCL_str[] MEM_TYPE = "RCL Monitor";
+    const unsigned char Monitor_RCL_str[] MEM_TYPE = "RCL монитор";
   #endif
 
   #ifdef SW_MONITOR_RL
-    const unsigned char Monitor_RL_str[] MEM_TYPE = "RL Monitor";
+    const unsigned char Monitor_RL_str[] MEM_TYPE = "RL монитор";
   #endif
 
   #ifdef HW_TOUCH
-    const unsigned char TouchSetup_str[] MEM_TYPE = "Touch Setup";
+    const unsigned char TouchSetup_str[] MEM_TYPE = "Настр.сенсора";
   #endif
 
   #ifdef SW_POWER_OFF
-    const unsigned char PowerOff_str[] MEM_TYPE = "Off";
+    const unsigned char PowerOff_str[] MEM_TYPE = "Выключить";
   #endif
 
   #ifdef SW_ONEWIRE_SCAN
-    const unsigned char OneWire_Scan_str[] MEM_TYPE = "OneWire Scan";
-    const unsigned char Bus_str[] MEM_TYPE = "Bus";
+    const unsigned char OneWire_Scan_str[] MEM_TYPE = "1-Wire детект";
+    const unsigned char Bus_str[] MEM_TYPE = "Шина";
   #endif
 
   #ifdef SW_CONTINUITY_CHECK
-    const unsigned char ContinuityCheck_str[] MEM_TYPE = "Continuity";
+    const unsigned char ContinuityCheck_str[] MEM_TYPE = "Звук.прозвонка";
   #endif
 
   #ifdef SW_FONT_TEST
-    const unsigned char FontTest_str[] MEM_TYPE = "Font";
+    const unsigned char FontTest_str[] MEM_TYPE = "Шрифт";
   #endif
 
   #ifdef SW_SYMBOL_TEST
-    const unsigned char SymbolTest_str[] MEM_TYPE = "Symbols";
+    const unsigned char SymbolTest_str[] MEM_TYPE = "Символы";
   #endif
 
   #ifdef HW_FLASHLIGHT
-    const unsigned char Flashlight_str[] MEM_TYPE = "Flashlight";
+    const unsigned char Flashlight_str[] MEM_TYPE = "Фонарик";
   #endif
 
   #ifdef SW_PHOTODIODE
-    const unsigned char Photodiode_str[] MEM_TYPE = "Photodiode";
+    const unsigned char Photodiode_str[] MEM_TYPE = "Фотодиод";
     const unsigned char NoBias_str[] MEM_TYPE = "no";
     const unsigned char ReverseBias_str[] MEM_TYPE = "rev";
   #endif
 
   #ifdef SW_DIODE_LED
-    const unsigned char Diode_LED_str[] MEM_TYPE = "Diode/LED";
+    const unsigned char Diode_LED_str[] MEM_TYPE = "Диод/LED";
   #endif
 
   #ifdef SW_METER_5VDC
-    const unsigned char Meter_5VDC_str[] MEM_TYPE = "5V-Meter";
+    const unsigned char Meter_5VDC_str[] MEM_TYPE = "5V-вольтметр";
   #endif
 
 #endif

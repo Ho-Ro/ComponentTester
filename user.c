@@ -1856,6 +1856,7 @@ void AdjustmentMenu(uint8_t Mode)
 #define MENUITEM_BH1750           40
 #define MENUITEM_DIODE_LED        41
 #define MENUITEM_METER_5VDC       42
+#define MENUITEM_INA226           43
 
 
 /*
@@ -2101,10 +2102,17 @@ uint8_t PresentMainMenu(void)
     #define ITEM_38      0
   #endif
 
+  #ifdef HW_INA226
+    #define ITEM_39      1
+  #else
+    #define ITEM_39      0
+  #endif
+
+
   #define ITEMS_PACK_0   (ITEM_01 + ITEM_02 + ITEM_03 + ITEM_04 + ITEM_05 + ITEM_06 + ITEM_07 + ITEM_08 + ITEM_09 + ITEM_10)
   #define ITEMS_PACK_1   (ITEM_11 + ITEM_12 + ITEM_13 + ITEM_14 + ITEM_15 + ITEM_16 + ITEM_17 + ITEM_18 + ITEM_19 + ITEM_20)
   #define ITEMS_PACK_2   (ITEM_21 + ITEM_22 + ITEM_23 + ITEM_24 + ITEM_25 + ITEM_26 + ITEM_27 + ITEM_28 + ITEM_29 + ITEM_30)
-  #define ITEMS_PACK_3   (ITEM_31 + ITEM_32 + ITEM_33 + ITEM_34 + ITEM_35 + ITEM_36 + ITEM_37 + ITEM_38)
+  #define ITEMS_PACK_3   (ITEM_31 + ITEM_32 + ITEM_33 + ITEM_34 + ITEM_35 + ITEM_36 + ITEM_37 + ITEM_38 + ITEM_39)
 
   /* number of menu items */
   #define MENU_ITEMS     (ITEMS_BASIC + ITEMS_PACK_0 + ITEMS_PACK_1 + ITEMS_PACK_2 + ITEMS_PACK_3)
@@ -2339,6 +2347,13 @@ uint8_t PresentMainMenu(void)
   n++;
   #endif
 
+  #ifdef HW_INA226
+  /* INA226 power monitor */
+  Item_Str[n] = (void *)INA226_str;
+  Item_ID[n] = MENUITEM_INA226;
+  n++;
+  #endif
+
   #ifdef HW_FLASHLIGHT
   /* flashlight / general purpose switched output */
   Item_Str[n] = (void *)Flashlight_str;
@@ -2487,6 +2502,7 @@ uint8_t PresentMainMenu(void)
   #undef ITEM_36
   #undef ITEM_37
   #undef ITEM_38
+  #undef ITEM_39
 
   return(ID);                 /* return item ID */
 }
@@ -2844,6 +2860,13 @@ uint8_t MainMenu(void)
       break;
     #endif
 
+    #ifdef HW_INA226
+    /* INA226 power monitor */
+    case MENUITEM_INA226:
+      INA226_Tool();
+      break;
+    #endif
+
   }
 
   #ifdef POWER_OFF_TIMEOUT
@@ -2958,6 +2981,7 @@ uint8_t MainMenu(void)
 #undef MENUITEM_BH1750
 #undef MENUITEM_DIODE_LED
 #undef MENUITEM_METER_5VDC
+#undef MENUITEM_INA226
 
 
 

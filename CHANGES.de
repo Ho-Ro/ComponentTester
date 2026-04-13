@@ -2,9 +2,23 @@
 
              Änderungen der Component-Tester-Firmware (m-firmware)
 
-                       (c) 2012-2024 by Markus Reschke
+                       (c) 2012-2025 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.55m 2025-04
+- Unterstützung von INA226-Leistungsmonitor (HW_INA226, Vorschlag von
+  prashk20@EEVblog).
+- Schwellwert in DischargeProbes() für neuere ATmega-Typen mit niedrigerem RiL
+  und RiH angepasst (Dank an genix@EEVblog).
+- UI-Ablauf in BH1750-Funktion korrigiert, d.h. Prüfung auf BH1750 erst nach
+  "Start".
+- Russische Texte #1 und #2 aktualisiert (Dank an indman@EEVblog).
+- Unterstützung von Summer/Pieper in Logictester (Vorschlag von Bohu).
+- Option um nach dem Einschalten direkt in das Hauptmenü zu gehen, wenn beim
+  Einschalten die Testtaste zweimal gedrückt wird (UI_MAINMENU_POWERON_BUTTON,
+  Vorschlag von indman@EEVblog).
+- Polnische Texte #2 aktualisiert (Dank an Jacon@EEVblog).
 
 v1.54m 2024-12
 - Filter für Germanium-BJTs in CheckDepletionModeFET() verbessert (Dank an

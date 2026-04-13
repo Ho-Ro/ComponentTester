@@ -2,7 +2,7 @@
  *
  *   global variables
  *
- *   (c) 2012-2024 by Markus Reschke
+ *   (c) 2012-2025 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -156,7 +156,7 @@
 
 
   /* firmware */
-  const unsigned char Version_str[] MEM_TYPE = "v1.54m";
+  const unsigned char Version_str[] MEM_TYPE = "v1.55m";
 
 
   /* common terms and texts */
@@ -308,6 +308,10 @@
 
   #ifdef SW_C_VLOSS
     const unsigned char U_loss_str[] MEM_TYPE = "V_l";
+  #endif
+
+  #ifdef HW_INA226
+    const unsigned char INA226_str[] MEM_TYPE = "INA226";
   #endif
 
 
@@ -943,6 +947,10 @@
 
   #ifdef SW_METER_5VDC
     extern const unsigned char Meter_5VDC_str[];
+  #endif
+
+  #ifdef HW_INA226
+    extern const unsigned char INA226_str[];
   #endif
 
 

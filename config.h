@@ -2,7 +2,7 @@
  *
  *   global configuration, setup and settings
  *
- *   (c) 2012-2024 by Markus Reschke
+ *   (c) 2012-2025 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -372,6 +372,27 @@
 #define BH1750_I2C_ADDR       0x23      /* I2C address 0x23 (ADDR low) */
 //#define BH1750_I2C_ADDR      0x5c       /* I2C address 0x5c (ADDR high) */
 
+
+/*
+ *  INA226 power monitor
+ *  - requires I2C bus, I2C read support, and display with 4 textlines or more
+ *  - current shunt in mOhms (usually 100, 10 or 2 mOhms)
+ *  - option to enable and set zero threshold for current shunt voltage
+ *    (ADC raw value, >= 1)
+ *  - option to subtract voltage across current shunt
+ *  - select number of samples for averaging (1, 4, 16, 64, 128, 512, 1024)
+ *  - option to enable and set a power alarm when exceeding a specific threshold
+ *    (requires buzzer option, in mW)
+ *  - uncomment to enable and also set the correct I2C address (0x40 - 0x4f)
+ */
+
+//#define HW_INA226
+#define INA226_I2C_ADDR            0x40      /* 0x40: A0=Gnd, A1=Gnd */
+#define INA226_R_SHUNT             100       /* current shunt in mOhms */
+//#define INA226_SHUNT_ZERO_THRESHOLD     3    /* zero threshold (ADC raw value) */
+//#define INA226_MINUS_SHUNT                   /* subtract voltage across current shunt */
+#define INA226_SAMPLES             1         /* number of samples for averaging */
+//#define INA226_POWER_ALARM         1000      /* power alarm threshold (in mW) */
 
 
 /* ************************************************************************
@@ -929,6 +950,14 @@
  */
 
 //#define UI_SHORT_CIRCUIT_MENU
+
+
+/*
+ *  Enter main menu after power-on by pressing test button twice at power-on.
+ *  - uncomment to enable
+ */
+
+//#define UI_MAINMENU_POWERON_BUTTON
 
 
 /*
@@ -1571,7 +1600,7 @@
 
 //#define I2C_BITBANG                /* bit-bang I2C */
 //#define I2C_HARDWARE               /* MCU's hardware TWI */
-//#define I2C_STANDARD_MODE          /* 100kHz bus speed */
+#define I2C_STANDARD_MODE          /* 100kHz bus speed */
 //#define I2C_FAST_MODE              /* 400kHz bus speed */
 //#define I2C_RW                     /* enable I2C read support */
 

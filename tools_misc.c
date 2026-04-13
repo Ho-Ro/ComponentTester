@@ -2,7 +2,7 @@
  *
  *   misc tools (hardware and software options)
  *
- *   (c) 2012-2024 by Markus Reschke
+ *   (c) 2012-2025 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -2089,14 +2089,48 @@ void LogicProbe(void)
     if (U1 <= U_low)               /* below low threshold */
     {
       State = '0';                 /* 0 for low */
+
+      #ifdef HW_BUZZER
+        /* buzzer */
+
+        #ifdef BUZZER_ACTIVE
+        /* active buzzer: one short beep (20ms) */
+        BUZZER_PORT |= (1 << BUZZER_CTRL);   /* enable: set pin high */
+        MilliSleep(20);                      /* wait for 20 ms */
+        BUZZER_PORT &= ~(1 << BUZZER_CTRL);  /* disable: set pin low */
+        #endif
+
+        #ifdef BUZZER_PASSIVE
+        /* passive buzzer: short beep, low freq (20ms, 2.5kHz) */
+        PassiveBuzzer(BUZZER_FREQ_LOW);      /* low frequency beep */
+        #endif
+      #endif
     }
     else if (U1 >= U_high)         /* above high threshold */
     {
       State = '1';                 /* 1 for high */
+
+      #ifdef HW_BUZZER
+        /* buzzer */
+
+        #ifdef BUZZER_ACTIVE
+        /* active buzzer: long beep (60ms) */
+        BUZZER_PORT |= (1 << BUZZER_CTRL);   /* enable: set pin high */
+        MilliSleep(60);                      /* wait for 60 ms */
+        BUZZER_PORT &= ~(1 << BUZZER_CTRL);  /* disable: set pin low */
+        #endif
+
+        #ifdef BUZZER_PASSIVE
+        /* passive buzzer: short beep, high freq (20ms, 5kHz) */
+        PassiveBuzzer(BUZZER_FREQ_HIGH);     /* high frequency beep */
+        #endif
+      #endif
     }
     else                           /* in between (undefined, HiZ) */
     {
       State = 'Z';                 /* z for undefined/HiZ */
+
+      /* buzzer: no beep */
     }
 
     /* display state and voltage */
@@ -2308,28 +2342,30 @@ void ContinuityCheck(void)
     /* compare voltage with thresholds */
     if (U1 < 100)                       /* < 100mV */
     {
-      /* short: continuous beep */
+      /* short */
 
       #ifdef BUZZER_ACTIVE
-      /* enable buzzer */
+      /* active buzzer: continuous beep (enable) */
       BUZZER_PORT |= (1 << BUZZER_CTRL);     /* set pin high */
       #endif
 
       #ifdef BUZZER_PASSIVE
+      /* passive buzzer: short beep, high freq (20ms, 5kHz) */
       PassiveBuzzer(BUZZER_FREQ_HIGH);       /* high frequency beep */
       #endif
     }
     else if (U1 <= 700)                 /* 100-700mV */
     {
-      /* pn junction: short beep */
+      /* pn junction */
 
       #ifdef BUZZER_ACTIVE
-      /* enable buzzer */
+      /* active buzzer: short beep (enable) */
       BUZZER_PORT |= (1 << BUZZER_CTRL);     /* set pin high */
       Flag |= BEEP_SHORT;                    /* set flag */
       #endif
 
       #ifdef BUZZER_PASSIVE
+      /* passive buzzer: short beep, low freq (20ms, 2.5kHz) */
       PassiveBuzzer(BUZZER_FREQ_LOW);        /* low frequency beep */
       #endif
     }
@@ -2338,7 +2374,7 @@ void ContinuityCheck(void)
       /* something else or open circuit: no beep */
 
       #ifdef BUZZER_ACTIVE
-      /* disable buzzer */
+      /* active buzzer: disable */
       BUZZER_PORT &= ~(1 << BUZZER_CTRL);    /* set pin low */
       #endif
     }
@@ -2352,7 +2388,7 @@ void ContinuityCheck(void)
     #ifdef BUZZER_ACTIVE
     if (Flag & BEEP_SHORT)              /* short beep */
     {
-      /* disable buzzer */
+      /* active buzzer: disable */
       BUZZER_PORT &= ~(1 << BUZZER_CTRL);    /* set pin low */
       Flag &= ~BEEP_SHORT;                   /* clear flag */
     }
@@ -2893,16 +2929,14 @@ void Meter_5VDC(void)
       if (U >= Threshold)          /* threshold exceeded */
       {
         #ifdef BUZZER_ACTIVE
-        /* enable buzzer */
-        BUZZER_PORT |= (1 << BUZZER_CTRL);     /* set pin high */
-
+        /* active buzzer: short beep (20ms) */
+        BUZZER_PORT |= (1 << BUZZER_CTRL);     /* enable: set pin high */
         wait20ms();                            /* wait 20 ms */
-   
-        /* disable buzzer */
-        BUZZER_PORT &= ~(1 << BUZZER_CTRL);    /* set pin low */
+        BUZZER_PORT &= ~(1 << BUZZER_CTRL);    /* disable: set pin low */
         #endif
 
         #ifdef BUZZER_PASSIVE
+        /* passive buzzer: short beep, high freq (20ms, 5kHz) */
         PassiveBuzzer(BUZZER_FREQ_HIGH);       /* high frequency beep */
         #endif
       }

@@ -2,9 +2,22 @@
 
             Change Log for the Component Tester firmware (m-firmware)
 
-                       (c) 2012-2024 by Markus Reschke
+                       (c) 2012-2025 by Markus Reschke
 
 ------------------------------------------------------------------------------
+
+v1.55m 2025-04
+- Added support for INA226 power monitor (HW_INA226, suggested by
+  prashk20@EEVblog).
+- Adjusted threshold in DischargeProbes() to support newer ATmega types with
+  lower RiL and RiH (thanks to genix@EEVblog).
+  values of newer ATmega types.
+- Fixed UI flow in BH1750 function, i.e. check for BH1750 after 'Start'.
+- Updated Russian texts #1 and #2 (thanks to indman@EEVblog).
+- Added support for buzzer in logic probe (suggested by Bohu).
+- Added option to enter main menu after power-on by pressing test button twice
+  at power-on (UI_MAINMENU_POWERON_BUTTON, suggested by indman@EEVblog).
+- Updated Polish texts #2 (thanks to Jacon@EEVblog).
 
 v1.54m 2024-12
 - Improved filter for Ge BJTs in CheckDepletionModeFET() (thanks to KenBC1).

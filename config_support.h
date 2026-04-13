@@ -2,7 +2,7 @@
  *
  *   support for global configuration
  *
- *   (c) 2012-2024 by Markus Reschke
+ *   (c) 2012-2025 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -477,6 +477,11 @@
     #undef SW_IR_RX_BEEP
   #endif
 
+  /* INA226: power alarm beep */
+  #ifdef INA226_POWER_ALARM
+    #undef INA226_POWER_ALARM
+  #endif
+
 #endif
 
 
@@ -607,6 +612,10 @@
   /* BH1750 */
   #ifdef HW_BH1750
     #undef HW_BH1750
+  #endif
+  /* INA226 */
+  #ifdef HW_INA226
+    #undef HW_INA226
   #endif
 #endif
 
@@ -1248,7 +1257,7 @@
   #endif
 #endif
 
-#if defined (SW_DHTXX) || defined (HW_MAX6675) || defined (HW_MAX31855) || defined (HW_BH1750)
+#if defined (SW_DHTXX) || defined (HW_MAX6675) || defined (HW_MAX31855) || defined (HW_BH1750) || defined (HW_INA226)
   #ifndef VAR_START_STR
     #define VAR_START_STR
   #endif

@@ -2,7 +2,7 @@
  *
  *   probing testpins
  *
- *   (c) 2012-2022 by Markus Reschke
+ *   (c) 2012-2025 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -397,7 +397,7 @@ void DischargeProbes(void)
     {
       Flags |= (1 << ID);               /* set flag for probe */
     }
-    else if (U_c < 800)                 /* extra pull-down */
+    else if (U_c < 400)                 /* extra pull-down (< 400mV) */
     {
       /* it's safe now to pull down probe pin directly */
       ADC_DDR |= DATA_read_byte(&Pin_table[ID]);

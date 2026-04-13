@@ -2,7 +2,7 @@
  *
  *   global functions
  *
- *   (c) 2012-2024 by Markus Reschke
+ *   (c) 2012-2025 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -219,6 +219,19 @@
 
   #ifdef HW_BH1750
   extern void BH1750_Tool(void);
+  #endif
+
+#endif
+
+
+/* ************************************************************************
+ *   functions from INA226.c
+ * ************************************************************************ */
+
+#ifndef INA226_C
+
+  #ifdef HW_INA226
+  extern void INA226_Tool(void);
   #endif
 
 #endif

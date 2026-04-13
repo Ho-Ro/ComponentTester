@@ -2,7 +2,7 @@
  *
  *   main part
  *
- *   (c) 2012-2024 by Markus Reschke
+ *   (c) 2012-2025 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -2423,6 +2423,9 @@ int main(void)
 {
   uint8_t           Test;          /* test value */
   uint8_t           Key;           /* user feedback */
+  #ifdef UI_MAINMENU_POWERON_BUTTON
+  uint8_t           Key2 = 0;      /* user feedback #2 */
+  #endif
 
 
   /*
@@ -2571,7 +2574,7 @@ int main(void)
    *  operation mode selection
    *  - short key press -> continuous mode
    *  - long key press -> auto-hold mode
-   *  - very long key press -> reset to defaults
+   *  - very long key press -> reset to defaults (adjustments)
    */
 
   Key = 0;                              /* reset key press type */
@@ -2583,24 +2586,50 @@ int main(void)
 
     while (Key == 0)               /* loop until we got a type */
     {
-      MilliSleep(20);                   /* wait 20ms */
+      MilliSleep(20);                        /* wait 20ms */
 
-      if (!(BUTTON_PIN & (1 << TEST_BUTTON)))     /* button still pressed */
+      if (!(BUTTON_PIN & (1 << TEST_BUTTON)))   /* button still pressed */
       {
-        Test++;                         /* increase counter */
-        if (Test > 100) Key = 3;        /* >2000ms */
+        Test++;                                   /* increase counter */
+        if (Test > 100) Key = KEY_DEFAULTS;       /* >2000ms: set defaults */
       }
-      else                                        /* button released */
+      else                                      /* button released */
       {
-        Key = 1;                        /* <300ms */
-        if (Test > 15) Key = 2;         /* >300ms */
+        Key = KEY_SHORT;                          /* <300ms: short press */
+        if (Test > 15) Key = KEY_LONG;            /* >300ms: long press */
+
+        #ifdef UI_MAINMENU_POWERON_BUTTON
+        /* check for second key press */
+        MilliSleep(50);                        /* delay before checking again */
+        Test = 20;                             /* timeout of 200ms */
+
+        while (Test > 0)                     /* timeout loop */
+        {
+          Key2 = BUTTON_PIN & (1 << TEST_BUTTON);      /* get button status */
+
+          if (Key2 == 0)                     /* button pressed */
+          {
+            MilliSleep(30);                            /* time to debounce */
+            Key2 = BUTTON_PIN & (1 << TEST_BUTTON);    /* get button status */
+
+            if (Key2 == 0)                   /* button still pressed */
+            {
+              Test = 1;                           /* end loop */
+              Key2 = KEY_MAINMENU;                /* set key: enter main menu */
+            }
+          }
+
+          Test--;                            /* decrease timeout */
+          MilliSleep(10);                    /* wait 10ms */
+        }
+        #endif
       }
     }
   }
 
   #ifndef UI_SERIAL_COMMANDS
-  /* key press >300ms selects alternative operation mode */
-  if (Key > 1)
+  /* long key press >300ms selects alternative operation mode */
+  if (Key > KEY_SHORT)
   {
     #ifdef UI_AUTOHOLD
       /* change mode to continuous */
@@ -2674,11 +2703,11 @@ int main(void)
    *  load saved adjustment offsets and values
    */
 
-  if (Key == 3)               /* key press >2s resets to defaults */
+  if (Key == KEY_DEFAULTS)         /* set defaults (key press >2s) */
   {
-    SetAdjustmentDefaults();       /* set default values */
+    SetAdjustmentDefaults();            /* set default values */
   }
-  else                        /* normal mode */
+  else                             /* normal mode */
   {
     /* load adjustment values: profile #1 */
     ManageAdjustmentStorage(STORAGE_LOAD, 1);
@@ -2860,6 +2889,20 @@ cycle_start:
    *  probing
    */
 
+  #ifdef UI_MAINMENU_POWERON_BUTTON
+  /* enter main menu if requested by user at power-on */
+  if (Key2 == KEY_MAINMENU)
+  {
+    #ifndef BAT_NONE
+    MilliSleep(2000);              /* delay for user to read battery status */
+    #endif
+    Key2 = 0;                      /* reset (only enter after power-on) */
+    Key = KEY_MAINMENU;            /* trigger main menu */
+    goto cycle_action;             /* perform action */
+  }
+  #endif
+
+
   #ifdef UI_SERIAL_COMMANDS
   /* skip first probing after power-on */
   if (Key == KEY_POWER_ON)         /* first cycle */
@@ -2964,12 +3007,14 @@ show_component:
   #ifdef UI_PROBING_DONE_BEEP
     /* buzzer: short beep for probing result (probing done) */
     #ifdef BUZZER_ACTIVE
+    /* active buzzer: short beep (20ms) */
     BUZZER_PORT |= (1 << BUZZER_CTRL);       /* enable: set pin high */
     MilliSleep(20);                          /* wait for 20 ms */
     BUZZER_PORT &= ~(1 << BUZZER_CTRL);      /* disable: set pin low */
     #endif
 
     #ifdef BUZZER_PASSIVE
+    /* passive buzzer: short beep, low freq (20ms, 2.5kHz) */
     PassiveBuzzer(BUZZER_FREQ_LOW);          /* low frequency beep */
     #endif
   #endif
@@ -3164,7 +3209,7 @@ cycle_control:
   }
   #endif
 
-#if defined (UI_SHORT_CIRCUIT_MENU) || defined (UI_SERIAL_COMMANDS)
+#if defined (UI_SHORT_CIRCUIT_MENU) || defined (UI_SERIAL_COMMANDS) || defined (UI_MAINMENU_POWERON_BUTTON)
 cycle_action:
 #endif
 

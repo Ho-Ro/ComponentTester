@@ -3,12 +3,12 @@
 
             ReadMe for the Component Tester firmware (m-firmware)
 
-        (c) 2012-2024 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2025 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Last edit:   2024-12-13
-For version: 1.54m
+Last edit:   2025-03-27
+For version: 1.55m
 
 Content
   - About
@@ -85,6 +85,7 @@ Content
     - DHTxx Temperature & Humidity Sensors
     - MAX6675/MAX31855 Thermocouple Converters
     - BH1750 Ambient Light Sensor
+    - INA226 Power Monitor
     - Flashlight
     - Voltmeter 0-5 V DC
     - Self Test
@@ -94,6 +95,7 @@ Content
     - Font/Symbols
     - Power Off
     - Exit
+    - Order of Menu Items
   - Resistors
   - Capacitors
   - Inductors
@@ -204,6 +206,7 @@ k-firmware:
 - continuity check
 - MAX6675/MAX31855 thermocouple converters
 - BH1750 Ambient Light Sensor
+- INA226 Power Monitor
 - flashlight / general purpose switched output
 - structured source code
 - simple frameworks for displays and data busses
@@ -266,6 +269,7 @@ Following hardware options are supported:
   - fixed DS18B20/DS18S20 temperature sensors
   - MAX6675/MAX31855 thermocouple converters
   - BH1750 ambient light sensor
+  - INA226 power monitor
   - flashlight / general purpose switched output
 
 
@@ -977,7 +981,9 @@ require those.
 The test key starts the tester and also controls the user interface. For that
 purpose the tester differentiates between a short and a long key press (0.3 s).
 The short key press is typically used to proceed with something or to select
-a menu item. The long key press performs a context specific action.   
+a menu item. The long key press performs a context specific action. There's
+also a double-press, i.e. the test key is pressed twice quickly (also context
+specific).
 
 If the tester expects you to press a key it will tell you that by displaying
 a cursor at bottom right of the LCD. A steady cursor signals that more
@@ -1128,7 +1134,9 @@ At the moment the buzzer is used for
 - confirmation beep when probing is done (UI_PROBING_DONE_BEEP)
 - confirmation beep for valid frame/packet in IR receiver/decoder
   (SW_IR_RX_BEEP)
+- logic probe (HW_LOGIC_PROBE)
 - voltmeter 0-5 V DC when a threshold is exceeded (SW_METER_5VDC)
+- INA226 power monitor when power threshold is exceeded (INA226_POWER_ALARM)
 
 
 * Communication with PC
@@ -1206,6 +1214,10 @@ tester will use firmware defaults instead.
 For a tester with a manual power switch instead of the soft-latching one used
 by the reference design please enable POWER_SWITCH_MANUAL in config.h. In that
 case the tester won't be able to power itself off.
+
+There's an option available to enter the main menu after power-on when pressing
+the test button twice at power-on (UI_MAINMENU_POWERON_BUTTON). The duration of
+the first button press still controls the operation mode.
 
 
 * Probing
@@ -1406,6 +1418,13 @@ voltage:
   - 1 for high
   - Z for undefined/HiZ
 
+In case a buzzer is available you'll also get an audible feedback:
+  - low         active buzzer: short beep
+                passive buzzer: short low frequency beep
+  - high        active buzzer: long beep
+                passive buzzer: short high frequency beep
+  - undefined   silence / no beep
+
 For setting the logic family and Vcc/Vdd or the logic level thresholds
 there's a simple menu. Use the test push button to select a specific setting (
 marked by an asterisk). Then use the rotary encoder to change the setting.
@@ -1453,7 +1472,7 @@ audible feedback are:
                  passive buzzer: repeating high frequency beep
   - 100-700 mV   active buzzer: repeating short beep
                  passive buzzer: repeating low frequency beep
-  - > 700 mV     no beep
+  - > 700 mV     silence / no beep
 
 The short beep is meant to indicate a possible semiconductor junction.
 For an open circuit or a very high resistance the voltage will be near 5 V.
@@ -2178,8 +2197,68 @@ intensity. And as usual, two short key presses will end the tool.
 Hints:
 - BH1750 modules usually come with a 3.3 V LDO and 4.7 kOhms pull-up
   resistors (to 3.3 V) for SCL and SDA.
+- An 'error' directly after starting indicates a sensor issue, e.g. no I2C
+  communication.
+
+
++ INA226 Power Monitor
+
+The INA226 is a power monitor with an I2C interface, usually run at 3.3 V or
+5 V. It measures the load's voltage (VBUS, referenced to Gnd) and the voltage
+across a current shunt (VIN+ and VIN-). If you power the INA226 by 3.3 V and
+have pull-up resistors for SCL and SDA to 3.3 V in place it should work fine
+with the 5V ATmega when the bus isn't shared with other 5V I2C ICs. Otherwise
+you'll need a level shifter.
+
+A short button press starts a new measurement. Alternatively, a long button
+press switches to the automatic mode (indicated by an '*' in the first line),
+and also back again. In the automatic mode the tester runs a measurement every
+second. In case of an error the tester displays a '-' instead of the
+measurement values. And as usual, two short key presses will end the tool.
+
+Common setups:
+
+  low-side shunt    high-side shunt #1    high-side shunt #2
+ 
+  V_PSU    INA226   V_PSU    INA226       V_PSU    INA226
+    |                 |                     |
+    +----- VBUS       +----- VBUS           +----- VIN+
+    |                 |      & VIN+         |
+  load              shunt                 shunt
+    |                 |                     |
+    +----- VIN+       +----- VIN-           +----- VIN-
+    |                 |                     |      & VBUS
+  shunt             load                  load
+    |                 |                     |
+    +----- VIN-       +----- Gnd            +----- Gnd
+    |                 |                     |
+   Gnd               Gnd                   Gnd
+
+For the low-side and high-side #1 setups the voltage across the current shunt
+impacts VBUS and you'll need to enable INA226_MINUS_SHUNT for compensation.
+For the high-side #2 setup the shunt voltage can be ignored.
+
+Because of the high resolution of the shunt voltage measurement of 2.5 µV the
+wiring and environment (EMI) have a high impact when measureing low currents
+around 0 A, causing broadly changing current values. To mitigate this you can
+enable and set a zero threshold (INA226_SHUNT_ZERO_THRESHOLD), i.e. any value
+less than or equal to the threshold is considered to be zero. The zero
+threshold is set as the ADC's raw value of the voltage across the current
+shunt and includes also the negative span (1: +/- 2.5 µV, 2: +/- 5 µV,
+3: +/- 7.5 µV, ...).
+
+Another feature of the INA226 is an integrated averaging of measurements which
+can be configured (INA226_SAMPLES). The average is calculated from a given
+number of samples which can be 1 (no average), 4, 16, 64, 128, 512 or 1024.
+
+If you have the buzzer option you can also enable a power alarm feature (
+INA226_POWER_ALARM) which will sound the buzzer briefly when a specific power
+threshold is exceeded. The power threshold is set in mW.
+
+Hints:
 - An "error" directly after starting indicates a sensor issue, e.g. no I2C
   communication.
+- The maximium for V_PSU is 36 V. 
 
 
 + Flashlight
@@ -2360,6 +2439,16 @@ This function will power off the tester if enabled by SW_POWER_OFF.
 + Exit
 
 If you've entered the menu by mistake you can exit it by this command.
+
+
++ Order of Menu Items
+
+The order of menu items is set by the firmware source code, but can be
+changed. To do that open the file 'user.c' and look for function
+PresentMainMenu(). Then scroll down to the section after the local variables,
+starting with the comment 'set up menu'. For each menu item you'll see a short
+code block. The order of the blocks determines the order of the menu items.
+For changing the order simply rearrange the code blocks as you like.
 
 
 * Resistors
@@ -2641,7 +2730,7 @@ can't be checked. Same for SCRs and TRIACs with a high trigger current.
 If your tester has one of the following issues you can try to enable a
 workaround:
 
-- hFE way too high.
+- hFE way too high
 
   Problem:
   Using the common collector circuit with Rl as base resistor the base voltage
@@ -2668,15 +2757,28 @@ workaround:
   Enable PASSIVE_POWER_CTRL in config.h!
 
 
+- tester turns suddenly off
+
+  Problem:
+  Tester turns off suddenly during measurements.
+
+  Workaround:
+  Check if the 5V regulator is able to provide sufficient current and try an
+  additional buffer cap (electrolytic) for the 5V rail (near to the ATmega).
+  If that doesn't help set a lower BOD voltage level for the ATmega (EFUSE:
+  BOD level).
+
+
 * Known Issues
 
 - A storage cap (like Panasonic NF series) is detected as a diode or two
   anti-parallel diodes. The capacitance measurement isn't able to determine  
   an acceptable value either.
 - When using a SMPS or DC-DC converter as power supply the tester will
-  sometimes detect a capacitor around 50µF even if no component is connected.
+  sometimes detect a capacitor roughly around 50µF even if no component is
+  connected.
 - The ESR of a cap with a low capacitance may vary with the MCU clock.
-- Proplem with measuring the ESR of low-ESR solid electrolytic caps.
+- Problem with measuring the ESR of low-ESR solid electrolytic caps.
 
 
 * Support
