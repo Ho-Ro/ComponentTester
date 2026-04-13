@@ -6,6 +6,17 @@
 
 ------------------------------------------------------------------------------
 
+v1.56m 2025-10
+- Option zum Überspringen der ersten Bauteilesuche nach dem Einschalten,
+  sofern im Auto-Hold-Modus (UI_SKIP_FIRST_PROBING, Vorschlag von Bohu).
+- Makefile aktualisiert: nun wird avr-objdump anstatt von avr-size für die
+  Ausgabe der Firmware-Größe benutzt (avr-size hat die Option -C verloren).
+- Problem mit V_BE in der BJT-Ausgabe für ein paar spezielle Darlington-
+  Transistoren mit B-E-Widerständen gelöst (gemeldet von Yuriy_K@EEVblog).
+- Option zum automatischen Start vom RCL-Monitor, wenn ein R, C oder L an den
+  Testpins 1 und 3 angeklemmt ist (UI_PROBES13_RCL, Vorschlag von
+  indman@EEVblog).
+
 v1.55m 2025-04
 - Unterstützung von INA226-Leistungsmonitor (HW_INA226, Vorschlag von
   prashk20@EEVblog).

@@ -2,7 +2,7 @@
  *
  *   counter tools (hardware and software options)
  *
- *   (c) 2012-2024 by Markus Reschke
+ *   (c) 2012-2025 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -164,16 +164,16 @@ void FrequencyCounter(void)
       - f = pulses / gatetime
       - pulses = f * gatetime
 
-      range         gate time  prescaler  MCU clock  pulses
-      ----------------------------------------------------------
-      <10kHz           1000ms       1024  > 16MHz    <10k
-                       1000ms        256  <= 16MHz   <10k      
-      10kHz-100kHz      100ms         64  all        1k-10k
-      >100kHz            10ms          8  all        >1k (<50k)
+      range          gate time   prescaler  MCU clock   pulses
+      ----------------------------------------------------------------
+      < 10 kHz       1000 ms     1024       > 16 MHz    < 10 k
+                     1000 ms      256       <= 16 MHz   < 10 k      
+      10 - 100 kHz    100 ms       64       all         1 - 10 k
+      > 100 kHz        10 ms        8       all         > 1 k (< 50 k)
    */
 
   /* start values for autoranging (assuming high frequency) */
-  GateTime = 10;                   /* gate time 10ms */
+  GateTime = 10;                   /* gate time 10 ms */
   Index = 1;                       /* prescaler table index (prescaler 8:1) */
 
   /* set up Timer0 (pulse counter) */
@@ -270,7 +270,7 @@ void FrequencyCounter(void)
       {
         if (GateTime > 10)              /* upper range limit not reached yet */
         {
-          GateTime /= 10;               /* 1000ms -> 100ms -> 10ms */
+          GateTime /= 10;               /* 1000 ms -> 100 ms -> 10 ms */
           Index--;                      /* one prescaler step down */
           #if CPU_FREQ > 16000000 
           if (Index == 3) Index--;      /* skip 256, use 64 */
@@ -420,15 +420,15 @@ void FrequencyCounter(void)
       - f = f-prescaler * pulses / gatetime
       - pulses = f * gatetime / f-prescaler
 
-                    gate    timer      MCU       frequency
-      range         time    prescaler  clock     prescaler  pulses
-      ----------------------------------------------------------------
-      n/a           3000ms       1024  all
-      <100kHz       1000ms       1024  > 16MHz         1:1  <100k
-                    1000ms        256  <= 16MHz        1:1  <100k
-      100kHz-1MHz    100ms         64  all             1:1  10k-100k
-      >1MHz          100ms         64  all            16:1  >6250 (<500k)
-                     100ms         64  all            32:1  >3125 (<500k)
+                        gate      timer      MCU        frequency
+      range             time      prescaler  clock      prescaler  pulses
+      -----------------------------------------------------------------------------
+      n/a               3000 ms   1024       all
+      < 100 kHz         1000 ms   1024       > 16 MHz    1:1       < 100 k
+                        1000 ms    256       <= 16 MHz   1:1       < 100 k
+      100 kHz - 1 MHz    100 ms     64       all         1:1       10-100 k
+      > 1 MHz            100 ms     64       all        16:1       > 6250 (< 500 k)
+                         100 ms     64       all        32:1       > 3125 (< 500 k)
    */
 
   /* set up control lines */
@@ -532,23 +532,23 @@ void FrequencyCounter(void)
           #else
             Index = 4;             /* table index 4: 1024:1 */
           #endif
-          GateTime = 1000;         /* gate time: 1000ms */
+          GateTime = 1000;         /* gate time: 1000 ms */
           MinPulses = 0;           /* lower limit: none */
-//          MaxPulses = 100000;      /* upper limit: 100k */
+//          MaxPulses = 100000;      /* upper limit: 100 k */
           break;
 
         case 1:     /* 100kHz-1MHz */
           Div = 1;                 /* frequency prescaler 1:1 */
           Index = 2;               /* table index 2: 64:1 */
-          GateTime = 100;          /* gate time: 100ms */
-          MinPulses = 10000;       /* lower limit: 10k */
-//          MaxPulses = 100000;      /* upper limit: 100k */
+          GateTime = 100;          /* gate time: 100 ms */
+          MinPulses = 10000;       /* lower limit: 10 k */
+//          MaxPulses = 100000;      /* upper limit: 100 k */
           break;
 
         case 2:     /* >1MHz */
           Div = FREQ_COUNTER_PRESCALER; /* frequency prescaler 16:1 or 32:1 */
           Index = 2;               /* table index 2: 64:1 */
-          GateTime = 100;          /* gate time: 100ms */
+          GateTime = 100;          /* gate time: 100 ms */
           #if FREQ_COUNTER_PRESCALER == 16
             MinPulses = 6250;      /* lower limit: 6250 */
           #elif FREQ_COUNTER_PRESCALER == 32
@@ -1098,7 +1098,7 @@ ISR(TIMER1_COMPB_vect, ISR_BLOCK)
  *  - requires additional keys (e.g. rotary encoder) and
  *    display with more than 5 lines
  *  - requires idle sleep mode to keep timers running when MCU is sleeping
- *  - requires MCU clock of 8, 16 or 20MHz
+ *  - requires MCU clock of 8, 16 or 20 MHz
  */
 
 void EventCounter(void)
@@ -1145,7 +1145,7 @@ void EventCounter(void)
   /* local constants for defaults and maximums */
   #define DEFAULT_TIME        60             /* one minute */
   #define DEFAULT_EVENTS      100            /* ? */
-  #define MAX_TIME            43200          /* 12h (in seconds) */
+  #define MAX_TIME            43200          /* 12 h (in seconds) */
   #define MAX_EVENTS          4000000000     /* ? */
 
   /* show flags based on item number */
@@ -1191,7 +1191,7 @@ void EventCounter(void)
    *
    *  - top = (f_MCU / (f_tick * prescaler)) - 1
    *        = (f_MCU * t_tick / prescaler) - 1
-   *  - t_tick = 0.2s
+   *  - t_tick = 0.2 s
    */
 
   #define TOP       (CPU_FREQ / (5 * 256)) - 1

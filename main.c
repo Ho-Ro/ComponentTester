@@ -585,7 +585,7 @@ void Show_Resistor(void)
   if (Check.Resistors == 1)        /* single resistor */
   {
     R2 = NULL;                     /* disable second resistor */
-    Pin = R1->A;                   /* make B the first pin */
+    Pin = R1->A;                   /* make A the first pin */
   }
   else                             /* multiple resistors */
   {
@@ -853,15 +853,16 @@ void Show_Capacitor(void)
    */
 
   MaxCap = &Caps[0];               /* pointer to first cap */
-  Cap = MaxCap;
+  Cap = MaxCap;                    /* also largest at the moment */
 
-  for (Counter = 1; Counter <= 2; Counter++) 
+  for (Counter = 1; Counter <= 2; Counter++)      /* loop through caps */
   {
     Cap++;                         /* next cap */
 
+    /* check if next cap is larger than the currently largest */
     if (CmpValue(Cap->Value, Cap->Scale, MaxCap->Value, MaxCap->Scale) == 1)
     {
-      MaxCap = Cap;
+      MaxCap = Cap;                /* update pointer for largest cap */
     }
   }
 
@@ -1318,6 +1319,7 @@ void Show_BJT(void)
    *  C_value/C_scale - C_be
    */
 
+
   /*
    *  preset stuff based on BJT type
    */
@@ -1417,7 +1419,7 @@ void Show_BJT(void)
    *  display B-E resistor in next line if detected 
    */
 
-  /* check for B-E resistor below 25kOhms */
+  /* check for B-E resistor below 25 kOhms */
   if (CheckSingleResistor(BE_C, BE_A, 25) == 1)   /* found B-E resistor */
   {
     Display_NextLine();            /* next line (#3) */
@@ -1493,8 +1495,8 @@ void Show_BJT(void)
 
   /*
    *  display V_BE in next line
-   *  - taken from diode's forward voltage
-   *  - B-E resistor renders value useless
+   *  - taken from diode's forward voltage (V_f)
+   *  - B-E resistor can render value useless
    */
 
   Diode = SearchDiode(BE_A, BE_C);      /* search for matching B-E diode */
@@ -1503,47 +1505,67 @@ void Show_BJT(void)
     Display_NL_EEString_Space(V_BE_str);     /* display: Vbe */
 
     /*
-     *  V_f is quite linear for a logarithmicly scaled I_b.
+     *  V_BE is quite linear for a logarithmicly scaled I_b.
      *  So we may interpolate the V_f values of low and high test current
-     *  measurements for a virtual test current. Low test current is 10µA
-     *  and high test current is 7mA. That's a logarithmic scale of
+     *  measurements for a virtual test current. Low test current is 10 µA
+     *  and high test current is 7 mA. That's a logarithmic scale of
      *  3 decades.
      */
 
     /* calculate slope for one decade */
-    Slope = Diode->V_f - Diode->V_f2;
-    Slope /= 3;
+    Slope = Diode->V_f - Diode->V_f2;        /* difference */
+    Slope /= 3;                              /* / 3 decades */
 
     /* select V_BE based on hFE */
-    if (Semi.F_1 < 100)                 /* low h_FE */
+    if (Semi.F_1 < 100)            /* low h_FE */
     {
       /*
        *  BJTs with low hFE are power transistors and need a large I_b
-       *  to drive the load. So we simply take Vf of the high test current
-       *  measurement (7mA). 
+       *  to drive the load. So we simply take V_f of the high test current
+       *  measurement (7 mA). 
        */
 
-      V_BE = Diode->V_f;
+      V_BE = Diode->V_f;                /* V_f for 7 mA */
     }
     else if (Semi.F_1 < 250)            /* mid-range h_FE */
     {
       /*
        *  BJTs with a mid-range hFE are signal transistors and need
-       *  a small I_b to drive the load. So we interpolate Vf for
-       *  a virtual test current of about 1mA.
+       *  a small I_b to drive the load. So we interpolate V_f for
+       *  a virtual test current of about 1 mA.
        */
 
-      V_BE = Diode->V_f - Slope;
+      V_BE = Diode->V_f - Slope;        /* based on V_f for 7 mA */
     }
     else                                /* high h_FE */
     {
       /*
        *  BJTs with a high hFE are small signal transistors and need
-       *  only a very small I_b to drive the load. So we interpolate Vf
-       *  for a virtual test current of about 0.1mA.
+       *  only a very small I_b to drive the load. So we interpolate V_f
+       *  for a virtual test current of about 0.1 mA.
        */
 
-      V_BE = Diode->V_f2 + Slope;
+      V_BE = Diode->V_f2 + Slope;       /* based on V_f for 10 µA */
+    }
+
+
+    /*
+     *  special case: Si Darlington with B-E resistors and high hFE
+     *  - High hFE triggers interpolation of V_BE which is going to be wrong
+     *    because B-E resistors screw up the hFE value.
+     *  - Also for Darlington with a single B-E resistor for 2nd BJT.
+     *  - Si Darlington with B-E resistors and low hFE meets conditions below
+     *    too but no harm is done (still V_f).
+     */
+
+    if (Diode->V_f > 1000)         /* likely Si Darlington (2 * V_BE) */
+    {
+      /* B-E resistors screw up V_f of low current measurement */
+      if (Diode->V_f2 < 700)       /* just 1 * V_BE */
+      {
+        /* take V_f (no interpolation) */
+        V_BE = Diode->V_f;         /* V_f for 7 mA */
+      }
     }
 
     Display_Value(V_BE, -3, 'V');       /* in mV */
@@ -2910,6 +2932,16 @@ cycle_start:
     goto cycle_control;            /* skip probing */
     /* will also change Key */
   }
+  #elif defined (UI_SKIP_FIRST_PROBING)
+  /* skip first probing after power-on when in auto-hold mode */
+  if (Key == KEY_POWER_ON)         /* first cycle */
+  {
+    if (Cfg.OP_Mode & OP_AUTOHOLD)      /* in auto-hold mode */
+    {
+      goto cycle_control;               /* skip probing */
+      /* will also change Key */
+    }
+  }
   #endif
 
   /* display start of probing */
@@ -2974,6 +3006,50 @@ cycle_start:
   }
   #endif
 
+  #ifdef UI_PROBES13_RCL
+  /* auto-trigger RCL monitor for R, C or L at probes #1 and #3 */
+  if (Check.Found == COMP_RESISTOR)     /* resistor (or inductor) */
+  {
+    if (Check.Resistors == 1)                /* single resistor */
+    {
+      /* at probes #1 and #3 (shortcut via addition) */
+      if ((Resistors[0].A + Resistors[0].B) == PROBE_3)
+      {
+        Key = KEY_RCL_MONITOR;         /* trigger RCL monitor */
+        goto cycle_action;             /* perform action */
+      }
+    }
+  }
+  else if (Check.Found == COMP_CAPACITOR)    /* capacitor (>= 5 pF)*/
+  {
+    Capacitor_Type       *Cap;          /* pointer to cap */
+    Capacitor_Type       *MaxCap;       /* pointer to largest cap */
+    uint8_t              Counter;       /* loop counter */
+
+    /* find largest cap */
+    Cap = &Caps[0];                /* pointer to first cap */
+    MaxCap = Cap;                  /* also largest at the moment */
+
+    for (Counter = 1; Counter <= 2; Counter++)    /* loop through caps */
+    {
+      Cap++;                       /* next cap */
+
+      /* check if next cap is larger than the currently largest */
+      if (CmpValue(Cap->Value, Cap->Scale, MaxCap->Value, MaxCap->Scale) == 1)
+      {
+        MaxCap = Cap;              /* update pointer for largest cap */
+      }
+    }
+
+    /* check if at probes #1 and #3 (shortcut via addition) */
+    if ((MaxCap->A + MaxCap->B) == PROBE_3)
+    {
+      Key = KEY_RCL_MONITOR;       /* trigger RCL monitor */
+      goto cycle_action;           /* perform action */
+    }
+  }
+  #endif
+
 
   /*
    *  output test results
@@ -3005,7 +3081,7 @@ show_component:
   #endif
 
   #ifdef UI_PROBING_DONE_BEEP
-    /* buzzer: short beep for probing result (probing done) */
+  /* buzzer: short beep for probing result (probing done) */
     #ifdef BUZZER_ACTIVE
     /* active buzzer: short beep (20ms) */
     BUZZER_PORT |= (1 << BUZZER_CTRL);       /* enable: set pin high */
@@ -3209,7 +3285,7 @@ cycle_control:
   }
   #endif
 
-#if defined (UI_SHORT_CIRCUIT_MENU) || defined (UI_SERIAL_COMMANDS) || defined (UI_MAINMENU_POWERON_BUTTON)
+#if defined (UI_SHORT_CIRCUIT_MENU) || defined (UI_SERIAL_COMMANDS) || defined (UI_MAINMENU_POWERON_BUTTON) || defined (UI_PROBES13_RCL)
 cycle_action:
 #endif
 
@@ -3260,6 +3336,14 @@ cycle_action:
 
     goto cycle_control;            /* re-run cycle control */
   }
+  #ifdef UI_PROBES13_RCL
+  else if (Key == KEY_RCL_MONITOR) /* RCL monitor */
+  {
+    Monitor_RCL();                 /* run RCL monitor */
+    ToolDone();                    /* UI feedback */
+    goto cycle_control;            /* re-run cycle control */
+  }
+  #endif
   else if (Key == KEY_POWER_OFF)   /* power off */
   {
     PowerOff();                    /* power off */

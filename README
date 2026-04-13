@@ -7,8 +7,8 @@
 
 ------------------------------------------------------------------------------
 
-Last edit:   2025-03-27
-For version: 1.55m
+Last edit:   2025-10-14
+For version: 1.56m
 
 Content
   - About
@@ -39,7 +39,7 @@ Content
     - ST7565R
     - ST7735
     - ST7920
-    - STE2007/HX1230
+    - STE2007
     - VT100 Terminal
   - Test push button and other input options
     - Test Key
@@ -501,18 +501,21 @@ At the moment following display controllers are supported:
 - HD44780 (character display, 2-4 lines with 16-20 characters)
 - ILI9163 (color graphic display 128x160)
 - ILI9341/ILI9342 (color graphic display 240x320 or 320x240)
+  compatible: ST7789 (240x320)
 - ILI9481 (color graphic display 320x480, partly untested)
 - ILI9486 (color graphic display 320x480, partly untested)
 - ILI9488 (color graphic display 320x480, partly untested)
-- PCD8544 (graphic display 84x48)
-- PCF8814 (graphic display 96x65)
+- PCD8544 (graphic display 84x48, AKA Nokia 3310/5110)
+- PCF8814 (graphic display 96x65, AKA Nokia 1100)
 - SH1106 (graphic display 128x64)
 - SSD1306 (graphic display 128x64)
 - ST7036 (character display, 3 lines with 16 characters, untested)
 - ST7565R (graphic display 128x64)
+  compatible: UC1701, NT7538
 - ST7735 (color graphic display 128x160)
 - ST7920 (graphic display up to 256x64)
-- STE2007/HX1230 (graphic display 96x68)
+- STE2007 (graphic display 96x68)
+  compatible: HX1230
 - VT100 Terminal (via serial interface)
 
 Take care about the LCD's supply voltage and logic levels! Use a level shifter
@@ -945,7 +948,7 @@ used. To cope with the horizontal 16 bit addressing grid I had to add a screen
 buffer for characters.
 
 
-+ STE2007/HX1230
++ STE2007
 
 The STE2007 is driven in the 3-wire SPI mode usually. The pin assignment for 
 the 3-wire SPI (bit-bang only) is:
@@ -1215,9 +1218,9 @@ For a tester with a manual power switch instead of the soft-latching one used
 by the reference design please enable POWER_SWITCH_MANUAL in config.h. In that
 case the tester won't be able to power itself off.
 
-There's an option available to enter the main menu after power-on when pressing
-the test button twice at power-on (UI_MAINMENU_POWERON_BUTTON). The duration of
-the first button press still controls the operation mode.
+There's an option available to directly enter the main menu after power-on when
+pressing the test button twice at power-on (UI_MAINMENU_POWERON_BUTTON). The
+duration of the first button press still controls the operation mode.
 
 
 * Probing
@@ -1241,7 +1244,9 @@ With the buzzer hardware option you can enable a short confirmation beep for
 a completed probing cycle (UI_PROBING_DONE_BEEP). There's also an option to
 switch temporarily to the auto-hold mode after a component is found (when in
 continuous mode, UI_AUTOHOLD_FOUND). This helps with reading the display
-output.
+output. Another option (UI_PROBES13_RCL) auto-triggers the RCL monitor when
+an R, C or L is connected to probes #1 and #3. To skip the first probing cycle
+after power-on (in auto-hold mode) enable the option UI_SKIP_FIRST_PROBING.
 
 
 * Battery Monitoring
@@ -1592,6 +1597,12 @@ Hints:
 - The reference cap should be a low tolerance 1 nF film cap. You can also use
   any common film cap around 1 nF, measure its capacitance with a proper LCR
   meter, and update LC_METER_C_REF.
+- The values of L and C of the LC oscillator impact the oscillator's base
+  frequency (f_i). Also, the value of the reference cap impacts the
+  oscillator's frequency (f_p) in self-adjustment mode. If their values are
+  clearly off you can adjust the frequency thresholds FI_MIN, FI_MAX, FP_MIN
+  and FP_MAX in tools_LC_Meter.c to pass internal checks. Be careful! Large
+  discrepancies can screw up internal calculations.
 - If you're interested in the LC oscillator's frequency and its drifting
   enable LC_METER_SHOW_FREQ.
 
@@ -2647,16 +2658,23 @@ based on the transistors hFE for a virtual test current. That way we get more
 suitable results for different kinds of transistors, since V_BE of a small
 signal BJT isn't measured with the same test current as for a power BJT.
 
-In case of a BJT with a base emitter resistor the tester displays that
-resistor. Be aware that the B-E resistor has an impact on V_BE, hFE and C_be.
-If the BJT also has a freewheeling diode the BJT might be detected as BJT or
-two diodes based on the value of the base emitter resistor (low value resistor
--> 2 diodes). In the latter case the tester shows the two diodes and the
-resistor while hinting at a possible NPN or PNP BJT. Unfortunately a low value
-base emitter resistor prevents the correct detection of the BJT.
+In case of a BJT with a base-emitter resistor the tester displays that
+resistor (if < 25 kOhms). Be aware that the B-E resistor has an impact on
+V_BE, hFE and C_be. In conjuntion with the base-collector pn junction it can
+also trigger the misdetection of a freewheeling diode. For a Germanium BJT
+with a high B-E reverse leakage current the tester might wrongly detect a
+B-E resistor (equivalent to the leakage current). For a Darlington BJT pair
+with B-E resistors only the series resistance is shown (R1 + R2). There are a
+few old Darlingtons with a single B-E resistor for the second BJT. That
+resistor can't be detected. If the BJT also has a freewheeling diode the BJT
+might be detected as BJT or two diodes based on the value of the base-emitter
+resistor (low value resistor -> 2 diodes). In the latter case the tester shows
+the two diodes and the resistor while hinting at a possible NPN or PNP BJT.
+Unfortunately a low value base-emitter resistor prevents the correct detection
+of the BJT.
 
 Another special case is a BJT with an integrated freewheeling diode on the same
-subtrate as the BJT. That integrated diode junction creates a parasitic
+substrate as the BJT. That integrated diode junction creates a parasitic
 transistor. A NPN BJT will have a parasitic PNP and vice versa. If such a BJT
 is found the tester shows a '+' behind the BJT type.
 
@@ -2667,7 +2685,8 @@ SW_SCHOTTKY_BJT). Note that a Schottky transistor has an increased I_CEO.
 Hints:
 - The high hFE of a Darlington transistor in conjunction with EMI can cause
   I_CEO being all over the place.
-- A base emitter resistor renders the values of V_BE, hFE and C_be useless.
+- A base-emitter resistor renders the values of V_BE, hFE and C_be useless,
+  and can cause the misdedection of a freewheeling diode.
 - If you suspect a temperature related problem with a BJT check it in its cold
   state, heat it up (soldering iron, hot air), and check it again while warm.
 

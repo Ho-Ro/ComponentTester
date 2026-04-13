@@ -25,7 +25,6 @@ PROJECT = ComponentTester
 MCU = atmega328
 
 # MCU freqency:
-# - 1MHz  : 1
 # - 8MHz  : 8
 # - 16MHz : 16
 # - 20MHz : 20
@@ -149,7 +148,7 @@ ifeq (${OPTIMIZE_VECTORS},yes)
   LDFLAGS += -nostartfiles
 endif
 # > 128kB flash
-#LDFLAGS += -Wl,-relax
+LDFLAGS += -Wl,-relax
 
 # hex file flags
 HEX_FLASH_FLAGS = -R .eeprom -R .fuse -R .lock -R .signature
@@ -214,8 +213,8 @@ $(NAME): ${OBJECTS}
 # output firmware size and other info
 size: ${NAME}
 	@echo
-	@avr-size $<
-#	@avr-objdump -Pmem-usage $<
+#	@avr-size -C --mcu=${MCU} $<
+	@avr-objdump -Pmem-usage $<
 
 
 #

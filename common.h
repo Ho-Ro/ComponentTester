@@ -70,6 +70,7 @@
 #define KEY_PROBE             104  /* probe component */
 #define KEY_EXIT              105  /* exit (menu) */
 #define KEY_DEFAULTS          106  /* set defaults (adjustments) */
+#define KEY_RCL_MONITOR       107  /* RCL monitor */
 
 
 /* operation mode/state flags (bitfield) */

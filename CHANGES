@@ -6,12 +6,21 @@
 
 ------------------------------------------------------------------------------
 
+v1.56m 2025-10
+- Option to skip first probing after power-on when in auto-hold mode (
+  UI_SKIP_FIRST_PROBING, suggested by Bohu).
+- Updated Makefile to use avr-objdump instead of avr-size to show firmware
+  size (avr-size lost -C option).
+- Fixed V_BE issue in BJT output for some special Darlington pairs with B-E
+  resistors (reported by Yuriy_K@EEVblog).
+- Added option to auto-trigger RCL monitor when an R, C or L is connected to
+  probes #1 and #3 (UI_PROBES13_RCL, suggested by indman@EEVblog).
+
 v1.55m 2025-04
 - Added support for INA226 power monitor (HW_INA226, suggested by
   prashk20@EEVblog).
 - Adjusted threshold in DischargeProbes() to support newer ATmega types with
-  lower RiL and RiH (thanks to genix@EEVblog).
-  values of newer ATmega types.
+  lower RiL and RiH values of newer ATmega types (thanks to genix@EEVblog).
 - Fixed UI flow in BH1750 function, i.e. check for BH1750 after 'Start'.
 - Updated Russian texts #1 and #2 (thanks to indman@EEVblog).
 - Added support for buzzer in logic probe (suggested by Bohu).
