@@ -3,12 +3,12 @@
 
             ReadMe für die Component-Tester-Firmware (m-Firmware)
 
-        (c) 2012-2024 by Markus Reschke (madires@theca-tabellaria.de)
+        (c) 2012-2025 by Markus Reschke (madires@theca-tabellaria.de)
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2024-12-13
-Für Version:     1.54m
+Letzte Änderung: 2025-03-27
+Für Version:     1.55m
 
 Inhaltsübersicht:
   - Über den Tester
@@ -85,6 +85,7 @@ Inhaltsübersicht:
     - DHTxx Temperatur & Luftfeuchte-Sensoren
     - MAX6675/MAX31855 Thermoelement-Konverter
     - BH1750 Umgebungslichtsensor
+    - INA226 Leistungsmonitor
     - Licht
     - Voltmeter 0-5 V DC
     - Selbsttest
@@ -94,6 +95,7 @@ Inhaltsübersicht:
     - Zeichensatz/Symbole
     - Ausschalten
     - Exit
+    - Reihenfolge der Menüpunkte
   - Widerstände
   - Kondensatoren
   - Induktivitäten
@@ -205,6 +207,7 @@ Unbedingt lesen! Daher zähle ich nur die Hauptunterschiede zur k-Firmware auf:
 - Durchgangsprüfer
 - MAX6675/MAX31855 Thermoelement-Konverter
 - BH1750 Umgebungslichtsensor
+- INA226 Leistungsmonitor
 - Licht / allgemeiner Schaltausgang
 - Strukturierter Quellcode
 - einfache Rahmenwerke für Anzeigen und Datenbusse
@@ -266,6 +269,7 @@ Folgende Hardware-Optionen werden unterstützt:
   - feste DS18B20/DS18S20 Temperatursensoren
   - MAX6675/MAX31855 Thermoelement-Konverter
   - BH1750 Umgebungslichtsensor
+  - INA226 Leistungsmonitor
   - Licht / allgemeiner Schaltausgang
 
 
@@ -990,7 +994,9 @@ Die Test-Taste schaltet den Tester ein und dient zur Bedienung. Dazu
 unterscheidet der Tester zwischen einem kurzen Tastendruck und einem langen (
 0,3 s). Der kurze Tastendruck wird üblicherweise zum Fortfahren einer Funktion
 oder zur Auswahl des nächsten Menüpunktes benutzt. Der lange Tastendruck führt
-eine kontextabhängige Aktion aus.
+eine kontextabhängige Aktion aus. Daneben gibt es auch noch den doppelten
+Tastendruck, bei dem die Taste zweimal kurz hintereinander gedrückt wird (auch
+kontextspezifisch). 
 
 Wenn der Tester einen Tastendruck zum Fortfahren der aktuellen Aktion erwartet,
 zeigt es dies durch einen Cursor rechts unten auf dem LCD-Modul an. Ein
@@ -1145,7 +1151,10 @@ Im Augenblick wird der Summer benutzt für:
 - Bestätigungston nach Bauteilesuche (UI_PROBING_DONE_BEEP)
 - Bestätigungston für gültiges Datenpaket im IR-Empfänger/Decoder (
   SW_IR_RX_BEEP)
+- Logiktester (HW_LOGIC_PROBE)
 - Voltmeter 0-5 V DC wenn Schwellwert überschritten (SW_METER_5VDC)
+- INA226-Leistungsmonitor wenn Leistungsschwellwert  überschritten (
+  INA226_POWER_ALARM)
 
 
 * Kommunikation mit PC
@@ -1228,6 +1237,11 @@ Bei einem Tester mit einem manuellen Ein/Aus-Schalter statt dem Soft-Latch-
 Schalter der Referenzschaltung bitte POWER_SWITCH_MANUAL in config.h
 aktivieren. In diesem Fall kann sich der Tester leider nicht selbst
 abschalten.
+
+Es gibt eine Option, um nach dem Einschalten in das Hauptmenü zu gehen, wenn
+zuvor beim Einschalten die Testtaste zweimal gedrückt wurde (
+UI_MAINMENU_POWERON_BUTTON). Die Dauer der ersten Tastenbetätigung bestimmt
+weiterhin den Betriebmodus. 
 
 
 * Bauteilesuche
@@ -1440,6 +1454,14 @@ plus die Spannung an:
   - 1 für High
   - Z für undefiniert/HiZ
 
+Falls ein Summer/Pieper vorhanden ist, gibt es zusätzlich ein akustisches
+Signal:
+  - Low           aktiver Summer: kurzer Piep
+                  passiver Summer: kurzer Piep mit niedriger Frequenz
+  - High          aktiver Summer: langer Piep
+                  passiver Summer: kurzer Piep mit hoher Frequenz
+  - undefiniert   Ruhe / kein Piep
+
 Zum Setzen der Logikfamilie bzw. Vcc/Vdd und den Logikpegel-Schwellwerten gibt
 es ein einfaches Menü. Mit der Testtaste wählst Du die gewünschte Einstellung
 aus (markiert mit einem Sternchen). Dann benutze den Drehencoder zum Ändern
@@ -1488,7 +1510,7 @@ begrenzt. Die Schwellwerte für den Summer sind:
                  passiver Summer: wiederholender Piep mit hoher Frequenz
   - 100-700 mV   aktiver Summer: wiederholender kurzer Piep
                  passiver Summer: wiederholender Piep mit niedriger Frequenz
-  - >700 mV      kein Piep
+  - >700 mV      Ruhe / kein Piep
 
 Der kurze Piep zeigt einen möglichen Halbleiterübergang an. Bei einer Unter-
 brechung oder einem sehr hohen Widerstand liegt die Spannung nahe 5 V.
@@ -2235,8 +2257,70 @@ stärke. Und wie üblich, zwei kurze Tastendrücke beenden die Funktion.
 Hinweise:
 - BH1750-Module haben meistens einen 3,3-V-LDO und 4,7 kOhm Pull-Up-
   Widerstände (auf 3,3 V) für SCL und SDA.
-- Ein "Error" direkt nach dem Funktionsaufruf deutet auf ein Sensorproblem hin,
+- Ein "Error" direkt nach dem Start deutet auf ein Sensorproblem hin,
   z.B. keine I2C-Kommunikation.
+
+
++ INA226 Leistungsmonitor
+
+Der INA226 ist ein Leistungsmonitor mit I2C-Schnittstelle, üblicherweise mit
+3,3 V oder 5 V betrieben. Er misst die Spannung der Last (VBUS, bezogen auf
+Gnd) und die Spannung über einen Strommesswiderstand (Shunt, VIN+ und VIN-).
+Wenn Du den INA226 mit 3,3 V betreibst und Pull-Up-Widerstände für SCL und SDA
+auf 3,3 V hast, sollte er mit dem 5V-ATmega funktionieren, sofern der I2C-Bus
+nicht mit anderen 5V-ICs geteilt wird. Ansonsten sind Pegelwandler nötig.
+
+Zum Messen einmal kurz die Testtaste drücken. Alternativ kann mit einem langen
+Tastendruck in den automatischen Modus gewechselt werden (ein "*" erscheint
+in der Titelzeile); und auch wieder zurück. Im automatischen Modus wird jede
+Sekunde gemessen. Bei einem Fehler zeigt der Tester ein "-" statt der Mess-
+werte. Und wie üblich, zwei kurze Tastendrücke beenden die Funktion.
+
+Übliche Beschaltungen:
+
+  Low-Side-Shunt    High-Side-Shunt #1    High-Side-Shunt #2
+ 
+  V_PSU    INA226   V_PSU    INA226       V_PSU    INA226
+    |                 |                     |
+    +----- VBUS       +----- VBUS           +----- VIN+
+    |                 |      & VIN+         |
+  Last              Shunt                 Shunt
+    |                 |                     |
+    +----- VIN+       +----- VIN-           +----- VIN-
+    |                 |                     |      & VBUS
+  Shunt             Last                  Last
+    |                 |                     |
+    +----- VIN-       +----- Gnd            +----- Gnd
+    |      & Gnd      |                     |
+   Gnd               Gnd                   Gnd
+
+Für die Beschaltungen Low-Side-Shunt und High-Side-Shunt #1 hat die Spannung
+über den Strom-Shunt Einfluss auf VBUS, weswegen INA226_MINUS_SHUNT zur
+Kompensation aktiviert werden sollte. Bei High-Side-Shunt #2 spielt die Shunt-
+Spannung keine Rolle bei der Messung.
+
+Wegen der hohen Auflösung der Shuntspannungsmessung von 2,5 µV hat die Ver-
+kabelung und Umgebung (EMV) einen großen Einfluss beim Messen kleiner Ströme
+um 0 A, welcher zu deutlich variierenden Stromwertern führt. Zur Linderung
+dieses Verhaltens kannst Du einen Nullgrenzwert aktivieren und einstellen (
+INA226_SHUNT_ZERO_THRESHOLD), d.h. alle Werte kleiner gleich dem Grenzwert
+werden als Null angesehen. Der Nullgrenzwert wird als ADC-Rohwert der Spannung
+am Strom-Shunt gesetzt und umfasst auch den negativen Bereich (1: +/- 2,5 µV,
+2: +/- 5 µV, 3: +/- 7,5 µV, ...).
+
+Ein weiteres Merkmal vom INA226 ist eine integrierte Durchschnittswertbildung,
+die konfiguriert werden kann (INA226_SAMPLES). Dabei wird aus einer vor-
+gegebenen Anzahl von Messungen ein Durchschnittswert gebildet. Die Anzahl
+darf 1 (kein Durchschnitt), 4, 16, 64, 128, 512 oder 1024 betragen.
+
+Falls Du die Summer-Option hast, kannst Du einen Leistungsalarm aktivieren (
+INA226_POWER_ALARM), der bei Überschreiten eines bestimmten Schwellwerts
+den Summer kurz piepen läßt. Der Schwellwert wird in mW gesetzt. 
+
+Hinweise:
+- Ein "Error" direkt nach dem Start deutet auf ein Sensorproblem hin,
+  z.B. keine I2C-Kommunikation.
+- Das Maximum für V_PSU ist 36 V.
 
 
 + Licht
@@ -2420,6 +2504,17 @@ aktiviert wurde.
 
 Damit kannst Du das Menü verlassen, wenn Du z.B. aus Versehen rein gegangen
 bist.
+
+
++ Reihenfolge der Menüpunkte
+
+Die Reihenfolge der Menüpunkte ist durch den Firmware-Quellcode vorgegeben,
+kann aber verändert werden. Dazu öffnest Du die Datei "user.c" und suchst die
+Funktion PresentMainMenu(). Dann bis hinter den Bereich für lokale Variablen
+herunter scollen, markiert mit dem Kommentar "set up menu". Nun folgt für
+jeden Menüpunkt ein kurzer Codeblock. Die Reihenfolge der Blöcke bestimmt
+die Reihenfolge der Menüpunkte. Zum Ändern der Reihenfolge einfach die Blöcke
+nach Wunsch umarrangieren.
 
 
 * Widerstände
@@ -2744,13 +2839,25 @@ versuchen:
   Aktiviere PASSIVE_POWER_CTRL in config.h!
 
 
+- Tester schaltet sich plötzlich ab
+
+  Problem:
+  Tester schaltet sich plötzlich während einer Messung ab.
+
+  Abhilfe:
+  Prüfe ob der 5V-Spannungsregler ausreichend Strom liefern kann und probiere
+  einen zusätzlichen Pufferkondensator (Elko) an der 5V-Versorgung (nahe am
+  ATmega). Wenn das nicht hilft, setze die BOD-Spannung vom ATmega auf einen
+  kleineren Wert (EFUSE: BOD level). 
+
+
 * Bekannte Probleme
 
 - Ein Speicher- bzw. Superkondensator, wie z.B. Panasonic NF Serie, wird als
   Diode oder zwei anti-parallele Dioden erkannt. Die Kapazitätsmessung
   kann keinen brauchbaren Wert bestimmen.
 - Bei Verwendung eines Schaltnetzteiles oder DC-DC-Konverters zur Strom-
-  versorgung gibt der Tester manchmal fälschlicherweise einen Elko um
+  versorgung gibt der Tester manchmal fälschlicherweise einen Elko grob um
   die 50µF aus, obwohl kein Bauteil angeschlossen ist.
 - Der ESR kann bei Kondensatoren mit 180 - 220 nF je nach MCU-Takt
   variieren.

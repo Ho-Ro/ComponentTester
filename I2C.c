@@ -2,7 +2,7 @@
  *
  *   I2C (bit-bang & hardware TWI)
  *
- *   (c) 2017-2024 by Markus Reschke
+ *   (c) 2017-2025 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -185,6 +185,11 @@ uint8_t I2C_Start(uint8_t Type)
      *  - SCL low
      */
 
+    /*
+     *  First part similar to stop condition, besides SDA is released
+     *  as first action (instead of last).
+     */
+
     /* release SDA (SDA high) */
     I2C_DDR &= ~(1 << I2C_SDA);    /* set to HiZ (disable pull-down) */
 
@@ -209,7 +214,18 @@ uint8_t I2C_Start(uint8_t Type)
       wait5us();
     #endif
 
-    /* follow common start condition */
+    /*
+     *  current state:
+     *  - SDA high
+     *  - SCL high
+     */
+
+
+    /*
+     *  Second part follows common start condition.
+     *  Same code as above for I2C_START.
+     */
+
     /* ... code from above (I2C_START) ... */
 
     /*

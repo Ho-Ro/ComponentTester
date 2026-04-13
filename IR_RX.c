@@ -2,7 +2,7 @@
  *
  *   IR remote control: receiver
  *
- *   (c) 2015-2024 by Markus Reschke
+ *   (c) 2015-2025 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1748,12 +1748,14 @@ result:
     if (Flag >= PACKET_OK)         /* valid packet */
     {
       #ifdef BUZZER_ACTIVE
+      /* active buzzer: short beep (20ms) */
       BUZZER_PORT |= (1 << BUZZER_CTRL);     /* enable: set pin high */
       MilliSleep(20);                        /* wait for 20 ms */
       BUZZER_PORT &= ~(1 << BUZZER_CTRL);    /* disable: set pin low */
       #endif
 
       #ifdef BUZZER_PASSIVE
+      /* passive buzzer: short beep, low freq (20ms, 2.5kHz) */
       PassiveBuzzer(BUZZER_FREQ_LOW);        /* low frequency beep */
       #endif
     }

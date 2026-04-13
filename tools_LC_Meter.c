@@ -2,7 +2,7 @@
  *
  *   L/C meter (hardware option)
  *
- *   (c) 2020-2023 by Markus Reschke
+ *   (c) 2020-2025 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -82,7 +82,7 @@
  *     known reference cap which can be enabled via a relay. A second relay
  *     selects the DUT (L or C). C_x is connected in parallel to the LC
  *     tank circuit, and L_x in series with L from the LC tank circuit.
- *   - max. frequency of LC oscillator (L_i 82µH / C_i 1nF): about 600kHz
+ *   - max. frequency of LC oscillator (L_i 82 µH / C_i 1 nF): about 600 kHz
  * ************************************************************************ */
 
 

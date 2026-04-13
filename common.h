@@ -2,7 +2,7 @@
  *
  *   common header file
  *
- *   (c) 2012-2024 by Markus Reschke
+ *   (c) 2012-2025 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -69,6 +69,7 @@
 #define KEY_POWER_OFF         103  /* power off */
 #define KEY_PROBE             104  /* probe component */
 #define KEY_EXIT              105  /* exit (menu) */
+#define KEY_DEFAULTS          106  /* set defaults (adjustments) */
 
 
 /* operation mode/state flags (bitfield) */

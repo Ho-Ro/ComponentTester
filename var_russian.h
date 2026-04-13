@@ -224,11 +224,11 @@
   #endif
 
   #ifdef SW_DIODE_LED
-    const unsigned char Diode_LED_str[] MEM_TYPE = "Diode/LED";
+    const unsigned char Diode_LED_str[] MEM_TYPE = "Äטמה/LED";
   #endif
 
   #ifdef SW_METER_5VDC
-    const unsigned char Meter_5VDC_str[] MEM_TYPE = "5V-Meter";
+    const unsigned char Meter_5VDC_str[] MEM_TYPE = "5V-גמכüעלוענ";
   #endif
 
 #endif

@@ -2,7 +2,7 @@
  *
  *   ILI9163 color graphic display controller
  *
- *   (c) 2017-2020 by Markus Reschke
+ *   (c) 2017-2025 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -80,7 +80,6 @@
   /* sleep mode: */
 #define FLAG_STAT_SLEEP_OFF   0b00000000     /* off */
 #define FLAG_STAT_SLEEP_ON    0b00000010     /* on */
-
   /* partial mode: */
 #define FLAG_STAT_PART_OFF    0b00000000     /* off */
 #define FLAG_STAT_PART_ON     0b00000100     /* on */
