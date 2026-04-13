@@ -961,6 +961,14 @@
 
 
 /*
+ *  Skip first probing cycle after power-on when in auto-hold mode.
+ *  - uncomment to enable
+ */
+
+//#define UI_SKIP_FIRST_PROBING
+
+
+/*
  *  Show key hints instead of cursor if available.
  *  - currently only "Menu/Test"
  *  - requires additional keys and display with a sufficient number of
@@ -1263,6 +1271,15 @@
  */
 
 //#define UI_TEST_PAGEMODE
+
+
+/*
+ *  auto-trigger RCL monitor by R, C or L at probes #1 and #3 
+ *  - requires RCL monitor (SW_MONITOR_RCL, also SW_INDUCTOR)
+ *  - uncomment to enable
+ */
+
+//#define UI_PROBES13_RCL
 
 
 /*

@@ -431,6 +431,18 @@
 
 
 /*
+ *  auto-triggered functions/tools by component at probes #1 and #3 
+ */
+
+/* auto-triggered RCL monitor */
+#ifdef UI_PROBES13_RCL
+  #ifndef SW_MONITOR_RCL
+    #undef UI_PROBES13_RCL
+  #endif  
+#endif
+
+
+/*
  *  ESR measurement
  */
 

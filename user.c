@@ -2,7 +2,7 @@
  *
  *   user interface functions
  *
- *   (c) 2012-2024 by Markus Reschke
+ *   (c) 2012-2025 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -1405,6 +1405,29 @@ uint8_t ShortCircuit(uint8_t Mode)
 
   return Flag;
 }
+
+
+
+#ifdef UI_PROBES13_RCL
+
+/*
+ *  UI feedback for function/tool exited
+ *  - in case function/tool returns to probing cycle (instead of menu)
+ */
+
+void ToolDone(void)
+{
+  LCD_Clear();                          /* clear display */
+
+  #ifdef UI_CENTER_ALIGN
+    Display_CenterLine(1);              /* center block: 1 line */
+    Display_EEString_Center(Done_str);  /* display: done! */
+  #else
+    Display_EEString(Done_str);         /* display: done! */
+  #endif
+}
+
+#endif
 
 
 

@@ -4,6 +4,8 @@
  *   color graphic displays
  *   - ILI9341: 240 x 320 pixels
  *     ILI9342: 320 x 240 pixels
+ *   - compatibles:
+ *     ST7789: 240 x 320 pixels
  *   - interfaces
  *     - 8 bit parallel in 8080-I and 8080-II mode
  *     - 9 bit parallel in 8080-I and 8080-II mode (not supported)
@@ -12,7 +14,7 @@
  *     - 4 line SPI
  *     - 3 line SPI (not supported, requires bit-bang SPI)
  *
- *   (c) 2015-2024 by Markus Reschke
+ *   (c) 2015-2025 by Markus Reschke
  *
  * ************************************************************************ */
 

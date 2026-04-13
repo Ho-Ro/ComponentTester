@@ -2,7 +2,7 @@
  *
  *   ADC functions
  *
- *   (c) 2012-2023 by Markus Reschke
+ *   (c) 2012-2025 by Markus Reschke
  *   based on code from Markus Frejek and Karl-Heinz Kübbeler
  *
  * ************************************************************************ */
@@ -35,10 +35,10 @@
 /*
  *  read ADC channel and return voltage in mV
  *  - use Vcc as reference by default
- *  - switch to bandgap reference for low voltages (< 1.0V) to improve
+ *  - switch to bandgap reference for low voltages (< 1.0 V) to improve
  *    ADC resolution
- *  - with a 125kHz ADC clock a single conversion needs about 0.1ms
- *    with 25 samples we end up with about 2.6ms
+ *  - with a 125 kHz ADC clock a single conversion needs about 0.1 ms
+ *    with 25 samples we end up with about 2.6 ms
  *
  *  requires:
  *  - Channel: ADC MUX input channel
@@ -55,15 +55,15 @@ uint16_t ReadU(uint8_t Channel)
   uint8_t           Ref;           /* voltage reference register bits */
   uint32_t          Value;         /* ADC value */
 
-  /* AREF pin is connected to external buffer cap (1nF) */
+  /* AREF pin is connected to external buffer cap (1 nF) */
 
   #if 0
   /* manage channels ADC8-15 (ATmega640/1280/2560) */
-  if (Channel & 0b00100000)        /* bit 6 set: ADC8-15 */
+  if (Channel & 0b00100000)        /* bit #6 set: ADC8-15 */
   {
     ADCSRB |= (1 << MUX5);         /* set MUX5 */
   }
-  else                             /* bit 6 not set: ADC0-7 */
+  else                             /* bit #6 not set: ADC0-7 */
   {
     ADCSRB &= ~(1 << MUX5);        /* clear MUX5 */
   }
@@ -91,10 +91,10 @@ sample:
     /* wait some time for voltage stabilization */
     #ifndef ADC_LARGE_BUFFER_CAP
       /* buffer cap: 1nF or none at all */
-      wait100us();                   /* 100µs */
+      wait100us();                   /* 100 µs */
     #else
       /* buffer cap: 100nF */
-      wait10ms();                    /* 10ms */
+      wait10ms();                    /* 10 ms */
     #endif
 
     #if 0
@@ -128,7 +128,7 @@ sample:
     /* auto-switch voltage reference for low readings */
     if (Counter == 4)                   /* 5 samples */
     {
-      if ((uint16_t)Value < 1024)       /* < 1V (5V / 5 samples) */
+      if ((uint16_t)Value < 1024)       /* < 1 V (5 samples -> 5 V) */
       {
         if (Ref != ADC_REF_BANDGAP)     /* bandgap ref not selected */
         {
@@ -165,7 +165,7 @@ sample:
   /* convert to voltage; */
   Value *= U;                      /* ADC readings * U_ref */
 //  Value += 511 * Cfg.Samples;      /* automagic rounding */
-  Value /= 1024;                   /* / 1024 for 10bit ADC */
+  Value /= 1024;                   /* / 1024 for 10-bit ADC */
 
   /* de-sample to get average voltage */
   Value /= Cfg.Samples;

@@ -463,6 +463,10 @@
 
   extern int8_t ShortCircuit(uint8_t Mode);
 
+  #ifdef UI_PROBES13_RCL
+  extern void ToolDone(void);
+  #endif
+
   extern void MarkItem(uint8_t Item, uint8_t Selected);
 
   extern void AdjustmentMenu(uint8_t Mode);

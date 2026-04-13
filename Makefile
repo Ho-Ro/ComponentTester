@@ -25,7 +25,6 @@ PROJECT = ComponentTester
 MCU = atmega328
 
 # MCU freqency:
-# - 1MHz  : 1
 # - 8MHz  : 8
 # - 16MHz : 16
 # - 20MHz : 20
@@ -214,8 +213,8 @@ $(NAME): ${OBJECTS}
 # output firmware size and other info
 size: ${NAME}
 	@echo
-	@avr-size $<
-#	@avr-objdump -Pmem-usage $<
+#	@avr-size -C --mcu=${MCU} $<
+	@avr-objdump -Pmem-usage $<
 
 
 #

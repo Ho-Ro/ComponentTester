@@ -2,7 +2,7 @@
  *
  *   signal tools (hardware and software options)
  *
- *   (c) 2012-2024 by Markus Reschke
+ *   (c) 2012-2025 by Markus Reschke
  *
  * ************************************************************************ */
 
@@ -52,7 +52,7 @@ volatile uint8_t         SweepDir;      /* sweep direction */
  *  - uses probe #2 (OC1B) as PWM output
  *    and probe #1 & probe #3 as ground
  *  - alternative: dedicated signal output via OC1B
- *  - max. reasonable PWM frequency for 8MHz MCU clock is 40kHz
+ *  - max. reasonable PWM frequency for 8 MHz MCU clock is 40 kHz
  *  - requires idle sleep mode to keep timer running when MCU is sleeping
  *
  *  requires:
@@ -78,11 +78,11 @@ void PWM_Tool(uint16_t Frequency)
    *  - range of top:         (2^2 - 1) up to (2^16 - 1)
    *
    *  - ranges for a 8MHz MCU clock:
-   *    prescaler  /2pre     top 2^16   top 2^2    top 100
-   *    1          4MHz      61Hz       1MHz       40kHz
-   *    8          500kHz    7.6Hz      125kHz     5kHz
-   *    64         62.5kHz   0.95Hz     15.625kHz  625Hz
-   *    256        15625Hz   0.24Hz     3906.25Hz  156.25Hz
+   *    prescaler  /2pre      top 2^16   top 2^2      top 100
+   *    1          4 MHz      61 Hz      1 MHz        40 kHz
+   *    8          500 kHz    7.6 Hz     125 kHz      5 kHz
+   *    64         62.5 kHz   0.95 Hz    15.625 kHz   625 Hz
+   *    256        15625 Hz   0.24 Hz    3906.25 Hz   156.25 Hz
    *  - to support a PWM ratio of 1% top should be at least 100
    */
 
@@ -287,7 +287,7 @@ void PWM_Tool(uint16_t Frequency)
  *  - uses probe #2 (OC1B) as PWM output
  *    and probe #1 & probe #3 as ground
  *  - alternative: dedicated signal output via OC1B
- *  - max. reasonable PWM frequency for 8MHz MCU clock is 40kHz
+ *  - max. reasonable PWM frequency for 8 MHz MCU clock is 40 kHz
  *  - requires additional keys (e.g. rotary encoder) and
  *    display with more than 2 text lines
  *  - requires idle sleep mode to keep timer running when MCU is sleeping
@@ -330,12 +330,12 @@ void PWM_Tool(void)
    *  - available prescalers:           1, 8, 64, 256, 1024
    *  - range of top:                   (2^2 - 1) up to (2^16 - 1)
    *  - ranges for a 8MHz MCU clock:
-   *    prescaler  /2pre       top 2^16   top 2^2    top 100
-   *    1          4MHz        61Hz       1MHz       40kHz
-   *    8          500kHz      7.6Hz      125kHz     5kHz
-   *    64         62.5kHz     0.95Hz     15.625kHz  625Hz
-   *    256        15625Hz     0.24Hz     3906.25Hz  156.25Hz
-   *    1024       3906.25Hz   0.06Hz     976.5Hz    39Hz
+   *    prescaler  /2pre        top 2^16   top 2^2      top 100
+   *    1          4 MHz        61 Hz      1 MHz        40 kHz
+   *    8          500 kHz      7.6 Hz     125 kHz      5 kHz
+   *    64         62.5 kHz     0.95 Hz    15.625 kHz   625 Hz
+   *    256        15625 Hz     0.24 Hz    3906.25 Hz   156.25 Hz
+   *    1024       3906.25 Hz   0.06 Hz    976.5 Hz     39 Hz
    *  - to support a PWM ratio of 1% top should be at least 100
    */
 
@@ -734,7 +734,7 @@ void Servo_Check(void)
   uint8_t           Mode;               /* UI mode */
   uint8_t           Test = 0;           /* user feedback */
   uint8_t           Index;              /* PWM index */
-  uint8_t           Period[4] = {200, 80, 40, 30};  /* in 0.1ms */
+  uint8_t           Period[4] = {200, 80, 40, 30};  /* in 0.1 ms */
   uint16_t          Toggle;             /* toggle value */
   uint16_t          Step;               /* step size */
   uint16_t          Temp;               /* temporary value */
@@ -757,7 +757,7 @@ void Servo_Check(void)
   /*
    *  MCU clock specific value
    *  - step size for a resolution of about 0.01ms
-   *  - 8MHz: 5, 16MHz: 10, 20MHz: 13
+   *  - 8 MHz: 5, 16 MHz: 10, 20 MHz: 13
    */
 
   #if (CPU_FREQ >= 16000000)
@@ -770,17 +770,17 @@ void Servo_Check(void)
 
   /*
    *  PWM for servos:
-   *  - frequency
-   *    50Hz / 20ms  analog servo
-   *    125Hz / 8ms  digital servo
-   *    250Hz / 4ms  high speed digital servo
-   *    333Hz / 3ms  high speed digital servo
-   *  - pulse 1 - 2ms (allow 0.5 - 2.5ms)
-   *    left   1.0ms
-   *    mid    1.5ms
-   *    right  2.0ms
+   *  - frequency / period
+   *    50 Hz / 20 ms  analog servo
+   *    125 Hz / 8 ms  digital servo
+   *    250 Hz / 4 ms  high speed digital servo
+   *    333 Hz / 3 ms  high speed digital servo
+   *  - pulse 1 - 2 ms (allow 0.5 - 2.5 ms)
+   *    left   1.0 ms
+   *    mid    1.5 ms
+   *    right  2.0 ms
    *  - typical rotation is 90-120° & 180°
-   *  - typical speed is 30-500ms/60°
+   *  - typical speed is 30-500 ms/60°
    */
 
   ShortCircuit(0);                 /* make sure probes are not shorted */
@@ -819,16 +819,16 @@ void Servo_Check(void)
    *        = (f_MCU * t_PWM) / (2 * prescaler)
    *  - toggle = (f_MCU * t_pulse) / (2 * prescaler)
    *  - use prescaler 1:8 for best resolution across all MCU clocks
-   *    with t_pulse in 0.1ms
+   *    with t_pulse in 0.1 ms
    *    = ((f_MCU / 10000) * t_pulse) / 16
    */
 
   /* PWM toggle values (t_pulse) */
-  #define SERVO_LEFT_MAX      (((CPU_FREQ / 10000) * 5) / 16)    /* 0.5ms */
-  #define SERVO_LEFT_NORM     (((CPU_FREQ / 10000) * 10) / 16)   /* 1.0ms */
-  #define SERVO_MID           (((CPU_FREQ / 10000) * 15) / 16)   /* 1.5ms */
-  #define SERVO_RIGHT_NORM    (((CPU_FREQ / 10000) * 20) / 16)   /* 2.0ms */  
-  #define SERVO_RIGHT_MAX     (((CPU_FREQ / 10000) * 25) / 16)   /* 2.5ms */
+  #define SERVO_LEFT_MAX      (((CPU_FREQ / 10000) * 5) / 16)    /* 0.5 ms */
+  #define SERVO_LEFT_NORM     (((CPU_FREQ / 10000) * 10) / 16)   /* 1.0 ms */
+  #define SERVO_MID           (((CPU_FREQ / 10000) * 15) / 16)   /* 1.5 ms */
+  #define SERVO_RIGHT_NORM    (((CPU_FREQ / 10000) * 20) / 16)   /* 2.0 ms */  
+  #define SERVO_RIGHT_MAX     (((CPU_FREQ / 10000) * 25) / 16)   /* 2.5 ms */
 
   /* sweep control */
   #define SERVO_STEP_MAX      (SERVO_LEFT_NORM / 10)   /* toggle_1ms / 10 */
@@ -836,7 +836,7 @@ void Servo_Check(void)
   /*
    *  calculate required values for sweep timer
    *  - Timer0, CTC mode
-   *  - t_step = 3ms -> f_step = 333Hz
+   *  - t_step = 3 ms -> f_step = 333 Hz
    *  - prescaler = 1024
    *  - top = (f_MCU / (f_step * prescaler)) - 1
    *        = (t_step / (t_MCU_cycle * prescaler)) - 1
@@ -878,8 +878,8 @@ void Servo_Check(void)
   TCCR1B = (1 << WGM13) | (1 << CS11);  /* start Timer1 by setting prescaler */
 
   /* set start values */
-  Toggle = SERVO_MID;              /* toggle value (1.5ms) */
-  Index = 0;                       /* #0 (20.0ms) */
+  Toggle = SERVO_MID;              /* toggle value (1.5 ms) */
+  Index = 0;                       /* #0 (20.0 ms) */
   SweepStep = 0;                   /* no step */
   SweepDir = 0;                    /* no direction */
   Mode = MODE_PULSE;               /* pulse width mode */
@@ -887,7 +887,7 @@ void Servo_Check(void)
 
   /*
    *  todo:
-   *  - since the pulse length is displayed with a resolution of 0.01ms
+   *  - since the pulse length is displayed with a resolution of 0.01 ms
    *    a visible change might need several steps
    *  - improve UI to give visual feedback for each step
    */
@@ -910,8 +910,8 @@ void Servo_Check(void)
     if (Flag & CHANGE_FREQ)
     {
       /* top = ((f_MCU / 10000) * t_pulse) / 16 */
-      Test = Period[Index];             /* get period */
-      Value = (CPU_FREQ / 10000);       /* MCU clock in 10kHz */
+      Test = Period[Index];             /* get period (in 0.1 ms)*/
+      Value = (CPU_FREQ / 10000);       /* MCU clock in 10 kHz */
       Value *= Test;
       Value /= 16; 
       OCR1A = (uint16_t)Value;          /* set top value */
@@ -1014,7 +1014,7 @@ void Servo_Check(void)
       {
         /*
          *  MCU clock specific value range
-         *  - 8MHz: 250-1250, 16MHz: 500-2500, 20MHz: 625-3125
+         *  - 8 MHz: 250-1250, 16 MHz: 500-2500, 20 MHz: 625-3125
          *  - use multiples of 0.01ms step size
          */
 
@@ -1027,7 +1027,7 @@ void Servo_Check(void)
       {
         /*
          *  MCU clock specific value
-         *  - change step size for a resolution of about 0.01ms
+         *  - change step size for a resolution of about 0.01 ms
          */
 
         Step = PULSE_STEP;
@@ -1247,8 +1247,8 @@ ISR(TIMER0_COMPA_vect, ISR_BLOCK)
    */
 
   /* toggle values for PWM */
-  #define SERVO_LEFT_NORM     (((CPU_FREQ / 10000) * 10) / 16)   /* 1.0ms */
-  #define SERVO_RIGHT_NORM    (((CPU_FREQ / 10000) * 20) / 16)   /* 2.0ms */
+  #define SERVO_LEFT_NORM     (((CPU_FREQ / 10000) * 10) / 16)   /* 1.0 ms */
+  #define SERVO_RIGHT_NORM    (((CPU_FREQ / 10000) * 20) / 16)   /* 2.0 ms */
 
 
   /*
@@ -1322,12 +1322,12 @@ void SquareWave_SignalGenerator(void)
       top:                  (2^2 - 1) up to (2^16 - 1)
 
       ranges for a 8MHz MCU clock:
-      prescaler  /pre       top 2^16     top 2^2
-      1          8MHz       122Hz        2MHz
-      8          1MHz       15.26Hz      250kHz
-      64         125kHz     1.9Hz        31.25kHz
-      256        31.25kHz   0.5Hz        7812.5Hz
-      1024       7812.5Hz   0.12Hz       1953.125Hz 
+      prescaler  /pre        top 2^16     top 2^2
+      1          8 MHz       122 Hz       2 MHz
+      8          1 MHz       15.26 Hz     250 kHz
+      64         125 kHz     1.9 Hz       31.25 kHz
+      256        31.25 kHz   0.5 Hz       7812.5 Hz
+      1024       7812.5 Hz   0.12 Hz      1953.125 Hz 
   */
 
   ShortCircuit(0);                      /* make sure probes are not shorted */
@@ -1375,7 +1375,7 @@ void SquareWave_SignalGenerator(void)
    *  processing loop
    */
 
-  /* set values for default frequency: 1kHz */
+  /* set values for default frequency: 1 kHz */
   Index = 0;                       /* prescaler 1/1 */
   Prescaler = 1;                   /* prescaler 1/1 */
   Bits = (1 << CS10);              /* register bits for prescaler 1 */

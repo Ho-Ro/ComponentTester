@@ -7,8 +7,8 @@
 
 ------------------------------------------------------------------------------
 
-Letzte Änderung: 2025-03-27
-Für Version:     1.55m
+Letzte Änderung: 2025-10-14
+Für Version:     1.56m
 
 Inhaltsübersicht:
   - Über den Tester
@@ -39,7 +39,7 @@ Inhaltsübersicht:
     - ST7565R
     - ST7735
     - ST7920
-    - STE2007/HX1230
+    - STE2007
     - VT100 Terminal
   - Tasten und Eingabeoptionen
     - Test-Taste
@@ -505,6 +505,7 @@ Im Augenblick werden folgende Controller unterstützt:
 - HD44780 (textbasiertes Display, 2-4 Zeilen mit je 16-20 Zeichen)
 - ILI9163 (grafisches Farb-Display 128x160)
 - ILI9341/ILI9342 (grafisches Farb-Display 240x320 oder 320x240)
+  kompatibel: ST7789 (240x320)
 - ILI9481 (grafisches Farb-Display 320x480, teilweise ungetestet)
 - ILI9486 (grafisches Farb-Display 320x480, teilweise ungetestet)
 - ILI9488 (grafisches Farb-Display 320x480, teilweise ungetestet)
@@ -514,9 +515,11 @@ Im Augenblick werden folgende Controller unterstützt:
 - SSD1306 (grafisches Display 128x64)
 - ST7036 (textbasiertes Display, 3 Zeilen mit je 16 Zeichen, ungetestet)
 - ST7565R (grafisches Display 128x64)
+  kompatibel: UC1701, NT7538
 - ST7735 (grafisches Farb-Display 128x160)
 - ST7920 (grafisches Display bis zu 256x64)
-- STE2007/HX1230 (grafisches Display 96x68)
+- STE2007 (grafisches Display 96x68)
+  kompatibel: HX1230
 - VT100 Terminal (über serielle Schnittstelle)
 
 Beachte die Versorgungsspannung und die Logikpegel des Anzeige-Moduls! Benutze
@@ -956,7 +959,7 @@ Wegen dem schlechten Design des ST7920 können nur Zeichensätze mit einer Breite
 von 8 Pixeln verwendet werden. Zur Handhabung der horizontalen Addressierung in
 16-Bit Schritten mußte ich einen Bildschirmpuffer für Zeichen einrichten.
 
-+ STE2007/HX1230
++ STE2007
 
 Der STE2007 wird typischerweise per 3-Draht-SPI gesteuert. Die Pins für 3-Draht-SPI 
 sind:
@@ -1238,10 +1241,10 @@ Schalter der Referenzschaltung bitte POWER_SWITCH_MANUAL in config.h
 aktivieren. In diesem Fall kann sich der Tester leider nicht selbst
 abschalten.
 
-Es gibt eine Option, um nach dem Einschalten in das Hauptmenü zu gehen, wenn
-zuvor beim Einschalten die Testtaste zweimal gedrückt wurde (
+Es gibt eine Option, um nach dem Einschalten direkt in das Hauptmenü zu gehen,
+wenn zuvor beim Einschalten die Testtaste zweimal gedrückt wurde (
 UI_MAINMENU_POWERON_BUTTON). Die Dauer der ersten Tastenbetätigung bestimmt
-weiterhin den Betriebmodus. 
+weiterhin den Betriebsmodus.
 
 
 * Bauteilesuche
@@ -1265,8 +1268,11 @@ Ist die Summer/Pieper-Option vorhanden, kannst Du einen kurzen Bestätigungston
 für das Ende der Bauteilesuche aktivieren (UI_PROBING_DONE_BEEP). Daneben gibt
 es auch eine Option zum temporären Umschalten in den Auto-Hold-Modus nachdem
 ein Bauteil erkannt wurde (im kontinuierlichen Modus, UI_AUTOHOLD_FOUND).
-Dies hilft beim Lesen der Ergebnisausgabe.
-
+Dies hilft beim Lesen der Ergebnisausgabe. Eine weitere Option (
+UI_PROBES13_RCL) startet automatisch den RCL-Monitor, wenn ein R, C oder L
+an den Testpins 1 und 3 angeklemmt ist. Um die erste Bauteilesuche nach dem
+Einschalten zu überspringen (im Auto-Hold-Modus), gibt es die Option
+UI_SKIP_FIRST_PROBING.
 
 * Batterieüberwachung
 
@@ -1635,6 +1641,12 @@ Hinweise:
 - Der Referenzkondensator sollte ein 1-nF-Folientyp mit kleiner Toleranz sein.
   Du kannst aber auch einen üblichen Folienkondensator um die 1 nF nehmen, ihn
   mit einem guten LCR-Meter messen, und LC_METER_C_REF entsprechend ändern.
+- Die L und C-Werte vom LC-Oszillator beeinflussen the Basisfrequenz (f_i).
+  Und der Wert vom Referenzkondensator beeinflusst die Frequenz (f_p) im
+  Selbstabgleichmodus. Wenn deren Werte deutlich abweichen, kannst Du die
+  Frequenzgrenzwerte FI_MIN, FI_MAX, FP_MIN und FP_MAX in tools_LC_Meter.c
+  anpassen, um die internen Prüfungen zu bestehen. Sei vorsichtig! Große
+  Abweichungen können zu Problemen bei den internen Berechnungen führen.
 - Wenn Dich die Frequenz des LC-Oszillators und ihr Driften interessiert, dann
   aktiviere LC_METER_SHOW_FREQ.
 
@@ -2723,8 +2735,15 @@ eines Kleinsignaltransistors mit einem anderen Strom gemessen wird als bei
 einem Leistungstransistor.
 
 Bei einem Bipolartransistor mit Basis-Emitter-Widerstand wird der Widerstand
-angezeigt. Beachte, dass der B-E-Widerstand Einfluss auf V_BE, hFE und C_be
-hat. Wenn der Transistor zusätzlich eine Schutzdiode hat, kann er als
+angezeigt (sofern < 25 kOhm). Beachte, dass der B-E-Widerstand Einfluss auf
+V_BE, hFE und C_be hat. Auch kann er in Verbindung mit dem pn-Übergang
+Basis-Kollektor zur Fehlerkennung einer Schutzdiode führen. Bei einem
+Germanium-Transistor mit hohem B-E-Gegenleckstrom kann fälschlicherweise ein
+B-E-Widerstand erkannt werden (äquivalent zum Leckstrom). Für einen Darlington-
+Transistor mit B-E-Widerständen wird nur der Serienwiderstand angezeigt (
+R1 + R2). Es gibt ein paar alte Darlington-Transistoren mit nur einem B-E-
+Widerstand für den zweiten Transistor. Dieser Widerstand kann nicht erkannt
+werden. Wenn der Transistor zusätzlich eine Schutzdiode hat, kann er als
 Transistor oder zwei Dioden erkannt werden, je nach Wert des Basis-Emitter-
 Widerstands. Im letzteren Fall werden zwei Dioden plus Widerstand mit dem
 Hinweis auf einen möglichen Transistor angezeigt. Ein niedriger Basis-Emitter-
@@ -2744,9 +2763,10 @@ einem Schottky-Transistor erhöht ist.
 Hinweise:
 - Der hohe hFE von Darlington-Transistoren kann in Verbindung mit EMV zu
   falschen I_CEO-Werten führen.
-- Ein Basis-Emitter-Widerstand macht die Werte für V_BE, hFE und C_be sinnlos.
+- Ein Basis-Emitter-Widerstand macht die Werte für V_BE, hFE und C_be sinnlos,
+  und kann zur Fehlerkennung einer Schutzdiode führen.
 - Wenn Du ein Temperaturproblem beim BJT vermutest, teste ihn im kalten
-  Zustand, erwärme ihn (Lötkolben oder Heizluft) und teste ihn nochmals 
+  Zustand, erwärme ihn (Lötkolben oder Heißluft) und teste ihn nochmals 
   im warmen Zustand.
 
 
