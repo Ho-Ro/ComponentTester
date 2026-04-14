@@ -191,7 +191,7 @@ OBJECTS = ${OBJECTS_C} ${OBJECTS_S}
 #  build
 #
 
-.PHONY: all size
+.PHONY: all
 all: ${NAME}.elf ${NAME}.hex ${NAME}.eep ${NAME}.lss size
 
 
@@ -217,6 +217,7 @@ ${NAME}.elf: ${OBJECTS}
 	${OBJDUMP} -h -S $< > $@
 
 # output firmware size and other info
+.PHONY: size
 size: ${NAME}.elf
 	@echo
 #	@avr-size -C --mcu=${MCU} $<
@@ -263,25 +264,25 @@ endif
 
 # program firmware and EEPROM data
 .PHONY: upload
-upload: ${NAME} ${NAME}.hex ${NAME}.eep ${NAME}.lss size
+upload: ${NAME}.hex ${NAME}.eep
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
 	  -U flash:w:${NAME}.hex:i -U eeprom:w:${NAME}.eep:i
 
 # program firmware only
 .PHONY: prog_fw
-prog_fw: ${NAME} ${NAME}.hex ${NAME}.lss size
+prog_fw: ${NAME}.hex
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
 	  -U flash:w:${NAME}.hex:i
 
 # program firmware only w/o verify
 .PHONY: fast_fw
-fast_fw: ${NAME} ${NAME}.hex ${NAME}.lss size
+fast_fw: ${NAME}.hex
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} -V\
 	  -U flash:w:${NAME}.hex:i
 
 # program EEPROM data only
 .PHONY: prog_ee
-prog_ee: ${NAME} ${NAME}.eep ${NAME}.lss size
+prog_ee: ${NAME}.eep
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
 	  -U eeprom:w:${NAME}.eep:i
 
@@ -293,7 +294,7 @@ get_cal:
 
 # restore EEPROM calibration data
 .PHONY: set_cal
-set_cal:
+set_cal: ${NAME}_cal.eep
 	avrdude -c ${PROGRAMMER} -P ${PORT} -p ${PARTNO} ${OPTIONS} \
 	  -U eeprom:w:${NAME}_cal.eep:i
 
