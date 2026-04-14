@@ -36,7 +36,7 @@
  *    to match your rotary encoder
  */
 
-//#define HW_ENCODER
+#define HW_ENCODER
 
 
 /*
@@ -58,7 +58,7 @@
  *  - adjust value to match your rotary encoder
  */
 
-#define ENCODER_STEPS    24
+#define ENCODER_STEPS    20
 
 
 /*
@@ -80,7 +80,7 @@
  *    reference
  */
 
-//#define HW_REF25
+#define HW_REF25
 
 
 /*
@@ -89,7 +89,7 @@
  *  - or use >= 5.5 digit DMM to measure the voltage
  */
 
-#define UREF_25           2495
+#define UREF_25           2499
 
 
 /*
@@ -114,7 +114,7 @@
  *  - uncomment to enable
  */
 
-//#define HW_ZENER
+#define HW_ZENER
 
 
 /*
@@ -137,7 +137,7 @@
  *  - uncomment to enable
  */
 
-//#define ZENER_UNSWITCHED
+#define ZENER_UNSWITCHED
 
 
 /*
@@ -188,7 +188,7 @@
  *  - uncomment to enable
  */
 
-//#define HW_FREQ_COUNTER_BASIC
+#define HW_FREQ_COUNTER_BASIC
 
 
 /*
@@ -461,7 +461,7 @@
  *  - uncomment to enable
  */
 
-//#define SW_ESR_TOOL
+#define SW_ESR_TOOL
 
 
 /*
@@ -489,7 +489,7 @@
  *  - uncomment to enable
  */
 
-#define SW_IR_RECEIVER
+//#define SW_IR_RECEIVER
 
 
 /*
@@ -567,7 +567,7 @@
  *  - uncomment to enable
  */
 
-#define SW_OPTO_COUPLER
+//#define SW_OPTO_COUPLER
 
 
 /*
@@ -644,7 +644,7 @@
  *  - uncomment to enable
  */
 
-//#define SW_CAP_LEAKAGE
+#define SW_CAP_LEAKAGE
 
 
 /*
@@ -653,7 +653,7 @@
  *  - uncomment to enable
  */
 
-//#define SW_REVERSE_HFE
+#define SW_REVERSE_HFE
 
 
 /*
@@ -663,7 +663,7 @@
  *  - uncomment to enable
  */
 
-//#define SW_HFE_CURRENT
+#define SW_HFE_CURRENT
 
 
 /*
@@ -685,7 +685,7 @@
 //#define SW_MONITOR_R          /* just R */
 //#define SW_MONITOR_C          /* just C plus ESR */
 //#define SW_MONITOR_L          /* just L */
-//#define SW_MONITOR_RCL        /* R plus L, or C plus ESR */
+#define SW_MONITOR_RCL        /* R plus L, or C plus ESR */
 //#define SW_MONITOR_RL         /* R plus L */
 
 
@@ -766,7 +766,7 @@
  *  - uncomment to enable
  */ 
 
-//#define SW_C_VLOSS
+#define SW_C_VLOSS
 
 
 /*
@@ -783,7 +783,7 @@
  *  - uncomment to enable
  */
 
-//#define SW_DIODE_LED
+#define SW_DIODE_LED
 
 
 /*
@@ -931,7 +931,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_AUTOHOLD
+#define UI_AUTOHOLD
 
 
 /*
@@ -976,7 +976,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_KEY_HINTS
+#define UI_KEY_HINTS
 
 
 /*
@@ -1042,7 +1042,7 @@
  *  - uncomment to enable, also adjust timeout (in s)
  */
 
-//#define POWER_OFF_TIMEOUT     60
+#define POWER_OFF_TIMEOUT     60
 
 
 /*
@@ -1079,7 +1079,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_ZENER_DIODE
+#define UI_ZENER_DIODE
 
 
 /*
@@ -1125,7 +1125,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_BATTERY
+#define UI_BATTERY
 
 
 /*
@@ -1154,7 +1154,7 @@
  *    (COLOR_PROBE_1, COLOR_PROBE_2 and COLOR_PROBE_3)
  */
 
-#define UI_PROBE_COLORS
+//#define UI_PROBE_COLORS
 
 
 /*
@@ -1164,7 +1164,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_COLORED_TITLES
+#define UI_COLORED_TITLES
 
 
 /*
@@ -1174,7 +1174,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_COLORED_CURSOR
+#define UI_COLORED_CURSOR
 
 
 /*
@@ -1203,7 +1203,7 @@
  *  - uncomment to enable
  */
 
-//#define UI_MAINMENU_AUTOEXIT
+#define UI_MAINMENU_AUTOEXIT
 
 
 /*
@@ -1211,7 +1211,7 @@
  *  - uncomment to enable
  */
 
-//#define SW_POWER_OFF
+#define SW_POWER_OFF
 
 
 /*
@@ -1289,8 +1289,8 @@
  *  - uncomment one
  */ 
 
-#define DATA_EEPROM           /* store data in EEPROM */
-//#define DATA_FLASH            /* store data in Flash */
+//#define DATA_EEPROM           /* store data in EEPROM */
+#define DATA_FLASH            /* store data in Flash */
 
 
 
@@ -1355,10 +1355,10 @@
  *  transistor (in mV):
  *  - or any other circuitry in the power section
  *  - Get your DMM and measure the voltage drop!
- *  - Schottky diode about 200mV / PNP BJT about 100mV.
+ *  - Schottky diode about 350mV / PNP BJT about 150mV.
  */  
 
-#define BAT_OFFSET       290
+#define BAT_OFFSET       500
 
 
 /*
@@ -1367,7 +1367,7 @@
  *  - Voltage drop BAT_OFFSET is considered in calculation.
  */
 
-#define BAT_WEAK         7400
+#define BAT_WEAK         7000
 
 
 /*
@@ -1376,7 +1376,7 @@
  *  - Voltage drop BAT_OFFSET is considered in calculation.
  */
 
-#define BAT_LOW          6400 
+#define BAT_LOW          6000
 
 
 /*
@@ -1418,10 +1418,10 @@
  */
 
 /* Rl in Ohms */
-#define R_LOW            680
+#define R_LOW            679
 
 /* Rh in Ohms */
-#define R_HIGH           470000
+#define R_HIGH           470413
 
 
 /*

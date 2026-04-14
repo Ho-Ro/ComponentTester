@@ -580,18 +580,18 @@ uint8_t MeasureInductor(Resistor_Type *Resistor)
       #endif
 
       #if CPU_FREQ == 20000000
-      /* 20 MHz */
+      /* 20 MHz - modifications provided by indman@EEVBlog */
       if (Temp < 1500)        /* < 1.5µs / < 100µH */
       {
-        Offset = 10;
+        Offset = -10;
       }
       else if (Temp < 5000)   /* 1.5-5µs / 100-330µH */
       {
-        Offset = -20; 
+        Offset = -10;
       }
       else                    /* > 5µs / > 330µH */
       {
-        Offset = -70;
+        Offset = -30;
       }
       #endif
     }
